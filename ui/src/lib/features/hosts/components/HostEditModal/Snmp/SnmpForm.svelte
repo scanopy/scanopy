@@ -1,31 +1,31 @@
 <script lang="ts">
-	import type { HostFormData, IPAddress } from '$lib/features/hosts/types/base';
-	import type { Site } from '$lib/features/sites/types';
-	import type { Credential } from '$lib/features/credentials/types/base';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useCan } from '$lib/features/auth/access';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { billingPlans, entities } from '$lib/shared/stores/metadata';
-	import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
+	import type { HostFormData, IPAddress } from '#lib/features/hosts/types/base.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import type { Credential } from '#lib/features/credentials/types/base.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { billingPlans, entities } from '#lib/shared/stores/metadata.ts';
+	import { CredentialDisplay } from '#lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
 	import {
 		IPAddressDisplay,
 		type IPAddressDisplayContext
-	} from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
+	} from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+	import { getCredentialTypeId } from '#lib/features/credentials/types/base.ts';
 	import {
 		claimedIntegrations,
 		daemonHostBlockReason
-	} from '$lib/features/credentials/utils/daemonHostBlocking';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	} from '#lib/features/credentials/utils/daemonHostBlocking.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import {
 		common_credentialDemoReadOnly,
 		credentials_addInterfaces,
@@ -41,7 +41,7 @@
 		hosts_snmp_credentialOverride,
 		hosts_snmp_noOverrides,
 		daemons_credentialWizardSiteCredentials
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: HostFormData;

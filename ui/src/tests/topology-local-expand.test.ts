@@ -14,13 +14,13 @@ const { computeSpy } = vi.hoisted(() => ({
 	}))
 }));
 
-vi.mock('$lib/features/topology/layout/engine', () => ({
+vi.mock('#lib/features/topology/layout/engine.ts', () => ({
 	ElkLayoutEngine: class {
 		compute = computeSpy;
 	}
 }));
 
-vi.mock(import('$lib/shared/stores/metadata'), async (importOriginal) => ({
+vi.mock(import('#lib/shared/stores/metadata.ts'), async (importOriginal) => ({
 	...(await importOriginal()),
 	containerTypes: {
 		getMetadata: () => ({
@@ -31,11 +31,14 @@ vi.mock(import('$lib/shared/stores/metadata'), async (importOriginal) => ({
 	} as unknown as Awaited<ReturnType<typeof importOriginal>>['containerTypes']
 }));
 
-import { executeLayout, localExpandTarget } from '$lib/features/topology/pipeline/execute-layout';
-import { createInitialState } from '$lib/features/topology/pipeline/types';
-import type { PrepareResult } from '$lib/features/topology/pipeline/types';
-import { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
+import {
+	executeLayout,
+	localExpandTarget
+} from '#lib/features/topology/pipeline/execute-layout.ts';
+import { createInitialState } from '#lib/features/topology/pipeline/types.ts';
+import type { PrepareResult } from '#lib/features/topology/pipeline/types.ts';
+import { LayoutGraph } from '#lib/features/topology/layout/layout-graph.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
 
 type Box = { id: string; x: number; y: number; w: number; h: number };
 
@@ -143,9 +146,10 @@ describe('LayoutGraph.makeRoomFor', () => {
 			);
 			for (let i = 0; i < after.length; i++) {
 				for (let j = i + 1; j < after.length; j++) {
-					expect(overlap(after[i], after[j]), `round ${round}: ${after[i].id} / ${after[j].id}`).toBe(
-						false
-					);
+					expect(
+						overlap(after[i], after[j]),
+						`round ${round}: ${after[i].id} / ${after[j].id}`
+					).toBe(false);
 				}
 			}
 		}
@@ -334,13 +338,7 @@ describe('executeLayout with a local expand', () => {
 	it('runs the full layout when the run has no local expand', async () => {
 		const state = laidOutState();
 
-		await executeLayout(
-			TOPOLOGY,
-			state,
-			prep({ localExpand: undefined }),
-			new Map(),
-			() => false
-		);
+		await executeLayout(TOPOLOGY, state, prep({ localExpand: undefined }), new Map(), () => false);
 
 		const input = computeSpy.mock.calls[0][0] as unknown as { nodes: { id: string }[] };
 		expect(input.nodes.map((node) => node.id)).toEqual(['open', 'card', 'right']);

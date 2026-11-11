@@ -1,4 +1,4 @@
-import type { Tag } from '$lib/features/tags/types/base';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 
 /**
  * The tag the typed text completes to, or `null`. The text, trimmed and ignoring case, must start

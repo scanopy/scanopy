@@ -4,9 +4,9 @@ import {
 	updateTagFilter,
 	tagHiddenNodeIds,
 	hiddenEntityIds
-} from '$lib/features/topology/interactions';
-import type { RenderableTopology, Topology } from '$lib/features/topology/types/base';
-import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
+} from '#lib/features/topology/interactions.ts';
+import type { RenderableTopology, Topology } from '#lib/features/topology/types/base.ts';
+import { entityBundleFrom, toRenderableTopology } from '#lib/features/topology/enriched.ts';
 
 const SITE_ID = 'net-1';
 

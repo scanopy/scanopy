@@ -5,10 +5,10 @@
  */
 
 import { createQuery, keepPreviousData } from '@tanstack/svelte-query';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
 import {
 	globalSearchQuery,
 	hasSearchTerms,

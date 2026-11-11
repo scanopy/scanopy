@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import {
 		useTagsQuery,
 		useTagGroupsQuery,
@@ -12,19 +12,19 @@
 		useSetTagOrderMutation
 	} from '../queries';
 	import TagGroupEditModal from './TagGroupEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import type { TagGroup } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { disabledWhen, type RowAction } from '$lib/shared/components/data/types';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { disabledWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import { isSystemGroup } from '../groups';
 	import { tagGroupColumns } from './TagGroupTab.columns';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -34,9 +34,9 @@
 		tags_tagGroupsSubtitle,
 		tags_systemGroupFixed,
 		tags_systemGroupFixedBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

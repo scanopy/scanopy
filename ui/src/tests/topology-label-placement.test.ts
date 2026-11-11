@@ -7,7 +7,7 @@ import {
 	placeLabels,
 	type LabelCandidate,
 	type LabelViewport
-} from '$lib/features/topology/pipeline/label-placement';
+} from '#lib/features/topology/pipeline/label-placement.ts';
 
 const box = (
 	id: string,

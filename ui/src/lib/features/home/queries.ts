@@ -3,10 +3,10 @@
  */
 
 import { createQuery } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
-import { useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
+import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 import type { SetupListEntry } from './setup-list';
 
 /**

@@ -1,5 +1,5 @@
-import { getLocale } from '$lib/paraglide/runtime';
-import { common_andNMore } from '$lib/paraglide/messages';
+import { getLocale } from '#lib/paraglide/runtime.js';
+import { common_andNMore } from '#lib/paraglide/messages.js';
 
 /** How many items a list names before eliding the rest. A line long enough to scroll is not read. */
 export const MAX_LISTED = 10;

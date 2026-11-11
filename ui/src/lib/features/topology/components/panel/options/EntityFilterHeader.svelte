@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	import { Eye, EyeOff, FunnelX } from '@lucide/svelte';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { hoveredTag } from '../../../interactions';
 	import {
 		topology_hideEntity,
 		topology_showEntity,
 		topology_hideLastElementDisabled,
 		topology_clearSectionFilters
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type EntityType = components['schemas']['EntityDiscriminants'];
 

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Plus } from '@lucide/svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
 	import TagCompletionGhost from './TagCompletionGhost.svelte';
-	import InputGhost from '$lib/shared/components/forms/input/InputGhost.svelte';
-	import { tagCompletion } from '$lib/features/tags/completion';
+	import InputGhost from '#lib/shared/components/forms/input/InputGhost.svelte';
+	import { tagCompletion } from '#lib/features/tags/completion.ts';
 	import {
 		useTagsQuery,
 		useTagGroupsQuery,
@@ -12,14 +12,14 @@
 		useBulkAddTagMutation,
 		useBulkRemoveTagMutation,
 		type EntityDiscriminants
-	} from '$lib/features/tags/queries';
-	import { createDefaultTag } from '$lib/features/tags/types/base';
-	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
-	import { useCan } from '$lib/features/auth/access';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	} from '#lib/features/tags/queries.ts';
+	import { createDefaultTag } from '#lib/features/tags/types/base.ts';
+	import { AVAILABLE_COLORS, type Color } from '#lib/shared/utils/styling.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { tick, untrack } from 'svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		common_creating,
@@ -29,10 +29,10 @@
 		tags_notAvailableHere,
 		tags_planRequired,
 		billing_lapsedBannerCta
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import CreatableOptionList, {
 		CREATE_ROW
-	} from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
+	} from '#lib/shared/components/forms/selection/CreatableOptionList.svelte';
 	import {
 		applicationGroupId,
 		compareTagsByGroup,
@@ -44,7 +44,7 @@
 		tagIcon,
 		tagTooltip,
 		withTagAdded
-	} from '$lib/features/tags/groups';
+	} from '#lib/features/tags/groups.ts';
 
 	/**
 	 * Compact inline tag picker for use in cards and bulk actions.
@@ -93,7 +93,7 @@
 		onRemove?: (tagId: string) => void;
 		onChange?: (tagIds: string[]) => void;
 		label?: string;
-		availableTags?: import('$lib/features/tags/types/base').Tag[];
+		availableTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		createAsApplication?: boolean;
 		onePerGroup?: boolean;
 		allowCreate?: boolean;

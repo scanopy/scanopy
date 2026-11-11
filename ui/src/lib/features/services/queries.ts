@@ -10,14 +10,14 @@ import {
 	useQueryClient,
 	keepPreviousData
 } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
 import type { Service } from './types/base';
-import { utcTimeZoneSentinel } from '$lib/shared/utils/formatting';
+import { utcTimeZoneSentinel } from '#lib/shared/utils/formatting.ts';
 import { v4 as uuidv4 } from 'uuid';
-import type { components, operations } from '$lib/api/schema';
-import { withListParams } from '$lib/api/list-params';
+import type { components, operations } from '#lib/api/schema';
+import { withListParams } from '#lib/api/list-params.ts';
 
 // Re-export type for convenience
 export type { Service };

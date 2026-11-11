@@ -2,13 +2,13 @@
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
-	import { queryClient } from '$lib/api/query-client';
-	import AppShell from '$lib/shared/components/layout/AppShell.svelte';
+	import { queryClient } from '#lib/api/query-client.ts';
+	import AppShell from '#lib/shared/components/layout/AppShell.svelte';
 	import '../app.css';
-	import { VERSION } from '$lib/version';
-	import { browser } from '$app/environment';
-	import { captureFirstTouch } from '$lib/shared/utils/first-touch';
-	import { trackPointerFocus } from '$lib/shared/utils/pointer-focus';
+	import { VERSION } from '#lib/version.ts';
+	import { browser } from '$app/env';
+	import { captureFirstTouch } from '#lib/shared/utils/first-touch.ts';
+	import { trackPointerFocus } from '#lib/shared/utils/pointer-focus.ts';
 
 	// Snapshot landing URL/UTMs before any auth redirect can rewrite the URL
 	if (browser) {
@@ -23,6 +23,4 @@
 	});
 </script>
 
-<QueryClientProvider client={queryClient}>
-	<AppShell {children} />
-</QueryClientProvider>
+<QueryClientProvider client={queryClient}><AppShell {children} /></QueryClientProvider>

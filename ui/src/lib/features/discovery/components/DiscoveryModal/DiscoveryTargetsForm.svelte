@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import type { Discovery } from '../../types/base';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { subnetTypes } from '$lib/shared/stores/metadata';
-	import type { Daemon } from '$lib/features/daemons/types/base';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
 	import {
 		discovery_allSubnetsScanned,
 		discovery_daemonHostMissing,
@@ -17,7 +17,7 @@
 		discovery_selectSubnet,
 		discovery_targetSubnets,
 		discovery_targetSubnetsHelp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: Discovery;

@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import { siteColumns } from './SitesTab.columns';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import type { Site } from '../types';
 	import SiteEditModal from './SiteEditModal.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import type { RowAction } from '$lib/shared/components/data/types';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_confirmBulkDelete,
 		common_create,
@@ -24,9 +24,9 @@
 		common_sites,
 		common_noEntityYet,
 		sites_confirmDelete
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
@@ -38,17 +38,17 @@
 		useDeleteSiteMutation,
 		useBulkDeleteSitesMutation
 	} from '../queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useVlansQuery } from '$lib/features/vlans/queries';
-	import { useDependenciesQuery } from '$lib/features/dependencies/queries';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { isUserManagedSubnet, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useVlansQuery } from '#lib/features/vlans/queries.ts';
+	import { useDependenciesQuery } from '#lib/features/dependencies/queries.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
 
 	type SiteOrderField = components['schemas']['SiteOrderField'];
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 
 	// Queries
 

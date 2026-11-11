@@ -5,19 +5,19 @@
 	// root layout via AppShell -> PaymentMethodModal, meaning every page did. On share and embed
 	// routes, whose CSP deliberately allows no third-party scripts, that surfaced as a blocked
 	// script. The shared loader (`preloadStripe`) uses `/pure`, which defers injection until it runs.
-	import { preloadStripe, preparePaymentForm } from '$lib/features/billing/stripe.svelte';
+	import { preloadStripe, preparePaymentForm } from '#lib/features/billing/stripe.svelte.ts';
 	// Types only — `/pure` re-exports just the runtime function. `import type` is erased at
 	// compile time, so this never pulls the injecting module into the bundle.
 	import type { Stripe, StripeElements, StripePaymentElement } from '@stripe/stripe-js';
-	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import { buildStripeAppearance } from '#lib/shared/billing/stripe-appearance.ts';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { untrack } from 'svelte';
-	import { useDelayedFlag } from '$lib/shared/utils/delayed-flag.svelte';
-	import type { PaymentFormFailure } from '$lib/shared/billing/setup-payment';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { useModalActions } from '$lib/shared/components/layout/modalActionsContext.svelte';
+	import { useDelayedFlag } from '#lib/shared/utils/delayed-flag.svelte.ts';
+	import type { PaymentFormFailure } from '#lib/shared/billing/setup-payment.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { useModalActions } from '#lib/shared/components/layout/modalActionsContext.svelte.ts';
 	import {
 		common_cancel,
 		common_continue,
@@ -25,7 +25,7 @@
 		common_tryAgain,
 		billing_cardError,
 		billing_cardLoadError
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		clientSecret,

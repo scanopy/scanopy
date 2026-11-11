@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import resourcesJson from '$lib/data/resources.json';
+import resourcesJson from '#lib/data/resources.json';
 import schema from '../../static/openapi.json';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

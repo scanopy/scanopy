@@ -1,29 +1,29 @@
 import type { Credential, CredentialOrderField } from '../types/base';
-import type { operations } from '$lib/api/schema';
-import { entityRef, type CardFieldItem } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
+import type { operations } from '#lib/api/schema';
+import { entityRef, type CardFieldItem } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import { credentialIntegrations, credentialTypes, entities } from '#lib/shared/stores/metadata.ts';
 import {
 	getCredentialTypeId,
 	getScopeTagProps,
 	isLoginType,
 	getUpstreamSupportTagProps
-} from '$lib/features/credentials/types/base';
-import { getStabilityTagProps } from '$lib/shared/utils/stability';
-import type { Host } from '$lib/features/hosts/types/base';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import osFamilies from '$lib/data/os-families.json';
+} from '#lib/features/credentials/types/base.ts';
+import { getStabilityTagProps } from '#lib/shared/utils/stability.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import osFamilies from '#lib/data/os-families.json';
 import {
 	common_assignments,
 	common_category,
 	credentials_betaTooltip,
 	common_type,
 	common_tags
-} from '$lib/paraglide/messages';
-import { tagNames } from '$lib/features/tags/columns';
+} from '#lib/paraglide/messages.js';
+import { tagNames } from '#lib/features/tags/columns.ts';
 
 /** The integration a credential's type belongs to, as its `credentialIntegrations` id. */
 function integrationId(item: Credential): string {

@@ -1,27 +1,27 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Tag } from '../types/base';
 	import { createDefaultTag } from '../types/base';
-	import { createColorHelper, AVAILABLE_COLORS } from '$lib/shared/utils/styling';
+	import { createColorHelper, AVAILABLE_COLORS } from '#lib/shared/utils/styling.ts';
 	import { TagIcon } from '@lucide/svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import IconPicker from '$lib/shared/components/forms/IconPicker.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import IconPicker from '#lib/shared/components/forms/IconPicker.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		NO_TAG_GROUP,
 		TagGroupOptionDisplay
-	} from '$lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
 	import { useTagGroupsQuery } from '../queries';
-	import tagIconsFixture from '$lib/data/tag-icons.json';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import tagIconsFixture from '#lib/data/tag-icons.json';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_cancel,
 		common_color,
@@ -42,7 +42,7 @@
 		tags_tagGroupPlaceholder,
 		tags_iconApplicationFixed,
 		tags_tagNamePlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		tag = null,

@@ -8,9 +8,9 @@ import {
 	writeStoredLayout,
 	type LayoutKeyInputs,
 	type StoredLayout
-} from '$lib/features/topology/pipeline/layout-store';
-import { createInitialState } from '$lib/features/topology/pipeline/types';
-import type { TopologyEdge, TopologyNode } from '$lib/features/topology/types/base';
+} from '#lib/features/topology/pipeline/layout-store.ts';
+import { createInitialState } from '#lib/features/topology/pipeline/types.ts';
+import type { TopologyEdge, TopologyNode } from '#lib/features/topology/types/base.ts';
 
 const node = (id: string, header = id): TopologyNode =>
 	({ id, node_type: 'Container', header }) as unknown as TopologyNode;

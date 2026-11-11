@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Tag from './Tag.svelte';
 	import type { EntityRef } from './types';
-	import type { Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { entityUIConfig } from '$lib/shared/entity-ui-config';
-	import { entityRefTooltip } from '$lib/shared/entity-tooltip';
-	import { dismissTooltip } from '$lib/shared/actions/tooltip';
-	import { navigateToEntity } from '$lib/shared/stores/modal-registry';
+	import type { Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { entityUIConfig } from '#lib/shared/entity-ui-config.ts';
+	import { entityRefTooltip } from '#lib/shared/entity-tooltip.ts';
+	import { dismissTooltip } from '#lib/shared/actions/tooltip.ts';
+	import { navigateToEntity } from '#lib/shared/stores/modal-registry.ts';
 	import { getContext } from 'svelte';
 
 	const isStaticTags = getContext<boolean>('staticTags') ?? false;

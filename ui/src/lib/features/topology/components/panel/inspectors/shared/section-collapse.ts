@@ -1,4 +1,4 @@
-import { persistedSet, toggleInSet } from '$lib/shared/stores/persisted-set';
+import { persistedSet, toggleInSet } from '#lib/shared/stores/persisted-set.ts';
 
 /**
  * Inspector sections and subsections the viewer collapsed, keyed by section id (not by the

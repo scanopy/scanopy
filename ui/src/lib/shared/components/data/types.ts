@@ -1,10 +1,10 @@
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import type { Snippet } from 'svelte';
-import type { Color } from '$lib/shared/utils/styling';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import type { AttributeSource } from '$lib/shared/utils/attribute-source';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
-import type { components } from '$lib/api/schema';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import type { AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
+import type { components } from '#lib/api/schema';
 
 /** The heading a column is listed under in the column menu; see `field-groups.json`. */
 export type FieldGroup = components['schemas']['FieldGroup'];

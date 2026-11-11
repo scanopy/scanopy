@@ -9,13 +9,13 @@
 		clearStoredShareAccessToken
 	} from '../queries';
 	import type { PublicShareMetadata, ShareWithTopology } from '../types/base';
-	import type { ErrorCode } from '$lib/generated/error-codes';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import type { ErrorCode } from '#lib/generated/error-codes.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
 	import PasswordGate from './PasswordGate.svelte';
 	import ReadOnlyTopologyViewer from './ReadOnlyTopologyViewer.svelte';
 	import { AlertTriangle } from '@lucide/svelte';
-	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
-	import type { TopologyView } from '$lib/features/topology/queries';
+	import { entityBundleFrom, toRenderableTopology } from '#lib/features/topology/enriched.ts';
+	import type { TopologyView } from '#lib/features/topology/queries.ts';
 
 	const SHARE_TOKEN_INVALID: ErrorCode = 'share_token_invalid';
 	interface Props {

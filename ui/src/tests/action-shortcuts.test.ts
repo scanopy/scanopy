@@ -5,9 +5,9 @@ import {
 	shownActions,
 	DELETE_KEY,
 	RESERVED_ACTION_KEYS
-} from '$lib/shared/components/data/controls/actionShortcuts';
-import type { RowAction } from '$lib/shared/components/data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
+} from '#lib/shared/components/data/controls/actionShortcuts.ts';
+import type { RowAction } from '#lib/shared/components/data/types.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 const action = (label: string, extra: Partial<RowAction> = {}): RowAction => ({
 	label,

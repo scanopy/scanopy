@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Home, Building2, Users, Boxes } from '@lucide/svelte';
 	import { type UseCase, getUseCases } from '../../types/base';
-	import { useConfigQuery, isCommunity } from '$lib/shared/stores/config-query';
+	import { useConfigQuery, isCommunity } from '#lib/shared/stores/config-query.ts';
 	import { onboardingStore } from '../../stores/onboarding';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import {
 		auth_scanopyLogo,
 		onboarding_alreadyHaveAccount,
@@ -13,8 +13,8 @@
 		onboarding_howWillYouUse,
 		onboarding_logInHere,
 		onboarding_understandContinue
-	} from '$lib/paraglide/messages';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	} from '#lib/paraglide/messages.js';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 
 	let {
 		isOpen,

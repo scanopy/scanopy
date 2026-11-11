@@ -7,15 +7,15 @@ import {
 	type DiagramModel,
 	type DiagramSourceEdge,
 	type DiagramSourceNode
-} from '$lib/features/topology/diagram-export/model';
-import { serializeDrawio, toDrawioCells } from '$lib/features/topology/diagram-export/drawio';
-import { fieldKeys } from '$lib/features/topology/diagram-export/xml';
-import { buildVsdxParts, zipVsdx } from '$lib/features/topology/diagram-export/vsdx';
-import { createDescriber } from '$lib/features/topology/diagram-export/describe';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import { topologyLookup } from '$lib/features/topology/resolvers';
-import { entityTooltip } from '$lib/shared/entity-tooltip';
-import { subnetTypes } from '$lib/shared/stores/metadata';
+} from '#lib/features/topology/diagram-export/model.ts';
+import { serializeDrawio, toDrawioCells } from '#lib/features/topology/diagram-export/drawio.ts';
+import { fieldKeys } from '#lib/features/topology/diagram-export/xml.ts';
+import { buildVsdxParts, zipVsdx } from '#lib/features/topology/diagram-export/vsdx.ts';
+import { createDescriber } from '#lib/features/topology/diagram-export/describe.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
+import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 
 const SUBNET = {
 	id: 'lan',

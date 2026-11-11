@@ -3,8 +3,8 @@ import { writable } from 'svelte/store';
 
 const modalState = writable<{ name: string | null }>({ name: null });
 
-vi.mock('$lib/version', () => ({ VERSION: '0.19.3' }));
-vi.mock('$lib/shared/stores/modal-registry', () => ({ modalState }));
+vi.mock('#lib/version', () => ({ VERSION: '0.19.3' }));
+vi.mock('#lib/shared/stores/modal-registry.ts', () => ({ modalState }));
 
 const reload = vi.fn();
 let storage: Map<string, string>;
@@ -12,7 +12,7 @@ let storage: Map<string, string>;
 /** A fresh module per test: the pending flag and the modal wait are module state. */
 async function load() {
 	vi.resetModules();
-	return import('$lib/api/server-version');
+	return import('#lib/api/server-version.ts');
 }
 
 describe('checkServerVersion', () => {

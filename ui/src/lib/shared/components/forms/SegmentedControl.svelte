@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
 
 	interface Option {
 		value: string;

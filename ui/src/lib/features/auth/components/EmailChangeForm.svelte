@@ -4,13 +4,13 @@
 	// buttons, and calls submit() and reset().
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { createForm } from '@tanstack/svelte-form';
-	import { queryKeys } from '$lib/api/query-client';
-	import { apiClient } from '$lib/api/client';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, email as emailValidator } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import { apiClient } from '#lib/api/client.ts';
+	import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, email as emailValidator } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		common_currentPassword,
 		common_email,
@@ -20,7 +20,7 @@
 		settings_account_emailChanged,
 		settings_account_enterEmail,
 		settings_account_verificationSentTo
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		// eslint-disable-next-line no-useless-assignment -- bound by the parent, which reads it

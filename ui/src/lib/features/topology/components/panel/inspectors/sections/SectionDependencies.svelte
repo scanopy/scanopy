@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { DependencyDisplay } from '#lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 	import {
 		common_inbound,
 		common_outbound,
 		inspector_noDependencies
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
 

@@ -7,7 +7,7 @@
  * two conditions that make a node unconditionally visible.
  */
 import { describe, it, expect } from 'vitest';
-import { summariseCullability, type CullableNode } from '$lib/features/topology/diagnostics';
+import { summariseCullability, type CullableNode } from '#lib/features/topology/diagnostics.ts';
 
 const cullable = (): CullableNode => ({
 	measured: { width: 250, height: 120 },

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import {
 		useCredentialsQuery,
 		useCredentialsListQuery,
@@ -9,38 +9,38 @@
 		useBulkDeleteCredentialsMutation
 	} from '../queries';
 	import CredentialEditModal from './CredentialEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import type { Credential } from '../types/base';
 	import type { CredentialOrderField } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import {
 		disabledWhen,
 		type RowAction,
 		type CardFieldItem
-	} from '$lib/shared/components/data/types';
+	} from '#lib/shared/components/data/types.ts';
 	import { credentialColumns } from './CredentialsTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import type { Site } from '$lib/features/sites/types';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+	import { getCredentialTypeId } from '#lib/features/credentials/types/base.ts';
 	import {
 		modalState,
 		openModal,
 		resolveModalDeepLink,
 		type ModalState
-	} from '$lib/shared/stores/modal-registry';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import type { Host } from '$lib/features/hosts/types/base';
+	} from '#lib/shared/stores/modal-registry.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -59,10 +59,10 @@
 		credentials_loginInUse,
 		credentials_loginInUseBulk,
 		gettingStarted_stepDaemonLabel
-	} from '$lib/paraglide/messages';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	} from '#lib/paraglide/messages.js';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 
-	import { useCan } from '$lib/features/auth/access';
+	import { useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

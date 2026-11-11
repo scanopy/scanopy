@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Organization } from '$lib/features/organizations/types';
-import { trialChargeDate } from '$lib/shared/utils/trial';
+import type { Organization } from '#lib/features/organizations/types.ts';
+import { trialChargeDate } from '#lib/shared/utils/trial.ts';
 
 const now = Date.UTC(2026, 9, 25);
 const day = 24 * 60 * 60 * 1000;

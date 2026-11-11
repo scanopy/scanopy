@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
-import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-import { discoveryTypes } from '$lib/shared/stores/metadata';
+import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+import { discoveryTypes } from '#lib/shared/stores/metadata.ts';
 import type { Discovery } from '../../types/base';
 import {
 	discoveryFields,
@@ -10,14 +10,14 @@ import {
 	type DiscoveryListParam,
 	type DiscoverySharedOrderField
 } from '../../queries';
-import type { DisplayConfig } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import type { DisplayConfig } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import type { DiscoveryUpdatePayload } from '../../types/api';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 import {
 	common_legacy,
 	common_manual,
@@ -26,7 +26,7 @@ import {
 	common_tags,
 	discovery_legacyTagTitle,
 	discovery_runType
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /**
  * How the shared discovery fields sit on this tab. `discovery_type` is the same

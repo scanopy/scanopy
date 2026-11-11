@@ -1,15 +1,15 @@
 <script lang="ts" context="module">
-	import { ALL_IP_ADDRESSES, type IPAddress, type Port } from '$lib/features/hosts/types/base';
+	import { ALL_IP_ADDRESSES, type IPAddress, type Port } from '#lib/features/hosts/types/base.ts';
 	import type { EntityDisplayComponent } from '../types';
-	import { entities, ports } from '$lib/shared/stores/metadata';
-	import type { Service } from '$lib/features/services/types/base';
-	import { formatIPAddress } from '$lib/features/hosts/address-labels';
-	import { formatPort } from '$lib/shared/utils/formatting';
+	import { entities, ports } from '#lib/shared/stores/metadata.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { formatIPAddress } from '#lib/features/hosts/address-labels.ts';
+	import { formatPort } from '#lib/shared/utils/formatting.ts';
 	import {
 		common_unassigned,
 		hosts_bindings_unknownIPAddress,
 		hosts_ports_serviceOnAddresses
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// Context for port display - needs access to interfaces for binding display
 	export interface PortDisplayContext {

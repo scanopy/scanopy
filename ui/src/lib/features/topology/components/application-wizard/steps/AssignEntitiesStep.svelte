@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import ExpandableChildList from '$lib/shared/components/forms/selection/ExpandableChildList.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { HostDisplayContext } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import type { ServiceDisplayContext } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import type { Tag as TagType } from '$lib/features/tags/types/base';
-	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
-	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
-	import { useServicesQuery } from '$lib/features/services/queries';
-	import { useBulkAddTagMutation } from '$lib/features/tags/queries';
-	import TagBadge from '$lib/shared/components/data/Tag.svelte';
-	import { concepts } from '$lib/shared/stores/metadata';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import ExpandableChildList from '#lib/shared/components/forms/selection/ExpandableChildList.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import type { HostDisplayContext } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import type { ServiceDisplayContext } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import type { Tag as TagType } from '#lib/features/tags/types/base.ts';
+	import { useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
+	import { hostDisplayContext } from '#lib/features/hosts/host-picker.svelte.ts';
+	import { useServicesQuery } from '#lib/features/services/queries.ts';
+	import { useBulkAddTagMutation } from '#lib/features/tags/queries.ts';
+	import TagBadge from '#lib/shared/components/data/Tag.svelte';
+	import { concepts } from '#lib/shared/stores/metadata.ts';
 	import {
 		appWizard_assignDescription,
 		appWizard_bulkAssign,
 		appWizard_selectedCount
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		appTags,

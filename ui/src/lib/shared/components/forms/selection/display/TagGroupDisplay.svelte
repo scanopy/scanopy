@@ -1,7 +1,7 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import { tagGroupIcon, tagGroupLabel } from '$lib/features/tags/groups';
-	import { common_none } from '$lib/paraglide/messages';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { tagGroupIcon, tagGroupLabel } from '#lib/features/tags/groups.ts';
+	import { common_none } from '#lib/paraglide/messages.js';
 
 	/** A tag group as a row: its name and description, drawn with the system group's icon when it is one. */
 	export const TagGroupDisplay: EntityDisplayComponent<TagGroup, object> = {
@@ -31,9 +31,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { TagGroup } from '$lib/features/tags/types/base';
+	import type { TagGroup } from '#lib/features/tags/types/base.ts';
 
 	interface Props {
 		item: TagGroup;

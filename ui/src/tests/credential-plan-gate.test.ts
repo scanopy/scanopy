@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { credentialTypeUpgradeFeature } from '$lib/features/credentials/types/base';
+import { credentialTypeUpgradeFeature } from '#lib/features/credentials/types/base.ts';
 import credentialTypes from '../lib/data/credential-types.json';
 import billingPlans from '../lib/data/billing-plans-all.json';
 

@@ -193,8 +193,7 @@ export function placeLabels(
 			});
 			continue;
 		}
-		const boxHoldsName =
-			boxWidth >= MIN_LABEL_WIDTH && rect.bottom - rect.top >= LABEL_HEIGHT;
+		const boxHoldsName = boxWidth >= MIN_LABEL_WIDTH && rect.bottom - rect.top >= LABEL_HEIGHT;
 		if (!boxHoldsName && smallBoxBlocked) continue;
 		// Widest first. A name past its box's edge, or below it, is drawn only where it lands on
 		// empty canvas. Among packed boxes it would cover a neighbour, so a box too small for a

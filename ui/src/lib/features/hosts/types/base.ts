@@ -1,6 +1,6 @@
 // Re-export generated types from OpenAPI schema
-import type { components } from '$lib/api/schema';
-import type { HostOs } from '$lib/features/hosts/host-os';
+import type { components } from '#lib/api/schema';
+import type { HostOs } from '#lib/features/hosts/host-os.ts';
 
 // Entity primitive types
 /**

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 	import type { GroupSlice } from '../types';
-	import { common_groupTotalShowing } from '$lib/paraglide/messages';
+	import { common_groupTotalShowing } from '#lib/paraglide/messages.js';
 
 	/**
 	 * A group's heading: a button that collapses or expands the group, with its name and its row

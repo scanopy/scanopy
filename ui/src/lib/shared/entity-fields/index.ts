@@ -7,15 +7,15 @@
  * from, is decided once on the backend.
  */
 
-import type { components } from '$lib/api/schema';
-import { common_no, common_yes } from '$lib/paraglide/messages';
-import { entities, edgeTypes, metadataName } from '$lib/shared/stores/metadata';
-import { metaFieldLabel } from '$lib/i18n/metadata';
-import { formatBitsPerSecond, formatPort, formatTimestamp } from '$lib/shared/utils/formatting';
-import { hostOsLabel } from '$lib/features/hosts/host-os';
-import type { Port } from '$lib/features/hosts/types/base';
-import { attributeSourceLabel, type AttributeSource } from '$lib/shared/utils/attribute-source';
-import type { FieldGroup } from '$lib/shared/components/data/types';
+import type { components } from '#lib/api/schema';
+import { common_no, common_yes } from '#lib/paraglide/messages.js';
+import { entities, edgeTypes, metadataName } from '#lib/shared/stores/metadata.ts';
+import { metaFieldLabel } from '#lib/i18n/metadata.ts';
+import { formatBitsPerSecond, formatPort, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+import { hostOsLabel } from '#lib/features/hosts/host-os.ts';
+import type { Port } from '#lib/features/hosts/types/base.ts';
+import { attributeSourceLabel, type AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+import type { FieldGroup } from '#lib/shared/components/data/types.ts';
 
 export type EntityField = components['schemas']['EntityField'];
 export type FieldFormat = components['schemas']['FieldFormat'];

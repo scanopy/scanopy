@@ -7,7 +7,7 @@
  * So it is sent only when the person changed it.
  */
 
-import type { HostDeviceFacts, HostFormData } from '$lib/features/hosts/types/base';
+import type { HostDeviceFacts, HostFormData } from '#lib/features/hosts/types/base.ts';
 /** Registry ids of the text facts a person can set in the device facts card. */
 export const EDITABLE_TEXT_FACTS = [
 	'manufacturer',

@@ -1,12 +1,12 @@
-import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
-import { siteItems } from '$lib/features/sites/columns';
-import { permissions, entities } from '$lib/shared/stores/metadata';
-import type { components, operations } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import type { OrganizationInvite } from '$lib/features/organizations/types';
+import type { LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { permissions, entities } from '#lib/shared/stores/metadata.ts';
+import type { components, operations } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { OrganizationInvite } from '#lib/features/organizations/types.ts';
 import { isInvite, isUser, type UserOrInvite } from '../types';
 import {
 	common_all,
@@ -21,7 +21,7 @@ import {
 	users_authMethod,
 	users_authMethodOidcAndPassword,
 	users_emailVerified
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type MemberOrderField = components['schemas']['MemberOrderField'];
 type MemberStatus = components['schemas']['MemberStatus'];

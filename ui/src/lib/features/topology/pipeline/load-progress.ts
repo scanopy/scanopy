@@ -13,7 +13,7 @@
  */
 
 import { writable, get } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export type LoadStage = 'data' | 'measure' | 'layout' | 'layoutRefine' | 'draw';
 
@@ -143,6 +143,7 @@ export function beginLoad(scope: string, stages: LoadStage[], nodeCount = 0): Lo
 	// of the stage it interrupted.
 	const start =
 		current && scope === scopeOfRun ? (current.stage === 'data' ? current.to : current.from) : 0;
+
 	if (start === 0) for (const stage of LOAD_STAGES) delete measured[stage];
 	scopeOfRun = scope;
 	plan = planStages(stages, expectedStageTimes(scope, nodeCount), start);

@@ -1,20 +1,20 @@
 <script lang="ts">
-	import type { IPAddress } from '$lib/features/hosts/types/base';
+	import type { IPAddress } from '#lib/features/hosts/types/base.ts';
 	import { untrack } from 'svelte';
 	import {
 		ipAddressFormat,
 		ipAddressInCidrFormat,
 		max,
 		required
-	} from '$lib/shared/components/forms/validators';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import type { Subnet } from '$lib/features/subnets/types/base';
+	} from '#lib/shared/components/forms/validators.ts';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
 	import {
 		common_ipAddress,
 		common_name,
 		hosts_ipAddresses_ipMustBeWithin,
 		hosts_ipAddresses_subnet
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		iface: IPAddress;

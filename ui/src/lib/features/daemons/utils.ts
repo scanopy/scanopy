@@ -1,17 +1,17 @@
 import { coerce, gt } from 'semver';
 import { fieldDefs } from './config';
-import type { components } from '$lib/api/schema';
-import daemonOsMetadata from '$lib/data/daemon-os.json';
-import osFamilies from '$lib/data/os-families.json';
+import type { components } from '#lib/api/schema';
+import daemonOsMetadata from '#lib/data/daemon-os.json';
+import osFamilies from '#lib/data/os-families.json';
 import type { Daemon } from './types/base';
-import type { FormValue } from '$lib/shared/components/forms/validators';
-import { getServerUrl } from '$lib/api/client';
+import type { FormValue } from '#lib/shared/components/forms/validators.ts';
+import { getServerUrl } from '#lib/api/client.ts';
 import {
 	common_freebsd,
 	common_linux,
 	common_macos,
 	common_windows
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/reference/daemon-status/';
 

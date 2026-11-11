@@ -1,17 +1,17 @@
 <script lang="ts">
 	import DOMPurify from 'dompurify';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { formatLongDate } from '$lib/shared/utils/formatting';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import type { UnseenReleaseNotes } from './queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_close,
 		releaseNotes_earlierReleases,
 		releaseNotes_goToDaemons,
 		releaseNotes_title,
 		releaseNotes_upgradeDaemons
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen,

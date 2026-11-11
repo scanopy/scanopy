@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import {
 		common_source,
 		common_target,
 		topology_neighborLinkPortsUnknown
-	} from '$lib/paraglide/messages';
-	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/paraglide/messages.js';
+	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
+	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {

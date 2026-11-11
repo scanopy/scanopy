@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { components } from '$lib/api/schema';
-	import { useReferralSourceMutation } from '$lib/features/organizations/queries';
+	import type { components } from '#lib/api/schema';
+	import { useReferralSourceMutation } from '#lib/features/organizations/queries.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import {
 		common_details,
 		common_dismiss,
@@ -28,7 +28,7 @@
 		onboarding_referralSource_selfHosted,
 		onboarding_referralSource_socialMedia,
 		onboarding_referralSource_wordOfMouth
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/** The AnswerReferralSource item's form. Opened over Home, so it carries no registry name. */
 	let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();

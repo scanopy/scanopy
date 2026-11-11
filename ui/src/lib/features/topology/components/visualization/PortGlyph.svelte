@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 
 	/**
 	 * A port: the Interface entity's icon in gray. Bare beside text; on an icon card, in a

@@ -1,14 +1,14 @@
 <script lang="ts">
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
 	import { activeView, topologyOptions, updateTopologyOptions } from '../../../queries';
 	import { effectiveElementSort, elementSortsFor, type ElementSort } from '../../../element-sort';
-	import { metaName, metaDescription } from '$lib/i18n/metadata';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { common_sortByLabel, topology_elementSortHelp } from '$lib/paraglide/messages';
+	import { metaName, metaDescription } from '#lib/i18n/metadata.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { common_sortByLabel, topology_elementSortHelp } from '#lib/paraglide/messages.js';
 
 	let {
 		disabled = false,

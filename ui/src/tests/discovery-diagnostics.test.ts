@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { runDiagnostics } from '$lib/features/discovery/utils/diagnostics';
-import type { DiscoveryUpdatePayload } from '$lib/features/discovery/types/api';
+import { runDiagnostics } from '#lib/features/discovery/utils/diagnostics.ts';
+import type { DiscoveryUpdatePayload } from '#lib/features/discovery/types/api.ts';
 
 const stalled = {
 	session_id: '11111111-1111-4111-8111-111111111111',

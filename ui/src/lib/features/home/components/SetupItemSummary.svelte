@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { daemonHealths, entities } from '$lib/shared/stores/metadata';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { daemonHealths, entities } from '#lib/shared/stores/metadata.ts';
 	import type { SetupRowView } from '../setup-row-view';
 	import type { SetupItem } from '../setup-list';
 

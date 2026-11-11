@@ -1,11 +1,11 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	common_hostname,
 	common_ipAddress,
 	common_name,
 	hosts_snmp_chassisId,
 	hosts_snmp_sysName
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import type { HostNameLadderEntry, HostNameRung } from './types/base';
 
 type AttributeSource = components['schemas']['AttributeSource'];

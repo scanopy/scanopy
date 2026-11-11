@@ -6,16 +6,16 @@
 
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, email } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, email } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import type { LoginRequest } from '../types/base';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
 	import AuthMethodSelector from './AuthMethodSelector.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_demoModeBody,
 		auth_demoModeTitle,
@@ -35,7 +35,7 @@
 		common_back,
 		common_email,
 		common_password
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		orgName?: string | null;

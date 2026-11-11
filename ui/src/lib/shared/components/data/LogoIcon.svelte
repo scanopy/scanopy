@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LogoTheming } from '$lib/shared/utils/logos';
+	import type { LogoTheming } from '#lib/shared/utils/logos.ts';
 
 	/**
 	 * A logo in the round frame topology cards give it: a ringed disc in the card colour, or in the

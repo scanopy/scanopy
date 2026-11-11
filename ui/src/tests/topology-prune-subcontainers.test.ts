@@ -8,8 +8,8 @@
  * next such change fails a test rather than shipping.
  */
 import { describe, it, expect } from 'vitest';
-import { pruneEmptySubcontainers } from '$lib/features/topology/pipeline/prepare';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
+import { pruneEmptySubcontainers } from '#lib/features/topology/pipeline/prepare.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 
 type Nodes = RenderableTopology['nodes'];
 

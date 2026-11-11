@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { useDashboardQuery } from '$lib/features/home/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import IssuesTable from './IssuesTable.svelte';
 
 	let { isActive = false }: TabProps = $props();

@@ -7,41 +7,41 @@
 	 * jobs with different affordances. Do not unify them.
 	 */
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { UserDisplay } from '#lib/shared/components/forms/selection/display/UserDisplay.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { Info, KeyRound } from '@lucide/svelte';
-	import type { Daemon } from '$lib/features/daemons/types/base';
-	import type { ApiKey } from '$lib/features/daemon_api_keys/types/base';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
+	import type { ApiKey } from '#lib/features/daemon_api_keys/types/base.ts';
 	import {
 		useUpdateDaemonMutation,
 		useDaemonInstallCommandQuery
-	} from '$lib/features/daemons/queries';
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	} from '#lib/features/daemons/queries.ts';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
 	import OsSelector from './OsSelector.svelte';
 	import {
 		useApiKeysQuery,
 		useUpdateApiKeyMutation,
 		useRotateApiKeyMutation
-	} from '$lib/features/daemon_api_keys/queries';
-	import { useUsersByIds, useUsersQuery } from '$lib/features/users/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useCan } from '$lib/features/auth/access';
-	import ApiKeyFormFields from '$lib/features/daemon_api_keys/components/ApiKeyFormFields.svelte';
-	import { createApiKeyForm } from '$lib/features/daemon_api_keys/form';
+	} from '#lib/features/daemon_api_keys/queries.ts';
+	import { useUsersByIds, useUsersQuery } from '#lib/features/users/queries.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import ApiKeyFormFields from '#lib/features/daemon_api_keys/components/ApiKeyFormFields.svelte';
+	import { createApiKeyForm } from '#lib/features/daemon_api_keys/form.ts';
 	import DaemonKeyAssociation from './DaemonKeyAssociation.svelte';
-	import { constructDaemonUrl, type DaemonOS } from '$lib/features/daemons/utils';
-	import { osInstallCommand } from '$lib/features/daemons/types/base';
+	import { constructDaemonUrl, type DaemonOS } from '#lib/features/daemons/utils.ts';
+	import { osInstallCommand } from '#lib/features/daemons/types/base.ts';
 	import {
 		common_apiKey,
 		common_cancel,
@@ -63,7 +63,7 @@
 		daemons_reconfigureSectionTitle,
 		common_maintainer,
 		common_maintainerHelp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

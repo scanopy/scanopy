@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getEndpointLabels } from '$lib/features/topology/layout/edge-classification';
-import type { components } from '$lib/api/schema';
+import { getEndpointLabels } from '#lib/features/topology/layout/edge-classification.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyEdge = components['schemas']['Edge'];
 

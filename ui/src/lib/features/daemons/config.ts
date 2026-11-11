@@ -6,8 +6,8 @@ import {
 	min,
 	urlWithoutPort,
 	type Validator
-} from '$lib/shared/components/forms/validators';
-import * as m from '$lib/paraglide/messages';
+} from '#lib/shared/components/forms/validators.ts';
+import * as m from '#lib/paraglide/messages.js';
 
 interface FieldDef {
 	id: string;

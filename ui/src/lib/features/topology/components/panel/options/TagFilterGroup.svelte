@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { isApplicationTag, tagGroupLabel, tagIcon } from '$lib/features/tags/groups';
-	import type { TagGroup } from '$lib/features/tags/types/base';
-	import type { components } from '$lib/api/schema';
+	import { isApplicationTag, tagGroupLabel, tagIcon } from '#lib/features/tags/groups.ts';
+	import type { TagGroup } from '#lib/features/tags/types/base.ts';
+	import type { components } from '#lib/api/schema';
 	import { UNTAGGED_SENTINEL, hoveredTag } from '../../../interactions';
 	import FilterGroup, { type FilterItem } from './FilterGroup.svelte';
-	import { common_untagged, topology_hiddenInEveryTopology } from '$lib/paraglide/messages';
+	import { common_untagged, topology_hiddenInEveryTopology } from '#lib/paraglide/messages.js';
 
 	type TagType = components['schemas']['Tag'];
 	type EntityType = components['schemas']['EntityDiscriminants'];

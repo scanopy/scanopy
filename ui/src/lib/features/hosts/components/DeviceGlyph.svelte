@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { components } from '$lib/api/schema';
-	import { deviceTypes } from '$lib/shared/stores/metadata';
+	import type { components } from '#lib/api/schema';
+	import { deviceTypes } from '#lib/shared/stores/metadata.ts';
 
 	/**
 	 * A device: a neutral square tile holding its device type's glyph. The square is the shape the

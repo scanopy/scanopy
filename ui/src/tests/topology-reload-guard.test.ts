@@ -3,7 +3,7 @@ import {
 	reloadInputsDiff,
 	snapshotReloadInputs,
 	type ReloadInputs
-} from '$lib/features/topology/pipeline/reload-guard';
+} from '#lib/features/topology/pipeline/reload-guard.ts';
 
 function inputs(overrides: Partial<ReloadInputs> = {}): ReloadInputs {
 	return {

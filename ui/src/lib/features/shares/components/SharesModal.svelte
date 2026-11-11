@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { validateForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import ShareConfigPanel from './ShareConfigPanel.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		ShareDisplay,
 		type ShareDisplayContext
-	} from '$lib/shared/components/forms/selection/display/ShareDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/ShareDisplay.svelte';
 	import { Share2 } from '@lucide/svelte';
 	import { v4 as uuidv4 } from 'uuid';
 	import type { Share } from '../types/base';
@@ -22,12 +22,12 @@
 		useDeleteShareMutation,
 		useUpdateShareMutation
 	} from '../queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useTopologiesQuery } from '$lib/features/topology/queries';
-	import { billingPlans, entities } from '$lib/shared/stores/metadata';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useTopologiesQuery } from '#lib/features/topology/queries.ts';
+	import { billingPlans, entities } from '#lib/shared/stores/metadata.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import {
 		common_close,
 		common_createNew,
@@ -43,9 +43,9 @@
 		shares_snapshotShareInfoTitle,
 		shares_snapshotShareInfoBody,
 		topology_verifyEmailToShare
-	} from '$lib/paraglide/messages';
-	import EmailVerificationNotice from '$lib/features/auth/components/EmailVerificationNotice.svelte';
-	import { useEmailVerificationPending } from '$lib/features/auth/queries';
+	} from '#lib/paraglide/messages.js';
+	import EmailVerificationNotice from '#lib/features/auth/components/EmailVerificationNotice.svelte';
+	import { useEmailVerificationPending } from '#lib/features/auth/queries.ts';
 
 	const emailVerification = useEmailVerificationPending();
 

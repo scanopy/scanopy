@@ -1,27 +1,27 @@
 <script lang="ts">
-	import { formatLongDate } from '$lib/shared/utils/formatting';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import {
 		usePauseSubscriptionMutation,
 		useApplyDiscountSaveOfferMutation,
 		useCancelSubscriptionMutation,
 		useSaveOfferCouponQuery
-	} from '$lib/features/billing/queries';
-	import cancelReasons from '$lib/data/cancel-reasons.json';
-	import saveOffers from '$lib/data/save-offers.json';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { useCurrentLicenseKeyQuery } from '$lib/features/billing/queries';
-	import { metaName } from '$lib/i18n/metadata';
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/features/billing/queries.ts';
+	import cancelReasons from '#lib/data/cancel-reasons.json';
+	import saveOffers from '#lib/data/save-offers.json';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { useCurrentLicenseKeyQuery } from '#lib/features/billing/queries.ts';
+	import { metaName } from '#lib/i18n/metadata.ts';
+	import { pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import type { components } from '#lib/api/schema';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
 		common_back,
@@ -56,7 +56,7 @@
 		billing_discountApplied,
 		billing_requestAccepted,
 		billing_subscriptionPausedUntil
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type CancelReason = components['schemas']['CancelReason'];
 	type PauseDuration = components['schemas']['PauseDuration'];

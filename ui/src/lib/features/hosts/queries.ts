@@ -11,18 +11,18 @@ import {
 	useQueryClient,
 	keepPreviousData
 } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
-import { pushSuccess } from '$lib/shared/stores/feedback';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
+import { pushSuccess } from '#lib/shared/stores/feedback.ts';
 import { hostDisplayName } from './host-display-name';
 import {
 	hosts_mergedToast,
 	hosts_rescanStartedBulkToast,
 	hosts_rescanStartedToast
-} from '$lib/paraglide/messages';
-import { upsertSessions } from '$lib/features/discovery/queries';
-import type { DiscoveryUpdatePayload } from '$lib/features/discovery/types/api';
+} from '#lib/paraglide/messages.js';
+import { upsertSessions } from '#lib/features/discovery/queries.ts';
+import type { DiscoveryUpdatePayload } from '#lib/features/discovery/types/api.ts';
 import type {
 	Host,
 	HostWithAddresses,
@@ -40,9 +40,9 @@ import type {
 	ServiceInput,
 	BindingInput
 } from './types/base';
-import type { Service } from '$lib/features/services/types/base';
-import type { components, operations } from '$lib/api/schema';
-import { withListParams } from '$lib/api/list-params';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { components, operations } from '#lib/api/schema';
+import { withListParams } from '#lib/api/list-params.ts';
 
 // Re-export types for convenience
 export type { Host, HostResponse, HostFormData, Interface, Port };
@@ -882,7 +882,7 @@ export function hydrateHostToFormData(
 	};
 }
 
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 // ============================================================================
 // Utility Functions

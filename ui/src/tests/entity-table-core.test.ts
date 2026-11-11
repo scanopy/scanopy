@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	constructEntityTable,
 	type EntityTableOptions
-} from '$lib/shared/components/data/table/createSvelteTable.svelte';
+} from '#lib/shared/components/data/table/createSvelteTable.svelte.ts';
 
 /**
  * The adapter's contract, exercised against real table-core.

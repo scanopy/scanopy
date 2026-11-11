@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	interface Props {
 		title: string;

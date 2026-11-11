@@ -1,6 +1,6 @@
 import { createRawSnippet, mount, unmount, untrack } from 'svelte';
-import Popover from '$lib/shared/components/data/Popover.svelte';
-import TooltipChipView from '$lib/shared/components/data/TooltipChip.svelte';
+import Popover from '#lib/shared/components/data/Popover.svelte';
+import TooltipChipView from '#lib/shared/components/data/TooltipChip.svelte';
 import type { MountTooltipChip, TooltipContent } from './tooltip';
 
 /**

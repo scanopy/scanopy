@@ -13,11 +13,11 @@
  */
 
 import { get, writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import type { TopologyEdge, TopologyNode } from './types/base';
-import type { ContainerTypeMetadata } from '$lib/shared/stores/metadata';
+import type { ContainerTypeMetadata } from '#lib/shared/stores/metadata.ts';
 import { isDisabledEdge } from './layout/edge-classification';
-import { persistedSet, toggleInSet } from '$lib/shared/stores/persisted-set';
+import { persistedSet, toggleInSet } from '#lib/shared/stores/persisted-set.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -648,8 +648,8 @@ export function stepExpand(
 		infraRuleId,
 		collapsed
 	);
-	onBeforeApply?.(idsLeftExpanded);
 
+	onBeforeApply?.(idsLeftExpanded);
 	applyBoxesForLevel(newLevel, 'expand', allNodes);
 	collapsedContainers.set(collapsed);
 	collapseLevel.set(newLevel);

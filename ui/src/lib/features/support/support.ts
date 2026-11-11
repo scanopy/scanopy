@@ -1,4 +1,4 @@
-import type { BillingPlanFeatures } from '$lib/shared/stores/metadata';
+import type { BillingPlanFeatures } from '#lib/shared/stores/metadata.ts';
 
 /** Booking page for demos and plan onboarding calls. */
 export const BOOK_CALL_URL = 'https://cal.com/mferrandiz/scanopy-demo';

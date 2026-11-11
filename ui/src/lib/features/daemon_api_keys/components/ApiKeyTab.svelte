@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import { disabledWhen, type RowAction } from '$lib/shared/components/data/types';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import { apiKeyColumns } from './ApiKeyTab.columns';
 	import CreateApiKeyModal from './ApiKeyModal.svelte';
 	import type { ApiKey } from '../types/base';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useApiKeysQuery,
 		useUnboundApiKeysListQuery,
@@ -19,16 +19,16 @@
 		useDeleteApiKeyMutation,
 		useBulkDeleteApiKeysMutation
 	} from '../queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
 
 	type DaemonApiKeyOrderField = components['schemas']['DaemonApiKeyOrderField'];
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_edit,
 		common_delete,
@@ -39,9 +39,9 @@
 		daemonApiKeys_provisionOnlyHint,
 		daemonApiKeys_inUse,
 		daemonApiKeys_inUseBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

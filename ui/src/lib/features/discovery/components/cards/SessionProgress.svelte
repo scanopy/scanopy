@@ -1,8 +1,8 @@
 <script lang="ts">
 	import AnimatedProgressBar from './AnimatedProgressBar.svelte';
 	import StallTag from '../StallTag.svelte';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import { sessionStall } from '$lib/features/discovery/utils/staleness';
+	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
+	import { sessionStall } from '#lib/features/discovery/utils/staleness.ts';
 
 	interface Props {
 		session_id: string;

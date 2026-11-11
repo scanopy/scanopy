@@ -15,9 +15,9 @@ import type {
 	FieldConfig,
 	OrderableFieldConfig,
 	OrderableFieldEntry
-} from '$lib/shared/components/data/types';
-import { entityRef, getFieldKey } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
+} from '#lib/shared/components/data/types.ts';
+import { entityRef, getFieldKey } from '#lib/shared/components/data/types.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import {
 	columnGroup,
 	entityDisplayText,

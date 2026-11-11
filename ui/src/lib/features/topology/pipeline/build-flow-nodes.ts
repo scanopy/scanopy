@@ -3,7 +3,7 @@ import type { LayoutGraph } from '../layout/layout-graph';
 import type { RenderableTopology, TopologyNode } from '../types/base';
 import type { XY } from './types';
 import { getTopologyIndex } from '../entity-index';
-import { entities } from '$lib/shared/stores/metadata';
+import { entities } from '#lib/shared/stores/metadata.ts';
 
 export interface BuildFlowNodesParams {
 	visibleNodes: TopologyNode[];

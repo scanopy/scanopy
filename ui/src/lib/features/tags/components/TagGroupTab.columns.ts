@@ -1,8 +1,8 @@
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
-import type { components, operations } from '$lib/api/schema';
-import { entities } from '$lib/shared/stores/metadata';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
+import type { components, operations } from '#lib/api/schema';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import { isSystemGroup, tagGroupIcon, tagGroupLabel, tagsInGroup } from '../groups';
 import { tagItems } from '../columns';
 import type { Tag, TagGroup } from '../types/base';
@@ -17,7 +17,7 @@ import {
 	tags_appliesToEvery,
 	tags_orderByName,
 	tags_orderSet
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type TagGroupOrderField = components['schemas']['TagGroupOrderField'];
 /** The tag groups list endpoint's query params, which the filters are sent and linked as. */

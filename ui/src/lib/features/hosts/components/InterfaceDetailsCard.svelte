@@ -1,10 +1,13 @@
 <script lang="ts">
-	import type { Interface } from '$lib/features/hosts/types/base';
-	import { getAdminStatusLabels, getOperStatusLabels } from '$lib/features/credentials/types/base';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { entities, ifOperStatuses } from '$lib/shared/stores/metadata';
+	import type { Interface } from '#lib/features/hosts/types/base.ts';
+	import {
+		getAdminStatusLabels,
+		getOperStatusLabels
+	} from '#lib/features/credentials/types/base.ts';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { entities, ifOperStatuses } from '#lib/shared/stores/metadata.ts';
 	import {
 		collectionLookup,
 		entityFieldLabel,
@@ -12,7 +15,7 @@
 		formatFieldValue,
 		resolveField,
 		type EntityField
-	} from '$lib/shared/entity-fields';
+	} from '#lib/shared/entity-fields/index.ts';
 	import InterfaceRelationRows, {
 		type InterfaceRelations,
 		type VlanInfo
@@ -20,7 +23,7 @@
 
 	// The card's registry rows are read off the interface itself, so no related entity is needed.
 	const NO_RELATIONS = collectionLookup({});
-	import type { Color } from '$lib/shared/utils/styling';
+	import type { Color } from '#lib/shared/utils/styling.ts';
 	import {
 		common_details,
 		common_status,
@@ -28,7 +31,7 @@
 		hosts_interfaces_adminStatus,
 		hosts_interfaces_nativeVlan,
 		hosts_interfaces_operStatus
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props extends InterfaceRelations {
 		iface: Interface;

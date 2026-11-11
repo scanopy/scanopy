@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Topology, RenderableTopology } from './types/base';
-import { topology_optionDisabledRebuildRequired } from '$lib/paraglide/messages';
+import { topology_optionDisabledRebuildRequired } from '#lib/paraglide/messages.js';
 
 /** Whether edit mode is active (nodes draggable, containers resizable). */
 export const editModeEnabled = writable(false);

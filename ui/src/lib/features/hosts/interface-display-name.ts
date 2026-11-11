@@ -1,4 +1,4 @@
-import { hosts_unnamedInterface } from '$lib/paraglide/messages';
+import { hosts_unnamedInterface } from '#lib/paraglide/messages.js';
 import type { Interface } from './types/base';
 
 /**

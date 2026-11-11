@@ -23,9 +23,9 @@
 		common_expand,
 		common_search,
 		common_shortcuts
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import TopologySidebarButton from './TopologySidebarButton.svelte';
-	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 
 	let {
 		editMode = false,

@@ -1,26 +1,26 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
-	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import { effectiveTimeZone } from '#lib/shared/stores/display-settings.svelte.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { DaemonDisplay } from '$lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { DaemonDisplay } from '#lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
 	import type { Discovery } from '../../types/base';
-	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import type { Subnet } from '$lib/features/subnets/types/base';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
+	import { isPreUnifiedDaemon } from '#lib/features/daemons/utils.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import { ArrowUpCircle } from '@lucide/svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
 	import {
 		common_daemon,
 		common_ipAddress,
@@ -45,7 +45,7 @@
 		discovery_scheduledDescription,
 		discovery_upgradeRequiredTitle,
 		discovery_upgradeRequiredBody
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

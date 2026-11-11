@@ -1,7 +1,7 @@
-import type { components } from '$lib/api/schema';
-import type { TagProps } from '$lib/shared/components/data/types';
-import type { Color } from '$lib/shared/utils/styling';
-import { common_beta } from '$lib/paraglide/messages';
+import type { components } from '#lib/api/schema';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import { common_beta } from '#lib/paraglide/messages.js';
 
 /** Release maturity of a credential type or a feature. Derived from the backend enum. */
 export type Stability = components['schemas']['Stability'];

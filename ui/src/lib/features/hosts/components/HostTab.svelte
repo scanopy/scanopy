@@ -1,33 +1,33 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import type {
 		Host,
 		CreateHostWithServicesRequest,
 		UpdateHostWithServicesRequest
 	} from '../types/base';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import OsTag from './OsTag.svelte';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
 	import HostMergeModal from './HostMergeModal.svelte';
 	import UnconfirmedHostModal from './UnconfirmedHostModal.svelte';
 	import { unconfirmedEvidence } from '../unconfirmed-evidence';
-	import { isUnconfirmed } from '$lib/shared/utils/confirmation';
+	import { isUnconfirmed } from '#lib/shared/utils/confirmation.ts';
 	import HostExportModal from './HostExportModal.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
 	import { hostColumns } from './HostTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Trash2, RefreshCw, Replace, Edit, CircleDashedCheck } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_confirmDeleteName,
 		common_confirmDeleteNameWithGuests,
@@ -47,9 +47,9 @@
 		hosts_rescanNoAddresses,
 		hosts_rescanNoAddressesBulk,
 		hosts_resolveUnconfirmed
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
@@ -67,20 +67,20 @@
 		useSettleUnconfirmedHostMutation,
 		type HostQueryOptions
 	} from '../queries';
-	import { useServicesByIds, useServicesCacheQuery } from '$lib/features/services/queries';
-	import { virtualizedSummaryOnHosts } from '$lib/features/services/virtualized-count';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { useInterfacesByIds, useInterfacesQuery } from '$lib/features/interfaces/queries';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import type { components } from '$lib/api/schema';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
+	import { useServicesByIds, useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { virtualizedSummaryOnHosts } from '#lib/features/services/virtualized-count.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { useInterfacesByIds, useInterfacesQuery } from '#lib/features/interfaces/queries.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import type { components } from '#lib/api/schema';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 
 	type HostOrderField = components['schemas']['HostOrderField'];
 

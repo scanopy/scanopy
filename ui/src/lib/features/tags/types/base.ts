@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import type { components } from '#lib/api/schema';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 export type Tag = components['schemas']['Tag'];
 

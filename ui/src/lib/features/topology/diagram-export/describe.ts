@@ -5,8 +5,8 @@
  */
 
 import type { Edge } from '@xyflow/svelte';
-import { containerTypes, edgeTypes, entities } from '$lib/shared/stores/metadata';
-import { common_type } from '$lib/paraglide/messages';
+import { containerTypes, edgeTypes, entities } from '#lib/shared/stores/metadata.ts';
+import { common_type } from '#lib/paraglide/messages.js';
 import {
 	edgeFieldLabel,
 	edgeFields,
@@ -14,9 +14,9 @@ import {
 	entityFields,
 	fieldText,
 	type EntityLookup
-} from '$lib/shared/entity-fields';
+} from '#lib/shared/entity-fields/index.ts';
 import { nodeEntity, topologyLookup } from '../resolvers';
-import { createColorHelper, type Color } from '$lib/shared/utils/styling';
+import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
 import { buildElementRender, currentElementRenderContext } from '../element-render-data';
 import { formatElementSummary, tallyContainerElements } from '../labels';
 import { getInfrastructureRuleIdForTopology } from '../queries';

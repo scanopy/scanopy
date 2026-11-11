@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	formatDateTime,
 	formatRelative,
 	formatTimeOfDay,
 	weekdayOrder
-} from '$lib/shared/utils/date-format';
-import { DEFAULT_DISPLAY_SETTINGS } from '$lib/shared/stores/display-settings.svelte';
+} from '#lib/shared/utils/date-format.ts';
+import { DEFAULT_DISPLAY_SETTINGS } from '#lib/shared/stores/display-settings.svelte.ts';
 
 type DisplaySettings = components['schemas']['DisplaySettings'];
 

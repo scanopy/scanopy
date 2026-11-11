@@ -3,10 +3,10 @@
  */
 
 import { createQuery } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
-import type { components } from '$lib/api/schema';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
+import type { components } from '#lib/api/schema';
 
 export type OidcProviderMetadata = components['schemas']['OidcProviderMetadata'];
 export type DeploymentType = components['schemas']['DeploymentType'];

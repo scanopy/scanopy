@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
 	import type { Edge } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-	import { topologyReadOnly } from '$lib/features/topology/queries';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-	import { containerHostsOfEdge } from '$lib/features/topology/resolvers';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+	import { topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { containerHostsOfEdge } from '#lib/features/topology/resolvers.ts';
 	import {
 		common_containerizedService,
 		common_containerizedServices,
@@ -18,8 +18,8 @@
 		topology_containerBridgeSubnets,
 		topology_containerHost,
 		topology_containerService
-	} from '$lib/paraglide/messages';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/paraglide/messages.js';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, serviceId }: { edge: Edge; serviceId: string } = $props();

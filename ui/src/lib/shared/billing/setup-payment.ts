@@ -1,7 +1,7 @@
-import { trackEvent } from '$lib/shared/utils/analytics';
-import { openBillingModal, reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
-import { ApiError } from '$lib/api/client';
-import type { Organization } from '$lib/features/organizations/types';
+import { trackEvent } from '#lib/shared/utils/analytics.ts';
+import { openBillingModal, reopenSettingsTabAfterPayment } from '#lib/features/billing/stores.ts';
+import { ApiError } from '#lib/api/client.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 /** The "Add/Update payment method" nudges that funnel through `startSetupPayment`. */
 export type SetupPaymentSource =

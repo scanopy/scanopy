@@ -5,9 +5,9 @@ import {
 	tagHiddenNodeIds,
 	hiddenEntityIds,
 	presentFilterValues
-} from '$lib/features/topology/interactions';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import type { Site } from '$lib/features/sites/types';
+} from '#lib/features/topology/interactions.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = new Date('2026-07-22T12:00:00Z').getTime();

@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
-	import { entities } from '$lib/shared/stores/metadata';
-	import { vlans_vlanLabel } from '$lib/paraglide/messages';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { vlans_vlanLabel } from '#lib/paraglide/messages.js';
 
 	/**
 	 * A VLAN is identified by its number; the name is what a person gave it. A named VLAN shows the
@@ -18,9 +18,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { Vlan } from '$lib/features/vlans/types/base';
+	import type { Vlan } from '#lib/features/vlans/types/base.ts';
 
 	export let item: Vlan;
 	export let context: object = {};

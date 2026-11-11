@@ -7,17 +7,17 @@ import {
 	tagsDisplacedBy,
 	tagTooltip,
 	withTagAdded
-} from '$lib/features/tags/groups';
-import { tagGroupFields, tagGroupIdOf } from '$lib/features/tags/groupFields';
-import { blankFilterState, toggleValue } from '$lib/shared/components/data/controls/filtering';
-import { decodeFilters, listParams } from '$lib/shared/components/data/controls/listQuery';
+} from '#lib/features/tags/groups.ts';
+import { tagGroupFields, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
+import { blankFilterState, toggleValue } from '#lib/shared/components/data/controls/filtering.ts';
+import { decodeFilters, listParams } from '#lib/shared/components/data/controls/listQuery.ts';
 import {
 	createDefaultTag,
 	createDefaultTagGroup,
 	type Tag,
 	type TagGroup
-} from '$lib/features/tags/types/base';
-import { getFieldKey, isOrderableField } from '$lib/shared/components/data/types';
+} from '#lib/features/tags/types/base.ts';
+import { getFieldKey, isOrderableField } from '#lib/shared/components/data/types.ts';
 
 function group(
 	id: string,

@@ -18,10 +18,10 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import type { User } from '$lib/features/users/types';
-	import { entities, permissions } from '$lib/shared/stores/metadata';
+	import type { User } from '#lib/features/users/types.ts';
+	import { entities, permissions } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		item: User;

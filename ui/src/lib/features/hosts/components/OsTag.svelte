@@ -1,7 +1,12 @@
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { hostOsIcon, hostOsLabel, hostOsTooltip, type HostOs } from '$lib/features/hosts/host-os';
-	import type { AttributeSource } from '$lib/shared/utils/attribute-source';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import {
+		hostOsIcon,
+		hostOsLabel,
+		hostOsTooltip,
+		type HostOs
+	} from '#lib/features/hosts/host-os.ts';
+	import type { AttributeSource } from '#lib/shared/utils/attribute-source.ts';
 
 	/**
 	 * An operating system as a gray tag with its family's icon: the daemon OS icon, the vendor's

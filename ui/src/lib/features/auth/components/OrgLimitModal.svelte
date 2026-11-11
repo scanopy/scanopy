@@ -1,12 +1,12 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import {
 		auth_orgLimitReachedBody,
 		auth_orgLimitReachedContact,
 		auth_orgLimitReachedTitle,
 		auth_scanopyLogo,
 		auth_signInInstead
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		adminContactEmail = null,

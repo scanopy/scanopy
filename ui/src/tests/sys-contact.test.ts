@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sysContactEmail } from '$lib/features/hosts/sys-contact';
+import { sysContactEmail } from '#lib/features/hosts/sys-contact.ts';
 
 describe('sysContactEmail', () => {
 	it('finds the address in the forms sysContact takes', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatEstimatedRemaining } from '$lib/features/discovery/utils/estimation';
+import { formatEstimatedRemaining } from '#lib/features/discovery/utils/estimation.ts';
 
 describe('formatEstimatedRemaining', () => {
 	it('returns "less than a minute" for under 60 seconds', () => {

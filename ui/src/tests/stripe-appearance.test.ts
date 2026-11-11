@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { opaqueOn } from '$lib/shared/billing/stripe-appearance';
+import { opaqueOn } from '#lib/shared/billing/stripe-appearance.ts';
 
 describe('opaqueOn', () => {
 	it('blends a translucent colour onto its backdrop', () => {

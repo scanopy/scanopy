@@ -1,20 +1,20 @@
 import type { Snippet } from 'svelte';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import { osLabel, daemonOsIds } from '$lib/features/daemons/utils';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { siteItems } from '$lib/features/sites/columns';
-import { entityRef } from '$lib/shared/components/data/types';
-import { daemonHealths, entities } from '$lib/shared/stores/metadata';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { User } from '$lib/features/users/types';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import type { components, operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import { osLabel, daemonOsIds } from '#lib/features/daemons/utils.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { daemonHealths, entities } from '#lib/shared/stores/metadata.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { User } from '#lib/features/users/types.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import type { components, operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import {
 	common_host,
 	common_maintainer,
@@ -28,7 +28,7 @@ import {
 	daemons_mode_daemonPollDescription,
 	daemons_mode_serverPoll,
 	daemons_mode_serverPollDescription
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type DaemonOrderField = components['schemas']['DaemonOrderField'];
 /** The daemon list endpoint's query params, which the filters are sent and linked as. */

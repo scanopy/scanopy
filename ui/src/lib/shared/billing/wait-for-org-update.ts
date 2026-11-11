@@ -16,9 +16,9 @@
  * reflect" toast plus a final refetch, leaving the next manual refresh to
  * land the truth.
  */
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { fetchOrganization } from '$lib/features/organizations/queries';
-import type { Organization } from '$lib/features/organizations/types';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { fetchOrganization } from '#lib/features/organizations/queries.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 export interface WaitForOrgUpdateOptions {
 	/** Max number of poll attempts. Defaults to 10. */

@@ -7,15 +7,21 @@
 
 import createClient, { type Middleware } from 'openapi-fetch';
 import type { paths, components } from './schema';
-import { pushError } from '$lib/shared/stores/feedback';
-import { translateError, type ApiErrorResponse } from '$lib/i18n/errors';
-import type { ErrorCode } from '$lib/generated/error-codes';
+import { pushError } from '#lib/shared/stores/feedback.ts';
+import { translateError, type ApiErrorResponse } from '#lib/i18n/errors.ts';
+import type { ErrorCode } from '#lib/generated/error-codes.ts';
 import {
 	common_httpError,
 	common_requestTimedOut,
 	common_requestUnconfirmed
-} from '$lib/paraglide/messages';
-import { env } from '$env/dynamic/public';
+} from '#lib/paraglide/messages.js';
+
+import {
+	PUBLIC_SERVER_HOSTNAME,
+	PUBLIC_SERVER_PROTOCOL,
+	PUBLIC_SERVER_PORT
+} from '$app/env/public';
+
 import {
 	isUnreachableResponse,
 	reportAnswered,
@@ -256,6 +262,7 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
 	// one request every half second, and a budget started at call time would be spent waiting.
 	const settings: RequestSettings =
 		input instanceof Request ? (input as Request & RequestSettings) : {};
+
 	const timeoutMs = settings.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : settings.timeoutMs;
 	const method = input instanceof Request ? input.method : (init?.method ?? 'GET');
 	const controller = new AbortController();
@@ -310,10 +317,10 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
  */
 export function getServerUrl(): string {
 	// If API is on a different host/port, use explicit config
-	if (env.PUBLIC_SERVER_HOSTNAME && env.PUBLIC_SERVER_HOSTNAME !== 'default') {
-		const protocol = env.PUBLIC_SERVER_PROTOCOL || 'http';
-		const port = env.PUBLIC_SERVER_PORT ? `:${env.PUBLIC_SERVER_PORT}` : '';
-		return `${protocol}://${env.PUBLIC_SERVER_HOSTNAME}${port}`;
+	if (PUBLIC_SERVER_HOSTNAME && PUBLIC_SERVER_HOSTNAME !== 'default') {
+		const protocol = PUBLIC_SERVER_PROTOCOL || 'http';
+		const port = PUBLIC_SERVER_PORT ? `:${PUBLIC_SERVER_PORT}` : '';
+		return `${protocol}://${PUBLIC_SERVER_HOSTNAME}${port}`;
 	}
 
 	// Otherwise, use the exact same origin as the browser

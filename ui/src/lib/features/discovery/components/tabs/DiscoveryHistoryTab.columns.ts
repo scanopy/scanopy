@@ -1,20 +1,20 @@
 import type { Snippet } from 'svelte';
-import { discoveryPhases, discoveryTypes } from '$lib/shared/stores/metadata';
+import { discoveryPhases, discoveryTypes } from '#lib/shared/stores/metadata.ts';
 import type { Discovery } from '../../types/base';
-import { formatDuration } from '$lib/shared/utils/formatting';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
-import type { operations } from '$lib/api/schema';
-import { daemonItems } from '$lib/features/daemons/columns';
-import { siteItems } from '$lib/features/sites/columns';
-import { tagItems, tagNames } from '$lib/features/tags/columns';
-import { toColor } from '$lib/shared/utils/styling';
+import { formatDuration } from '#lib/shared/utils/formatting.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
+import type { operations } from '#lib/api/schema';
+import { daemonItems } from '#lib/features/daemons/columns.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { tagItems, tagNames } from '#lib/features/tags/columns.ts';
+import { toColor } from '#lib/shared/utils/styling.ts';
 import type { OutcomeTag } from '../../utils/outcome';
 import { isFullScan } from '../../utils/fullScan';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag, TagGroup } from '$lib/features/tags/types/base';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag, TagGroup } from '#lib/features/tags/types/base.ts';
 import {
 	common_daemon,
 	common_full,
@@ -25,7 +25,7 @@ import {
 	common_unknown,
 	common_unknownEntity,
 	common_unknownSite
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 import type { DiscoveryRunOrderField } from '../../queries';
 /** The discovery list endpoint's query params, which the filters are sent and linked as. */

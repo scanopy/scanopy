@@ -47,21 +47,21 @@
 		common_seats,
 		common_unlimited,
 		common_yearly
-	} from '$lib/paraglide/messages';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
+	} from '#lib/paraglide/messages.js';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import ToggleGroup from './ToggleGroup.svelte';
 	import type { BillingPlan, PlanPickerHosting } from './types';
 	import type {
 		BillingPlanMetadata,
 		CredentialIntegrationMetadata,
 		FeatureMetadata
-	} from '$lib/shared/stores/metadata';
-	import type { ColorStyle } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { getStabilityTagProps } from '$lib/shared/utils/stability';
-	import { betaProgramUrl } from '$lib/features/support/support';
+	} from '#lib/shared/stores/metadata.ts';
+	import type { ColorStyle } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { getStabilityTagProps } from '#lib/shared/utils/stability.ts';
+	import { betaProgramUrl } from '#lib/features/support/support.ts';
 
 	const configQuery = useConfigQuery();
 

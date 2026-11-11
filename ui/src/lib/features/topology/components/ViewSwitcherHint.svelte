@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showViewSwitcherHint } from '../queries';
-	import { topology_viewSwitcherHint } from '$lib/paraglide/messages';
+	import { topology_viewSwitcherHint } from '#lib/paraglide/messages.js';
 	import { onMount } from 'svelte';
 
 	let { anchor }: { anchor: HTMLElement } = $props();

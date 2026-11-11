@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { validateForm, clearStaleFieldInfo } from '$lib/shared/components/forms/form-context';
+	import { validateForm, clearStaleFieldInfo } from '#lib/shared/components/forms/form-context.ts';
 	import { Info } from '@lucide/svelte';
 	import { hostDisplayName } from '../../host-display-name';
 	import { nameToSubmit, overrideOf } from '../../host-identity';
@@ -11,29 +11,29 @@
 		Interface,
 		CreateHostWithServicesRequest,
 		UpdateHostWithServicesRequest
-	} from '$lib/features/hosts/types/base';
+	} from '#lib/features/hosts/types/base.ts';
 	import {
 		formDataToHostPrimitive,
 		hydrateHostToFormData,
 		createEmptyHostFormData
-	} from '$lib/features/hosts/queries';
+	} from '#lib/features/hosts/queries.ts';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
+	import { queryKeys } from '#lib/api/query-client.ts';
 	import DetailsForm from './Details/HostDetailsForm.svelte';
 	import { deviceFactsToSubmit, deviceLabelDefaults } from './Details/device-labels';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import IPAddressesForm from './IPAddresses/IPAddressesForm.svelte';
 	import ServicesForm from './Services/ServicesForm.svelte';
-	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { Service } from '$lib/features/services/types/base';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { concepts, entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import PortsForm from './Ports/PortsForm.svelte';
 	import VirtualizationForm from './Virtualization/VirtualizationForm.svelte';
 	import SnmpForm from './Snmp/SnmpForm.svelte';
 	import InterfacesForm from './Interfaces/InterfacesForm.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		common_back,
@@ -62,7 +62,7 @@
 		hosts_validation_portField,
 		hosts_validation_serviceIndex,
 		common_validation_entityField
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		host?: Host | null;

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required } from '$lib/shared/components/forms/validators';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required } from '#lib/shared/components/forms/validators.ts';
 	import { Lock } from '@lucide/svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_errorOccurred,
 		common_loading,
@@ -15,7 +15,7 @@
 		errors_auth_password_invalid,
 		errors_auth_password_required,
 		shares_passwordPlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

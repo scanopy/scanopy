@@ -28,10 +28,13 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import { type Credential, getCredentialDescription } from '$lib/features/credentials/types/base';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
+	import {
+		type Credential,
+		getCredentialDescription
+	} from '#lib/features/credentials/types/base.ts';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		item: Credential;

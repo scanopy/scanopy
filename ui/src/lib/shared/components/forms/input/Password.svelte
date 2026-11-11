@@ -11,7 +11,7 @@
 		common_passwordMinChars,
 		common_passwordReenterPlaceholder,
 		common_passwordRequirements
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		passwordField: AnyFieldApi;

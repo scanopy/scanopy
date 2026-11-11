@@ -1,12 +1,12 @@
-import type { components } from '$lib/api/schema';
-import { closeModal, navigateToEntity, openModal } from '$lib/shared/stores/modal-registry';
-import { credentialIntegrations, entities } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { closeModal, navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { credentialIntegrations, entities } from '#lib/shared/stores/metadata.ts';
 import {
 	createIntegrationCredentialLabel,
 	openCredentialCreate
-} from '$lib/features/credentials/utils/prefill';
-import { createIconComponent } from '$lib/shared/utils/styling';
-import type { IconComponent } from '$lib/shared/utils/types';
+} from '#lib/features/credentials/utils/prefill.ts';
+import { createIconComponent } from '#lib/shared/utils/styling.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import {
 	credentials_sshLoginRequired,
 	daemons_upgradeDaemon,
@@ -29,7 +29,7 @@ import {
 	discovery_fixUpdateSecret,
 	hosts_resolveUnconfirmed,
 	subnets_resolveRange
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import { credentialIdsOf, type WarningEntry } from './warnings';
 import type { CredentialLookup } from './snmpCheck';
 

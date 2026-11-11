@@ -10,8 +10,8 @@
 	} from '@xyflow/svelte';
 	import { hiddenEdgeTypes, topologyOptions } from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
-	import { edgeTypes } from '$lib/shared/stores/metadata';
-	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
+	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
+	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
 	import type { TopologyEdge, RenderableTopology } from '../../types/base';
 	import { isExporting, detailSimplified, hoveredEdgeType } from '../../interactions';
 	import {
@@ -23,7 +23,7 @@
 		overlayDashArray,
 		restingEdgeStrokeWidth
 	} from '../../layout/edge-classification';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { ELEMENT_TEXT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
 
 	let {

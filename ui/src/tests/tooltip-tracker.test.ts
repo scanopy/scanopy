@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TooltipTracker, type TooltipTarget } from '$lib/shared/actions/tooltip';
+import { TooltipTracker, type TooltipTarget } from '#lib/shared/actions/tooltip.ts';
 
 /** An element in a tree, as far as the tracker reads one: whether it or an ancestor is registered. */
 class FakeTarget implements TooltipTarget {

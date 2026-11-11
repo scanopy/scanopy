@@ -5,8 +5,8 @@ vi.mock('posthog-js', () => ({
 	default: { __loaded: true, capture: (...args: unknown[]) => capture(...args) }
 }));
 
-import { trackEvent } from '$lib/shared/utils/analytics';
-import { queryClient, queryKeys } from '$lib/api/query-client';
+import { trackEvent } from '#lib/shared/utils/analytics.ts';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
 
 /**
  * Frontend events reach PostHog scoped to the current organization, the way

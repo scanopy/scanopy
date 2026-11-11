@@ -8,7 +8,7 @@
  * the raw fixture string when no translation exists.
  */
 
-import * as m from '$lib/paraglide/messages';
+import * as m from '#lib/paraglide/messages.js';
 
 /**
  * The translatable subset of a field definition. Optionals admit `null` because the generated

@@ -1,14 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
-vi.mock('$lib/shared/stores/feedback', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
-vi.mock('$lib/api/server-version', () => ({ checkServerVersion: vi.fn() }));
+vi.mock('#lib/shared/stores/feedback.ts', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
+vi.mock('#lib/api/server-version.ts', () => ({ checkServerVersion: vi.fn() }));
 
-const { fetchCurrentUser } = await import('$lib/features/auth/queries');
-const { checkServerVersion } = await import('$lib/api/server-version');
+const { fetchCurrentUser } = await import('#lib/features/auth/queries.ts');
+const { checkServerVersion } = await import('#lib/api/server-version.ts');
 
 const USER = { id: 'u1', email: 'owner@example.com', permissions: 'Owner' };
 

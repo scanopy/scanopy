@@ -2,10 +2,10 @@
 	import { Tags } from '@lucide/svelte';
 	import Popover from '../Popover.svelte';
 	import ActionMenu from './ActionMenu.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import type { EntityDiscriminants } from '$lib/features/tags/queries';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import type { EntityDiscriminants } from '#lib/features/tags/queries.ts';
 	import type { RowAction } from '../types';
-	import { common_actions, common_commonTags, common_tags } from '$lib/paraglide/messages';
+	import { common_actions, common_commonTags, common_tags } from '#lib/paraglide/messages.js';
 
 	/**
 	 * A selection's controls on a phone: its actions in one menu, and its tags behind one button,

@@ -16,9 +16,9 @@
 
 <script lang="ts">
 	import { ChevronDown } from '@lucide/svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
-	import { common_moreActions } from '$lib/paraglide/messages';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
+	import { common_moreActions } from '#lib/paraglide/messages.js';
 
 	let {
 		label,

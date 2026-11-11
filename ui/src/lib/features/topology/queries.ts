@@ -6,19 +6,19 @@
  */
 
 import { createQuery, createMutation } from '@tanstack/svelte-query';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
 import type { Topology, TopologyEdge, TopologyOptions, RenderableTopology } from './types/base';
 import type { ElementGraphRule } from './types/grouping';
-import type { Organization } from '$lib/features/organizations/types';
+import type { Organization } from '#lib/features/organizations/types.ts';
 import throttle from 'just-throttle';
 import { writable, derived, get } from 'svelte/store';
-import { registerUrlOwner, syncUrl } from '$lib/shared/stores/url-state';
+import { registerUrlOwner, syncUrl } from '#lib/shared/stores/url-state.ts';
 import { UNTAGGED_SENTINEL } from './interactions';
 import { getDefaultHiddenEdgeTypes } from './layout/edge-classification';
-import type { components } from '$lib/api/schema';
-import viewsJson from '$lib/data/views.json';
+import type { components } from '#lib/api/schema';
+import viewsJson from '#lib/data/views.json';
 import { declaredMetadataFilters, filtersFor, type HiddenMetadataValues } from './view-filters';
 
 export type TopologyView = components['schemas']['TopologyView'];
@@ -434,7 +434,7 @@ export function useUpdateEdgeHandlesMutation() {
 // UI State (not server data - kept as Svelte stores)
 // ============================================================================
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { type Edge, type Node } from '@xyflow/svelte';
 
 const EXPANDED_STORAGE_KEY = 'scanopy_topology_options_expanded_state';
@@ -622,6 +622,7 @@ export function showEverythingIn(view: string): void {
 			string,
 			HiddenMetadataValues
 		>;
+
 		hideMeta[view] = clearedViewHideSet(view, hideMeta[view]);
 
 		const hideEntities = { ...(opts.request.hide_entities ?? {}) };

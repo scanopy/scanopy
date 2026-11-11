@@ -1,8 +1,8 @@
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { components } from '$lib/api/schema';
-import { discoveryStream } from '$lib/features/discovery/queries';
-import { invalidateAllLiveTopology, topologyStream } from '$lib/features/topology/queries';
-import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import type { components } from '#lib/api/schema';
+import { discoveryStream } from '#lib/features/discovery/queries.ts';
+import { invalidateAllLiveTopology, topologyStream } from '#lib/features/topology/queries.ts';
+import { BaseSSEManager, type SSEConfig } from '#lib/shared/utils/sse.ts';
 
 type LiveUpdate = components['schemas']['LiveUpdate'];
 

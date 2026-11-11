@@ -1,10 +1,10 @@
 <script lang="ts">
 	import Tag from './Tag.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import type { EntityDiscriminants } from '$lib/features/tags/queries';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import type { EntityDiscriminants } from '#lib/features/tags/queries.ts';
 	import type { CardFieldItem } from './types';
 	import { MAX_ITEMS_IN_CELL } from './types';
-	import { common_moreItems, common_tags } from '$lib/paraglide/messages';
+	import { common_moreItems, common_tags } from '#lib/paraglide/messages.js';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { Plus } from '@lucide/svelte';
 	import Popover from './Popover.svelte';

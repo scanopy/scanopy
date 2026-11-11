@@ -6,7 +6,7 @@
  */
 import { getContext, setContext } from 'svelte';
 import { writable } from 'svelte/store';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
 
 const KEY = Symbol('list-shortcuts');
 

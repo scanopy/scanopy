@@ -1,5 +1,5 @@
-import { entityRef, type LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
+import { entityRef, type LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import type { Site } from './types';
 
 /**

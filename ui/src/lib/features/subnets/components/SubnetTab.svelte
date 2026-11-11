@@ -1,27 +1,27 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
-	import { isProvisionalCidr } from '$lib/shared/utils/cidr-source';
-	import { cidrContains } from '$lib/shared/utils/cidr';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
+	import { isProvisionalCidr } from '#lib/shared/utils/cidr-source.ts';
+	import { cidrContains } from '#lib/shared/utils/cidr.ts';
 	import SubnetUtilization from './SubnetUtilization.svelte';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import type { Subnet, SubnetResponse } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
 	import { subnetColumns } from './SubnetTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Trash2, Edit, CircleDashedCheck } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		isUserManagedSubnet,
 		LISTED_SUBNETS,
@@ -34,16 +34,16 @@
 		useDeleteSubnetMutation,
 		useBulkDeleteSubnetsMutation
 	} from '../queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useVlansQuery } from '$lib/features/vlans/queries';
-	import { useServicesByIds } from '$lib/features/services/queries';
-	import type { Service } from '$lib/features/services/types/base';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import type { TabProps } from '$lib/shared/types';
-	import type { components } from '$lib/api/schema';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useVlansQuery } from '#lib/features/vlans/queries.ts';
+	import { useServicesByIds } from '#lib/features/services/queries.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import type { components } from '#lib/api/schema';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -59,11 +59,11 @@
 		subnets_resolveRange,
 		subnets_sharedRangeReadOnly,
 		subnets_sharedRangeReadOnlyBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

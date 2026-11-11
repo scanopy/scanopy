@@ -1,15 +1,15 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import {
 		common_ipAddresses,
 		inspector_otherIPAddress,
 		inspector_otherIPAddresses
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

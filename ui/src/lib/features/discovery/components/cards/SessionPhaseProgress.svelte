@@ -8,7 +8,7 @@
 	import { cancellingSessions } from '../../queries';
 	import { isFullScan } from '../../utils/fullScan';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
-	import { common_cancelling, common_phase } from '$lib/paraglide/messages';
+	import { common_cancelling, common_phase } from '#lib/paraglide/messages.js';
 
 	let { session }: { session: DiscoveryUpdatePayload } = $props();
 

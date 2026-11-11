@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import {
 		required,
 		password as passwordValidator,
 		confirmPasswordMatch
-	} from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	} from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { Key } from '@lucide/svelte';
-	import Password from '$lib/shared/components/forms/input/Password.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import Password from '#lib/shared/components/forms/input/Password.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_backToLogin,
 		auth_goToLogin,
@@ -21,7 +21,7 @@
 		auth_resetPassword,
 		auth_setNewPassword,
 		common_resetting
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

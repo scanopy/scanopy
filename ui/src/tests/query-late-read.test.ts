@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { QueryObserver, type QueryObserverResult } from '@tanstack/svelte-query';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
-vi.mock('$lib/shared/stores/feedback', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
+vi.mock('#lib/shared/stores/feedback.ts', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
 
-const { createQueryClient } = await import('$lib/api/query-client');
+const { createQueryClient } = await import('#lib/api/query-client.ts');
 
 /**
  * A query's result as a component holds it under svelte-query: the result taken when the query

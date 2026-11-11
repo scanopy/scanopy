@@ -1,7 +1,7 @@
 import { writable, get, type Writable } from 'svelte/store';
 import type { Edge } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
-import { edgeTypes, entities, views } from '$lib/shared/stores/metadata';
+import { edgeTypes, entities, views } from '#lib/shared/stores/metadata.ts';
 import type {
 	ElementInlineGroup,
 	TopologyEdge,
@@ -27,18 +27,18 @@ import {
 	entityFields,
 	fieldText,
 	type EntityType
-} from '$lib/shared/entity-fields';
+} from '#lib/shared/entity-fields/index.ts';
 import { getTopologyIndex } from './entity-index';
-import type { Site } from '$lib/features/sites/types';
-import { entityFreshness, type FreshnessSubject } from '$lib/shared/utils/freshness';
-import { isUnconfirmed, type ConfirmationSubject } from '$lib/shared/utils/confirmation';
+import type { Site } from '#lib/features/sites/types.ts';
+import { entityFreshness, type FreshnessSubject } from '#lib/shared/utils/freshness.ts';
+import { isUnconfirmed, type ConfirmationSubject } from '#lib/shared/utils/confirmation.ts';
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
 import { formatEntityLabelTitle } from './labels';
 import { declaredMetadataFilters, hiddenValuesFor } from './view-filters';
 import { sameGroup } from './pipeline/reload-guard';
 import * as perf from './perf';
-import { common_byTag, common_untagged } from '$lib/paraglide/messages';
-import type { components } from '$lib/api/schema';
+import { common_byTag, common_untagged } from '#lib/paraglide/messages.js';
+import type { components } from '#lib/api/schema';
 
 type Entity = components['schemas']['EntityDiscriminants'];
 
@@ -141,7 +141,7 @@ export const UNTAGGED_SENTINEL = '__untagged__';
 // Mutex by UX: at most one hover is active at a time, so a single store
 // handles both modes.
 export interface HoveredTag {
-	entityType: import('$lib/api/schema').components['schemas']['EntityDiscriminants'];
+	entityType: import('#lib/api/schema').components['schemas']['EntityDiscriminants'];
 	tagId: string | null;
 	color: string | null;
 }
@@ -151,7 +151,7 @@ export const hoveredTag = writable<HoveredTag | null>(null);
 // a view's element_config.metadata_filters. Carries every entity the filter covers, so a value on
 // a filter over hosts and services (Workloads' Containerized) rings both.
 export interface HoveredMetadata {
-	entityTypes: import('$lib/api/schema').components['schemas']['EntityDiscriminants'][];
+	entityTypes: import('#lib/api/schema').components['schemas']['EntityDiscriminants'][];
 	filterType: string;
 	valueId: string;
 	color: string;

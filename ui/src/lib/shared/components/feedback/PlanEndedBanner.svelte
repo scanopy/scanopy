@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { Info } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		billing_lapsedBannerAskOwner,
 		billing_lapsedBannerCta,
 		billing_planEndedBannerBody
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// A cloud plan that ends lands the org on Free. Says which plan ended, once
 	// per downgrade: dismissing it hides it until the next one, because the key

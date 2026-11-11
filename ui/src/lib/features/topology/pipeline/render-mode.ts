@@ -185,7 +185,9 @@ export const PREWARM_RELEASE_ZOOM = PREWARM_ZOOM * 0.9;
  * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
  * nothing needs every card in full at this moment.
  */
-export function detailIsStaged(conditions: Omit<SimplifyConditions, 'zoom' | 'widestNodeWidth'>): boolean {
+export function detailIsStaged(
+	conditions: Omit<SimplifyConditions, 'zoom' | 'widestNodeWidth'>
+): boolean {
 	if (conditions.measuring || conditions.exporting || cullingDisabledForTooling()) return false;
 	return conditions.nodeCount >= LOD_MIN_NODES;
 }

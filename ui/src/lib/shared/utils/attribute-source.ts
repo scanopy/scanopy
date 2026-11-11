@@ -6,11 +6,11 @@
  * neutral grey: the label says where a value came from, and colour adds no ranking on top of it.
  */
 
-import type { components } from '$lib/api/schema';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { metaDescriptionWith, metaName, metaNameWith } from '$lib/i18n/metadata';
-import { attributeSources, clientProbes } from '$lib/shared/stores/metadata';
-import attributeMethods from '$lib/data/attribute-methods.json';
+import type { components } from '#lib/api/schema';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { metaDescriptionWith, metaName, metaNameWith } from '#lib/i18n/metadata.ts';
+import { attributeSources, clientProbes } from '#lib/shared/stores/metadata.ts';
+import attributeMethods from '#lib/data/attribute-methods.json';
 
 /** Derived from the backend enum rather than restated, so a new source cannot drift out of sync. */
 export type AttributeSource = components['schemas']['AttributeSource'];

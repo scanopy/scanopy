@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Download } from '@lucide/svelte';
-	import { common_export } from '$lib/paraglide/messages';
+	import { common_export } from '#lib/paraglide/messages.js';
 
 	let { onclick }: { onclick: () => void } = $props();
 </script>

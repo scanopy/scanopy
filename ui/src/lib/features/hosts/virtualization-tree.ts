@@ -8,8 +8,8 @@
  * server's group counts exactly, and the header has to name the root even when it sits on another
  * page.
  */
-import type { TreeConfig } from '$lib/shared/components/data/types';
-import { common_virtualized } from '$lib/paraglide/messages';
+import type { TreeConfig } from '#lib/shared/components/data/types.ts';
+import { common_virtualized } from '#lib/paraglide/messages.js';
 import { hostDisplayName } from './host-display-name';
 import type { Host } from './types/base';
 

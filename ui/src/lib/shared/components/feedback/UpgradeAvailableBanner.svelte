@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ArrowUpCircle } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { docsUrl } from '$lib/shared/utils/docs';
-	import { VERSION } from '$lib/version';
+	import { docsUrl } from '#lib/shared/utils/docs.ts';
+	import { VERSION } from '#lib/version.ts';
 	import {
 		upgradeBanner_body,
 		upgradeBanner_howToUpgrade,
 		common_releaseNotes
-	} from '$lib/paraglide/messages';
-	import type { PublicServerConfig } from '$lib/shared/stores/config-query';
+	} from '#lib/paraglide/messages.js';
+	import type { PublicServerConfig } from '#lib/shared/stores/config-query.ts';
 
 	let { upgrade }: { upgrade: NonNullable<PublicServerConfig['available_upgrade']> } = $props();
 

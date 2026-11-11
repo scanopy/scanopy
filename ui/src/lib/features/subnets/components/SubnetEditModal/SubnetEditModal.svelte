@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max, cidrNotation } from '$lib/shared/components/forms/validators';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max, cidrNotation } from '#lib/shared/components/forms/validators.ts';
 	import { createEmptySubnetFormData, isContainerSubnet } from '../../queries';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { entities, subnetTypes } from '$lib/shared/stores/metadata';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Subnet } from '../../types/base';
-	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_tags,
 		common_cancel,
@@ -36,7 +36,7 @@
 		subnets_descriptionPlaceholder,
 		subnets_namePlaceholder,
 		subnets_subnetType
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
 	const sitesQuery = useSitesQuery();

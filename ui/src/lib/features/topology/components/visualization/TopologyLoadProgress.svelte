@@ -4,7 +4,7 @@
 		topology_loadStageDraw,
 		topology_loadStageLayout,
 		topology_loadStageMeasure
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import { loadProgress, type LoadStage } from '../../pipeline/load-progress';
 
 	const LABELS: Record<LoadStage, () => string> = {

@@ -6,8 +6,8 @@
  */
 
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import type { IPAddress } from '$lib/features/hosts/types/base';
+import { queryKeys } from '#lib/api/query-client.ts';
+import type { IPAddress } from '#lib/features/hosts/types/base.ts';
 
 // Re-export type for convenience
 export type { IPAddress };

@@ -1,5 +1,5 @@
 <script lang="ts" generics="T, C">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
 
 	export let item: T;

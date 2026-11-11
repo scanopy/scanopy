@@ -19,24 +19,24 @@ const { computeSpy } = vi.hoisted(() => ({
 	}))
 }));
 
-vi.mock('$lib/features/topology/layout/engine', () => ({
+vi.mock('#lib/features/topology/layout/engine.ts', () => ({
 	ElkLayoutEngine: class {
 		compute = computeSpy;
 	}
 }));
 
-vi.mock(import('$lib/shared/stores/metadata'), async (importOriginal) => ({
+vi.mock(import('#lib/shared/stores/metadata.ts'), async (importOriginal) => ({
 	...(await importOriginal()),
 	containerTypes: {
 		getMetadata: () => ({ collapsed_size: { width: 200, height: 60 } })
 	} as unknown as Awaited<ReturnType<typeof importOriginal>>['containerTypes']
 }));
 
-import { executeLayout } from '$lib/features/topology/pipeline/execute-layout';
-import { createInitialState } from '$lib/features/topology/pipeline/types';
-import type { PrepareResult } from '$lib/features/topology/pipeline/types';
-import { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
+import { executeLayout } from '#lib/features/topology/pipeline/execute-layout.ts';
+import { createInitialState } from '#lib/features/topology/pipeline/types.ts';
+import type { PrepareResult } from '#lib/features/topology/pipeline/types.ts';
+import { LayoutGraph } from '#lib/features/topology/layout/layout-graph.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 
 const CONTAINER = {
 	id: 'c1',

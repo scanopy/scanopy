@@ -3,9 +3,9 @@
 	 * One icon per action, in a fixed order, so rows line up into columns. An action `held` doesn't
 	 * include keeps its slot, dimmed.
 	 */
-	import type { components } from '$lib/api/schema';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { actionColumns } from '$lib/features/users/role-access';
+	import type { components } from '#lib/api/schema';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { actionColumns } from '#lib/features/users/role-access.ts';
 
 	let { held }: { held: components['schemas']['DisplayAction'][] } = $props();
 </script>

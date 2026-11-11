@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import type { components } from '$lib/api/schema';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import type { components } from '#lib/api/schema';
 	import type { Credential } from '../types/base';
 	import {
 		createDefaultCredential,
@@ -13,17 +13,21 @@
 		isDaemonHostOnly,
 		isLoginType
 	} from '../types/base';
-	import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { pushError, pushWarning } from '$lib/shared/stores/feedback';
+	import {
+		credentialIntegrations,
+		credentialTypes,
+		entities
+	} from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { pushError, pushWarning } from '#lib/shared/stores/feedback.ts';
 	import { pruneAssignmentsForTargets } from '../utils/credentialTargets';
 	import { prefillCredentialName, typesForIntegration } from '../utils/prefill';
-	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import { useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
 	import CredentialForm from './CredentialForm.svelte';
 	import CredentialAssignmentsSection from './CredentialAssignmentsSection.svelte';
-	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import { submitForm, validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import { Info, KeyRound, Link } from '@lucide/svelte';
 	import {
 		common_assignments,
@@ -45,7 +49,7 @@
 		credentials_docsGuideLinkText,
 		credentials_loginInUse,
 		credentials_typeNeedsDaemon
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type CredentialHostAssignment = components['schemas']['CredentialHostAssignment'];
 

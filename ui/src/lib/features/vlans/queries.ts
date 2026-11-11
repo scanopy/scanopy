@@ -6,11 +6,11 @@
  */
 
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Vlan } from './types/base';
-import { invalidateListPages, useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import { invalidateListPages, useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 
 /**
  * VLANs list. Called with no arguments this is the shared full-list cache, so

@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { Service, ServiceVirtualization } from '$lib/features/services/types/base';
+	import type { Service, ServiceVirtualization } from '#lib/features/services/types/base.ts';
 	import {
 		ServiceDisplay,
 		type ServiceDisplayContext
-	} from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { hostDisplayContext } from '#lib/features/hosts/host-picker.svelte.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_containers,
 		hosts_virtualization_addContainer,
@@ -17,7 +17,7 @@
 		hosts_virtualization_containerHosts,
 		hosts_virtualization_containerHostsHelp,
 		hosts_virtualization_noContainersYet
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		service: Service;

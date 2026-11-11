@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { matchReasonLabel, type MatchDetails, type MatchReason } from '$lib/shared/types';
-	import { matchConfidences } from '$lib/shared/stores/metadata';
+	import { matchReasonLabel, type MatchDetails, type MatchReason } from '#lib/shared/types.ts';
+	import { matchConfidences } from '#lib/shared/stores/metadata.ts';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { hosts_services_matchDetails } from '$lib/paraglide/messages';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import { hosts_services_matchDetails } from '#lib/paraglide/messages.js';
 
 	let { details }: { details: MatchDetails } = $props();
 

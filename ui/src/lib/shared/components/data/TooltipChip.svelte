@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EntityTag from './EntityTag.svelte';
 	import Tag from './Tag.svelte';
-	import type { TooltipChip } from '$lib/shared/actions/tooltip';
+	import type { TooltipChip } from '#lib/shared/actions/tooltip.ts';
 
 	/** A tooltip's value, drawn by the same components as anywhere else in the app. */
 	let { chip }: { chip: TooltipChip } = $props();

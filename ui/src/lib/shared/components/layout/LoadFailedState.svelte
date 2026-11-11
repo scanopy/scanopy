@@ -5,7 +5,7 @@
 		common_loadFailedSubtitle,
 		common_loadFailedTitle,
 		common_tryAgain
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// A page whose data failed to load. It stands in for the page's empty state, which would
 	// tell the user there is nothing there. The page refetches on its own once the server answers

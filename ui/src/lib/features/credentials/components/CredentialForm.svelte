@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import {
 		required,
 		max,
@@ -11,38 +11,38 @@
 		macAddress,
 		proxmoxTokenId,
 		ipAddressFormat
-	} from '$lib/shared/components/forms/validators';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { CredentialTypeDisplay } from '$lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
+	} from '#lib/shared/components/forms/validators.ts';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { CredentialTypeDisplay } from '#lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
 	import type { Credential, CredentialType } from '../types/base';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import {
 		createDefaultCredential,
 		credentialTypeUpgradeFeature,
 		requiresLogin
 	} from '../types/base';
 	import LoginPicker from './LoginPicker.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { credentialTypes, entities } from '#lib/shared/stores/metadata.ts';
 	import { DAEMON_HOST_IP } from '../utils/credentialTargets';
 	import { fieldRows } from '../utils/fieldRows';
 	import { shownFields } from '../utils/fieldSets';
-	import { translateFieldDefinitions } from '$lib/i18n/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
-	import type { FieldDefinition, FieldType } from '$lib/shared/stores/metadata';
+	import { translateFieldDefinitions } from '#lib/i18n/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import RadioGroup from '#lib/shared/components/forms/input/RadioGroup.svelte';
+	import type { FieldDefinition, FieldType } from '#lib/shared/stores/metadata.ts';
 	import { Eye, EyeOff, HelpCircle, Plus } from '@lucide/svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import { docsUrl } from '$lib/shared/utils/docs';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import { docsUrl } from '#lib/shared/utils/docs.ts';
 	import {
 		DAEMON_OS_FIELD,
 		filePathPlaceholder,
@@ -96,7 +96,7 @@
 		daemons_credentialWizardDaemonHostTargetFixed,
 		credentials_alreadyAssignedTo,
 		credentials_sshLoginRequired
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,7 +7,7 @@
  */
 
 import type { TopologyNode } from '../types/base';
-import { containerTypes } from '$lib/shared/stores/metadata';
+import { containerTypes } from '#lib/shared/stores/metadata.ts';
 
 const CHILD_SPACING = 30;
 /** The grid root containers are snapped to (`mapElkResults`, SvelteFlow's `snapGrid`). */
@@ -562,7 +562,9 @@ export class LayoutGraph {
 			let bottom = 0;
 			for (const child of parent.allChildren) {
 				const size =
-					child instanceof LayoutContainer ? child.size : { width: child.width, height: child.height };
+					child instanceof LayoutContainer
+						? child.size
+						: { width: child.width, height: child.height };
 				right = Math.max(right, child.position.x + size.width);
 				bottom = Math.max(bottom, child.position.y + size.height);
 			}

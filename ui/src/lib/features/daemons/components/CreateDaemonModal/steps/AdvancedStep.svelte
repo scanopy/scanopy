@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import type { FormValue } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
+	import type { FormValue } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
 	import {
 		daemons_docsConfigOptions,
 		daemons_docsConfigOptionsLinkText
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import { fieldDefs, sectionDefs } from '../../../config';
 
 	interface Props {

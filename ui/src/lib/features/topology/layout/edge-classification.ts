@@ -1,14 +1,14 @@
 import type { TopologyEdge } from '../types/base';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	edgeTypes,
 	views,
 	type EdgeSelectionScope,
 	type EdgeTypeMetadata
-} from '$lib/shared/stores/metadata';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { neighborEvidenceFreshness, neighborEvidenceTag } from '$lib/shared/utils/freshness';
-import type { TagProps } from '$lib/shared/components/data/types';
+} from '#lib/shared/stores/metadata.ts';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { neighborEvidenceFreshness, neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
 
 type EdgeTypeDiscriminants = components['schemas']['EdgeTypeDiscriminants'];
 type Interface = components['schemas']['Interface'];

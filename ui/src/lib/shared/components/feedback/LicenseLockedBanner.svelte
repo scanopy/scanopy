@@ -4,11 +4,11 @@
 		license_expiredBanner,
 		license_instanceRefusedBanner,
 		license_invalidBanner
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import {
 		licenseProblemBanner,
 		type LicenseProblem
-	} from '$lib/features/settings/license-problem';
+	} from '#lib/features/settings/license-problem.ts';
 	import AppBanner from './AppBanner.svelte';
 
 	let {

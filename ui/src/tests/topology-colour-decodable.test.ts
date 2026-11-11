@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import viewsJson from '$lib/data/views.json';
-import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
-import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
-import guestStatesJson from '$lib/data/guest-states.json';
-import type { components } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import { buildElementRender } from '$lib/features/topology/element-render-data';
-import { type MarkChannel, type MarkValue } from '$lib/features/topology/element-marks';
-import { viewElementConfig } from '$lib/features/topology/view-filters';
-import { cardEntityForFilter } from '$lib/features/topology/resolvers';
-import { matchesHoveredMetadata } from '$lib/features/topology/interactions';
+import viewsJson from '#lib/data/views.json';
+import hostVirtualizationsJson from '#lib/data/host-virtualizations.json';
+import ifOperStatusesJson from '#lib/data/if-oper-statuses.json';
+import guestStatesJson from '#lib/data/guest-states.json';
+import type { components } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import { buildElementRender } from '#lib/features/topology/element-render-data.ts';
+import { type MarkChannel, type MarkValue } from '#lib/features/topology/element-marks.ts';
+import { viewElementConfig } from '#lib/features/topology/view-filters.ts';
+import { cardEntityForFilter } from '#lib/features/topology/resolvers.ts';
+import { matchesHoveredMetadata } from '#lib/features/topology/interactions.ts';
 
 /**
  * A colour on a topology card has to be decodable in the view it is drawn in: some chip in that

@@ -13,8 +13,8 @@ import {
 	ESCAPE_KEY,
 	type ModalAction,
 	type ModalKeydown
-} from '$lib/shared/components/layout/modalActions';
-import { DELETE_KEY } from '$lib/shared/components/data/controls/actionShortcuts';
+} from '#lib/shared/components/layout/modalActions.ts';
+import { DELETE_KEY } from '#lib/shared/components/data/controls/actionShortcuts.ts';
 
 const action = (role: ModalAction['role'], label: string, extra: Partial<ModalAction> = {}) =>
 	({ role, label, onClick: vi.fn(), ...extra }) as ModalAction;

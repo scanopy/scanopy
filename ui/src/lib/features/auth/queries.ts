@@ -8,11 +8,11 @@ import {
 	useQueryClient,
 	type QueryClient
 } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
-import { checkServerVersion } from '$lib/api/server-version';
-import { pushSuccess } from '$lib/shared/stores/feedback';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
+import { checkServerVersion } from '#lib/api/server-version.ts';
+import { pushSuccess } from '#lib/shared/stores/feedback.ts';
 import {
 	auth_emailVerified,
 	auth_loggedOut,
@@ -21,11 +21,11 @@ import {
 	auth_verificationEmailSent,
 	auth_welcome,
 	auth_welcomeBack
-} from '$lib/paraglide/messages';
-import { resetIdentity } from '$lib/shared/utils/analytics';
-import { useConfigQuery } from '$lib/shared/stores/config-query';
+} from '#lib/paraglide/messages.js';
+import { resetIdentity } from '#lib/shared/utils/analytics.ts';
+import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 import type { User } from '../users/types';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import type {
 	ForgotPasswordRequest,
 	LoginRequest,

@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 /**
  * A `Set<string>` store mirrored to localStorage under `key`, for per-viewer UI state such as

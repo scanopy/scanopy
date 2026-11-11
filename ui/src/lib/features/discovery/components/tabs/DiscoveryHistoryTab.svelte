@@ -1,18 +1,18 @@
 <script lang="ts">
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { narrowsList } from '$lib/shared/components/data/controls/listQuery';
-	import { listIsEmpty } from '$lib/api/list-page';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { narrowsList } from '#lib/shared/components/data/controls/listQuery.ts';
+	import { listIsEmpty } from '#lib/api/list-page.ts';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import type { Discovery } from '../../types/base';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import { discoveryHistoryColumns } from './DiscoveryHistoryTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import {
 		useDiscoveryHistoryQuery,
 		useCreateDiscoveryMutation,
@@ -20,23 +20,23 @@
 		useBulkDeleteDiscoveriesMutation,
 		useDeleteDiscoveryMutation
 	} from '../../queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
 	import {
 		modalState,
 		openModal,
 		closeModal,
 		resolveModalDeepLink
-	} from '$lib/shared/stores/modal-registry';
+	} from '#lib/shared/stores/modal-registry.ts';
 	import { Info, Trash2 } from '@lucide/svelte';
-	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import type { RowAction } from '$lib/shared/components/data/types';
+	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
 	import { runOutcomeTag, type OutcomeTag } from '../../utils/outcome';
 	import {
 		common_confirmDeleteName,
@@ -48,13 +48,13 @@
 		discovery_historyTitle,
 		discovery_noHistorySessions,
 		discovery_noHistorySessionsSubtitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 
 	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

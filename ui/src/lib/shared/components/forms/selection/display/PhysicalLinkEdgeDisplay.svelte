@@ -1,9 +1,9 @@
 <script lang="ts" module>
-	import { edgeTypes } from '$lib/shared/stores/metadata';
-	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
-	import { common_host, common_interface, common_unknownEntity } from '$lib/paraglide/messages';
+	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
+	import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
+	import { common_host, common_interface, common_unknownEntity } from '#lib/paraglide/messages.js';
 
 	// Serves both LLDP/CDP link types. `PhysicalLink` names the two ports, and the ports are what
 	// tell apart several links between the same two switches, so they're the label and the hosts

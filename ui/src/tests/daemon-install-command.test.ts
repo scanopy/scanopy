@@ -4,7 +4,7 @@ import {
 	installStepCommand,
 	type InstallArtifacts,
 	type OsInstallMethod
-} from '$lib/features/daemons/types/base';
+} from '#lib/features/daemons/types/base.ts';
 
 const KEY = 'scp_d_minted';
 

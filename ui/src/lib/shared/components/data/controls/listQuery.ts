@@ -1,5 +1,5 @@
-import { tagGroupFieldKey, tagGroupIdOf } from '$lib/features/tags/groupFields';
-import { SEARCH_MAX_LENGTH } from '$lib/shared/components/forms/input/SearchInput.svelte';
+import { tagGroupFieldKey, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
+import { SEARCH_MAX_LENGTH } from '#lib/shared/components/forms/input/SearchInput.svelte';
 import { getFieldKey, type FieldConfig, type FilterCodec } from '../types';
 import { parseSortState, type StoredFieldFilter } from './dataControlsStorage';
 import { booleanFilterValues, isFieldFilterActive, type FilterState } from './filtering';

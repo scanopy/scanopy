@@ -1,7 +1,13 @@
 <script lang="ts" context="module">
-	import type { Host, Interface, IPAddress, Port, Service } from '$lib/features/hosts/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { hostIcon, hostTile } from '$lib/features/hosts/host-icon';
+	import type {
+		Host,
+		Interface,
+		IPAddress,
+		Port,
+		Service
+	} from '#lib/features/hosts/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { hostIcon, hostTile } from '#lib/features/hosts/host-icon.ts';
 	import {
 		containerNetworkTypes,
 		entities,
@@ -9,13 +15,13 @@
 		hostVirtualizations,
 		proxmoxGuestTypes,
 		serviceDefinitions
-	} from '$lib/shared/stores/metadata';
-	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
-	import { cachedEntities, queryKeys } from '$lib/api/query-client';
+	} from '#lib/shared/stores/metadata.ts';
+	import { entityRef, type TagProps } from '#lib/shared/components/data/types.ts';
+	import { cachedEntities, queryKeys } from '#lib/api/query-client.ts';
 	import {
 		hosts_networkIdentity_tagTitle,
 		hosts_networkIdentity_tagTitleUnresolved
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/** An entity with this id from any cached query under `rootKey`. */
 	function findCached<T extends { id: string }>(rootKey: readonly unknown[], id: string): T | null {
@@ -98,7 +104,7 @@
 		services?: Service[];
 		showEntityTagPicker?: boolean;
 		tagPickerDisabled?: boolean;
-		entityTags?: import('$lib/features/tags/types/base').Tag[];
+		entityTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		allowTagCreate?: boolean;
 		showEditableEntityDescription?: boolean;
 		entityDescription?: string | null;

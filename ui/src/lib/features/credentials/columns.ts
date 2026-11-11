@@ -1,5 +1,5 @@
-import { entityRef, type CardFieldItem } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
+import { entityRef, type CardFieldItem } from '#lib/shared/components/data/types.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import type { Credential } from './types/base';
 
 /**

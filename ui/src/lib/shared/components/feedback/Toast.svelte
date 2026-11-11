@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { toastStore, dismissToast, type Toast } from '$lib/shared/stores/feedback';
+	import { toastStore, dismissToast, type Toast } from '#lib/shared/stores/feedback.ts';
 	import { fly } from 'svelte/transition';
 	import { AlertCircle, AlertTriangle, Info, CheckCircle, X } from '@lucide/svelte';
-	import { common_dismiss } from '$lib/paraglide/messages';
+	import { common_dismiss } from '#lib/paraglide/messages.js';
 
 	$: toasts = $toastStore;
 

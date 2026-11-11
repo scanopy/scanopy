@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { groupPageSlice } from '$lib/shared/components/data/types';
-import { paginationView } from '$lib/shared/components/data/controls/pagination';
+import { groupPageSlice } from '#lib/shared/components/data/types.ts';
+import { paginationView } from '#lib/shared/components/data/controls/pagination.ts';
 
 /**
  * Tests for DataControls pagination logic.

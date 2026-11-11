@@ -3,9 +3,9 @@
 	import NodeHandles from './NodeHandles.svelte';
 	// NodeResizeControl — unused while the resize controls below are commented out.
 	// import { NodeResizeControl } from '@xyflow/svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import type { Color, ColorStyle } from '$lib/shared/utils/styling';
-	import { serviceCategories, containerTypes } from '$lib/shared/stores/metadata';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import type { Color, ColorStyle } from '#lib/shared/utils/styling.ts';
+	import { serviceCategories, containerTypes } from '#lib/shared/stores/metadata.ts';
 	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
 	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
 	import {
@@ -19,16 +19,16 @@
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
 	import { entityGlyph } from '../../entity-glyph';
 	import { containerEntity, resolveContainerNode, topologyLookup } from '../../resolvers';
-	import { entityTooltip } from '$lib/shared/entity-tooltip';
-	import type { TooltipOptions } from '$lib/shared/actions/tooltip';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { getFreshnessTag } from '$lib/shared/utils/freshness';
-	import { getConfirmationTag } from '$lib/shared/utils/confirmation';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { entityUIConfig } from '$lib/shared/entity-ui-config';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import type { Tag, TagGroup } from '$lib/features/tags/types/base';
-	import { tagTooltip } from '$lib/features/tags/groups';
+	import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
+	import type { TooltipOptions } from '#lib/shared/actions/tooltip.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
+	import { getConfirmationTag } from '#lib/shared/utils/confirmation.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { entityUIConfig } from '#lib/shared/entity-ui-config.ts';
+	import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+	import type { Tag, TagGroup } from '#lib/features/tags/types/base.ts';
+	import { tagTooltip } from '#lib/features/tags/groups.ts';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
@@ -36,8 +36,8 @@
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { toggleCollapse } from '../../collapse';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { createIconComponent } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import { createIconComponent } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import ContainerHeader, { type GroupPill, type SubgroupRow } from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';

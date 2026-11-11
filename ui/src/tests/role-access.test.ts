@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { actionColumns, roleActions, roleResources } from '$lib/features/users/role-access';
-import { permissions, productAreas, resources } from '$lib/shared/stores/metadata';
+import { actionColumns, roleActions, roleResources } from '#lib/features/users/role-access.ts';
+import { permissions, productAreas, resources } from '#lib/shared/stores/metadata.ts';
 
 type Resource = Parameters<typeof roleActions>[0];
 

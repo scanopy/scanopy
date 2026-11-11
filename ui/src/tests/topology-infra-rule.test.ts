@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	findInfraRuleId,
 	getInfrastructureRuleIdForTopology
-} from '$lib/features/topology/queries';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
+} from '#lib/features/topology/queries.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 
 // Minimal element-rules fixtures (only the fields findInfraRuleId reads).
 const infraRule = {

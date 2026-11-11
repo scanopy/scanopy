@@ -23,10 +23,10 @@
 	import LicenseInstanceLimitBanner from './LicenseInstanceLimitBanner.svelte';
 	import NonProductionBanner from './NonProductionBanner.svelte';
 	import UpgradeAvailableBanner from './UpgradeAvailableBanner.svelte';
-	import { useEmailVerificationPending } from '$lib/features/auth/queries';
-	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useConfigQuery, isLicenseApproachingExpiry } from '$lib/shared/stores/config-query';
+	import { useEmailVerificationPending } from '#lib/features/auth/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useConfigQuery, isLicenseApproachingExpiry } from '#lib/shared/stores/config-query.ts';
 
 	const emailVerification = useEmailVerificationPending();
 	const organizationQuery = useOrganizationQuery();

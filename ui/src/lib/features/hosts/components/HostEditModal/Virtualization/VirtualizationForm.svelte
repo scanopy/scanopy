@@ -1,21 +1,21 @@
 <script lang="ts">
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import type { Service } from '$lib/features/services/types/base';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import VmManagerConfigPanel from './VmManagerConfigPanel.svelte';
 	import ContainerManagerConfigPanel from './ContainerManagerConfigPanel.svelte';
 	import NetworkIdentitiesConfigPanel from './NetworkIdentitiesConfigPanel.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import {
 		VirtualizationManagerServiceDisplay,
 		type VirtualizationManagerContext
-	} from '$lib/shared/components/forms/selection/display/VirtualizationManagerServiceDisplay.svelte';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import { useHostsQuery } from '$lib/features/hosts/queries';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
+	} from '#lib/shared/components/forms/selection/display/VirtualizationManagerServiceDisplay.svelte';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import { uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import { useHostsQuery } from '#lib/features/hosts/queries.ts';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
 	import {
 		common_noEntitySelected,
 		common_service,
@@ -29,7 +29,7 @@
 		hosts_virtualization_servicesLabel,
 		hosts_virtualization_unknownType,
 		hosts_virtualization_unknownTypeSubtitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		virtualizationManagerServices: Service[];

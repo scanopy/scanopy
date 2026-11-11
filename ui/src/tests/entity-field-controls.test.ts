@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { isGroupableField, isSortableField } from '$lib/shared/components/data/controls/sorting';
-import { serverFilterViolations } from '$lib/shared/components/data/controls/filtering';
-import { columnControls } from '$lib/shared/components/data/controls/headerControls';
-import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
+import { isGroupableField, isSortableField } from '#lib/shared/components/data/controls/sorting.ts';
+import { serverFilterViolations } from '#lib/shared/components/data/controls/filtering.ts';
+import { columnControls } from '#lib/shared/components/data/controls/headerControls.ts';
+import { getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
 import {
 	FEATURES,
 	OPENAPI,

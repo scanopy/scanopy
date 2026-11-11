@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import type { Interface, IPAddress } from '$lib/features/hosts/types/base';
-	import { getHostByIdFromCache } from '$lib/features/hosts/queries';
-	import { getSubnetByIdFromCache } from '$lib/features/subnets/queries';
-	import { useInterfaceNeighboursQuery } from '$lib/features/interfaces/queries';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import InterfaceDetailsCard from '$lib/features/hosts/components/InterfaceDetailsCard.svelte';
-	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import type { Interface, IPAddress } from '#lib/features/hosts/types/base.ts';
+	import { getHostByIdFromCache } from '#lib/features/hosts/queries.ts';
+	import { getSubnetByIdFromCache } from '#lib/features/subnets/queries.ts';
+	import { useInterfaceNeighboursQuery } from '#lib/features/interfaces/queries.ts';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import InterfaceDetailsCard from '#lib/features/hosts/components/InterfaceDetailsCard.svelte';
+	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
 	import {
 		hosts_interfaces_cdpNeighbor,
 		hosts_interfaces_cdpNeighborNumbered,
@@ -25,7 +25,7 @@
 		hosts_interfaces_remoteSystemName,
 		hosts_snmp_chassisId,
 		hosts_snmp_sysDescr
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		iface: Interface;

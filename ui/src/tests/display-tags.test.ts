@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { displayTags, fitTags } from '$lib/shared/components/forms/selection/display-tags';
-import type { EntityDisplayComponent } from '$lib/shared/components/forms/selection/types';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-import type { Interface } from '$lib/features/hosts/types/base';
+import { displayTags, fitTags } from '#lib/shared/components/forms/selection/display-tags.ts';
+import type { EntityDisplayComponent } from '#lib/shared/components/forms/selection/types.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+import type { Interface } from '#lib/features/hosts/types/base.ts';
 
 const TAGS: TagProps[] = [
 	{ label: 'VM', role: 'guest' },

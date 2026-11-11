@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
 	import { AlertTriangle } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useHasPendingQuote } from '$lib/features/billing/queries';
-	import { useExtendTrial } from '$lib/features/billing/extend-trial';
-	import { useCan } from '$lib/features/auth/access';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useHasPendingQuote } from '#lib/features/billing/queries.ts';
+	import { useExtendTrial } from '#lib/features/billing/extend-trial.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
 	import {
 		canExtendTrial,
 		getTrialDaysLeft,
 		isTrialingWithoutPayment
-	} from '$lib/shared/utils/trial';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
+	} from '#lib/shared/utils/trial.ts';
+	import { hasLicensedPlan } from '#lib/features/organizations/types.ts';
+	import { trackOncePerSession } from '#lib/shared/utils/analytics.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		billing_addPaymentMethod,
 		billing_trialBannerBody,
@@ -24,7 +24,7 @@
 		billing_trialBannerBodyLicenseOneDay,
 		billing_trialBannerBodyLicenseToday,
 		billing_trialBannerExtend
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();

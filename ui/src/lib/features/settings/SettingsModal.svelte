@@ -1,6 +1,6 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import {
 		User,
 		Building2,
@@ -11,25 +11,25 @@
 		Monitor,
 		LifeBuoy
 	} from '@lucide/svelte';
-	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		hasLicensedPlan,
 		isPlanLapsed,
 		isPlanUnchosen,
 		isSelfHostedPlanLocked
-	} from '$lib/features/organizations/types';
-	import { useHasPendingQuote } from '$lib/features/billing/queries';
+	} from '#lib/features/organizations/types.ts';
+	import { useHasPendingQuote } from '#lib/features/billing/queries.ts';
 	import {
 		isCloud,
 		isLicenseSigningAvailable,
 		useConfigQuery
-	} from '$lib/shared/stores/config-query';
-	import { billingPlans } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/stores/config-query.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
 	import { licenseTabVisible } from './license-tab';
-	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
-	import { modalState } from '$lib/shared/stores/modal-registry';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
+	import { isMissingPaymentMethod } from '#lib/shared/utils/trial.ts';
+	import { modalState } from '#lib/shared/stores/modal-registry.ts';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
 	import AccountTab from './AccountTab.svelte';
 	import OrganizationTab from './OrganizationTab.svelte';
 	import BillingTab from './BillingTab.svelte';
@@ -37,8 +37,8 @@
 	import EmailTab from './EmailTab.svelte';
 	import SystemTab from './SystemTab.svelte';
 	import SupportTab from './SupportTab.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import AppBanners from '#lib/shared/components/feedback/AppBanners.svelte';
 	import {
 		common_account,
 		common_billing,
@@ -50,7 +50,7 @@
 		common_system,
 		settings_billing_ownerHoldsLicense,
 		settings_billing_ownerMustResolve
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen = false,

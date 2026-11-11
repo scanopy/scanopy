@@ -1,20 +1,20 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import { X } from '@lucide/svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import EntityTagSelect, {
 		type EntityTagOption
-	} from '$lib/shared/components/forms/selection/EntityTagSelect.svelte';
+	} from '#lib/shared/components/forms/selection/EntityTagSelect.svelte';
 	import BindingPicker from './BindingPicker.svelte';
 	import {
 		common_host,
 		common_at,
 		common_remove,
 		dependencies_noServicesError
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import type { DependencyTarget } from '../../../../resolvers';
 	import type { RenderableTopology } from '../../../../types/base';
 

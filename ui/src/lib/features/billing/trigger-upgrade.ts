@@ -1,14 +1,14 @@
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { isCloud, type PublicServerConfig } from '$lib/shared/stores/config-query';
-import { trackEvent } from '$lib/shared/utils/analytics';
-import { openModal } from '$lib/shared/stores/modal-registry';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { isCloud, type PublicServerConfig } from '#lib/shared/stores/config-query.ts';
+import { trackEvent } from '#lib/shared/utils/analytics.ts';
+import { openModal } from '#lib/shared/stores/modal-registry.ts';
 import {
 	billingOpensOverModal,
 	openBillingModal,
 	reopenSettingsAfterBilling
-} from '$lib/features/billing/stores';
-import type { UpgradeFeature } from '$lib/shared/stores/metadata';
-import type { PlanPickerHosting } from '$lib/features/billing/types';
+} from '#lib/features/billing/stores.ts';
+import type { UpgradeFeature } from '#lib/shared/stores/metadata.ts';
+import type { PlanPickerHosting } from '#lib/features/billing/types.ts';
 
 const PRICING_URL_BASE = 'https://scanopy.net/pricing';
 

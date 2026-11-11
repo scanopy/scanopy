@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ArrowRight } from '@lucide/svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import type { RowAction, TableDefaults } from '$lib/shared/components/data/types';
-	import type { components } from '$lib/api/schema';
-	import { setupItemTiers } from '$lib/shared/stores/metadata';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import DaemonTroubleshootingModal from '#lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import type { RowAction, TableDefaults } from '#lib/shared/components/data/types.ts';
+	import type { components } from '#lib/api/schema';
+	import { setupItemTiers } from '#lib/shared/stores/metadata.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { useIssuesListQuery } from '../queries';
 	import { entryId, type SetupItemType, type SetupListEntry } from '../setup-list';
 	import { setupRowView } from '../setup-row-view';

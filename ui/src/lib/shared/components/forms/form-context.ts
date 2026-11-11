@@ -3,8 +3,8 @@
  */
 import { createFormCreator, createFormCreatorContexts } from '@tanstack/svelte-form';
 import type { AnyFormApi } from '@tanstack/form-core';
-import { pushError } from '$lib/shared/stores/feedback';
-import { common_validation_fixFields } from '$lib/paraglide/messages';
+import { pushError } from '#lib/shared/stores/feedback.ts';
+import { common_validation_fixFields } from '#lib/paraglide/messages.js';
 
 // Create context accessors for child components
 export const { useFieldContext, useFormContext } = createFormCreatorContexts();

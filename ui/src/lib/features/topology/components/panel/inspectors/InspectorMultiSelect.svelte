@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { isApplicationTag, tagIcon, tagTooltip } from '$lib/features/tags/groups';
+	import { isApplicationTag, tagIcon, tagTooltip } from '#lib/features/tags/groups.ts';
 	import { get } from 'svelte/store';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Eye, EyeOff, X, Crosshair, ArrowDown } from '@lucide/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
-	import { focusNodes } from '$lib/features/topology/viewport-fit';
+	import { focusNodes } from '#lib/features/topology/viewport-fit.ts';
 	import {
 		selectedNodes,
 		previewEdges,
@@ -23,45 +23,45 @@
 		resolveTagTarget,
 		type DependencyTarget
 	} from '../../../resolvers';
-	import type { DependencyType, EdgeStyle } from '$lib/features/dependencies/types/base';
-	import { generateDependencyName } from '$lib/features/dependencies/utils';
+	import type { DependencyType, EdgeStyle } from '#lib/features/dependencies/types/base.ts';
+	import { generateDependencyName } from '#lib/features/dependencies/utils.ts';
 	import { getTopologyEditState } from '../../../state';
-	import { computeCommonTags } from '$lib/shared/utils/tags';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
+	import { computeCommonTags } from '#lib/shared/utils/tags.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import {
 		useTagsQuery,
 		useTagGroupsQuery,
 		useBulkAddTagMutation,
 		useBulkRemoveTagMutation
-	} from '$lib/features/tags/queries';
+	} from '#lib/features/tags/queries.ts';
 	import {
 		useCreateDependencyMutation,
 		useUpdateDependencyMutation,
 		createEmptyDependencyFormData
-	} from '$lib/features/dependencies/queries';
-	import type { Dependency } from '$lib/features/dependencies/types/base';
-	import EdgeStyleForm from '$lib/features/dependencies/components/DependencyEditModal/EdgeStyleForm.svelte';
+	} from '#lib/features/dependencies/queries.ts';
+	import type { Dependency } from '#lib/features/dependencies/types/base.ts';
+	import EdgeStyleForm from '#lib/features/dependencies/components/DependencyEditModal/EdgeStyleForm.svelte';
 	import { computeOptimalHandles } from '../../../layout/handle-picking';
-	import { dependencyTypes, concepts } from '$lib/shared/stores/metadata';
+	import { dependencyTypes, concepts } from '#lib/shared/stores/metadata.ts';
 	import {
 		commonTagsHeader,
 		formatEntityCounts,
 		noCommonTagsHintText,
 		tallySelection
-	} from '$lib/features/topology/labels';
+	} from '#lib/features/topology/labels.ts';
 	import { getInspectorConfig } from './view-config';
 	import DependencyTargetCard from './shared/DependencyTargetCard.svelte';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import type { Color } from '$lib/shared/utils/styling';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { dependencyColors } from '$lib/features/dependencies/utils';
-	import { browser } from '$app/environment';
+	import type { Color } from '#lib/shared/utils/styling.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import { dependencyColors } from '#lib/features/dependencies/utils.ts';
+	import { browser } from '$app/env';
 	import { v4 as uuidv4 } from 'uuid';
 	import {
 		appWizard_selectedCount,
@@ -92,7 +92,7 @@
 		topology_tutorialDone,
 		common_application,
 		common_ungrouped
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		topology,
@@ -103,6 +103,10 @@
 		onDependencyTypeChange,
 		editingDependency = null,
 		onDone
+
+		/** When set, the component acts as an edit form for an existing dependency
+		 *  (PUT on submit) instead of a create form. $selectedNodes is ignored. */
+		/** Fired when the user finishes editing (successful Update) or cancels. */
 	}: {
 		topology: RenderableTopology | undefined;
 		isReadOnly?: boolean;
@@ -110,10 +114,7 @@
 		onClearSelection: () => void;
 		onGroupCreated?: (groupId: string) => void;
 		onDependencyTypeChange?: (type: DependencyType) => void;
-		/** When set, the component acts as an edit form for an existing dependency
-		 *  (PUT on submit) instead of a create form. $selectedNodes is ignored. */
 		editingDependency?: Dependency | null;
-		/** Fired when the user finishes editing (successful Update) or cancels. */
 		onDone?: () => void;
 	} = $props();
 
@@ -235,6 +236,7 @@
 	let nonAppTags = $derived(
 		topoEntityTags.filter((t) => !isApplicationTag(t, topology?.application_group_id))
 	);
+
 	let appTags = $derived(
 		topoEntityTags.filter((t) => isApplicationTag(t, topology?.application_group_id))
 	);
@@ -1117,9 +1119,10 @@
 					<div class="space-y-2">
 						{#if isEditMode}
 							<div class="flex gap-2">
-								<button class="btn-secondary flex-1 text-xs" onclick={cancelEdit}>
-									{common_cancel()}
-								</button>
+								<button class="btn-secondary flex-1 text-xs" onclick={cancelEdit}
+									>{common_cancel()}</button
+								>
+
 								<button
 									class="btn-primary flex-1 text-xs"
 									onclick={confirmGroupCreation}

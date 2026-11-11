@@ -16,7 +16,7 @@
  *   done();
  */
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export interface TopologyPerfSnapshot {
 	/** Cumulative milliseconds spent in each stage, keyed by stage name. */

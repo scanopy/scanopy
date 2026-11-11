@@ -1,23 +1,23 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import type { Discovery } from '../../types/base';
 	import type { DiscoveryConfigOrderField } from '../../queries';
 	import SessionPhaseProgress from '../cards/SessionPhaseProgress.svelte';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import { discoveryScheduledColumns } from './DiscoveryScheduledTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Play, Power, Edit, Trash2, Ban } from '@lucide/svelte';
-	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useScheduledDiscoveriesQuery,
 		useCreateDiscoveryMutation,
@@ -33,18 +33,18 @@
 	} from '../../queries';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { isPreUnifiedDaemon } from '#lib/features/daemons/utils.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -72,9 +72,9 @@
 		common_scans,
 		discovery_legacyDaemonsWarning,
 		discovery_noScheduledSessions
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

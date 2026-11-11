@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { LogOut, Mail } from '@lucide/svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EmailChangeForm from './EmailChangeForm.svelte';
 	import {
 		useCurrentUserQuery,
 		useLogoutMutation,
 		useResendVerificationMutation
-	} from '$lib/features/auth/queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	} from '#lib/features/auth/queries.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_verifyEmailGateBody,
 		common_back,
@@ -20,7 +20,7 @@
 		settings_account_updateEmail,
 		verifyEmail_sentLinkTo,
 		verifyEmail_title
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// No onClose: the server refuses this user's requests until they verify, so
 	// the ways out are verifying (the current-user query refetches on focus while

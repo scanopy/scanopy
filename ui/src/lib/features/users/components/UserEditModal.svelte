@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import { entities, permissions, metadata } from '$lib/shared/stores/metadata';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useUpdateUserAsAdminMutation } from '$lib/features/users/queries';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import PermissionSelect from '#lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '#lib/shared/components/api-keys/RoleAccessSummary.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import { entities, permissions, metadata } from '#lib/shared/stores/metadata.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useUpdateUserAsAdminMutation } from '#lib/features/users/queries.ts';
+	import { pushSuccess } from '#lib/shared/stores/feedback.ts';
 	import type { User, UserOrgPermissions } from '../types';
-	import type { Site } from '$lib/features/sites/types';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_access,
 		common_account,
@@ -34,7 +34,7 @@
 		users_permissionsLevel,
 		users_permissionsLevelHelp,
 		users_updateSuccess
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen = $bindable(false),

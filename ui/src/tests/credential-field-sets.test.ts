@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import credentialTypes from '$lib/data/credential-types.json';
-import { shownFields } from '$lib/features/credentials/utils/fieldSets';
-import type { FieldDefinition } from '$lib/shared/stores/metadata';
+import credentialTypes from '#lib/data/credential-types.json';
+import { shownFields } from '#lib/features/credentials/utils/fieldSets.ts';
+import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 
 // The SNMPv3 form as the backend defines it, so this fails if the field set and the form drift.
 const snmpV3Fields = credentialTypes.find((t) => t.id === 'SnmpV3')?.metadata

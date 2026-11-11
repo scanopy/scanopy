@@ -1,4 +1,4 @@
-import { isRateLimited, getRateLimitDelay } from '$lib/api/client';
+import { isRateLimited, getRateLimitDelay } from '#lib/api/client.ts';
 
 export interface SSEConfig<T> {
 	url: string;

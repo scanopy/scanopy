@@ -10,7 +10,7 @@ import {
 	sessionLastActivityAt,
 	sessionLastMessageAt,
 	sessionStallOf
-} from '$lib/features/discovery/utils/staleness';
+} from '#lib/features/discovery/utils/staleness.ts';
 
 const T0 = 1_000_000;
 const past = T0 + STALL_THRESHOLD_MS + 1;

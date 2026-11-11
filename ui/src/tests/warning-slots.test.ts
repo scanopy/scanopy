@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import warningCodes from '$lib/data/warning-codes.json';
-import warningRemedies from '$lib/data/warning-remedies.json';
-import discoveryIntegrations from '$lib/data/discovery-integrations.json';
-import claimSources from '$lib/data/claim-sources.json';
-import type { components } from '$lib/api/schema';
-import { snmpCheckOf, type CredentialLookup } from '$lib/features/discovery/utils/snmpCheck';
+import warningCodes from '#lib/data/warning-codes.json';
+import warningRemedies from '#lib/data/warning-remedies.json';
+import discoveryIntegrations from '#lib/data/discovery-integrations.json';
+import claimSources from '#lib/data/claim-sources.json';
+import type { components } from '#lib/api/schema';
+import { snmpCheckOf, type CredentialLookup } from '#lib/features/discovery/utils/snmpCheck.ts';
 import {
 	buildWarningReport,
 	credentialIdsOf,
 	type DiscoveryWarning,
 	type EntityNameLookup
-} from '$lib/features/discovery/utils/warnings';
+} from '#lib/features/discovery/utils/warnings.ts';
 
 type Credential = components['schemas']['Credential'];
 

@@ -1,5 +1,5 @@
 <script lang="ts" context="module">
-	import type { PortTypeMetadata, TypedTypeMetadata } from '$lib/shared/stores/metadata';
+	import type { PortTypeMetadata, TypedTypeMetadata } from '#lib/shared/stores/metadata.ts';
 
 	type PortType = TypedTypeMetadata<PortTypeMetadata>;
 
@@ -16,9 +16,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { createIconComponent } from '$lib/shared/utils/styling';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { createIconComponent } from '#lib/shared/utils/styling.ts';
 	import type { EntityDisplayComponent } from '../types';
 
 	export let item: PortType;

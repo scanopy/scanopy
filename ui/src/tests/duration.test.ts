@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitHours, combineToHours } from '$lib/shared/utils/duration';
+import { splitHours, combineToHours } from '#lib/shared/utils/duration.ts';
 
 describe('duration split/combine', () => {
 	// The failure that matters: opening a site's settings and re-saving

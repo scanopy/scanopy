@@ -15,7 +15,7 @@
 	import type { Snippet } from 'svelte';
 	import ListSelectItem from './ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from './types';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 
 	interface Props {
 		items: C[];

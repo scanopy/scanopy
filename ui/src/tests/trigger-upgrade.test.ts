@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 
-vi.mock('$lib/shared/utils/analytics', () => ({ trackEvent: vi.fn() }));
+vi.mock('#lib/shared/utils/analytics.ts', () => ({ trackEvent: vi.fn() }));
 
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { closeModal, modalState, openModal } from '$lib/shared/stores/modal-registry';
-import { billingOverModal } from '$lib/features/billing/stores';
-import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-import { startSetupPayment } from '$lib/shared/billing/setup-payment';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { closeModal, modalState, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { billingOverModal } from '#lib/features/billing/stores.ts';
+import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
 
 describe('billing modals opened from inside another modal', () => {
 	beforeEach(() => {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Clock } from '@lucide/svelte';
-	import { license_renewByBanner, license_validThroughBanner } from '$lib/paraglide/messages';
-	import { formatLongDate } from '$lib/shared/utils/formatting';
+	import { license_renewByBanner, license_validThroughBanner } from '#lib/paraglide/messages.js';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import AppBanner from './AppBanner.svelte';
 
 	let { validThrough, hardExpiry }: { validThrough: string; hardExpiry: string } = $props();

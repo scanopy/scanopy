@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { Copy } from '@lucide/svelte';
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
-	import { common_clickToCopy, common_copied, common_failedToCopy } from '$lib/paraglide/messages';
+	import { pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
+	import {
+		common_clickToCopy,
+		common_copied,
+		common_failedToCopy
+	} from '#lib/paraglide/messages.js';
 
 	/**
 	 * A value the user copies verbatim, drawn as a mono chip that copies on click. `block` is a

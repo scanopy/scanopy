@@ -2,13 +2,13 @@ import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import {
 	licenseSettingsOpenedFor,
 	markLicenseSettingsOpened
-} from '$lib/features/settings/license-settings-opened';
+} from '#lib/features/settings/license-settings-opened.ts';
 import {
 	isShellReady,
 	shouldCloseBillingPlanLink,
 	shouldOpenLicenseSettings,
 	shouldShowTrialExpiryModal
-} from '$lib/features/organizations/onload-gates';
+} from '#lib/features/organizations/onload-gates.ts';
 
 const pending = { data: undefined, isError: false };
 const loaded = { data: {}, isError: false };

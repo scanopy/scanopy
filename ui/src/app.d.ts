@@ -16,7 +16,7 @@ declare module 'freemail' {
 	export function disposable(email: string): boolean;
 }
 
-declare module '$lib/data/billing-plans.json' {
+declare module '#lib/data/billing-plans.json' {
 	interface BillingPlanFixture {
 		id: string;
 		name: string;
@@ -42,7 +42,7 @@ declare module '$lib/data/billing-plans.json' {
 	export default data;
 }
 
-declare module '$lib/data/billing-plans-all.json' {
+declare module '#lib/data/billing-plans-all.json' {
 	interface BillingPlanAllFixture {
 		id: string;
 		name: string;
@@ -61,7 +61,7 @@ declare module '$lib/data/billing-plans-all.json' {
 	export default data;
 }
 
-declare module '$lib/data/features.json' {
+declare module '#lib/data/features.json' {
 	interface FeatureFixture {
 		id: string;
 		name: string;

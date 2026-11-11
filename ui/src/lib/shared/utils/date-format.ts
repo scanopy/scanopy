@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
-import { getLocale } from '$lib/paraglide/runtime';
-import { common_justNow } from '$lib/paraglide/messages';
+import type { components } from '#lib/api/schema';
+import { getLocale } from '#lib/paraglide/runtime.js';
+import { common_justNow } from '#lib/paraglide/messages.js';
 
 type DisplaySettings = components['schemas']['DisplaySettings'];
 

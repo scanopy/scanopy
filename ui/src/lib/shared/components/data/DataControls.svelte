@@ -66,17 +66,17 @@
 		PAGE_PARAM,
 		type ServerQuery
 	} from './controls/listQuery';
-	import { registerUrlOwner, syncUrl, takeInitialParams } from '$lib/shared/stores/url-state';
+	import { registerUrlOwner, syncUrl, takeInitialParams } from '#lib/shared/stores/url-state.ts';
 	import ControlsBar from './controls/ControlsBar.svelte';
 	import ColumnControlsMenu from './table/ColumnControlsMenu.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import PaginationBar from './controls/PaginationBar.svelte';
 	import SelectionMenus from './controls/SelectionMenus.svelte';
 	import EntityTable from './table/EntityTable.svelte';
 	import ColumnVisibilityMenu from './table/ColumnVisibilityMenu.svelte';
 	import TagCell from './TagCell.svelte';
-	import { tagItems } from '$lib/features/tags/columns';
-	import { tagGroupFields, tagGroupIdOf } from '$lib/features/tags/groupFields';
+	import { tagItems } from '#lib/features/tags/columns.ts';
+	import { tagGroupFields, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
 	import {
 		fieldsToColumns,
 		reconcileColumnState,
@@ -106,8 +106,8 @@
 		common_items,
 		common_no,
 		common_yes
-	} from '$lib/paraglide/messages';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	} from '#lib/paraglide/messages.js';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import { SearchX } from '@lucide/svelte';
 	import {
 		useTagsQuery,
@@ -115,14 +115,14 @@
 		useBulkAddTagMutation,
 		useBulkRemoveTagMutation,
 		type EntityDiscriminants
-	} from '$lib/features/tags/queries';
-	import { computeCommonTags } from '$lib/shared/utils/tags';
+	} from '#lib/features/tags/queries.ts';
+	import { computeCommonTags } from '#lib/shared/utils/tags.ts';
 	import { MediaQuery, SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import throttle from 'just-throttle';
-	import { isOnVisiblePage, registerEntityList } from '$lib/shared/stores/modal-registry';
-	import { isShiftShortcut, keyLabel, shiftShortcutLabel } from '$lib/shared/utils/shortcuts';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { isOnVisiblePage, registerEntityList } from '#lib/shared/stores/modal-registry.ts';
+	import { isShiftShortcut, keyLabel, shiftShortcutLabel } from '#lib/shared/utils/shortcuts.ts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		isFreeKeydown,
 		isPlainKey,
@@ -137,7 +137,7 @@
 		toolbarButtonClass,
 		type KeyedAction
 	} from './controls/actionShortcuts';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 
 	type PaginationMeta = components['schemas']['PaginationMeta'];
 

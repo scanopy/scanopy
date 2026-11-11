@@ -1,4 +1,4 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	license_problem_certificateDates,
 	license_problem_connect,
@@ -15,7 +15,7 @@ import {
 	license_problem_timeout,
 	license_problem_untrustedCertificate,
 	license_problem_troubleshootLink
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export type LicenseProblem = components['schemas']['LicenseProblem'];
 

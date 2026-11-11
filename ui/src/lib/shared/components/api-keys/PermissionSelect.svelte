@@ -6,13 +6,13 @@
 	 * Filters available permission options based on the current user's permissions
 	 * and the context (API keys vs user management have different rules)
 	 */
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { permissions } from '$lib/shared/stores/metadata';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import { permissions } from '#lib/shared/stores/metadata.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
 	interface Props {

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	export interface FilterItem {
 		value: string;

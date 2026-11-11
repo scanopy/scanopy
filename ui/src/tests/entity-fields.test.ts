@@ -6,13 +6,17 @@ import {
 	resolveField,
 	type EntityField,
 	type EntityType
-} from '$lib/shared/entity-fields';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import { getFieldKey } from '$lib/shared/components/data/types';
-import { ENTITY_COLLECTIONS, nodeEntity, topologyLookup } from '$lib/features/topology/resolvers';
-import { containerTypes } from '$lib/shared/stores/metadata';
-import containerTypesJson from '$lib/data/container-types.json';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
+} from '#lib/shared/entity-fields/index.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import { getFieldKey } from '#lib/shared/components/data/types.ts';
+import {
+	ENTITY_COLLECTIONS,
+	nodeEntity,
+	topologyLookup
+} from '#lib/features/topology/resolvers.ts';
+import { containerTypes } from '#lib/shared/stores/metadata.ts';
+import containerTypesJson from '#lib/data/container-types.json';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
 
 /** A field built inline, so the walker is tested on paths rather than on the registry's contents. */
 function field(path: EntityField['path'], value: string | null, many = false): EntityField {

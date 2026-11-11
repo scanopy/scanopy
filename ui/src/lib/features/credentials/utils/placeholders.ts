@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
-import osFamilies from '$lib/data/os-families.json';
-import { metaName } from '$lib/i18n/metadata';
+import type { components } from '#lib/api/schema';
+import osFamilies from '#lib/data/os-families.json';
+import { metaName } from '#lib/i18n/metadata.ts';
 
 export type OsFamily = components['schemas']['OsFamily'];
 

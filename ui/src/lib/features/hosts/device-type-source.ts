@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { attributeSourceLabel, attributeSourceTag } from '$lib/shared/utils/attribute-source';
+import type { components } from '#lib/api/schema';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { attributeSourceLabel, attributeSourceTag } from '#lib/shared/utils/attribute-source.ts';
 import {
 	common_containers,
 	common_hostname,
@@ -16,7 +16,7 @@ import {
 	hosts_deviceTypeSource_noEvidenceTitle,
 	hosts_deviceTypeSource_osTitle,
 	hosts_deviceTypeSource_serviceTitle
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export type HostDeviceTypeSource = components['schemas']['HostDeviceTypeSource'];
 

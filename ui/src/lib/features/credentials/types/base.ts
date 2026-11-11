@@ -1,11 +1,11 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	billingPlans,
 	credentialTypes,
 	entities,
 	type FeatureId
-} from '$lib/shared/stores/metadata';
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+} from '#lib/shared/stores/metadata.ts';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 export type Credential = components['schemas']['Credential'];
 export type CredentialBase = components['schemas']['CredentialBase'];
@@ -23,8 +23,8 @@ export type Interface = components['schemas']['Interface'];
 export type IfAdminStatus = components['schemas']['IfAdminStatus'];
 export type IfOperStatus = components['schemas']['IfOperStatus'];
 
-import type { Color } from '$lib/shared/utils/styling';
-import type { TagProps } from '$lib/shared/components/data/types';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
 import {
 	common_testing,
 	common_unknown,
@@ -41,7 +41,7 @@ import {
 	snmp_operStatusLowerLayerDown,
 	snmp_operStatusNotPresent,
 	snmp_operStatusUp
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /**
  * Create a default credential with the given organization ID.

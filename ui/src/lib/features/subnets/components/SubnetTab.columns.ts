@@ -2,18 +2,18 @@ import type { Snippet } from 'svelte';
 import { utilizationRatio } from '../nesting';
 import { isUserManagedSubnet } from '../queries';
 import type { Subnet, SubnetResponse } from '../types/base';
-import { entityRef } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { siteItems } from '$lib/features/sites/columns';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import type { Service } from '$lib/features/services/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
-import type { components, operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
+import type { components, operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import {
 	common_nested,
 	common_site,
@@ -24,9 +24,9 @@ import {
 	common_allSites,
 	subnets_managedBy,
 	subnets_subnetType
-} from '$lib/paraglide/messages';
-import { concepts, entities, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
+} from '#lib/paraglide/messages.js';
+import { concepts, entities, entitySources, subnetTypes } from '#lib/shared/stores/metadata.ts';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
 
 type SubnetOrderField = components['schemas']['SubnetOrderField'];
 /** The subnet list endpoint's query params, which the filters are sent and linked as. */

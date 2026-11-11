@@ -1,48 +1,48 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import type { Snippet } from 'svelte';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { fetchOrganization, useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { fetchOrganization, useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		identifyUser,
 		trackEvent,
 		flushEventQueue,
 		flushStoredEvents
-	} from '$lib/shared/utils/analytics';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	} from '#lib/shared/utils/analytics.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
 	import { resolve } from '$app/paths';
-	import { resetTopologyOptions } from '$lib/features/topology/queries';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+	import { resetTopologyOptions } from '#lib/features/topology/queries.ts';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { displaySettings } from '#lib/shared/stores/display-settings.svelte.ts';
 	import {
 		hasLicensedPlan,
 		isBillingPlanActive,
 		isPaidSubscriptionActive
-	} from '$lib/features/organizations/types';
-	import { getRoute } from '$lib/shared/utils/navigation';
+	} from '#lib/features/organizations/types.ts';
+	import { getRoute } from '#lib/shared/utils/navigation.ts';
 	import type { PostHog } from 'posthog-js';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import CookieConsent, {
 		hasAnalyticsConsent
-	} from '$lib/shared/components/feedback/CookieConsent.svelte';
+	} from '#lib/shared/components/feedback/CookieConsent.svelte';
 	import {
 		applyAttributionToPosthog,
 		markLandingPageviewDropped
-	} from '$lib/shared/utils/first-touch';
-	import PaymentMethodModal from '$lib/features/billing/PaymentMethodModal.svelte';
+	} from '#lib/shared/utils/first-touch.ts';
+	import PaymentMethodModal from '#lib/features/billing/PaymentMethodModal.svelte';
 	import LoadFailedState from './LoadFailedState.svelte';
-	import ServerUnreachableBanner from '$lib/shared/components/feedback/ServerUnreachableBanner.svelte';
-	import { serverUnreachable } from '$lib/api/server-reachability';
+	import ServerUnreachableBanner from '#lib/shared/components/feedback/ServerUnreachableBanner.svelte';
+	import { serverUnreachable } from '#lib/api/server-reachability.ts';
 	import {
 		billing_paymentMethodAdded,
 		billing_subscriptionActivated,
 		billing_subscriptionDelayed
-	} from '$lib/paraglide/messages';
-	import { markPlanActivated } from '$lib/shared/billing/plan-activation-marker';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
+	} from '#lib/paraglide/messages.js';
+	import { markPlanActivated } from '#lib/shared/billing/plan-activation-marker.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -111,7 +111,7 @@
 
 		const posthogKey = configData.posthog_key;
 
-		const isShareRoute = $page.url.pathname.startsWith('/share/');
+		const isShareRoute = page.url.pathname.startsWith('/share/');
 
 		if (browser && posthogKey && !posthogInitStarted && !isShareRoute) {
 			posthogInitStarted = true;
@@ -193,20 +193,20 @@
 		hasInitialized = true;
 
 		// Check for OIDC error in URL
-		const error = $page.url.searchParams.get('error');
+		const error = page.url.searchParams.get('error');
 		if (error) {
 			pushError(decodeURIComponent(error));
 		}
 
 		// Store last login method from OIDC success redirect
-		const loginMethod = $page.url.searchParams.get('login_method');
+		const loginMethod = page.url.searchParams.get('login_method');
 		if (loginMethod) {
 			localStorage.setItem('scanopy_last_login_method', loginMethod);
 		}
 
 		// Clean up query params
 		if (error || loginMethod) {
-			const cleanUrl = new URL($page.url);
+			const cleanUrl = new URL(page.url.href);
 			cleanUrl.searchParams.delete('error');
 			cleanUrl.searchParams.delete('login_method');
 			window.history.replaceState({}, '', cleanUrl.toString());
@@ -215,27 +215,27 @@
 		if (!isAuthenticated) {
 			// Not authenticated - redirect to login/onboarding if not on public route
 			const isPublicRoute =
-				$page.url.pathname === '/auth' ||
-				$page.url.pathname === '/login' ||
-				$page.url.pathname === '/onboarding' ||
-				$page.url.pathname === '/verify-email' ||
-				$page.url.pathname.startsWith('/share/');
+				page.url.pathname === '/auth' ||
+				page.url.pathname === '/login' ||
+				page.url.pathname === '/onboarding' ||
+				page.url.pathname === '/verify-email' ||
+				page.url.pathname.startsWith('/share/');
 
 			if (!isPublicRoute) {
-				const token = $page.url.searchParams.get('token');
-				const isDemo = $page.url.hostname === 'demo.scanopy.net';
+				const token = page.url.searchParams.get('token');
+				const isDemo = page.url.hostname === 'demo.scanopy.net';
 				if (token) {
 					// eslint-disable-next-line svelte/no-navigation-without-resolve
-					goto(`${resolve('/login')}?token=${token}`);
+					goto(`${resolve('login')}?token=${token}`);
 				} else if (isDemo) {
-					goto(resolve('/login'));
+					goto(resolve('login'));
 				} else if (typeof localStorage !== 'undefined' && localStorage.getItem('hasAccount')) {
 					// Preserve the query string so UTM params survive for analytics
 					// eslint-disable-next-line svelte/no-navigation-without-resolve
-					goto(`${resolve('/login')}${$page.url.search}`);
+					goto(`${resolve('login')}${page.url.search}`);
 				} else {
 					// eslint-disable-next-line svelte/no-navigation-without-resolve
-					goto(`${resolve('/onboarding')}${$page.url.search}`);
+					goto(`${resolve('onboarding')}${page.url.search}`);
 				}
 			}
 		}
@@ -247,11 +247,11 @@
 		if (!organization) return;
 		if (handlingStripeReturn) return;
 
-		const billingFlow = $page.url.searchParams.get('billing_flow');
+		const billingFlow = page.url.searchParams.get('billing_flow');
 
 		// Handle Stripe checkout callback (new subscription activation)
 		if (billingFlow === 'checkout') {
-			const cleanUrl = new URL($page.url);
+			const cleanUrl = new URL(page.url.href);
 			cleanUrl.searchParams.delete('billing_flow');
 			window.history.replaceState({}, '', cleanUrl.toString());
 
@@ -290,7 +290,7 @@
 				plan_status: organization.plan_status
 			});
 
-			const cleanUrl = new URL($page.url);
+			const cleanUrl = new URL(page.url.href);
 			cleanUrl.searchParams.delete('billing_flow');
 			window.history.replaceState({}, '', cleanUrl.toString());
 
@@ -303,11 +303,11 @@
 
 		// Check if current page matches where user should be
 		// Skip routing check for share pages and onboarding (which handles its own navigation)
-		const isSharePage = $page.url.pathname.startsWith('/share/');
-		const isOnboardingPage = $page.url.pathname === '/onboarding';
+		const isSharePage = page.url.pathname.startsWith('/share/');
+		const isOnboardingPage = page.url.pathname === '/onboarding';
 		if (!isSharePage && !isOnboardingPage) {
 			const correctRoute = getRoute();
-			if ($page.url.pathname !== correctRoute) {
+			if (page.url.pathname !== correctRoute) {
 				// eslint-disable-next-line svelte/no-navigation-without-resolve
 				goto(correctRoute);
 			}
@@ -315,7 +315,7 @@
 	});
 </script>
 
-{#if (isCheckingAuth && !$page.url.pathname.startsWith('/onboarding')) || authWaitingForServer}
+{#if (isCheckingAuth && !page.url.pathname.startsWith('/onboarding')) || authWaitingForServer}
 	<div class="flex min-h-screen flex-col bg-(--color-bg-elevated)">
 		<ServerUnreachableBanner />
 		<div class="flex flex-1 items-center justify-center">
@@ -330,7 +330,7 @@
 	{@render children()}
 {/if}
 
-{#if configData && configData.needs_cookie_consent && !$page.url.pathname.startsWith('/share/')}
+{#if configData && configData.needs_cookie_consent && !page.url.pathname.startsWith('/share/')}
 	<CookieConsent />
 {/if}
 

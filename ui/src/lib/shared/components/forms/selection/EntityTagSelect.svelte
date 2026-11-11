@@ -1,7 +1,7 @@
 <script lang="ts" module>
-	import type { EntityRef } from '$lib/shared/components/data/types';
-	import type { Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { EntityRef } from '#lib/shared/components/data/types.ts';
+	import type { Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	export interface EntityTagOption {
 		id: string;
@@ -14,9 +14,9 @@
 
 <script lang="ts">
 	import { ChevronDown } from '@lucide/svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
-	import { common_selectOption, common_noOptionsAvailable } from '$lib/paraglide/messages';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
+	import { common_selectOption, common_noOptionsAvailable } from '#lib/paraglide/messages.js';
 
 	let {
 		options,

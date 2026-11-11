@@ -4,7 +4,7 @@ import {
 	integrationTargetFor,
 	pruneAssignmentsForTargets,
 	type CredentialTarget
-} from '$lib/features/credentials/utils/credentialTargets';
+} from '#lib/features/credentials/utils/credentialTargets.ts';
 import credentialTypes from '../lib/data/credential-types.json';
 
 // Target sets standing in for the three shapes the backend declares, named by what they

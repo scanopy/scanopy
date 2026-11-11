@@ -8,12 +8,12 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { entities } from '$lib/shared/stores/metadata';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_credential,
 		common_moreItems,
@@ -24,8 +24,8 @@
 		discovery_credentialWokeHosts,
 		discovery_noCredentialResults,
 		discovery_noCredentialResultsSubtitle
-	} from '$lib/paraglide/messages';
-	import type { EntityDiscriminants } from '$lib/api/entities';
+	} from '#lib/paraglide/messages.js';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { credentialResultRows } from '../../utils/credentialResults';
 	import { buildWarningReport, integration, type WarningDaemon } from '../../utils/warnings';

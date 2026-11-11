@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { type HostFormData, type Port } from '$lib/features/hosts/types/base';
-	import { ports } from '$lib/shared/stores/metadata';
-	import { PortTypeDisplay } from '$lib/shared/components/forms/selection/display/PortTypeDisplay.svelte';
+	import { type HostFormData, type Port } from '#lib/features/hosts/types/base.ts';
+	import { ports } from '#lib/shared/stores/metadata.ts';
+	import { PortTypeDisplay } from '#lib/shared/components/forms/selection/display/PortTypeDisplay.svelte';
 	import { v4 as uuidv4 } from 'uuid';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
-	import type { Service } from '$lib/features/services/types/base';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { PortDisplay } from '#lib/shared/components/forms/selection/display/PortDisplay.svelte';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
 	import PortConfigPanel from './PortConfigPanel.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import {
 		common_cancel,
 		common_noEntitySelected,
@@ -26,7 +26,7 @@
 		hosts_ports_selectToConfig,
 		hosts_ports_wellKnownSubtitle,
 		hosts_ports_wellKnownTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: HostFormData;

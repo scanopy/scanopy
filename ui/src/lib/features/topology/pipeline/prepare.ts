@@ -22,7 +22,7 @@ import {
 	saveOpenCandidates
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
-import { containerTypes, views } from '$lib/shared/stores/metadata';
+import { containerTypes, views } from '#lib/shared/stores/metadata.ts';
 import { activeView, hiddenEdgeTypes as hiddenEdgeTypesStore, topologyOptions } from '../queries';
 import { tagHiddenNodeIds, hiddenEntityIdsByType } from '../interactions';
 import { changedCardIds, localExpandTarget } from './execute-layout';

@@ -1,14 +1,14 @@
 import type { Snippet } from 'svelte';
 import type { Host, IPAddress, Port } from '../types/base';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { hostOsFamilyIds, hostOsFamilyName } from '$lib/features/hosts/host-os';
-import { entityRef } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { credentialItems } from '$lib/features/credentials/columns';
-import { deviceTypes, entities, entitySources, concepts } from '$lib/shared/stores/metadata';
-import { deviceTypeSourceTag } from '$lib/features/hosts/device-type-source';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { hostOsFamilyIds, hostOsFamilyName } from '#lib/features/hosts/host-os.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { credentialItems } from '#lib/features/credentials/columns.ts';
+import { deviceTypes, entities, entitySources, concepts } from '#lib/shared/stores/metadata.ts';
+import { deviceTypeSourceTag } from '#lib/features/hosts/device-type-source.ts';
 import {
 	common_description,
 	common_hostname,
@@ -41,31 +41,31 @@ import {
 	hosts_snmp_sysDescr,
 	hosts_snmp_sysName,
 	hosts_snmp_sysObjectId
-} from '$lib/paraglide/messages';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
+} from '#lib/paraglide/messages.js';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
 import {
 	virtualizationGroupKey,
 	virtualizationGroupLabel,
 	virtualizationTree
 } from '../virtualization-tree';
-import { formatPort } from '$lib/shared/utils/formatting';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import { isContainerSubnet } from '$lib/features/subnets/queries';
-import type { Credential } from '$lib/features/credentials/types/base';
-import type { Interface } from '$lib/features/credentials/types/base';
+import { formatPort } from '#lib/shared/utils/formatting.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import { isContainerSubnet } from '#lib/features/subnets/queries.ts';
+import type { Credential } from '#lib/features/credentials/types/base.ts';
+import type { Interface } from '#lib/features/credentials/types/base.ts';
 import { formatIPAddress } from '../address-labels';
-import type { components, operations } from '$lib/api/schema';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
+import type { components, operations } from '#lib/api/schema';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
 import {
 	fieldValueOptions,
 	hasEmptyFieldValue,
 	type FieldValueCount
-} from '$lib/shared/api/field-values';
-import type { Service } from '$lib/features/services/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
+} from '#lib/shared/api/field-values.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
 
 type HostOrderField = components['schemas']['HostOrderField'];
 /** The host list endpoint's query params, which the filters are sent and linked as. */
