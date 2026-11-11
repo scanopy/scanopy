@@ -242,13 +242,18 @@ impl SetupItemDiscriminants {
             ),
             // The tutorial and the step it unlocks read the same; only the click differs. They are
             // one row and one count: the tutorial until it is done, then the step it unlocks.
+            // Dependencies are drawn on the topology, so both need a plan with its views.
             T::DependencyTutorial => step(
-                ctx.can_write(Resource::Dependency) && !ctx.dependency_tutorial_done(),
+                features.includes_topology()
+                    && ctx.can_write(Resource::Dependency)
+                    && !ctx.dependency_tutorial_done(),
                 !ctx.has(T::OpenTopology),
                 SetupItem::DependencyTutorial,
             ),
             T::Dependencies => step(
-                ctx.can_write(Resource::Dependency) && ctx.dependency_tutorial_done(),
+                features.includes_topology()
+                    && ctx.can_write(Resource::Dependency)
+                    && ctx.dependency_tutorial_done(),
                 false,
                 SetupItem::Dependencies,
             ),
@@ -771,6 +776,7 @@ mod tests {
     }
 
     /// Free holds one seat and one site and lacks tags, the API, sharing and the topology views.
+    /// Dependencies are mapped on the topology, so their steps are left out with it.
     /// The questions are asked on Cloud only.
     #[test]
     fn a_setup_item_outside_the_plan_or_deployment_is_left_out() {
@@ -785,9 +791,13 @@ mod tests {
             T::ApplicationTags,
             T::OpenTopology,
             T::ExploreViews,
+            T::DependencyTutorial,
         ] {
             assert_eq!(count(item_type, &free), 0, "{item_type:?}");
         }
+        // The step the tutorial unlocks stays out too, once the tutorial is done.
+        free.recorded.insert(T::DependencyTutorial);
+        assert_eq!(count(T::Dependencies, &free), 0);
         let mut self_hosted = ctx();
         self_hosted.cloud = false;
         assert_eq!(count(T::AnswerReferralSource, &self_hosted), 0);
