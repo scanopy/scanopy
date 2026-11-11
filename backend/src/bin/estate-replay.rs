@@ -50,8 +50,12 @@ struct Args {
     #[arg(long)]
     server_url: String,
     /// A user API key (scp_u_…) for the organization that owns the site.
-    #[arg(long)]
-    user_api_key: String,
+    #[arg(long, required_unless_present = "session_id")]
+    user_api_key: Option<String>,
+    /// A signed-in user's `session_id` cookie, in place of an API key, for an account that
+    /// can't create one (the demo user, whose email is unverified).
+    #[arg(long, conflicts_with = "user_api_key")]
+    session_id: Option<String>,
     /// The site to load the estate into.
     #[arg(long)]
     site_id: Uuid,
@@ -441,7 +445,7 @@ async fn main() -> Result<()> {
         "/api/v1/daemons/provision",
         client
             .post(format!("{base}/api/v1/daemons/provision"))
-            .bearer_auth(&args.user_api_key)
+            .user_auth(&args)
             .json(&json!({
                 "name": format!("estate-replay-{:?}", args.size).to_lowercase(),
                 "site_id": args.site_id,
@@ -493,7 +497,7 @@ async fn main() -> Result<()> {
                 "/api/v1/discoveries/start-session",
                 client
                     .post(format!("{base}/api/v1/discoveries/start-session"))
-                    .bearer_auth(&args.user_api_key)
+                    .user_auth(&args)
                     .json(&json!(id))
                     .send()
                     .await?,
@@ -504,4 +508,19 @@ async fn main() -> Result<()> {
         discovery_id = discovery_id.or(Some(session_discovery));
     }
     Ok(())
+}
+
+/// Signs a request as the user who owns the site: their API key or their session.
+trait UserAuth {
+    fn user_auth(self, args: &Args) -> Self;
+}
+
+impl UserAuth for reqwest::RequestBuilder {
+    fn user_auth(self, args: &Args) -> Self {
+        match (&args.user_api_key, &args.session_id) {
+            (Some(key), _) => self.bearer_auth(key),
+            (None, Some(session)) => self.header("Cookie", format!("session_id={session}")),
+            (None, None) => unreachable!("clap requires one of the two"),
+        }
+    }
 }
