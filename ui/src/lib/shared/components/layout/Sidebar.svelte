@@ -793,6 +793,27 @@
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
 			<ul class="space-y-3">
 				{#each mainNavItems as configItem (configItem.id)}
+					{#if showTrialPill && configItem.id === entityUIConfig.Topology!.tabId}
+						<!-- The trial's days left, above Topology. It opens the card dialog. -->
+						<li>
+							<button
+								class="{baseClasses} text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+								style="height: 2rem; padding: 0.375rem 0.75rem;"
+								title={collapsed ? trialPillLabel : ''}
+								onclick={() =>
+									startSetupPayment({
+										org: organization,
+										source: 'sidebar_trial_pill',
+										trialDaysLeft
+									})}
+							>
+								<Clock class="h-5 w-5 shrink-0" />
+								{#if !collapsed}
+									<span class="ml-3 truncate">{trialPillLabel}</span>
+								{/if}
+							</button>
+						</li>
+					{/if}
 					{#if isSection(configItem)}
 						<!-- Section with items -->
 						<li>
@@ -894,44 +915,6 @@
 	<!-- Bottom Navigation -->
 	<div class="shrink-0 border-t px-2 py-2" style="border-color: var(--color-border)">
 		<ul class="space-y-1">
-			{#snippet sidebarAmberCta({
-				Icon,
-				label,
-				onclick
-			}: {
-				Icon: IconComponent;
-				label: string;
-				onclick: () => void;
-			})}
-				<button
-					class="{baseClasses} text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
-					style="height: 2rem; padding: 0.375rem 0.75rem;"
-					title={collapsed ? label : ''}
-					{onclick}
-				>
-					<span class="relative">
-						<Icon class="h-5 w-5 shrink-0" />
-					</span>
-					{#if !collapsed}
-						<span class="ml-3 truncate">{label}</span>
-					{/if}
-				</button>
-			{/snippet}
-
-			{#if showTrialPill}
-				<li>
-					{@render sidebarAmberCta({
-						Icon: Clock,
-						label: trialPillLabel,
-						onclick: () =>
-							startSetupPayment({
-								org: organization,
-								source: 'sidebar_trial_pill',
-								trialDaysLeft
-							})
-					})}
-				</li>
-			{/if}
 			{#each labelledBottomItems as item (item.id)}
 				<li>
 					{@render bottomButton(item, false)}
