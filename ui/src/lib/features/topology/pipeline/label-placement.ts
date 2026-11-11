@@ -135,7 +135,16 @@ class Occupied {
 	}
 }
 
-export function placeLabels(candidates: LabelCandidate[], viewport: LabelViewport): PlacedLabel[] {
+/**
+ * @param nameEvery Name every candidate on the pane, whatever its size and whatever its name
+ * covers. Set while searching, when the candidates are the containers holding a match: a match
+ * with no name on it cannot be found, and the boxes its name covers are dimmed non-matches.
+ */
+export function placeLabels(
+	candidates: LabelCandidate[],
+	viewport: LabelViewport,
+	nameEvery = false
+): PlacedLabel[] {
 	const { zoom } = viewport;
 	if (zoom <= 0) return [];
 
@@ -172,6 +181,18 @@ export function placeLabels(candidates: LabelCandidate[], viewport: LabelViewpor
 	const placed: (PlacedLabel & { boxHoldsName: boolean })[] = [];
 	for (const { candidate, rect } of onPane) {
 		const boxWidth = rect.right - rect.left;
+		if (nameEvery) {
+			placed.push({
+				id: candidate.id,
+				text: candidate.text,
+				color: candidate.color,
+				x: candidate.x,
+				y: candidate.y,
+				maxWidth: Math.max(boxWidth, ROOMY_LABEL_WIDTH),
+				boxHoldsName: true
+			});
+			continue;
+		}
 		const boxHoldsName =
 			boxWidth >= MIN_LABEL_WIDTH && rect.bottom - rect.top >= LABEL_HEIGHT;
 		if (!boxHoldsName && smallBoxBlocked) continue;

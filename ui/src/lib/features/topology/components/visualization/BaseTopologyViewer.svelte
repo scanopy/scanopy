@@ -30,6 +30,7 @@
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
 	import {
+		DETAIL_ZOOM,
 		FULL_CARD_NAMES_ZOOM,
 		PREWARM_RELEASE_ZOOM,
 		PREWARM_ZOOM,
@@ -616,11 +617,15 @@
 
 	// Container names are drawn on their own layer wherever a header cannot be read: at reduced
 	// detail, where it is not mounted, and on a small graph that keeps full cards, below the zoom
-	// where its titles are a few pixels tall.
+	// where its titles are a few pixels tall. While searching, a small graph gets them as soon as
+	// its headers are too small to read: the names left are the ones holding a match, and finding
+	// a match is what the search is for.
 	let namesUnreadable = $derived(
 		!measurePassActive &&
 			!$isExporting &&
-			(detailHidden || viewerViewport.current.zoom < FULL_CARD_NAMES_ZOOM)
+			(detailHidden ||
+				viewerViewport.current.zoom <
+					($searchHiddenNodeIds.size > 0 ? DETAIL_ZOOM : FULL_CARD_NAMES_ZOOM))
 	);
 
 	// The running scan changed this site and the layout is held (see `heldTopologySites`).

@@ -99,13 +99,18 @@
 			});
 		}
 		const { x, y, zoom } = untrack(() => viewport.current);
-		return placeLabels(candidates, {
-			x: -x / zoom,
-			y: -y / zoom,
-			width: pane.clientWidth,
-			height: pane.clientHeight,
-			zoom
-		});
+		return placeLabels(
+			candidates,
+			{
+				x: -x / zoom,
+				y: -y / zoom,
+				width: pane.clientWidth,
+				height: pane.clientHeight,
+				zoom
+			},
+			// Every container holding a match is named, however small its box.
+			searching
+		);
 	});
 
 	// The label the pointer is on, widened to its whole name. Only the width changes.

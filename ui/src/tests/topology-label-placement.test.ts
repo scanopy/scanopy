@@ -126,6 +126,20 @@ describe('placeLabels', () => {
 		expect(placeLabels(boxes, pane(0.1)).map((label) => label.id)).toEqual(['seen']);
 	});
 
+	it('names every box while searching, whatever its size and whatever its name covers', () => {
+		// Two switches 33px wide, 5px apart, and a 10×9px box: none is named without a search.
+		const hits = [
+			box('acc-sw-058', 0, 0, 330, 430),
+			box('acc-sw-059', 380, 0, 330, 430),
+			box('bridge', 0, 1000, 100, 90)
+		];
+
+		expect(placeLabels(hits, pane(0.1))).toHaveLength(0);
+		const placed = placeLabels(hits, pane(0.1), true);
+		expect(placed.map((label) => label.id).sort()).toEqual(['acc-sw-058', 'acc-sw-059', 'bridge']);
+		expect(placed.every((label) => label.maxWidth === ROOMY_LABEL_WIDTH)).toBe(true);
+	});
+
 	it('keeps the highest priority when there are more names than the limit', () => {
 		const many = Array.from({ length: MAX_LABELS + 20 }, (_, i) =>
 			box(`host-${String(i).padStart(4, '0')}`, (i % 40) * 20, Math.floor(i / 40) * 20, 600, 200)
