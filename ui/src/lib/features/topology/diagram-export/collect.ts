@@ -1,13 +1,11 @@
 /**
  * Browser-side inputs for a diagram export: node geometry from SvelteFlow's internal nodes, and
- * node icons from the rendered DOM. Run inside the export capture, where `isExporting` turns off
- * culling, so every node is mounted.
+ * the image behind each icon the descriptions name.
  */
 
 import type { InternalNode, Node } from '@xyflow/svelte';
 import type { DiagramIcon, DiagramSourceNode } from './model';
-import { knownCardGlyph } from '../card-glyph';
-import type { DiagramTheme } from './describe';
+import type { DiagramIconSource } from './describe';
 
 /**
  * Absolute position and measured size of every node. `getNodes()` carries neither: positions are
@@ -49,19 +47,22 @@ function svgDataUri(svg: string): string {
 	return `data:image/svg+xml;base64,${bytesToBase64(new TextEncoder().encode(svg))}`;
 }
 
-/** A lucide `<svg>` as standalone markup, with `currentColor` resolved to the drawn colour. */
-function serializeInlineSvg(svg: SVGElement): string {
-	const clone = svg.cloneNode(true) as SVGElement;
-	const color = getComputedStyle(svg).color || '#64748b';
-	clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-	clone.setAttribute('width', '24');
-	clone.setAttribute('height', '24');
-	clone.removeAttribute('class');
-	return new XMLSerializer().serializeToString(clone).replaceAll('currentColor', color);
+/**
+ * A data URI in the base64 form. A draw.io style separates its entries with `;`, so the URI an
+ * image is styled with can hold only the one `;base64` marker that `drawio.ts` strips; a
+ * `;charset=utf-8,` SVG URI would split the style.
+ */
+export function base64DataUri(dataUri: string): string {
+	const comma = dataUri.indexOf(',');
+	const header = dataUri.slice(0, comma);
+	if (header.endsWith(';base64')) return dataUri;
+	const mime = header.slice('data:'.length).split(';')[0] || 'image/svg+xml';
+	const bytes = new TextEncoder().encode(decodeURIComponent(dataUri.slice(comma + 1)));
+	return `data:${mime};base64,${bytesToBase64(bytes)}`;
 }
 
 async function fetchImageDataUri(src: string): Promise<string | null> {
-	if (src.startsWith('data:')) return src;
+	if (src.startsWith('data:')) return base64DataUri(src);
 	try {
 		const response = await fetch(src);
 		if (!response.ok) return null;
@@ -92,62 +93,23 @@ async function rasterizeToPng(dataUri: string): Promise<Uint8Array | undefined> 
 	}
 }
 
-export interface CapturedIcons {
-	icons: Map<string, DiagramIcon>;
-	/** Icon key per node id. */
-	iconKeys: Map<string, string>;
-}
-
 /**
- * The first icon each node draws (a container's header icon, a card's service logo), keyed so
- * repeated icons are stored once. `png` also rasterizes each icon, for formats that need bitmaps.
- * A `Paired` logo gives the file for the export's `theme`.
- * A logo that fails to load leaves its node without an icon.
+ * The image for every icon the descriptions name, by the same key. `png` also rasterizes each
+ * one, for formats that need bitmaps. An icon that fails to load is left out, and the part that
+ * names it is not drawn.
  */
-export async function captureNodeIcons(
-	flowElement: HTMLElement,
-	nodeIds: Set<string>,
-	options: { png: boolean; theme: DiagramTheme }
-): Promise<CapturedIcons> {
-	const iconKeys = new Map<string, string>();
-	const sources = new Map<string, { svg?: string; src?: string }>();
-
-	for (const el of flowElement.querySelectorAll<HTMLElement>('.svelte-flow__node[data-id]')) {
-		const id = el.dataset.id;
-		if (!id || !nodeIds.has(id)) continue;
-		const icon = el.querySelector<HTMLElement | SVGElement>('img, svg.lucide-icon, [data-glyph]');
-		if (!icon) continue;
-		// A card icon drawn on one element (`card-glyph.ts`): its source by the key it carries.
-		const glyph = icon.dataset.glyph ? knownCardGlyph(icon.dataset.glyph) : undefined;
-		if (glyph?.type === 'image') {
-			const src = options.theme === 'dark' && glyph.darkSrc ? glyph.darkSrc : glyph.src;
-			iconKeys.set(id, src);
-			sources.set(src, { src });
-		} else if (glyph?.type === 'mask') {
-			const color = getComputedStyle(icon).color || '#64748b';
-			const svg = glyph.svg.replaceAll('currentColor', color);
-			iconKeys.set(id, svg);
-			sources.set(svg, { svg });
-		} else if (icon instanceof HTMLImageElement) {
-			const src = icon.currentSrc || icon.src;
-			if (!src) continue;
-			iconKeys.set(id, src);
-			sources.set(src, { src });
-		} else if (icon instanceof SVGElement) {
-			const svg = serializeInlineSvg(icon);
-			iconKeys.set(id, svg);
-			sources.set(svg, { svg });
-		}
-	}
-
+export async function loadIcons(
+	sources: Map<string, DiagramIconSource>,
+	options: { png: boolean }
+): Promise<Map<string, DiagramIcon>> {
 	const icons = new Map<string, DiagramIcon>();
 	await Promise.all(
 		[...sources].map(async ([key, source]) => {
-			const dataUri = source.svg ? svgDataUri(source.svg) : await fetchImageDataUri(source.src!);
+			const dataUri =
+				'svg' in source ? svgDataUri(source.svg) : await fetchImageDataUri(source.src);
 			if (!dataUri) return;
 			icons.set(key, { dataUri, png: options.png ? await rasterizeToPng(dataUri) : undefined });
 		})
 	);
-	for (const [id, key] of iconKeys) if (!icons.has(key)) iconKeys.delete(id);
-	return { icons, iconKeys };
+	return icons;
 }

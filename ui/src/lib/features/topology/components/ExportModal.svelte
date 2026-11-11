@@ -20,7 +20,7 @@
 	import { escapeXml } from '../diagram-export/xml';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { billingPlans, containerTypes, views } from '$lib/shared/stores/metadata';
-	import { EXTERNAL_TITLE_OFFSET } from './visualization/ContainerHeader.svelte';
+	import { EXTERNAL_TITLE_OFFSET } from '../container-render-data';
 	import { isExporting } from '../interactions';
 	import {
 		topology_createdUsing,
@@ -737,7 +737,7 @@
 
 	async function handleDiagramExport(format: 'drawio' | 'vsdx') {
 		await withExportCapture(
-			async ({ flowElement }) => {
+			async () => {
 				try {
 					const { buildDiagramExport } = await import('../diagram-export');
 					const blob = await buildDiagramExport({
@@ -746,7 +746,6 @@
 						nodes: getNodes(),
 						edges: getEdges(),
 						getInternalNode,
-						flowElement,
 						topology,
 						hiddenEdgeTypes: $hiddenEdgeTypes,
 						theme: exportTheme,

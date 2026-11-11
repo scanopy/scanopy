@@ -96,8 +96,3 @@ export function cardGlyph(key: string, Icon: IconComponent): CardGlyph {
 	glyphs.set(key, glyph);
 	return glyph;
 }
-
-/** A glyph already drawn on a card, by the key on its `data-glyph`, for the diagram exports. */
-export function knownCardGlyph(key: string): CardGlyph | undefined {
-	return glyphs.get(key);
-}
