@@ -4,7 +4,11 @@
 	import { ViewportPortal, useViewport, type Node } from '@xyflow/svelte';
 	import { containerTypes } from '$lib/shared/stores/metadata';
 	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { searchMatchContainerMap, searchMatchNodeIds } from '../../interactions';
+	import {
+		searchHiddenNodeIds,
+		searchMatchContainerMap,
+		searchMatchNodeIds
+	} from '../../interactions';
 	import { placeLabels, type LabelCandidate, type PlacedLabel } from '../../pipeline/label-placement';
 
 	/**
@@ -61,10 +65,24 @@
 		// every pan frame would.
 		void settled;
 		if (!active || !pane) return [];
-		const matches = new Set([...$searchMatchNodeIds, ...$searchMatchContainerMap.keys()]);
+		// The root containers a search points at: one that matches, and one holding a match at any
+		// depth. A match inside a collapsed container is not a node here, and the search reports
+		// the collapsed container in its place.
+		const parentOf = new Map(nodes.map((node) => [node.id, node.parentId]));
+		const matches = new Set<string>();
+		for (const id of [...$searchMatchNodeIds, ...$searchMatchContainerMap.keys()]) {
+			if (!parentOf.has(id)) continue;
+			let root = id;
+			for (let parent = parentOf.get(root); parent; parent = parentOf.get(root)) root = parent;
+			matches.add(root);
+		}
+		// A query with no match hides every node, and names none.
+		const searching = matches.size > 0 || $searchHiddenNodeIds.size > 0;
 		const candidates: LabelCandidate[] = [];
 		for (const node of nodes) {
 			if (node.type !== 'Container' || node.parentId) continue;
+			// While searching, the names left on the canvas are where the matches are.
+			if (searching && !matches.has(node.id)) continue;
 			const width = node.width ?? node.measured?.width ?? 0;
 			const height = node.height ?? node.measured?.height ?? 0;
 			const text = ((node.data as Record<string, unknown>).header as string | undefined) ?? '';
