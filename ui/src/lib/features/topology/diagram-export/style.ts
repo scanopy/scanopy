@@ -204,8 +204,6 @@ export const STYLE = {
 	},
 	badge: {
 		size: ICON_BADGE_PX,
-		/** Each badge behind the top one steps up and left by this, two layers at most. */
-		layerStep: 3,
 		serviceGlyph: 17,
 		osGlyph: 15,
 		frameInner: 22
@@ -276,4 +274,11 @@ export const STYLE = {
 /** A string's drawn width at a font size. The exports cannot measure text, so this estimates. */
 export function textWidth(value: string, size: number): number {
 	return Math.ceil(value.length * size * STYLE.charWidth);
+}
+
+/** `value` cut to fit `maxWidth` with an ellipsis, as CSS `truncate` cuts it on the canvas. */
+export function truncateText(value: string, size: number, maxWidth: number): string {
+	if (textWidth(value, size) <= maxWidth) return value;
+	const fits = Math.max(Math.floor(maxWidth / (size * STYLE.charWidth)) - 1, 1);
+	return `${value.slice(0, fits).trimEnd()}…`;
 }
