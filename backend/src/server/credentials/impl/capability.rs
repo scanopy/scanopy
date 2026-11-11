@@ -56,14 +56,15 @@ impl CapabilityGap {
     }
 }
 
-/// The SNMPv3 options a credential uses that daemons before 0.18.1 cannot parse.
+/// The SNMPv3 options a credential uses that the daemon is too old to parse.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct SnmpV3SecurityOptionsGap {
-    /// The options the credential uses, each one a reason older daemons reject it.
+    /// The options the credential uses that this daemon rejects.
     pub options: Vec<SnmpV3SecurityOption>,
 }
 
-/// One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only).
+/// One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only). The levels
+/// and MD5 need a daemon newer than 0.18.0, DES one newer than 0.19.6.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub enum SnmpV3SecurityOption {
     /// The `NoAuthNoPriv` security level.
@@ -72,6 +73,8 @@ pub enum SnmpV3SecurityOption {
     AuthNoPriv,
     /// MD5 authentication.
     Md5Auth,
+    /// DES privacy.
+    DesPrivacy,
 }
 
 impl SnmpV3SecurityOption {
@@ -80,6 +83,7 @@ impl SnmpV3SecurityOption {
             Self::NoAuthNoPriv => "the noAuthNoPriv security level",
             Self::AuthNoPriv => "the authNoPriv security level",
             Self::Md5Auth => "MD5 authentication",
+            Self::DesPrivacy => "DES privacy",
         }
     }
 }

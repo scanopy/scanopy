@@ -73,6 +73,7 @@ exactly this reason: the lab has been renumbered before and will be again.
 | 192.168.7.230 | switch-generr-01 | v2c | community `netdefault` |
 | 192.168.7.231 | switch-bulkdrop-01 | v2c | community `netdefault` |
 | 192.168.7.232 | secure-switch-05 | v3 | user `scanopyreeder` |
+| 192.168.7.233 | secure-switch-06 | v3 | user `scanopydes` |
 <!-- END GENERATED DEVICE TABLE -->
 
 **LLDP local-port remap (`.238`/`.239`).** ExtremeXOS reports its `lldpRemTable` local-port index as an `lldpLocPortNum` (1..N) that is a **separate namespace from `ifIndex`** (switch-exos-01 uses ifIndex 1001+, ifName `1:N`), so neighbours only resolve if the daemon walks `lldpLocPortTable` (`1.0.8802.1.1.2.1.3.7`) and suffix-matches `lldpLocPortId` against `ifName`. Before the Issue 2 fix, switch-exos-01 yields **zero** LLDP neighbours. Extreme VOSS (switch-voss-01) reports local-port == ifIndex with `lldpLocPortId` matching `ifName` exactly, so it stays correct on both old and new code — the regression guard for the fix.

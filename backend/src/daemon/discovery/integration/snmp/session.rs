@@ -30,6 +30,7 @@ impl From<SnmpV3PrivProtocol> for snmp2::v3::Cipher {
         match p {
             SnmpV3PrivProtocol::Aes128 => snmp2::v3::Cipher::Aes128,
             SnmpV3PrivProtocol::Aes256 => snmp2::v3::Cipher::Aes256,
+            SnmpV3PrivProtocol::Des => snmp2::v3::Cipher::Des,
         }
     }
 }

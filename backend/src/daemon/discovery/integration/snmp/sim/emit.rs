@@ -207,9 +207,10 @@ fn net_snmp_auth(protocol: SnmpV3AuthProtocol) -> &'static str {
 }
 
 /// net-snmp's `createUser` keyword for a privacy protocol, on an agent that extends a short key
-/// with `key_extension`. AES-128 keys are never extended, so it has one keyword.
+/// with `key_extension`. AES-128 and DES keys are never extended, so each has one keyword.
 fn net_snmp_priv(protocol: SnmpV3PrivProtocol, key_extension: KeyExtension) -> &'static str {
     match (protocol, key_extension) {
+        (SnmpV3PrivProtocol::Des, _) => "DES",
         (SnmpV3PrivProtocol::Aes128, _) => "AES",
         (SnmpV3PrivProtocol::Aes256, KeyExtension::Blumenthal) => "AES-256",
         (SnmpV3PrivProtocol::Aes256, KeyExtension::Reeder) => "AES-256-C",

@@ -41,6 +41,7 @@ import {
 	discovery_warningGapCredentialType,
 	discovery_warningGapSnmpV3Options,
 	discovery_warningSnmpV3OptionAuthNoPriv,
+	discovery_warningSnmpV3OptionDesPrivacy,
 	discovery_warningSnmpV3OptionMd5Auth,
 	discovery_warningSnmpV3OptionNoAuthNoPriv,
 	discovery_warningInferredFrom,
@@ -289,7 +290,8 @@ type SnmpV3SecurityOption = components['schemas']['SnmpV3SecurityOption'];
 const SNMP_V3_OPTION_LABELS: Record<SnmpV3SecurityOption, () => string> = {
 	NoAuthNoPriv: () => discovery_warningSnmpV3OptionNoAuthNoPriv(),
 	AuthNoPriv: () => discovery_warningSnmpV3OptionAuthNoPriv(),
-	Md5Auth: () => discovery_warningSnmpV3OptionMd5Auth()
+	Md5Auth: () => discovery_warningSnmpV3OptionMd5Auth(),
+	DesPrivacy: () => discovery_warningSnmpV3OptionDesPrivacy()
 };
 
 /**

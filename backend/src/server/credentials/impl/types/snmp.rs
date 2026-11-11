@@ -142,6 +142,9 @@ pub enum SnmpV3PrivProtocol {
     Aes128,
     /// AES-256-CFB
     Aes256,
+    /// DES-CBC, the one privacy protocol RFC 3414 itself defines, for devices that offer no
+    /// AES. Only daemons newer than 0.19.6 parse it (see `UsesSnmpV3DesPrivacy`).
+    Des,
 }
 
 impl SnmpV3PrivProtocol {
@@ -150,6 +153,7 @@ impl SnmpV3PrivProtocol {
         match self {
             Self::Aes128 => "AES-128",
             Self::Aes256 => "AES-256",
+            Self::Des => "DES",
         }
     }
 
@@ -162,6 +166,10 @@ impl SnmpV3PrivProtocol {
         SelectOption {
             value: "Aes256",
             label: "AES-256",
+        },
+        SelectOption {
+            value: "Des",
+            label: "DES",
         },
     ];
 }
@@ -505,6 +513,7 @@ impl TypeMetadataProvider for SnmpV3PrivProtocol {
         let net_snmp_name = match self {
             Self::Aes128 => "AES",
             Self::Aes256 => "AES-256",
+            Self::Des => "DES",
         };
         serde_json::json!({ "net_snmp_name": net_snmp_name })
     }
