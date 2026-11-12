@@ -701,10 +701,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The {credential} credential for {addresses} reached something that is not the expected service — check the port on the credential. ({detail})"
             }
             Self::CredentialCollectionFailed => {
-                "The {credential} credential for {addresses} signed in, then failed while collecting, so this scan recorded nothing from it. The error names the cause; a credential without permission to read everything is the usual one. ({detail})"
+                "The {credential} credential for {addresses} signed in, then failed while collecting. ({detail}) A credential without permission to read everything is the usual cause."
             }
             Self::CredentialCollectionTimedOut => {
-                "The {credential} credential for {addresses} signed in, then ran past this integration's time limit on one host before it finished, so this scan recorded nothing from it. The next scan tries again. ({detail})"
+                "The {credential} credential for {addresses} signed in, then ran past this integration's time limit on one host before it finished. ({detail}) The next scan tries again."
             }
             Self::CredentialUnreachable => {
                 "The {credential} credential for {addresses} could not be reached. Check the credential's address and port, and that the service is running on that host. ({detail})"

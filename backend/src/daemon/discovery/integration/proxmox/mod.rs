@@ -56,7 +56,7 @@ use super::hypervisor::reach::{self as guest_reach, HypervisorBridge};
 use super::hypervisor::sync::{self, GuestOutcome, GuestSync, sync_guests};
 use super::{
     Checkpoint, CollectionShortfall, Completeness, DiscoveryIntegration, IntegrationContext,
-    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, merge_subnets,
+    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, ShortfallCause, merge_subnets,
 };
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::{AttemptOutcome, UnreachedHypervisorGuest};
@@ -161,6 +161,8 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         let mut owners: HashMap<String, Uuid> = HashMap::new();
         let mut node_hosts: HashMap<String, Uuid> = HashMap::new();
         let mut bridges: HashMap<String, Vec<HypervisorBridge>> = HashMap::new();
+        // Nodes with no address on a known subnet, and nodes whose record the server refused.
+        let (mut unplaced_nodes, mut unrecorded_nodes) = (0usize, 0usize);
         for node in &nodes {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
@@ -181,9 +183,11 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                     owners.insert(node.name.clone(), service_id);
                     node_hosts.insert(node.name.clone(), host_id);
                 }
-                Ok(None) => {}
+                Ok(None) => unplaced_nodes += 1,
                 Err(e) => {
-                    tracing::warn!(node = %node.name, error = %e, "Failed to record Proxmox VE node")
+                    // Reported on the run as a collection failure. This keeps the error.
+                    tracing::debug!(node = %node.name, error = %e, "Failed to record Proxmox VE node");
+                    unrecorded_nodes += 1;
                 }
             }
         }
@@ -243,20 +247,41 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             }
         }
 
-        // A guest whose node has no address cannot be linked to it. That is a shortfall the
-        // operator can fix (grant Sys.Audit), so it is reported as one.
-        let unplaced_nodes = nodes
-            .iter()
-            .filter(|n| !owners.contains_key(&n.name))
-            .count();
-        if unplaced_nodes > 0 {
-            return Ok(Completeness::Partial(CollectionShortfall {
-                what: "Proxmox VE nodes",
-                collected: nodes.len() - unplaced_nodes,
-                expected: nodes.len(),
-            }));
-        }
-        Ok(Completeness::Complete)
+        Ok(node_completeness(
+            nodes.len(),
+            unplaced_nodes,
+            unrecorded_nodes,
+        ))
+    }
+}
+
+/// Whether every node was recorded, and why not where some were not.
+///
+/// A guest whose node has no address cannot be linked to it, and that is a shortfall the operator
+/// can fix, so it leads. A refused record names no fix the operator owns, and is reported only
+/// when every node had an address.
+fn node_completeness(total: usize, unplaced: usize, unrecorded: usize) -> Completeness {
+    if unplaced > 0 {
+        let mut shortfall = CollectionShortfall::new(
+            "Proxmox VE nodes",
+            total - unplaced,
+            total,
+            ShortfallCause::NoKnownAddress,
+        );
+        shortfall.remedy = Some(
+            "Grant the API token Sys.Audit on / so their addresses can be read, or add their \
+             subnet to the site",
+        );
+        Completeness::Partial(shortfall)
+    } else if unrecorded > 0 {
+        Completeness::Partial(CollectionShortfall::new(
+            "Proxmox VE nodes",
+            total - unrecorded,
+            total,
+            ShortfallCause::NotRecorded,
+        ))
+    } else {
+        Completeness::Complete
     }
 }
 
@@ -486,6 +511,42 @@ async fn create_node_host(
         },
     )
     .await
+}
+
+#[cfg(test)]
+mod node_completeness_tests {
+    use super::*;
+
+    fn cause(completeness: Completeness) -> Option<(ShortfallCause, usize, bool)> {
+        match completeness {
+            Completeness::Complete => None,
+            Completeness::Partial(s) => Some((s.cause, s.collected, s.remedy.is_some())),
+        }
+    }
+
+    /// A node with no address the site can place is the operator's to fix, so it leads, with
+    /// its fix, even when another node's record also failed.
+    #[test]
+    fn an_unplaced_node_is_reported_with_its_fix() {
+        assert_eq!(
+            cause(node_completeness(3, 1, 1)),
+            Some((ShortfallCause::NoKnownAddress, 2, true))
+        );
+    }
+
+    /// A refused record is a collection failure, not a timeout, and has no fix to offer.
+    #[test]
+    fn a_refused_node_record_is_not_recorded() {
+        assert_eq!(
+            cause(node_completeness(3, 0, 1)),
+            Some((ShortfallCause::NotRecorded, 2, false))
+        );
+    }
+
+    #[test]
+    fn every_node_recorded_is_complete() {
+        assert_eq!(cause(node_completeness(3, 0, 0)), None);
+    }
 }
 
 #[cfg(test)]

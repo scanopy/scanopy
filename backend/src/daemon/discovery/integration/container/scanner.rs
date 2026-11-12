@@ -1616,9 +1616,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
     /// an unbounded `try_join_all` opened a request per container — several hundred at once on a
     /// large host. `try_join_all` also aborted the whole batch on a single failed inspect, where
     /// dropping just that container is plainly better.
-    pub async fn get_containers_and_summaries(
-        &self,
-    ) -> Result<Vec<(ContainerInspectResponse, ContainerSummary)>, Error> {
+    pub async fn get_containers_and_summaries(&self) -> Result<ContainerListing, Error> {
         let container_summaries = self
             .client
             .list_containers(Some(ListContainersOptions {
@@ -1636,7 +1634,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
                     .inspect_container(&id, None::<InspectContainerOptions>)
                     .await
                 {
-                    Ok(inspected) => Some((inspected, summary)),
+                    Ok(inspected) => Inspection::Read(Box::new((inspected, summary))),
                     // Listed, then removed before the inspect reached it.
                     Err(bollard::errors::Error::DockerResponseServerError {
                         status_code: 404,
@@ -1646,15 +1644,17 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
                             container_id = %id,
                             "Container removed between list and inspect; skipping it"
                         );
-                        None
+                        Inspection::Gone
                     }
+                    // Still there, and unread. Reported on the run as a collection failure,
+                    // which holds back listing the runtime in full; this keeps the error.
                     Err(e) => {
-                        tracing::warn!(
+                        tracing::debug!(
                             container_id = %id,
                             error = %e,
-                            "Failed to inspect container; skipping it"
+                            "Failed to inspect container"
                         );
-                        None
+                        Inspection::Failed
                     }
                 }
             })
@@ -1663,8 +1663,33 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
         .collect::<Vec<_>>()
         .await;
 
-        Ok(inspections.into_iter().flatten().collect())
+        let mut listing = ContainerListing::default();
+        for inspection in inspections {
+            match inspection {
+                Inspection::Read(pair) => listing.containers.push(*pair),
+                Inspection::Gone => {}
+                Inspection::Failed => listing.uninspected += 1,
+            }
+        }
+        Ok(listing)
     }
+}
+
+/// The runtime's containers, inspected.
+#[derive(Default)]
+pub struct ContainerListing {
+    pub containers: Vec<(ContainerInspectResponse, ContainerSummary)>,
+    /// Containers the runtime listed whose inspect failed. They still exist, so a run that
+    /// leaves them out has not listed the runtime in full.
+    pub uninspected: usize,
+}
+
+/// How one listed container's inspect ended.
+enum Inspection {
+    Read(Box<(ContainerInspectResponse, ContainerSummary)>),
+    /// Removed between list and inspect.
+    Gone,
+    Failed,
 }
 
 /// How many application probes run at once against one container.

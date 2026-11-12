@@ -171,6 +171,8 @@ pub struct ContainerHostsOutcome {
     /// Host ports published to those containers. They are open on the runtime's host, so they
     /// stay there.
     pub published_ports: Vec<Port>,
+    /// Recording stopped at the soft deadline, so the containers after it were never submitted.
+    pub timed_out: bool,
 }
 
 impl ContainerScanner<'_> {
@@ -270,6 +272,7 @@ impl ContainerScanner<'_> {
                 return Err(Error::msg("Discovery was cancelled"));
             }
             if tokio::time::Instant::now() >= deadline {
+                outcome.timed_out = true;
                 break;
             }
 
@@ -367,7 +370,8 @@ impl ContainerScanner<'_> {
                 .await
             {
                 Ok(_) => outcome.recorded += 1,
-                Err(e) => tracing::warn!(
+                // Reported on the run as a collection failure. This keeps the error.
+                Err(e) => tracing::debug!(
                     container = ?container.name,
                     error = %e,
                     "Failed to record container host"
