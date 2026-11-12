@@ -892,6 +892,12 @@ impl From<anyhow::Error> for ApiError {
             return Self::bad_request(&validation_err.0);
         }
 
+        // A database error keeps its status mapping and its text stays in the log, wherever in
+        // the chain it sits (storage wraps it with context).
+        if let Some(sqlx_err) = err.chain().find_map(|e| e.downcast_ref::<sqlx::Error>()) {
+            return sqlx_err.into();
+        }
+
         // All other anyhow errors are internal server errors
         let msg = err.to_string();
         tracing::error!("Internal error: {}", msg);
@@ -901,7 +907,13 @@ impl From<anyhow::Error> for ApiError {
 
 impl From<sqlx::Error> for ApiError {
     fn from(err: sqlx::Error) -> Self {
-        match &err {
+        Self::from(&err)
+    }
+}
+
+impl From<&sqlx::Error> for ApiError {
+    fn from(err: &sqlx::Error) -> Self {
+        match err {
             sqlx::Error::RowNotFound => {
                 tracing::warn!("Database error: row not found");
                 Self::not_found("Row not found".to_string())

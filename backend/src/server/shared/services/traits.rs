@@ -351,6 +351,25 @@ where
         Ok(())
     }
 
+    /// Keep only the ids in `ids` that name a row in `org_id`. The organization-keyed
+    /// counterpart of [`Self::retain_on_site`].
+    async fn retain_in_org(&self, ids: &mut Vec<Uuid>, org_id: Uuid) -> Result<(), Error> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let filter = StorableFilter::<T>::new_from_entity_ids(ids);
+        let in_org: std::collections::HashSet<Uuid> = self
+            .storage()
+            .get_all(filter)
+            .await?
+            .iter()
+            .filter(|e| self.get_organization_id(e) == Some(org_id))
+            .map(|e| e.id())
+            .collect();
+        ids.retain(|id| in_org.contains(id));
+        Ok(())
+    }
+
     /// Delete entity by ID. Override this to refuse a delete, delegating to `delete_base()` for
     /// the standard behavior.
     async fn delete(
