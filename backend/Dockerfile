@@ -39,7 +39,7 @@ RUN /app/target/release/generate-fixtures --output-dir /fixtures
 # ============================================
 # Stage 3: Build UI (SvelteKit static site)
 # ============================================
-FROM node:22-slim AS ui-builder
+FROM node:24-slim AS ui-builder
 
 WORKDIR /app/ui
 
