@@ -107,8 +107,8 @@ This is a great way to contribute without needing to set up a development enviro
 
         ```bash
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
-        nvm install 22
-        nvm use 22
+        nvm install 24
+        nvm use 24
         ```
 
    2. Install postgresql-17
