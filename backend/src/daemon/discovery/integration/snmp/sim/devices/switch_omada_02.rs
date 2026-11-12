@@ -71,6 +71,8 @@ fn tables() -> Tables {
         lldp: Some(lldp_table()),
         bridge: bridge_table(),
         vendor: vendor_tree(),
+        // On the switch, TP-Link's tree is the first thing after Cisco's.
+        hides_agent_mibs: true,
         faults: AgentFaults {
             slow_rows: vec![TPLINK_PORT_UTILIZATION],
             row_cost: UTILIZATION_ROW_COST,

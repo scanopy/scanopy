@@ -40,10 +40,12 @@ GH #848's TP-Link takes about half a second over each per-port utilization row, 
 that reaches ten of them is answered in 5.06s and one of 10 that stops short is answered in 64ms.
 `--slow OID --row-cost MS` holds a relayed reply for MS per varbind on it under OID. The cost is
 counted on the reply because the request does not say which rows it will reach: the page that was
-slow on that switch was aimed at the CDP table, which the switch does not have. A shim with
-`--slow` relays one request at a time, as the capture shows the switch answering: the retry sent
-while the slow page was being computed was answered after it. The sleep is here and not in a
-`pass` handler for the reason given above.
+slow on that switch was aimed at the CDP table, which the switch does not have. With `--slow`,
+replies leave in order: one that arrives from the agent while a slow reply is being held waits
+until that reply has gone, as the capture shows the switch answering the retry only after the
+slow page. A request the agent does not answer, such as one with another device's community, holds
+nothing up, because the daemon probes every credential at once and the right one has to get
+through. The sleep is here and not in a `pass` handler for the reason given above.
 
     snmp-bulk-refuser.py --listen 192.168.7.234:161 --upstream 127.0.0.1:16234 \\
                          --slow 1.3.6.1.4.1.11863.6.1.1.11 --row-cost 506
@@ -291,9 +293,9 @@ def decide(packet, refused, silenced, rejected, reject_above, error_status):
 def serve(
     listen, upstream, refused, silenced, rejected, reject_above, error_status, slow, row_cost, log
 ):
-    # A device with slow rows answers one request at a time, so a request sent while a slow page
-    # is being computed waits behind it. Every other shim relays concurrently, as it always has.
-    in_turn = threading.Lock() if slow else contextlib.nullcontext()
+    # Taken to send a reply, and held through a slow reply's wait, so no reply overtakes one being
+    # held. Only replies take it: a request the agent never answers must not stall the others.
+    in_order = threading.Lock() if slow else contextlib.nullcontext()
 
     class Handler(socketserver.BaseRequestHandler):
         def handle(self):
@@ -308,16 +310,16 @@ def serve(
                 log(f"answer request from {self.client_address[0]} with error-status {error_status}")
                 client.sendto(verdict, self.client_address)
                 return
-            with in_turn:
-                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as out:
-                    out.settimeout(UPSTREAM_TIMEOUT)
-                    try:
-                        out.sendto(packet, upstream)
-                        reply, _ = out.recvfrom(65535)
-                    except OSError as error:
-                        log(f"upstream {upstream[0]}:{upstream[1]} did not answer: {error}")
-                        return
-                held = slow_rows(reply, slow) * row_cost / 1000
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as out:
+                out.settimeout(UPSTREAM_TIMEOUT)
+                try:
+                    out.sendto(packet, upstream)
+                    reply, _ = out.recvfrom(65535)
+                except OSError as error:
+                    log(f"upstream {upstream[0]}:{upstream[1]} did not answer: {error}")
+                    return
+            held = slow_rows(reply, slow) * row_cost / 1000
+            with in_order:
                 if held:
                     log(f"hold reply to {self.client_address[0]} for {held:.2f}s")
                     time.sleep(held)
