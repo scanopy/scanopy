@@ -45,6 +45,11 @@ Local patches (all marked in-source with `SCANOPY LOCAL PATCH`):
     AES-256 under MD5 or SHA-1 has two key derivations (Blumenthal, Reeder); the
     daemon tries the second when an engine answers discovery and then cannot read
     the first encrypted request, which needs the two steps timed apart.
+  * src/v3.rs `decrypt_des` (crypto-rust) — GH #846. DES padding is left in place
+    instead of being stripped as PKCS#7. RFC 3414 makes it arbitrary and the
+    scoped PDU's BER length bounds the read. net-snmp sends no padding when the
+    scoped PDU is a multiple of 8 bytes, so about one reply in eight was refused
+    as "Invalid padding" or lost its last byte, which broke table walks part way.
 
 The first is the only one that blocks compilation. The others are behaviour
 upstream does not offer, so returning to crates.io means re-applying them or
