@@ -21,8 +21,9 @@
 
 	let editState = $derived(getTopologyEditState(topology, false, isReadonly));
 
+	// `node` turns null when the selection clears, before the panel unmounts this inspector.
 	let resolved = $derived(
-		topology ? resolveElementNode(node.id, node.data as TopologyNode, topology) : null
+		topology && node ? resolveElementNode(node.id, node.data as TopologyNode, topology) : null
 	);
 
 	// View-driven section config
