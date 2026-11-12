@@ -7,7 +7,7 @@ use snmp2::{Oid, Value};
 use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 use tokio::time::timeout;
-use tracing::{debug, trace, warn};
+use tracing::{debug, trace};
 
 use crate::daemon::discovery::service::warnings::{
     ClaimSource, DeviceClaim, MalformedNeighbourReason, ShortfallReason, SnmpGroupOutcome,

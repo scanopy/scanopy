@@ -5,7 +5,7 @@
 	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { billingPlans } from '#lib/shared/stores/metadata.ts';
-	import { supportEmailAddress } from './support';
+	import { BUG_REPORT_URL, supportEmailAddress } from './support';
 	import {
 		common_email,
 		support_discordDesc,
@@ -51,7 +51,7 @@
 				{
 					title: support_reportBug(),
 					description: support_reportBugDesc(),
-					url: 'https://github.com/scanopy/scanopy/issues/new?template=bug_report.md',
+					url: BUG_REPORT_URL,
 					color: 'Red',
 					icon: Bug
 				}

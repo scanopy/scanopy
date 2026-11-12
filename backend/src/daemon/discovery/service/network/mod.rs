@@ -4,6 +4,7 @@ mod dns;
 pub mod emitted_os;
 pub mod icmp;
 pub mod mdns;
+mod performance_warnings;
 mod scan;
 mod subnets;
 pub mod tcp_stack;

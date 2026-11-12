@@ -8,6 +8,28 @@ use super::*;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
 
+/// The subnet ids a report's warnings name.
+fn warning_subnet_ids(warnings: &mut [DiscoveryWarning]) -> Vec<Uuid> {
+    warnings
+        .iter_mut()
+        .filter_map(|warning| warning.entity_id_slots().subnet_id.and_then(|slot| *slot))
+        .collect()
+}
+
+/// Clear every warning's subnet id that is not in `keep`.
+fn clear_warning_subnet_ids_except(
+    warnings: &mut [DiscoveryWarning],
+    keep: &std::collections::HashSet<Uuid>,
+) {
+    for warning in warnings {
+        if let Some(slot) = warning.entity_id_slots().subnet_id
+            && slot.is_some_and(|id| !keep.contains(&id))
+        {
+            *slot = None;
+        }
+    }
+}
+
 impl DaemonService {
     /// Refuse a report that isn't `daemon_id`'s on `site_id`, and drop the ids in it that name
     /// anything else.
@@ -50,6 +72,17 @@ impl DaemonService {
             self.subnet_service
                 .retain_on_site(subnet_ids, site_id)
                 .await?;
+        }
+
+        // A warning's subnet id is stored in a foreign-key column, and the whole run's warnings
+        // are written in one insert. An id for another site's subnet, or one deleted during the
+        // run, is cleared; the warning keeps its CIDR and still reads.
+        let mut named = warning_subnet_ids(&mut update.warnings);
+        if !named.is_empty() {
+            self.subnet_service
+                .retain_on_site(&mut named, site_id)
+                .await?;
+            clear_warning_subnet_ids_except(&mut update.warnings, &named.into_iter().collect());
         }
 
         self.drop_foreign_credential_results(site_id, update)
@@ -98,5 +131,45 @@ impl DaemonService {
             .credential_results
             .retain(|result| !foreign.contains(&result.credential_id));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn container_warning(subnet_id: Uuid) -> DiscoveryWarning {
+        DiscoveryWarning::ContainerSubnetScanned {
+            subnet_id: Some(subnet_id),
+            cidr: "172.17.0.0/16".to_string(),
+        }
+    }
+
+    /// A daemon names the subnet in the warning it sends. One on the daemon's site keeps its id;
+    /// one that is not loses the id and keeps the rest.
+    #[test]
+    fn a_warning_keeps_only_a_subnet_id_on_the_daemons_site() {
+        let (ours, theirs) = (Uuid::new_v4(), Uuid::new_v4());
+        let mut warnings = vec![
+            container_warning(ours),
+            container_warning(theirs),
+            DiscoveryWarning::ArpSweepUnavailable,
+        ];
+
+        assert_eq!(warning_subnet_ids(&mut warnings), vec![ours, theirs]);
+
+        clear_warning_subnet_ids_except(&mut warnings, &[ours].into_iter().collect());
+
+        assert_eq!(
+            warnings,
+            vec![
+                container_warning(ours),
+                DiscoveryWarning::ContainerSubnetScanned {
+                    subnet_id: None,
+                    cidr: "172.17.0.0/16".to_string(),
+                },
+                DiscoveryWarning::ArpSweepUnavailable,
+            ]
+        );
     }
 }

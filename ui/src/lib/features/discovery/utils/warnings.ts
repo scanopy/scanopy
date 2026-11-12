@@ -23,6 +23,7 @@ import osFamilies from '#lib/data/os-families.json';
 import snmpWalkCauses from '#lib/data/snmp-walk-causes.json';
 import snmpWalkGroups from '#lib/data/snmp-walk-groups.json';
 import warningCodes from '#lib/data/warning-codes.json';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
 import warningRemedies from '#lib/data/warning-remedies.json';
 import {
 	metaDescription,
@@ -50,6 +51,7 @@ import {
 	discovery_warningSnmpV3OptionMd5Auth,
 	discovery_warningSnmpV3OptionNoAuthNoPriv,
 	discovery_warningInferredFrom,
+	discovery_warningFromNewerDaemon,
 	discovery_warningSeenBy,
 	discovery_warningNoPortId,
 	discovery_warningNoWalkFailed,
@@ -330,6 +332,28 @@ const groupsOf = (group_: { group: string }[]) =>
 const sum = (values: number[]) => values.reduce((total, n) => total + n, 0);
 
 /**
+ * What an unrecognised warning says. A sentence written before warnings were coded reads as it
+ * was written. A code from a daemon newer than the server arrives as that warning's JSON, which
+ * the server can read once it is upgraded.
+ */
+function unknownDetail(detail: string): string {
+	try {
+		const parsed: unknown = JSON.parse(detail);
+		if (
+			parsed &&
+			typeof parsed === 'object' &&
+			'code' in parsed &&
+			typeof parsed.code === 'string'
+		) {
+			return discovery_warningFromNewerDaemon({ code: parsed.code });
+		}
+	} catch {
+		// Not JSON: a legacy sentence.
+	}
+	return detail;
+}
+
+/**
  * Every code's slot values, built from the warnings sharing that code.
  *
  * `satisfies` rather than a plain annotation so the object keeps its precise type while still being
@@ -500,6 +524,43 @@ const WARNING_PARAMS = {
 	IcmpSweepTimedOut: (w) => ({ seconds: w[0].seconds }),
 	ReverseDnsTimedOut: (w) => ({ count: w[0].count }),
 
+	// One statement per subnet: `cidr` separates them, so each reads its own occurrence.
+	ArpSweepTruncated: (w) => ({
+		cidr: w[0].cidr,
+		addresses_swept: w[0].addresses_swept,
+		subnet_addresses: w[0].subnet_addresses,
+		cutoff: w[0].cutoff
+	}),
+	IcmpSweepTruncated: (w) => ({
+		addresses_pinged: w[0].addresses_pinged,
+		cutoff: w[0].cutoff,
+		cidrs: joinList(w[0].cidrs_left_out, 'conjunction')
+	}),
+	SubnetProbedWithoutInterface: (w) => ({
+		cidr: w[0].cidr,
+		addresses: w[0].addresses,
+		minutes: w[0].minutes
+	}),
+	ContainerSubnetScanned: (w) => ({ cidr: w[0].cidr }),
+	// The next five are raised once per run by the daemon that ran it, so its name is the session's.
+	DeepScanConcurrencyReduced: (w, { daemonName }) => ({
+		daemon: daemonName,
+		fd_limit: w[0].fd_limit,
+		concurrency: w[0].concurrency,
+		expected_concurrency: w[0].expected_concurrency
+	}),
+	PortScanDescriptorsExhausted: (w) => ({
+		reductions: w[0].reductions,
+		lowest_batch_size: w[0].lowest_batch_size
+	}),
+	InterfaceFilterMatchedNothing: (w, { daemonName }) => ({
+		daemon: daemonName,
+		filters: joinList(w[0].filters, 'conjunction'),
+		interfaces: joinList(w[0].interfaces, 'conjunction')
+	}),
+	ArpSweepUnavailable: (_w, { daemonName }) => ({ daemon: daemonName }),
+	IcmpSweepUnavailable: (_w, { daemonName }) => ({ daemon: daemonName }),
+
 	LldpNeighbourNotFound: neighbourParams,
 	LldpNeighbourAmbiguous: neighbourParams,
 	LldpPortNoStrategy: portParams,
@@ -534,7 +595,7 @@ const WARNING_PARAMS = {
 	WarningsTruncated: (w) => ({ elided: sum(w.map((x) => x.elided)) }),
 	// The whole sentence *is* the detail: a warning from another version, or one written before
 	// warnings were coded at all. Rendered one per occurrence, so this only ever sees one.
-	Unknown: (w) => ({ detail: w[0].detail })
+	Unknown: (w) => ({ detail: unknownDetail(w[0].detail) })
 } satisfies {
 	[C in DiscoveryWarningCode]: (warnings: WarningOf<C>[], context: ParamContext) => Params;
 };
@@ -851,6 +912,21 @@ function examplesOf(group_: DiscoveryWarning[], hostName: HostNameLookup): Warni
 				const host = hostSubject(w.host_id, hostName);
 				return host ? [{ near: host, nearText: '', far: null, farText: '' }] : [];
 			}
+			// The subnet the sentence is about, linking to it. One deleted since the scan lost its
+			// id, and the sentence already names its range.
+			case 'ArpSweepTruncated':
+			case 'SubnetProbedWithoutInterface':
+			case 'ContainerSubnetScanned':
+				return w.subnet_id
+					? [
+							{
+								near: { label: w.cidr, entity: { type: 'Subnet', id: w.subnet_id } },
+								nearText: '',
+								far: null,
+								farText: ''
+							}
+						]
+					: [];
 			default:
 				return [];
 		}
@@ -942,6 +1018,15 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 	if (type === null) return null;
 	const [only] = labels.values();
 	return { type, count: labels.size, only: labels.size === 1 ? only : null };
+}
+
+/**
+ * The docs page for the setting a code's sentence names, or `null` for a code that names none.
+ * The backend publishes the path with the code.
+ */
+export function settingsDocsUrlOf(code: DiscoveryWarningCode): string | null {
+	const path = warningCodes.find((c) => c.id === code)?.metadata?.settings_docs_path;
+	return path ? docsUrl(path) : null;
 }
 
 /** The rung a code sits on, as the backend filed it. */

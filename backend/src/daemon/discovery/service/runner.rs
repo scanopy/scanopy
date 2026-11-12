@@ -2,8 +2,8 @@ use crate::daemon::discovery::integration::container::ContainerRuntime;
 use crate::daemon::discovery::service::base::DiscoveryRunner;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::{
-    DaemonUtils, filtered_own_nics, interfaces_fingerprint, own_addresses_from_nics,
-    session_subnets,
+    DaemonUtils, filtered_own_nics, interface_filter_warning, interfaces_fingerprint,
+    own_addresses_from_nics, session_subnets,
 };
 use crate::server::daemons::r#impl::api::DaemonDiscoveryRequest;
 use crate::server::discovery::r#impl::types::DiscoveryType;
@@ -104,9 +104,8 @@ impl DiscoveryRunner {
         );
         if !os_mismatches.is_empty()
             && let Ok(session) = ops.get_session().await
-            && let Ok(mut warnings) = session.warnings.lock()
         {
-            warnings.extend(os_mismatches);
+            session.push_warnings(os_mismatches);
         }
 
         let discovery_result = with_heartbeat(&ops, async {
@@ -142,6 +141,15 @@ impl DiscoveryRunner {
 
         let interface_filter = self.service.config_store.get_interfaces().await?;
         let nics = filtered_own_nics(&interface_filter);
+        if let Some(warning) = interface_filter_warning(&interface_filter, &nics, || {
+            pnet::datalink::interfaces()
+                .into_iter()
+                .map(|interface| interface.name)
+                .collect()
+        }) && let Ok(session) = ops.get_session().await
+        {
+            session.push_warning(warning);
+        }
         let fingerprint = interfaces_fingerprint(&nics);
         let (_, host_subnets, _) = own_addresses_from_nics(nics, site_id);
 
@@ -802,13 +810,7 @@ async fn report_desktop_vm(ops: &DiscoveryOps, docker: Option<&bollard::Docker>)
     let Some(vm) = desktop_vm(&kernel, engine_info.as_ref()) else {
         return;
     };
-    tracing::warn!(
-        ?vm,
-        "The daemon runs inside a desktop container VM, so ARP, mDNS and LLDP do not reach the LAN"
-    );
-    if let Ok(session) = ops.get_session().await
-        && let Ok(mut warnings) = session.warnings.lock()
-    {
-        warnings.push(DiscoveryWarning::DaemonInDesktopVm { vm });
+    if let Ok(session) = ops.get_session().await {
+        session.push_warning(DiscoveryWarning::DaemonInDesktopVm { vm });
     }
 }

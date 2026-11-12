@@ -154,16 +154,9 @@ impl DiscoveryIntegration for UnifiIntegration {
             // Silent truncation would read as "the controller only manages these devices", and
             // in the total case as the integration doing nothing at all — which is how it
             // presented when a rescan scoped the subnet list too narrowly and dropped every
-            // switch. An `info!` line was not enough: nobody reads the daemon log to find out
-            // why something they configured produced no visible effect.
+            // switch. Reported on the run: nobody reads the daemon log to find out why something
+            // they configured produced no visible effect.
             let skipped = devices.len() - mapped.len();
-            tracing::warn!(
-                ip = %ctx.ip,
-                skipped,
-                total = devices.len(),
-                "Skipped UniFi devices with no address in a subnet this site holds — service \
-                 matching has no subnet to evaluate against for them"
-            );
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),
@@ -293,7 +286,6 @@ async fn fetch_network_config(
     let networks = match client.get_site::<UnifiNetwork>("rest/networkconf").await {
         Ok(envelope) => envelope.data,
         Err(e) => {
-            tracing::warn!(ip = %ctx.ip, error = %e, "Could not read UniFi networks");
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),
@@ -358,7 +350,8 @@ async fn record_networks(
         match ctx.ops.upsert_vlans(items, site_id, ctx.cancel).await {
             Ok(ids) => ids,
             Err(e) => {
-                tracing::warn!(ip = %ctx.ip, error = %e, "Failed to record UniFi VLANs");
+                // The warning names the device; this keeps the error, which it does not carry.
+                tracing::debug!(ip = %ctx.ip, error = %e, "UniFi VLAN upsert failed");
                 ctx.ops.record_vlan_recording_failure(ctx.ip).await;
                 std::collections::HashMap::new()
             }

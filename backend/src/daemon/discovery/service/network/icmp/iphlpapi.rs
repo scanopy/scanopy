@@ -50,7 +50,8 @@ pub fn is_available() -> bool {
                 true
             }
             Err(e) => {
-                tracing::warn!(error = %e, "ICMP echo unavailable: IcmpCreateFile failed");
+                // Reported on the run as `IcmpSweepUnavailable`. This keeps the OS error.
+                tracing::debug!(error = %e, "IcmpCreateFile failed");
                 false
             }
         }

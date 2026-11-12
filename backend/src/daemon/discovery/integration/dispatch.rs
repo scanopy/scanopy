@@ -78,6 +78,7 @@ async fn attempt_credential(
         credential_id,
     );
 
+    // A failure that becomes an issue is reported on the run, and logged there.
     if issue.is_none() {
         tracing::debug!(
             ip = %ctx.ip,
@@ -85,14 +86,6 @@ async fn attempt_credential(
             ?outcome,
             error = failure.message(),
             "Integration probe failed, trying next credential"
-        );
-    } else {
-        tracing::warn!(
-            ip = %ctx.ip,
-            integration = ?discriminant,
-            ?outcome,
-            error = failure.message(),
-            "Configured credential did not work"
         );
     }
     Err(issue)
@@ -327,7 +320,6 @@ pub async fn probe_integrations(
         });
 
         let Some(integration) = IntegrationRegistry::get(discriminant) else {
-            tracing::warn!(integration = ?discriminant, "Skipping unrecognized credential type from newer server");
             // A credential type this daemon cannot run. The server blocks configuring one, so
             // reaching here means a mixed-version fleet — reported, because the operator's
             // credential silently does nothing on this daemon until it is upgraded.
@@ -614,14 +606,7 @@ pub async fn execute_integrations(
             // days on, watching a controller they had authenticated to produce nothing.
             //
             // A successful probe feeds `ClientProbe` into service matching, so this failing is
-            // anomalous rather than routine, which is why it is worth a line rather than a
-            // per-host flood.
-            tracing::warn!(
-                ip = %params.ip,
-                integration = ?discriminant,
-                service = associated_service.name(),
-                "Credential worked but its service was not matched; skipping collection"
-            );
+            // anomalous rather than routine, which is why it is recorded on the run.
             params
                 .ops
                 .record_attempt_failure(
@@ -700,15 +685,8 @@ pub async fn execute_integrations(
         if let Err(e) = executed {
             // A failed integration execute means a matched service (e.g. a Docker/Podman
             // daemon) produced no child services — the user-visible "unclaimed open ports,
-            // no services" symptom. Surface it at warn so the underlying error (often a
-            // bollard/serde response mismatch) is diagnosable rather than swallowed.
-            tracing::warn!(
-                ip = %params.ip,
-                integration = ?discriminant,
-                outcome = ?e.outcome(),
-                error = e.message(),
-                "Integration execute failed"
-            );
+            // no services" symptom. Recorded on the run with the underlying error (often a
+            // bollard/serde response mismatch) as the warning's detail.
 
             // …and tell the operator, which the log alone never did. The credential worked and
             // the collection after it did not, so this host's data is missing rather than stale

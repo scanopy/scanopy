@@ -52,10 +52,8 @@ pub fn is_available() -> bool {
     });
 
     let Some(interface) = suitable else {
-        tracing::warn!(
-            "ARP scanning unavailable: no suitable network interface found. \
-             Ensure container has a non-loopback interface with a MAC address."
-        );
+        // Reported on the run as `ArpSweepUnavailable`. This keeps which of the two causes it was.
+        tracing::debug!("No non-loopback interface with a MAC address to send ARP from");
         return false;
     };
 
@@ -79,12 +77,11 @@ pub fn is_available() -> bool {
             true
         }
         Err(e) => {
-            tracing::warn!(
+            // Reported on the run as `ArpSweepUnavailable`. This keeps the OS error.
+            tracing::debug!(
                 interface = %interface.name,
                 error = %e,
-                "ARP scanning unavailable: failed to create raw socket channel. \
-                 Ensure container has NET_RAW and NET_ADMIN capabilities. \
-                 Error typically indicates missing privileges for raw packet access."
+                "Could not open a raw socket channel for ARP"
             );
             false
         }

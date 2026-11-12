@@ -210,12 +210,6 @@ impl<'a> ContainerScanner<'a> {
             // mid-container. What we have is a coherent subset; what the cap produces is a
             // dropped future and nothing at all. The caller turns the shortfall into a warning.
             if tokio::time::Instant::now() >= deadline {
-                tracing::warn!(
-                    reached = completed,
-                    total = containers_len,
-                    runtime = self.runtime.label(),
-                    "Container scan hit its soft deadline; reporting the containers read so far"
-                );
                 break;
             }
         }

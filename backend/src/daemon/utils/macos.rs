@@ -64,57 +64,21 @@ impl DaemonUtils for MacOsDaemonUtils {
         Ok(10)
     }
 
-    fn get_optimal_deep_scan_concurrency(
+    fn deep_scan_concurrency_at(
         &self,
+        fd_limit: usize,
         port_batch_size: usize,
         arp_subnet_count: usize,
-    ) -> Result<usize, Error> {
-        let fd_limit = Self::get_fd_limit()?;
-
-        // Base reserved file descriptors:
-        // - stdin, stdout, stderr (3)
-        // - HTTP client connections for endpoints (50)
-        // - Docker socket and other daemon operations (50)
-        // - Async channels and miscellaneous (50)
-        // - Safety buffer (50)
-        let base_reserved = 203;
-
-        // FDs consumed by ARP channels (2 FDs per subnet: tx + rx)
-        let arp_fds = arp_subnet_count * 2;
-
-        let total_reserved = base_reserved + arp_fds;
-        let available = fd_limit.saturating_sub(total_reserved);
-
-        // Calculate FDs consumed per deep-scanned host:
-        // - TCP port scanning: port_batch_size concurrent connections
-        // - Endpoint HTTP: min(port_batch_size/2, 50) concurrent requests
-        // - UDP probes: ~10 concurrent (SNMP, DNS, NTP, DHCP, BACnet)
-        let endpoint_batch = (port_batch_size / 2).min(50);
-        let udp_probes = 10;
-        let fds_per_deep_host = port_batch_size + endpoint_batch + udp_probes;
-
-        // On macOS with low FD limits (default 256), be very conservative
-        let concurrency = if fd_limit < 512 {
-            // Very constrained - allow minimal concurrency
-            std::cmp::max(1, available / fds_per_deep_host).min(2)
-        } else {
-            std::cmp::max(1, available / fds_per_deep_host)
-        };
-
-        tracing::debug!(
+    ) -> usize {
+        // 203 reserved: the three standard streams plus the shared 200. Conservative under
+        // macOS's default soft limit of 256.
+        crate::daemon::utils::base::deep_scan_concurrency(
             fd_limit,
-            base_reserved,
-            arp_fds,
-            total_reserved,
-            available,
             port_batch_size,
-            fds_per_deep_host,
-            concurrency,
             arp_subnet_count,
-            "Calculated deep scan concurrency"
-        );
-
-        Ok(concurrency)
+            203,
+            true,
+        )
     }
 
     async fn get_mac_address_for_ip(&self, ip: IpAddr) -> Result<Option<MacAddress>, Error> {

@@ -174,7 +174,6 @@ impl DiscoveryIntegration for InstantOnIntegration {
                 Err(e) => {
                     // One unreadable site must not discard the sites that did read. Report it and
                     // let `Completeness::Partial` carry the shortfall.
-                    tracing::warn!(site = %instant_on_site_id, error = %e, "Could not read Instant On site");
                     ctx.ops
                         .record_attempt_failure(
                             ctx.credential.into(),
@@ -320,13 +319,6 @@ impl InstantOnIntegration {
             // total case as the integration doing nothing at all. Same failure mode the UniFi
             // integration hit when a rescan scoped the subnet list too narrowly.
             let skipped = devices.len() - mapped.len();
-            tracing::warn!(
-                site = %instant_on_site_id,
-                skipped,
-                total = devices.len(),
-                "Skipped Instant On devices with no IP in a known subnet — host identity is \
-                 IP-based, so they cannot be deduplicated across scans"
-            );
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),

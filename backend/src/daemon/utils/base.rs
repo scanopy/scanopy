@@ -83,6 +83,22 @@ pub(crate) fn filtered_own_nics(
     select_own_nics(pnet::datalink::interfaces(), interface_filter)
 }
 
+/// The warning for an `--interfaces` filter that left the daemon with no interface, or `None`
+/// when no filter is set or it matched. `present` names the interfaces the host has, and is only
+/// read when the warning is raised.
+pub(crate) fn interface_filter_warning(
+    interface_filter: &[String],
+    matched: &[pnet::datalink::NetworkInterface],
+    present: impl FnOnce() -> Vec<String>,
+) -> Option<crate::daemon::discovery::types::warnings::DiscoveryWarning> {
+    (!interface_filter.is_empty() && matched.is_empty()).then(|| {
+        crate::daemon::discovery::types::warnings::DiscoveryWarning::InterfaceFilterMatchedNothing {
+            filters: interface_filter.to_vec(),
+            interfaces: present(),
+        }
+    })
+}
+
 /// `all_interfaces` after the `--interfaces` filter.
 fn select_own_nics(
     all_interfaces: Vec<pnet::datalink::NetworkInterface>,
@@ -96,18 +112,12 @@ fn select_own_nics(
             .filter(|iface| interface_filter.iter().any(|f| f == &iface.name))
             .collect();
 
-        if filtered.is_empty() {
-            tracing::warn!(
-                filter = ?interface_filter,
-                "No ip_addresses matched the filter. Check --ip_address argument."
-            );
-        } else {
-            tracing::debug!(
-                filter = ?interface_filter,
-                matched = filtered.len(),
-                "Filtered ip_addresses by --ip_addresses argument"
-            );
-        }
+        // A filter that matches nothing is reported on the run by `interface_filter_warning`.
+        tracing::debug!(
+            filter = ?interface_filter,
+            matched = filtered.len(),
+            "Filtered interfaces by the --interfaces setting"
+        );
 
         filtered
     }
@@ -657,6 +667,14 @@ pub trait DaemonUtils {
     /// Get optimal concurrency for ARP scanning (OS-specific due to BPF limits on macOS)
     fn get_optimal_arp_concurrency(&self) -> Result<usize, Error>;
 
+    /// Hosts this platform deep-scans at once under `fd_limit`. See [`deep_scan_concurrency`].
+    fn deep_scan_concurrency_at(
+        &self,
+        fd_limit: usize,
+        port_batch_size: usize,
+        arp_subnet_count: usize,
+    ) -> usize;
+
     /// Get optimal concurrency for deep port scanning.
     ///
     /// # Arguments
@@ -666,7 +684,135 @@ pub trait DaemonUtils {
         &self,
         port_batch_size: usize,
         arp_subnet_count: usize,
-    ) -> Result<usize, Error>;
+    ) -> Result<usize, Error> {
+        let fd_limit = Self::get_fd_limit()?;
+        let concurrency =
+            self.deep_scan_concurrency_at(fd_limit, port_batch_size, arp_subnet_count);
+        tracing::debug!(
+            fd_limit,
+            port_batch_size,
+            arp_subnet_count,
+            concurrency,
+            "Calculated deep scan concurrency"
+        );
+        Ok(concurrency)
+    }
+}
+
+/// The file-descriptor limit the daemon raises its own soft limit to at startup, when the hard
+/// limit allows it.
+pub const TARGET_FD_LIMIT: usize = 10_240;
+
+/// Hosts a daemon deep-scans at once under `fd_limit`.
+///
+/// `base_reserved` is what the platform sets aside before any host is scanned: the standard
+/// streams, HTTP client connections for endpoints (50), the container socket and other daemon
+/// operations (50), async channels (50) and a safety buffer (50). Each ARP subnet holds two more
+/// (tx and rx). Each deep-scanned host then takes `port_batch_size` TCP connections, up to 50
+/// endpoint requests, and about 10 UDP probes (SNMP, DNS, NTP, DHCP, BACnet).
+///
+/// `cap_low_limits` holds a limit under 512 to two hosts at once, for platforms whose default
+/// soft limit is 256.
+pub fn deep_scan_concurrency(
+    fd_limit: usize,
+    port_batch_size: usize,
+    arp_subnet_count: usize,
+    base_reserved: usize,
+    cap_low_limits: bool,
+) -> usize {
+    let available = fd_limit.saturating_sub(base_reserved + arp_subnet_count * 2);
+    let endpoint_batch = (port_batch_size / 2).min(50);
+    let fds_per_deep_host = port_batch_size + endpoint_batch + 10;
+    let concurrency = std::cmp::max(1, available / fds_per_deep_host.max(1));
+    if cap_low_limits && fd_limit < 512 {
+        concurrency.min(2)
+    } else {
+        concurrency
+    }
+}
+
+/// The warning for a file-descriptor limit that holds deep-scan concurrency below what the daemon
+/// reaches at [`TARGET_FD_LIMIT`], or `None` when the limit is not what constrains it.
+pub fn deep_scan_concurrency_warning(
+    fd_limit: usize,
+    concurrency: usize,
+    expected_concurrency: usize,
+) -> Option<crate::daemon::discovery::types::warnings::DiscoveryWarning> {
+    (fd_limit < TARGET_FD_LIMIT && concurrency < expected_concurrency).then(|| {
+        crate::daemon::discovery::types::warnings::DiscoveryWarning::DeepScanConcurrencyReduced {
+            fd_limit: fd_limit as u64,
+            concurrency: u32::try_from(concurrency).unwrap_or(u32::MAX),
+            expected_concurrency: u32::try_from(expected_concurrency).unwrap_or(u32::MAX),
+        }
+    })
+}
+
+#[cfg(test)]
+mod scan_warning_tests {
+    use super::*;
+    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+
+    /// The default port batch size, and no ARP subnets open.
+    fn concurrency_at(fd_limit: usize) -> usize {
+        deep_scan_concurrency(fd_limit, 200, 0, 203, false)
+    }
+
+    /// A container's common default of 1,024 leaves room for three hosts at once where the
+    /// daemon's own target allows 38.
+    #[test]
+    fn a_low_fd_limit_cuts_deep_scan_concurrency_and_says_by_how_much() {
+        let (concurrency, expected) = (concurrency_at(1024), concurrency_at(TARGET_FD_LIMIT));
+        assert!(concurrency < expected);
+
+        assert_eq!(
+            deep_scan_concurrency_warning(1024, concurrency, expected),
+            Some(DiscoveryWarning::DeepScanConcurrencyReduced {
+                fd_limit: 1024,
+                concurrency: concurrency as u32,
+                expected_concurrency: expected as u32,
+            })
+        );
+    }
+
+    #[test]
+    fn a_limit_at_or_above_the_daemons_target_raises_nothing() {
+        for fd_limit in [TARGET_FD_LIMIT, 65_535, 1_048_576] {
+            let expected = concurrency_at(TARGET_FD_LIMIT);
+            assert_eq!(
+                deep_scan_concurrency_warning(fd_limit, concurrency_at(fd_limit), expected),
+                None
+            );
+        }
+    }
+
+    /// Under 512 a platform with a low default soft limit holds to two hosts however small the
+    /// batch is.
+    #[test]
+    fn a_limit_under_512_is_held_to_two_hosts_where_the_platform_asks_for_it() {
+        assert_eq!(deep_scan_concurrency(500, 16, 0, 203, true), 2);
+        assert!(deep_scan_concurrency(500, 16, 0, 203, false) > 2);
+    }
+
+    #[test]
+    fn an_interface_filter_that_matches_nothing_names_what_the_host_has() {
+        let filter = vec!["eth9".to_string()];
+        let present = || vec!["lo".to_string(), "eth0".to_string()];
+
+        assert_eq!(
+            interface_filter_warning(&filter, &[], present),
+            Some(DiscoveryWarning::InterfaceFilterMatchedNothing {
+                filters: vec!["eth9".to_string()],
+                interfaces: vec!["lo".to_string(), "eth0".to_string()],
+            })
+        );
+    }
+
+    /// No filter means every interface, so an empty match there is a host with no interfaces,
+    /// which the filter did not cause.
+    #[test]
+    fn no_interface_filter_raises_nothing() {
+        assert_eq!(interface_filter_warning(&[], &[], Vec::new), None);
+    }
 }
 
 /// Merge host (physical) and Docker subnets, giving host subnets precedence.

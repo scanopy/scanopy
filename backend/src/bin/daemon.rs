@@ -63,7 +63,7 @@ fn main() -> anyhow::Result<()> {
 fn raise_fd_limit() {
     // Generous cap. macOS clamps setrlimit at kern.maxfilesperproc and rejects
     // RLIM_INFINITY, so request min(hard, TARGET) rather than "unlimited".
-    const TARGET: libc::rlim_t = 10_240;
+    const TARGET: libc::rlim_t = scanopy::daemon::utils::base::TARGET_FD_LIMIT as libc::rlim_t;
     let mut lim = libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
