@@ -74,15 +74,18 @@ privacy_protocol() {
 # every build. The AES-256 names (`AES-256`, and `AES-256-C` for the Reeder key Cisco uses) need
 # a build with --enable-blumenthal-aes, which Homebrew's is not, so a device using one cannot be
 # verified from a Mac. The check asks the client itself, against a port nothing answers: an
-# unknown name is refused before anything is sent.
+# unknown name is refused before anything is sent. The output is captured before it is searched:
+# piped into `grep -q`, the client takes SIGPIPE when grep stops at the match, and `pipefail` turns
+# that into a refusal not found.
 client_refuses_privacy() {
-    local protocol
+    local protocol output
     protocol="$(privacy_protocol "$@")"
     case "$protocol" in
         "" | AES | DES) return 1 ;;
     esac
-    "$SNMPGET" -v3 -u probe -l authPriv -a SHA -A probepass12345 -x "$protocol" -X probepass12345 \
-        -t 1 -r 0 127.0.0.1:9 sysName.0 2>&1 | grep -q "Invalid privacy protocol"
+    output="$("$SNMPGET" -v3 -u probe -l authPriv -a SHA -A probepass12345 -x "$protocol" \
+        -X probepass12345 -t 1 -r 0 127.0.0.1:9 sysName.0 2>&1 || true)"
+    [[ "$output" == *"Invalid privacy protocol"* ]]
 }
 
 # Look a device up by sysName and echo its index into the parallel HOSTS/COMMUNITIES/VERSIONS
