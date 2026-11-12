@@ -2,21 +2,23 @@ use std::{
     net::IpAddr,
     sync::{
         Arc,
-        atomic::{AtomicU8, AtomicU32, AtomicU64},
+        atomic::{AtomicI64, AtomicU8, AtomicU32, AtomicU64},
     },
 };
 
 use crate::daemon::discovery::service::warnings::{
     ContradictedClaim, CredentialIssue, EqualReachIntegrations, IncompleteInterfaceWalk,
-    IncompleteSnmpWalk, MalformedNeighbours, SnmpCollectedNothing, UnreachedProxmoxGuest,
-    UnresolvedLldpPorts, VlanRecordingFailed,
+    IncompleteSnmpWalk, MalformedNeighbours, SnmpCollectedNothing, UnreachedHypervisorGuest,
+    UnresolvedLldpPorts, VlanPortsUnresolved, VlanRecordingFailed,
 };
 use crate::daemon::discovery::types::base::DiscoverySessionInfo;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::{
     discovery::{buffer::EntityBuffer, manager::DaemonDiscoverySessionManager},
     shared::{api_client::DaemonApiClient, config::ConfigStore},
-    utils::base::{PlatformDaemonUtils, create_system_utils},
+    utils::base::{
+        PlatformDaemonUtils, create_system_utils, filtered_own_nics, interfaces_fingerprint,
+    },
 };
 use crate::server::credentials::r#impl::mapping::{CredentialMapping, CredentialQueryPayload};
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
@@ -94,6 +96,15 @@ impl DiscoveryRunner {
                     HostNamingFallback::default(),
                     ScanSettings::from(settings),
                 ),
+                // Classifies the interfaced subnets and stops: nothing is scanned.
+                DiscoveryType::InterfaceRefresh { host_id } => (
+                    *host_id,
+                    None,
+                    None,
+                    Vec::new(),
+                    HostNamingFallback::default(),
+                    ScanSettings::default(),
+                ),
                 DiscoveryType::SelfReport { .. }
                 | DiscoveryType::Network { .. }
                 | DiscoveryType::Docker { .. } => return None,
@@ -137,6 +148,13 @@ pub struct DiscoverySession {
     /// When the network phase began. Its `max_discovery_duration` counts from here, so the
     /// session watchdog does too once it is set.
     pub network_phase_started: Arc<std::sync::OnceLock<std::time::Instant>>,
+    /// When the scan last advanced, in Unix milliseconds: a progress rise, a host created, a deep
+    /// scan or an integration probe or execute finished. The heartbeat does not stamp it, so it
+    /// tells a scan that is moving from a task that is alive and stuck. The watchdog ends a
+    /// session that has gone too long without one.
+    pub last_activity_ms: Arc<AtomicI64>,
+    /// Addresses being deep-scanned now, named in the error when the session stops advancing.
+    pub in_flight_deep_scans: Arc<std::sync::Mutex<std::collections::BTreeSet<IpAddr>>>,
     /// Non-fatal warnings accumulated during the run (e.g. the discovery hit its
     /// time limit and left hosts un-scanned). Surfaced in the terminal session
     /// update so the user sees them without the run being marked as failed.
@@ -145,7 +163,10 @@ pub struct DiscoverySession {
     /// fires per host belongs in one of the typed accumulators below, which are
     /// rendered to a single line at finalize — a `Vec<String>` written per host
     /// multiplies by the host count and drowns the notification.
-    pub warnings: Arc<std::sync::Mutex<Vec<DiscoveryWarning>>>,
+    ///
+    /// Private, so the only way in is [`DiscoverySession::push_warning`], which writes the
+    /// warning's log line as it records it.
+    warnings: Arc<std::sync::Mutex<Vec<DiscoveryWarning>>>,
     // The three typed accumulators are `pub(super)` — visible throughout `service`, and to
     // nothing outside it. That is deliberate and load-bearing rather than tidiness.
     //
@@ -179,10 +200,12 @@ pub struct DiscoverySession {
     pub(super) snmp_collected_nothing: Arc<std::sync::Mutex<Vec<SnmpCollectedNothing>>>,
     /// Devices whose VLAN table was read and could not be saved.
     pub(super) vlan_recording_failures: Arc<std::sync::Mutex<Vec<VlanRecordingFailed>>>,
+    /// Devices whose VLAN tables name member ports that match none of their interfaces.
+    pub(super) vlan_ports_unresolved: Arc<std::sync::Mutex<Vec<VlanPortsUnresolved>>>,
     /// Hosts whose interfaces two full-ifTable integrations both collected.
     pub(super) equal_reach_integrations: Arc<std::sync::Mutex<Vec<EqualReachIntegrations>>>,
-    /// Running Proxmox VE guests at addresses no subnet this scan covers.
-    pub(super) unreached_proxmox_guests: Arc<std::sync::Mutex<Vec<UnreachedProxmoxGuest>>>,
+    /// Running hypervisor guests at addresses no subnet this scan covers.
+    pub(super) unreached_guests: Arc<std::sync::Mutex<Vec<UnreachedHypervisorGuest>>>,
     /// IP-targeted credentials that produced nothing, and why.
     pub(super) credential_issues: Arc<std::sync::Mutex<Vec<CredentialIssue>>>,
     /// What each stored credential did, keyed by credential. Not warnings: successes are recorded
@@ -210,6 +233,10 @@ impl DiscoverySession {
             progress_range_end: Arc::new(AtomicU8::new(100)),
             consecutive_report_failures: Arc::new(AtomicU32::new(0)),
             network_phase_started: Arc::new(std::sync::OnceLock::new()),
+            last_activity_ms: Arc::new(AtomicI64::new(
+                crate::server::shared::clock::now().timestamp_millis(),
+            )),
+            in_flight_deep_scans: Arc::new(std::sync::Mutex::new(Default::default())),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
             contradicted_claims: Arc::new(std::sync::Mutex::new(Vec::new())),
@@ -218,17 +245,94 @@ impl DiscoverySession {
             malformed_neighbours: Arc::new(std::sync::Mutex::new(Vec::new())),
             snmp_collected_nothing: Arc::new(std::sync::Mutex::new(Vec::new())),
             vlan_recording_failures: Arc::new(std::sync::Mutex::new(Vec::new())),
+            vlan_ports_unresolved: Arc::new(std::sync::Mutex::new(Vec::new())),
             equal_reach_integrations: Arc::new(std::sync::Mutex::new(Vec::new())),
-            unreached_proxmox_guests: Arc::new(std::sync::Mutex::new(Vec::new())),
+            unreached_guests: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_results: Arc::new(std::sync::Mutex::new(Default::default())),
         }
+    }
+
+    /// Record a warning on the run and write its log line.
+    pub fn push_warning(&self, warning: DiscoveryWarning) {
+        self.push_warnings([warning]);
+    }
+
+    /// Record several warnings on the run, writing each one's log line.
+    pub fn push_warnings(&self, new: impl IntoIterator<Item = DiscoveryWarning>) {
+        let new: Vec<DiscoveryWarning> = new.into_iter().collect();
+        for warning in &new {
+            warning.log();
+        }
+        if let Ok(mut warnings) = self.warnings.lock() {
+            warnings.extend(new);
+        }
+    }
+
+    /// The warnings recorded on the run so far.
+    pub fn pushed_warnings(&self) -> Vec<DiscoveryWarning> {
+        self.warnings
+            .lock()
+            .map(|warnings| warnings.clone())
+            .unwrap_or_default()
     }
 
     pub fn set_progress_range(&self, start: u8, end: u8) {
         use std::sync::atomic::Ordering;
         self.progress_range_start.store(start, Ordering::Relaxed);
         self.progress_range_end.store(end, Ordering::Relaxed);
+    }
+
+    /// Record that the scan advanced just now.
+    pub fn stamp_activity(&self) {
+        self.last_activity_ms.store(
+            crate::server::shared::clock::now().timestamp_millis(),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+
+    /// When the scan last advanced.
+    pub fn last_activity_at(&self) -> chrono::DateTime<chrono::Utc> {
+        let ms = self
+            .last_activity_ms
+            .load(std::sync::atomic::Ordering::Relaxed);
+        chrono::DateTime::from_timestamp_millis(ms).unwrap_or_default()
+    }
+
+    /// The addresses being deep-scanned now, in address order.
+    pub fn in_flight_deep_scans(&self) -> Vec<IpAddr> {
+        self.in_flight_deep_scans
+            .lock()
+            .map(|ips| ips.iter().copied().collect())
+            .unwrap_or_default()
+    }
+
+    /// Track `ip` as being deep-scanned until the returned guard drops, which also counts as the
+    /// scan advancing.
+    pub fn track_deep_scan(&self, ip: IpAddr) -> DeepScanInFlight {
+        if let Ok(mut ips) = self.in_flight_deep_scans.lock() {
+            ips.insert(ip);
+        }
+        DeepScanInFlight {
+            ip,
+            session: self.clone(),
+        }
+    }
+}
+
+/// A deep scan in progress. Dropping it, whether the scan finished or its future was dropped,
+/// removes the address from the session's in-flight set and stamps activity.
+pub struct DeepScanInFlight {
+    ip: IpAddr,
+    session: DiscoverySession,
+}
+
+impl Drop for DeepScanInFlight {
+    fn drop(&mut self) {
+        if let Ok(mut ips) = self.session.in_flight_deep_scans.lock() {
+            ips.remove(&self.ip);
+        }
+        self.session.stamp_activity();
     }
 }
 
@@ -250,6 +354,8 @@ pub struct DaemonDiscoveryService {
     /// per-site `HostDedup` advisory lock). Holds the earliest instant the
     /// next host submission may start; each submission reserves and advances it.
     pub host_submit_gate: Arc<tokio::sync::Mutex<tokio::time::Instant>>,
+    /// The last session's interfaced subnets until a status report takes them.
+    interfaced_report: std::sync::Mutex<Option<InterfacedSubnetsReport>>,
 }
 
 impl DaemonDiscoveryService {
@@ -266,6 +372,7 @@ impl DaemonDiscoveryService {
             entity_buffer,
             terminal_payload: Arc::new(RwLock::new(None)),
             host_submit_gate: Arc::new(tokio::sync::Mutex::new(tokio::time::Instant::now())),
+            interfaced_report: std::sync::Mutex::new(None),
         }
     }
 
@@ -277,4 +384,66 @@ impl DaemonDiscoveryService {
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("No active discovery session"))
     }
+
+    /// Hold a session's classified interfaced subnets for the next status report.
+    pub fn set_interfaced_report(&self, subnets: Vec<Subnet>, fingerprint: String) {
+        if let Ok(mut report) = self.interfaced_report.lock() {
+            *report = Some(InterfacedSubnetsReport {
+                subnets,
+                fingerprint,
+            });
+        }
+    }
+
+    /// What a status report says about this daemon's interfaces: the interfaced subnets a session
+    /// classified since the last report with the fingerprint they were classified from, or no
+    /// subnets and the fingerprint of the NICs as they are now. `None` for the fingerprint only
+    /// when the interface filter cannot be read.
+    pub async fn status_interfaces(&self) -> (Option<Vec<Subnet>>, Option<String>) {
+        if let Some(report) = self
+            .interfaced_report
+            .lock()
+            .ok()
+            .and_then(|mut r| r.take())
+        {
+            return (Some(report.subnets), Some(report.fingerprint));
+        }
+        let fingerprint = self
+            .config_store
+            .get_interfaces()
+            .await
+            .ok()
+            .map(|filter| interfaces_fingerprint(&filtered_own_nics(&filter)));
+        (None, fingerprint)
+    }
+}
+
+#[cfg(test)]
+impl DaemonDiscoveryService {
+    /// A ServerPoll service, which reaches no server, already running session `session_id`.
+    pub async fn running_for_test(session_id: Uuid) -> Arc<Self> {
+        use crate::daemon::shared::config::AppConfig;
+        let config = Arc::new(ConfigStore::new(
+            std::env::temp_dir().join(format!("scanopy-test-{session_id}.json")),
+            AppConfig::default(),
+        ));
+        let service = Arc::new(Self::new(config, None, Arc::new(EntityBuffer::new())));
+        let info = DiscoverySessionInfo {
+            session_id,
+            site_id: Uuid::new_v4(),
+            daemon_id: Uuid::new_v4(),
+            started_at: Some(crate::server::shared::clock::now()),
+            discovery_type: DiscoveryType::default(),
+            discovery_id: Uuid::new_v4(),
+        };
+        *service.current_session.write().await = Some(DiscoverySession::new(info, Vec::new()));
+        service
+    }
+}
+
+/// The interfaced subnets a session classified, waiting for the next status report.
+pub struct InterfacedSubnetsReport {
+    pub subnets: Vec<Subnet>,
+    /// [`interfaces_fingerprint`] of the NICs they were classified from.
+    pub fingerprint: String,
 }

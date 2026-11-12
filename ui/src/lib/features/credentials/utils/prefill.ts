@@ -1,13 +1,13 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	credentialIntegrations,
 	credentialTypes,
 	type CredentialTypeMetadata,
 	type TypedTypeMetadata
-} from '$lib/shared/stores/metadata';
-import { openModal, type ModalState } from '$lib/shared/stores/modal-registry';
-import { slugifySiteName } from '$lib/features/daemons/utils';
-import { credentials_createIntegrationCredential } from '$lib/paraglide/messages';
+} from '#lib/shared/stores/metadata.ts';
+import { openModal, type ModalState } from '#lib/shared/stores/modal-registry.ts';
+import { slugifySiteName } from '#lib/features/daemons/utils.ts';
+import { credentials_createIntegrationCredential } from '#lib/paraglide/messages.js';
 
 type CredentialIntegration = components['schemas']['CredentialIntegration'];
 type TypeItem = Pick<TypedTypeMetadata<CredentialTypeMetadata>, 'id' | 'metadata'>;

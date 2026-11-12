@@ -96,7 +96,7 @@ pub(crate) async fn register(
             email: request.email.clone(),
             has_password: true,
             terms_accepted_at: if request.terms_accepted {
-                Some(Utc::now())
+                Some(crate::server::shared::clock::now())
             } else {
                 None
             },
@@ -154,12 +154,12 @@ pub(crate) async fn register(
     let user_agent = user_agent.map(|u| u.to_string());
 
     // Check for pending invite
-    let (org_id, permissions, site_ids, invited_as) =
+    let (org_id, permissions, site_assignments, invited_as) =
         match process_pending_invite(&state, &session).await {
             Ok(Some(invite)) => (
                 Some(invite.organization_id),
                 Some(invite.permissions),
-                invite.site_ids,
+                invite.site_assignments,
                 invite.send_to,
             ),
             Ok(_) => (None, None, vec![], None),
@@ -201,7 +201,7 @@ pub(crate) async fn register(
                 permissions,
                 ip,
                 user_agent,
-                site_ids,
+                site_assignments,
                 invited_as,
             },
             deployment_type,
@@ -217,11 +217,8 @@ pub(crate) async fn register(
         .await
         .map_err(|e| ApiError::internal_error(&format!("Failed to save session: {}", e)))?;
 
-    // If this is a new org, finish its onboarding.
+    // A new org's pending setup was applied in `provision_user`.
     if matches!(provision_org, ProvisionOrg::New(_)) {
-        apply_pending_setup(&state, &user).await?;
-
-        // Clear pending setup data from session
         clear_pending_setup(&session).await;
     }
 
@@ -416,32 +413,6 @@ pub(crate) async fn onboarding_state(
         site,
         site_id,
     })))
-}
-
-/// Apply pending setup after user registration: publish `OnboardingModalCompleted`. The org,
-/// its plan and its onboarding state (this milestone included) are created in
-/// `provision_user`, so the event is published here without a `record_milestone` guard. Its
-/// setup data, the integrated daemon included, comes from `OrgSetupService` reacting to
-/// `OrgCreated`.
-pub(crate) async fn apply_pending_setup(
-    state: &Arc<AppState>,
-    user: &User,
-) -> Result<(), ApiError> {
-    let organization_id = user.base.organization_id;
-    let auth_entity: AuthenticatedEntity = user.clone().into();
-
-    // Publish telemetry event
-    state
-        .services
-        .event_bus
-        .publish(Event::new(
-            OrgScope { organization_id },
-            OnboardingOperation::OnboardingModalCompleted,
-            auth_entity,
-        ))
-        .await;
-
-    Ok(())
 }
 
 #[cfg(test)]

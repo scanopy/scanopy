@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::server::auth::access::{Grants, Keying};
 use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
@@ -38,17 +39,30 @@ pub struct UserBase {
     #[serde(skip)] // Never send to client, never accept from client
     pub password_hash: Option<String>,
     /// Whether the user has a password set — computed from password_hash, never stored in DB
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub has_password: bool,
     /// Slug of the identity provider this account signs in through, when linked.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schema(read_only)]
     pub oidc_provider: Option<String>,
     /// The provider's stable identifier for this user.
     #[serde(skip)]
     pub oidc_subject: Option<String>,
     /// When the account was linked to the identity provider.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schema(read_only)]
     pub oidc_linked_at: Option<DateTime<Utc>>,
     /// The sites this entity applies to.
     #[serde(default)]
@@ -61,17 +75,27 @@ pub struct UserBase {
     /// Whether the user must accept the current terms before the API serves
     /// their session. Computed, never stored: set only on the signed-in user's
     /// own record (`/api/auth/me`, login, accept), false everywhere else.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub terms_acceptance_required: bool,
     /// Whether the user must verify their email before the API serves their
     /// session (an org on a license plan, see `auth::verification_gate`).
     /// Computed and set like `terms_acceptance_required`.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub email_verification_required: bool,
     /// Whether the user has verified their email address
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
+    #[schema(read_only)]
     pub email_verified: bool,
     /// Token for email verification - never exposed to client
     #[serde(skip)]
@@ -164,7 +188,7 @@ impl UserBase {
             has_password: false,
             terms_acceptance_required: false,
             email_verification_required: false,
-            oidc_linked_at: Some(Utc::now()),
+            oidc_linked_at: Some(crate::server::shared::clock::now()),
             permissions,
             organization_id,
             oidc_provider,
@@ -246,18 +270,17 @@ pub struct User {
 }
 
 impl User {
-    /// Whether a member with `viewer_permissions` sees this user in the users list: an owner sees
-    /// everyone, anyone else sees the users below them and themselves.
-    pub fn is_listed_for(&self, viewer_permissions: UserOrgPermissions, viewer_id: Uuid) -> bool {
-        viewer_permissions == UserOrgPermissions::Owner
-            || self.base.permissions < viewer_permissions
-            || self.id == viewer_id
+    /// Whether a member with these organization grants sees this user in the users list: the
+    /// users whose role they could grant, and themselves.
+    pub fn is_listed_for(&self, viewer: &Grants, viewer_id: Uuid) -> bool {
+        self.id == viewer_id
+            || viewer.may_grant_to_person(&self.base.permissions.grants(), Keying::Organization)
     }
 
     pub fn set_password(&mut self, password_hash: String) {
         self.base.password_hash = Some(password_hash);
         self.base.has_password = true;
-        self.updated_at = Utc::now();
+        self.updated_at = crate::server::shared::clock::now();
     }
 }
 
@@ -288,7 +311,7 @@ impl Storable for User {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -492,36 +515,6 @@ impl Entity for User {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
-
-    /// A request body may change only `permissions`, `site_ids`,
-    /// `email_settings` and `display_settings` (and the handlers narrow that
-    /// further). Every other field belongs to a server flow (signup, email
-    /// change, verification, password reset, OIDC linking, "log out
-    /// everywhere") and is taken from the stored user. `#[serde(skip)]` fields
-    /// arrive at their defaults, so a field missing here is reset on save.
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        let base = &mut self.base;
-        let stored = &existing.base;
-        base.email = stored.email.clone();
-        base.password_hash = stored.password_hash.clone();
-        base.has_password = stored.has_password;
-        base.terms_acceptance_required = stored.terms_acceptance_required;
-        base.email_verification_required = stored.email_verification_required;
-        base.oidc_provider = stored.oidc_provider.clone();
-        base.oidc_subject = stored.oidc_subject.clone();
-        base.oidc_linked_at = stored.oidc_linked_at;
-        base.terms_accepted_at = stored.terms_accepted_at;
-        base.email_verified = stored.email_verified;
-        base.email_verification_token = stored.email_verification_token.clone();
-        base.email_verification_expires = stored.email_verification_expires;
-        base.password_reset_token = stored.password_reset_token.clone();
-        base.password_reset_expires = stored.password_reset_expires;
-        base.pending_email = stored.pending_email.clone();
-        base.email_unsubscribe_token = stored.email_unsubscribe_token;
-        base.session_epoch = stored.session_epoch;
-        base.release_notes_seen_version = stored.release_notes_seen_version.clone();
-        base.terms_notice_version = stored.terms_notice_version;
-    }
 }
 
 #[cfg(test)]
@@ -531,7 +524,7 @@ mod tests {
     /// A stored user mid-flow: logged out everywhere twice, a password reset
     /// and an email change pending, not yet verified.
     fn stored_user() -> User {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         User {
             id: Uuid::new_v4(),
             created_at: now - chrono::Duration::days(30),
@@ -569,7 +562,7 @@ mod tests {
 
         let mut body = serde_json::to_value(&existing).unwrap();
         body["id"] = serde_json::json!(Uuid::new_v4());
-        body["created_at"] = serde_json::json!(Utc::now());
+        body["created_at"] = serde_json::json!(crate::server::shared::clock::now());
         body["email"] = serde_json::json!("attacker@example.com");
         body["email_verified"] = serde_json::json!(true);
         body["has_password"] = serde_json::json!(false);

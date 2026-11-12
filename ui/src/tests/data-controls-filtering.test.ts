@@ -7,9 +7,9 @@ import {
 	toggleBoolean,
 	type FilterState,
 	type ServerFilterMode
-} from '$lib/shared/components/data/controls/filtering';
-import { filterOptionsOf } from '$lib/shared/components/data/controls/fieldValues';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/controls/filtering.ts';
+import { filterOptionsOf } from '#lib/shared/components/data/controls/fieldValues.ts';
+import type { FieldConfig } from '#lib/shared/components/data/types.ts';
 
 interface Row {
 	name: string | null;

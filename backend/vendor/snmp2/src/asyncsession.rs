@@ -25,6 +25,10 @@ pub struct AsyncSession {
     /// must still burn its id: otherwise the next request reuses it, and the previous request's
     /// queued response validates against it — leaving the session permanently one answer behind.
     req_id: Wrapping<i32>,
+    /// SCANOPY LOCAL PATCH (GH #848): the first id this session issued. With `req_id` it bounds
+    /// the ids of the requests already sent, which is how a late answer to one of them is told
+    /// from an answer to nothing. See `send_and_recv`.
+    first_req_id: i32,
     send_pdu: pdu::Buf,
     #[cfg(not(feature = "heap_buffers"))]
     recv_buf: [u8; BUFFER_SIZE],
@@ -104,6 +108,7 @@ impl AsyncSession {
             socket,
             community: community.to_vec(),
             req_id: Wrapping(starting_req_id),
+            first_req_id: starting_req_id,
             send_pdu: pdu::Buf::default(),
             #[cfg(not(feature = "heap_buffers"))]
             #[allow(clippy::large_stack_arrays)]
@@ -129,6 +134,15 @@ impl AsyncSession {
 
     #[cfg(feature = "v3")]
     pub async fn init(&mut self) -> Result<()> {
+        self.discover_engine().await?;
+        self.synchronize_time().await
+    }
+
+    /// SCANOPY LOCAL PATCH (GH #846): RFC 3414 §4's first step, split out of `init` so a caller
+    /// can time the two steps apart. This one is unauthenticated: any SNMPv3 engine answers it,
+    /// whatever the user or keys. See vendor/snmp2/README.md.
+    #[cfg(feature = "v3")]
+    pub async fn discover_engine(&mut self) -> Result<()> {
         if let Some(ref mut security) = self.security {
             security.reset_engine_id();
             security.reset_engine_counters();
@@ -137,7 +151,14 @@ impl AsyncSession {
             self.req_id += Wrapping(1);
             v3::build_init(req_id, &mut self.send_pdu);
             if let Err(e) = Pdu::from_bytes_inner(
-                Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+                Self::send_and_recv(
+                    &self.socket,
+                    &self.send_pdu,
+                    &mut self.recv_buf,
+                    self.first_req_id,
+                    req_id,
+                )
+                .await?,
                 Some(security),
             ) && e != Error::AuthUpdated
             {
@@ -146,6 +167,16 @@ impl AsyncSession {
             if security.need_init() {
                 return Err(Error::AuthFailure(v3::AuthErrorKind::NotAuthenticated));
             }
+        }
+        Ok(())
+    }
+
+    /// The second step of `init`: the first request that uses the user's keys, encrypted when
+    /// the user has a privacy key. A no-op for a user without authentication, or once the clock
+    /// is synchronized.
+    #[cfg(feature = "v3")]
+    pub async fn synchronize_time(&mut self) -> Result<()> {
+        if let Some(ref mut security) = self.security {
             // SCANOPY LOCAL PATCH (GH #813): RFC 3414 §4's second step. The discovery Report is
             // unauthenticated, so its boots and time are only a hint; an agent that sends none
             // answers the first authenticated request with a notInTimeWindow Report, and the
@@ -164,7 +195,14 @@ impl AsyncSession {
                     Some(security),
                 )?;
                 if let Err(e) = Pdu::from_bytes_inner(
-                    Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+                    Self::send_and_recv(
+                        &self.socket,
+                        &self.send_pdu,
+                        &mut self.recv_buf,
+                        self.first_req_id,
+                        req_id,
+                    )
+                    .await?,
                     Some(security),
                 ) && e != Error::AuthUpdated
                 {
@@ -224,20 +262,44 @@ impl AsyncSession {
         drained
     }
 
+    /// SCANOPY LOCAL PATCH (GH #848) — see vendor/snmp2/README.md.
+    ///
+    /// Send the request with id `req_id` and return the datagram that answers it.
+    ///
+    /// `drain_stale` only removes what has already arrived. An agent that takes longer than the
+    /// caller's timeout over one request answers it after the next request is sent, and that
+    /// answer is the first datagram this request reads. Returned to the caller it fails
+    /// validation, the caller sends another request, and that one reads the answer to this one:
+    /// the session is one answer behind until it is dropped. So an answer to a request this
+    /// session issued earlier is passed over and the read continues.
+    ///
+    /// There is no deadline here, as there was none before. The caller bounds the whole call,
+    /// and a request whose answer never comes ends when that bound drops this future.
+    ///
+    /// A datagram whose id is not an earlier request's goes to the caller's `validate` as it
+    /// always did, so an id this session never sent is still `RequestIdMismatch`.
     async fn send_and_recv<'a>(
         socket: &UdpSocket,
         pdu: &pdu::Buf,
         out: &'a mut [u8],
+        first_req_id: i32,
+        req_id: i32,
     ) -> Result<&'a [u8]> {
         Self::drain_stale(socket, out);
-        if let Ok(_pdu_len) = socket.send(pdu).await {
-            match socket.recv(out).await {
-                Ok(len) => Ok(&out[..len]),
-                Err(_) => Err(Error::Receive),
-            }
-        } else {
-            Err(Error::Send)
+        if socket.send(pdu).await.is_err() {
+            return Err(Error::Send);
         }
+        let len = loop {
+            let Ok(len) = socket.recv(out).await else {
+                return Err(Error::Receive);
+            };
+            let late = pdu::peek_response_id(&out[..len])
+                .is_some_and(|id| pdu::is_earlier_request(first_req_id, req_id, id));
+            if !late {
+                break len;
+            }
+        };
+        Ok(&out[..len])
     }
 
     pub async fn get(&mut self, oid: &Oid<'_>) -> Result<Pdu<'_>> {
@@ -254,7 +316,14 @@ impl AsyncSession {
             self.security.as_ref(),
         )?;
         let resp = Pdu::from_bytes_inner(
-            Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+            Self::send_and_recv(
+                &self.socket,
+                &self.send_pdu,
+                &mut self.recv_buf,
+                self.first_req_id,
+                req_id,
+            )
+            .await?,
             #[cfg(feature = "v3")]
             self.security.as_mut(),
         )?;
@@ -276,7 +345,14 @@ impl AsyncSession {
             self.security.as_ref(),
         )?;
         let resp = Pdu::from_bytes_inner(
-            Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+            Self::send_and_recv(
+                &self.socket,
+                &self.send_pdu,
+                &mut self.recv_buf,
+                self.first_req_id,
+                req_id,
+            )
+            .await?,
             #[cfg(feature = "v3")]
             self.security.as_mut(),
         )?;
@@ -298,7 +374,14 @@ impl AsyncSession {
             self.security.as_ref(),
         )?;
         let resp = Pdu::from_bytes_inner(
-            Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+            Self::send_and_recv(
+                &self.socket,
+                &self.send_pdu,
+                &mut self.recv_buf,
+                self.first_req_id,
+                req_id,
+            )
+            .await?,
             #[cfg(feature = "v3")]
             self.security.as_mut(),
         )?;
@@ -327,7 +410,14 @@ impl AsyncSession {
             self.security.as_ref(),
         )?;
         let resp = Pdu::from_bytes_inner(
-            Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+            Self::send_and_recv(
+                &self.socket,
+                &self.send_pdu,
+                &mut self.recv_buf,
+                self.first_req_id,
+                req_id,
+            )
+            .await?,
             #[cfg(feature = "v3")]
             self.security.as_mut(),
         )?;
@@ -349,7 +439,14 @@ impl AsyncSession {
             self.security.as_ref(),
         )?;
         let resp = Pdu::from_bytes_inner(
-            Self::send_and_recv(&self.socket, &self.send_pdu, &mut self.recv_buf).await?,
+            Self::send_and_recv(
+                &self.socket,
+                &self.send_pdu,
+                &mut self.recv_buf,
+                self.first_req_id,
+                req_id,
+            )
+            .await?,
             #[cfg(feature = "v3")]
             self.security.as_mut(),
         )?;

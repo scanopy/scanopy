@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Color } from '$lib/shared/utils/styling';
-	import type { components } from '$lib/api/schema';
+	import type { Color } from '#lib/shared/utils/styling.ts';
+	import type { components } from '#lib/api/schema';
 	import { hoveredMetadata } from '../../../interactions';
 	import FilterGroup from './FilterGroup.svelte';
 

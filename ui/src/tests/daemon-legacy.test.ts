@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-import type { Daemon } from '$lib/features/daemons/types/base';
+import { isPreUnifiedDaemon } from '#lib/features/daemons/utils.ts';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
 
 function daemon(last_seen: string | null, supports_unified_discovery: boolean): Daemon {
 	return {

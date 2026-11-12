@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TooltipTracker, type TooltipTarget } from '$lib/shared/actions/tooltip';
+import { TooltipTracker, type TooltipTarget } from '#lib/shared/actions/tooltip.ts';
 
 /** An element in a tree, as far as the tracker reads one: whether it or an ancestor is registered. */
 class FakeTarget implements TooltipTarget {
@@ -74,5 +74,21 @@ describe('TooltipTracker', () => {
 		tracker.refresh(cardA, true);
 		expect(events).toEqual(['show a', 'hide']);
 		expect(tracker.current).toBeNull();
+	});
+});
+
+describe('dismissing the tooltip', () => {
+	it('closes it now, and shows again on the next element the pointer reaches', () => {
+		const page = new FakeTarget('page');
+		const chip = new FakeTarget('chip', page, true);
+		const other = new FakeTarget('other', page, true);
+		const { tracker, events } = track();
+		tracker.moveTo(chip);
+		tracker.dismiss();
+		expect(events).toEqual(['show chip', 'hide']);
+		expect(tracker.current).toBeNull();
+
+		tracker.moveTo(other);
+		expect(events).toEqual(['show chip', 'hide', 'show other']);
 	});
 });

@@ -1,5 +1,5 @@
 import { getFieldKey, type DisplayConfig, type FieldConfig } from '../types';
-import { fieldGroups } from '$lib/shared/stores/metadata';
+import { fieldGroups } from '#lib/shared/stores/metadata.ts';
 import { isSortableField } from '../controls/sorting';
 
 /**
@@ -369,6 +369,18 @@ export function movableIds<T>(order: string[], columns: EntityColumn<T>[]): stri
 		const column = byId.get(id);
 		return column !== undefined && isMovableColumn(column);
 	});
+}
+
+/**
+ * The columns a table draws while grouped by `groupField`: all but that one, since every group
+ * heading states its value. The primary column stays, as the row's identity. Ungrouped, all.
+ */
+export function columnsWhileGrouped<T>(
+	columns: EntityColumn<T>[],
+	groupField: string | null
+): EntityColumn<T>[] {
+	if (!groupField) return columns;
+	return columns.filter((c) => c.primary || c.id !== groupField);
 }
 
 /** Columns to render, in persisted order, minus the hidden ones. */

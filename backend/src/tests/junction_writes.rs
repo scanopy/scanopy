@@ -11,7 +11,10 @@ use super::{
     dependency, host, ip_address, organization, service, site, subnet, test_services, user,
 };
 use crate::server::{
-    auth::middleware::auth::AuthenticatedEntity,
+    auth::{
+        access::{Assignment, AssignmentScope, SiteRole},
+        middleware::auth::AuthenticatedEntity,
+    },
     bindings::r#impl::base::{Binding, BindingBase, BindingType},
     credentials::r#impl::{
         base::{Credential, CredentialBase},
@@ -22,6 +25,7 @@ use crate::server::{
         dependency_members::DependencyMemberRecord,
         r#impl::base::{Dependency, DependencyMembers},
     },
+    invites::r#impl::base::Invite,
     shared::{
         attribution::AttributeSource,
         entities::EntityDiscriminants,
@@ -33,7 +37,9 @@ use crate::server::{
             generic::GenericPostgresStorage,
             traits::{Storable, Storage},
         },
+        types::api::ApiError,
     },
+    site_assignments::r#impl::base::Principal,
     tags::{
         entity_tags::EntityTag,
         groups::base::{TagGroup, TagGroupBase, TagGroupType},
@@ -95,9 +101,21 @@ async fn user_site_access_is_replaced_per_user() {
         member(&storage, &org_id).await,
     );
 
-    users.set_site_ids(&a.id, &[s[0], s[1]]).await.unwrap();
-    users.set_site_ids(&b.id, &[s[1]]).await.unwrap();
-    users.set_site_ids(&a.id, &[s[1], s[2]]).await.unwrap();
+    let set = async |user_id: Uuid, sites: Vec<Uuid>| {
+        let role = UserOrgPermissions::Member;
+        services
+            .access_service
+            .set_access(
+                Principal::User(user_id),
+                role,
+                &Assignment::for_person(role, &sites),
+                AuthenticatedEntity::System,
+            )
+            .await
+    };
+    set(a.id, vec![s[0], s[1]]).await.unwrap();
+    set(b.id, vec![s[1]]).await.unwrap();
+    set(a.id, vec![s[1], s[2]]).await.unwrap();
 
     assert_eq!(
         sorted(users.get_site_ids(&a.id).await.unwrap()),
@@ -113,16 +131,6 @@ async fn user_site_access_is_replaced_per_user() {
     );
     assert_eq!(both[1].base.site_ids, vec![s[1]]);
 
-    users.add_site_access(&b.id, &s[0]).await.unwrap();
-    users.add_site_access(&b.id, &s[0]).await.unwrap();
-    assert_eq!(
-        sorted(users.get_site_ids(&b.id).await.unwrap()),
-        sorted(vec![s[0], s[1]])
-    );
-
-    users.remove_site_access(&a.id, &s[2]).await.unwrap();
-    assert_eq!(users.get_site_ids(&a.id).await.unwrap(), vec![s[1]]);
-
     let with_access: HashSet<Uuid> = users
         .get_users_with_site_access(&s[1], &org_id)
         .await
@@ -137,6 +145,7 @@ async fn user_site_access_is_replaced_per_user() {
 async fn user_api_key_site_access_is_replaced_per_key() {
     let (storage, services, _container) = test_services().await;
     let keys = &services.user_api_key_service;
+    let access = &services.access_service;
     let (org_id, s) = org_with_sites(&storage, 3).await;
     let owner = member(&storage, &org_id).await;
 
@@ -150,29 +159,178 @@ async fn user_api_key_site_access_is_replaced_per_key() {
             ..Default::default()
         })
     };
-    let first = keys
-        .create_with_sites(key("ci"), vec![s[0], s[1]], AuthenticatedEntity::System)
+    let first = access
+        .create_api_key(
+            key("ci"),
+            Some(vec![s[0], s[1]]),
+            AuthenticatedEntity::System,
+        )
         .await
         .unwrap();
-    let second = keys
-        .create_with_sites(key("backup"), vec![s[2]], AuthenticatedEntity::System)
+    let second = access
+        .create_api_key(key("backup"), Some(vec![s[2]]), AuthenticatedEntity::System)
         .await
         .unwrap();
-    keys.update_site_access(&first.id, &[s[1], s[2]])
+    let role = first.base.permissions;
+    access
+        .set_access(
+            Principal::ApiKey(first.id),
+            role,
+            &Assignment::for_api_key(role, Some(&[s[1], s[2]])),
+            AuthenticatedEntity::System,
+        )
         .await
         .unwrap();
 
     assert_eq!(
-        sorted(keys.get_site_ids(&first.id).await.unwrap()),
+        sorted(keys.get_site_ids(&first.id).await.unwrap().unwrap()),
         sorted(vec![s[1], s[2]])
     );
     let mut both = vec![first.clone(), second.clone()];
     keys.hydrate_site_ids(&mut both).await.unwrap();
     assert_eq!(
-        sorted(both[0].base.site_ids.clone()),
+        sorted(both[0].base.site_ids.clone().unwrap()),
         sorted(vec![s[1], s[2]])
     );
-    assert_eq!(both[1].base.site_ids, vec![s[2]]);
+    assert_eq!(both[1].base.site_ids, Some(vec![s[2]]));
+}
+
+fn scoped(role: SiteRole, scope: AssignmentScope) -> Assignment {
+    Assignment { role, scope }
+}
+
+/// The rows of a principal, whatever their order.
+async fn held(services: &ServiceFactory, principal: Principal) -> Vec<String> {
+    let rows = services.site_assignment_service.get_for(principal).await;
+    let mut held: Vec<String> = rows.unwrap().iter().map(|a| format!("{a:?}")).collect();
+    held.sort();
+    held
+}
+
+/// Mixed roles and All sites come back as written, for each thing that can hold them, and a second
+/// write replaces the first.
+#[tokio::test]
+async fn set_access_round_trips_for_users_keys_and_invites() {
+    let (storage, services, _container) = test_services().await;
+    let access = &services.access_service;
+    let (org_id, s) = org_with_sites(&storage, 2).await;
+    let person = member(&storage, &org_id).await;
+    let key = access
+        .create_api_key(
+            UserApiKey::new(UserApiKeyBase {
+                name: "mixed".to_string(),
+                user_id: person.id,
+                organization_id: org_id,
+                key: Uuid::new_v4().to_string(),
+                is_enabled: true,
+                ..Default::default()
+            }),
+            Some(vec![]),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+    let invite = access
+        .create_invite(
+            Invite::with_expiration(
+                org_id,
+                "http://localhost".to_string(),
+                person.id,
+                24,
+                UserOrgPermissions::Viewer,
+                vec![],
+                None,
+            ),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+
+    let role = UserOrgPermissions::Member;
+    let mixed = [
+        scoped(SiteRole::Viewer, AssignmentScope::Site(s[0])),
+        scoped(SiteRole::Admin, AssignmentScope::Site(s[1])),
+    ];
+    let everywhere = [scoped(SiteRole::Member, AssignmentScope::AllSites)];
+    let sorted_debug = |assignments: &[Assignment]| {
+        let mut rows: Vec<String> = assignments.iter().map(|a| format!("{a:?}")).collect();
+        rows.sort();
+        rows
+    };
+    for principal in [
+        Principal::User(person.id),
+        Principal::ApiKey(key.id),
+        Principal::Invite(invite.id),
+    ] {
+        for assignments in [&mixed[..], &everywhere[..]] {
+            access
+                .set_access(principal, role, assignments, AuthenticatedEntity::System)
+                .await
+                .unwrap();
+            assert_eq!(held(&services, principal).await, sorted_debug(assignments));
+        }
+    }
+
+    let stored = services
+        .user_api_key_service
+        .get_by_id(&key.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored.base.permissions, role);
+    let stored = services.invite_service.get_by_id(&invite.id).await;
+    assert_eq!(stored.unwrap().unwrap().base.permissions, role);
+}
+
+#[tokio::test]
+async fn an_owner_always_holds_every_site_and_the_last_owner_stays() {
+    let (storage, services, _container) = test_services().await;
+    let access = &services.access_service;
+    let (org_id, s) = org_with_sites(&storage, 1).await;
+    let every_site = vec![format!(
+        "{:?}",
+        scoped(SiteRole::Admin, AssignmentScope::AllSites)
+    )];
+    let one_site = [scoped(SiteRole::Member, AssignmentScope::Site(s[0]))];
+    let system = || AuthenticatedEntity::System;
+
+    let mut first = user(&org_id);
+    first.base.permissions = UserOrgPermissions::Owner;
+    first.base.email = "first@test.example".parse().unwrap();
+    storage.users.create(&first).await.unwrap();
+    let first = Principal::User(first.id);
+
+    let owner = UserOrgPermissions::Owner;
+    access
+        .set_access(first, owner, &one_site, system())
+        .await
+        .unwrap();
+    assert_eq!(held(&services, first).await, every_site);
+
+    let member_role = UserOrgPermissions::Member;
+    let refused = access
+        .set_access(first, member_role, &one_site, system())
+        .await
+        .unwrap_err();
+    let refused = ApiError::from(refused);
+    assert_eq!(refused.status, axum::http::StatusCode::CONFLICT);
+    assert_eq!(
+        held(&services, first).await,
+        every_site,
+        "a refused demotion changes nothing"
+    );
+
+    let second = member(&storage, &org_id).await;
+    let second = Principal::User(second.id);
+    access
+        .set_access(second, owner, &[], system())
+        .await
+        .unwrap();
+    access
+        .set_access(first, member_role, &one_site, system())
+        .await
+        .unwrap();
+    assert_eq!(held(&services, second).await, every_site);
 }
 
 async fn credential(storage: &StorageFactory, org_id: Uuid) -> Uuid {
@@ -357,6 +515,50 @@ async fn daemon_interfaced_subnets_are_replaced_per_daemon() {
         .get_interfaced_subnet_ids_batch(&[d1.id, d2.id])
         .await;
     assert_eq!(batch.get(&d2.id), Some(&vec![subnets[2]]));
+}
+
+/// A status report that carries no interfaced subnets leaves the junction as the last session
+/// classified it. Only a report that carries a list rewrites it, an empty one included.
+#[tokio::test]
+async fn a_status_without_interfaced_subnets_leaves_the_junction_alone() {
+    let (storage, services, _container) = test_services().await;
+    let daemons = &services.daemon_service;
+    let (org_id, s) = org_with_sites(&storage, 1).await;
+    let owner = member(&storage, &org_id).await;
+    let h = host(&s[0]);
+    storage.hosts.create(&h).await.unwrap();
+    let mut d = super::daemon(&s[0], &h.id);
+    d.base.user_id = owner.id;
+    storage.daemons.create(&d).await.unwrap();
+    let sn = subnet(&s[0]);
+    storage.subnets.create(&sn).await.unwrap();
+    daemons
+        .set_interfaced_subnet_ids(&d.id, &[sn.id])
+        .await
+        .unwrap();
+    let status = |interfaced_subnets| crate::daemon::runtime::state::DaemonStatus {
+        url: None,
+        name: "daemon".to_string(),
+        mode: d.base.mode,
+        version: Some(semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap()),
+        capabilities: Default::default(),
+        interfaced_subnets,
+        interfaces_fingerprint: None,
+        ready_for_work: true,
+        os: None,
+    };
+
+    daemons
+        .process_status(d.id, status(None), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert_eq!(daemons.get_interfaced_subnet_ids(&d.id).await, vec![sn.id]);
+
+    daemons
+        .process_status(d.id, status(Some(Vec::new())), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert!(daemons.get_interfaced_subnet_ids(&d.id).await.is_empty());
 }
 
 /// A site with one host holding two services, each bound to its own IP address.

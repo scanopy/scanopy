@@ -391,6 +391,7 @@ impl EmailService {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn send_trial_ending_email(
         &self,
         to: EmailAddress,
@@ -399,6 +400,7 @@ impl EmailService {
         has_payment: bool,
         billing_period: &str,
         trial_started_at: Option<DateTime<Utc>>,
+        can_extend: bool,
     ) -> Result<()> {
         let metrics = self
             .compute_trial_recap_metrics(org_id, trial_started_at)
@@ -414,6 +416,7 @@ impl EmailService {
                 daemons_count: metrics.daemons_count,
                 services_count: metrics.services_count,
                 days_into_trial: metrics.days_into_trial,
+                can_extend,
             },
         )
         .await
@@ -429,6 +432,7 @@ impl EmailService {
         has_payment: bool,
         billing_period: &str,
         key_expires: &str,
+        can_extend: bool,
     ) -> Result<()> {
         self.dispatch(
             to,
@@ -437,6 +441,7 @@ impl EmailService {
                 billing_period,
                 has_payment,
                 key_expires,
+                can_extend,
             },
         )
         .await
@@ -1232,7 +1237,7 @@ impl EmailService {
     /// paid-through date on its notifications ratchet, so running daily is
     /// safe and a renewal re-arms it.
     pub async fn warn_expiring_airgap_keys(&self) -> Result<()> {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let filter = StorableFilter::<Organization>::new_with_airgap_key_expiring_between(
             now,
             now + chrono::Duration::days(AIRGAP_EXPIRY_WARNING_DAYS),
@@ -1501,7 +1506,7 @@ impl EmailService {
         let daemons_count = self.daemon_service.count_for_sites(&site_ids).await?;
 
         let trial_started_at = trial_started_at.unwrap_or(org.created_at);
-        let days_into_trial = (chrono::Utc::now() - trial_started_at).num_days();
+        let days_into_trial = (crate::server::shared::clock::now() - trial_started_at).num_days();
 
         Ok(TrialRecapMetrics {
             hosts_count,

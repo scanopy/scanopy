@@ -1,4 +1,4 @@
-import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
+import type { LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
 import { applicationGroupId, tagIcon, tagTooltip } from './groups';
 import type { Tag, TagGroup } from './types/base';
 

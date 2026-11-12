@@ -141,6 +141,21 @@ impl ServiceService {
         Ok(existing_service)
     }
 
+    /// Keep only the scanned services and bindings on `site_id`.
+    /// See `HostService::retain_scanned_on_site`.
+    pub async fn retain_scanned_on_site(
+        &self,
+        scanned: &mut crate::server::daemons::r#impl::api::ScannedEntityIds,
+        site_id: Uuid,
+    ) -> Result<()> {
+        self.retain_on_site(&mut scanned.service_ids, site_id)
+            .await?;
+        self.binding_service
+            .retain_on_site(&mut scanned.binding_ids, site_id)
+            .await?;
+        Ok(())
+    }
+
     /// Point the discovery FKs of the services and bindings a finished session scanned at
     /// `discovery_id`. Called from `HostService::stamp_discovery`. Both types are written even
     /// when the first fails.

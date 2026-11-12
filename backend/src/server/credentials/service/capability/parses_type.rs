@@ -61,7 +61,8 @@ mod tests {
             (v3_id, CredentialTypeDiscriminants::SnmpV3),
         ] {
             let ct = disc.to_credential_type();
-            mapping_for(&mut map, id, &ct).default_credential = Some(ct.to_query_payload());
+            mapping_for(&mut map, id, &ct).default_credential =
+                Some(ct.to_query_payload(None).unwrap());
         }
 
         let withheld =

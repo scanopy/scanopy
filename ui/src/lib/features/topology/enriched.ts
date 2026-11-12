@@ -26,11 +26,11 @@ import type {
 	TopologyInterface
 } from './types/base';
 import type { TopologyView } from './queries';
-import type { components } from '$lib/api/schema';
-import type { IPAddress, Port, InterfaceNeighborRow } from '$lib/features/hosts/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Dependency } from '$lib/features/dependencies/types/base';
-import type { Tag } from '$lib/features/tags/types/base';
+import type { components } from '#lib/api/schema';
+import type { IPAddress, Port, InterfaceNeighborRow } from '#lib/features/hosts/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Dependency } from '#lib/features/dependencies/types/base.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 
 type TopologyData = components['schemas']['TopologyData'];
 

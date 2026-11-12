@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { runOutcomeReason, runOutcomeTag } from '$lib/features/discovery/utils/outcome';
-import { discoveryPhases, discoveryTerminalReasons } from '$lib/shared/stores/metadata';
+import { runOutcomeReason, runOutcomeTag } from '#lib/features/discovery/utils/outcome.ts';
+import { discoveryPhases, discoveryTerminalReasons } from '#lib/shared/stores/metadata.ts';
 
 describe('runOutcomeTag', () => {
 	it('labels the outcome, not the reason behind it', () => {

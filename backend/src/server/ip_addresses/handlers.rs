@@ -1,4 +1,4 @@
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Delete, Write};
 use crate::server::config::AppState;
 use crate::server::hosts::r#impl::base::Host;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
@@ -109,7 +109,7 @@ async fn validate_ip_address_consistency(
 )]
 async fn create_ip_address(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<IPAddress, Write>>,
     ApiJson(mut ip_address): ApiJson<IPAddress>,
 ) -> ApiResult<Json<ApiResponse<IPAddress>>> {
     validate_ip_address_consistency(&state, &ip_address).await?;
@@ -157,7 +157,7 @@ async fn create_ip_address(
 )]
 async fn update_ip_address(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<IPAddress, Write>>,
     path: Path<Uuid>,
     ApiJson(ip_address): ApiJson<IPAddress>,
 ) -> ApiResult<Json<ApiResponse<IPAddress>>> {
@@ -189,7 +189,7 @@ async fn update_ip_address(
 )]
 pub async fn delete_ip_address(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<IPAddress, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let site_ids = auth.site_ids();
@@ -242,7 +242,7 @@ pub async fn delete_ip_address(
 )]
 async fn bulk_delete_ip_addresses(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<IPAddress, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     if ids.is_empty() {

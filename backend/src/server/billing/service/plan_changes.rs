@@ -1,5 +1,6 @@
 //! Payment-method & portal sessions, subscription status, plan changes, and invoice-payment failure handling.
 use super::*;
+use crate::server::billing::types::base::ts_to_chrono;
 use crate::server::shared::types::api::ValidationError;
 use strum::IntoDiscriminant;
 
@@ -261,7 +262,7 @@ impl BillingService {
         // Every cloud trial needs a card on file, including one reached by
         // switching plan mid-trial (a license trial, which needs none, moving
         // to a cloud plan keeps the trial running).
-        if organization.is_in_trial(chrono::Utc::now())
+        if organization.is_in_trial(crate::server::shared::clock::now())
             && target_plan.license_plan().is_none()
             && !self.customer_has_payment_method(organization_id).await?
         {
@@ -364,7 +365,26 @@ impl BillingService {
                 );
             }
 
+            let is_trialing = sub.status == SubscriptionStatus::Trialing;
+            let mut metadata = StripeSubscriptionMetadata::identity(organization_id, target_plan);
             let mut update = UpdateSubscription::new(&sub.id);
+
+            // A switch mid-trial never shortens the trial, and runs it to the
+            // target plan's full length when that is later. The metadata
+            // tells the webhook the new end is this switch, not an extension.
+            let switch_end = match (is_trialing, sub.trial_start, sub.trial_end) {
+                (true, Some(start), Some(end)) => switched_trial_end(
+                    ts_to_chrono(start),
+                    ts_to_chrono(end),
+                    target_plan.current_trial_days(),
+                ),
+                _ => None,
+            };
+            if let Some(end) = switch_end {
+                metadata.scanopy_trial_switch_end = Some(end.timestamp());
+                update = update.trial_end(UpdateSubscriptionTrialEnd::Timestamp(end.timestamp()));
+            }
+
             if voided_unpaid || keeps_air_gapped_term {
                 // Nothing was paid for the old term, or the air-gapped key keeps
                 // it, so the new plan starts a fresh one rather than inheriting
@@ -373,9 +393,7 @@ impl BillingService {
             }
             let updated = update
                 .items(items)
-                .metadata(
-                    StripeSubscriptionMetadata::identity(organization_id, target_plan).to_stripe(),
-                )
+                .metadata(metadata.to_stripe())
                 .proration_behavior(proration)
                 // Clear any pending cancellation. We standardize on `cancel_at`
                 // everywhere we SET or READ scheduled-cancellation state, but
@@ -396,9 +414,13 @@ impl BillingService {
                 self.finalize_latest_invoice(updated.id.as_str()).await?;
             }
 
-            let is_trialing = sub.status == SubscriptionStatus::Trialing;
-
-            if is_trialing {
+            if let Some(end) = switch_end {
+                Ok(format!(
+                    "Plan changed to {}. Your trial now runs to {}.",
+                    target_plan.name(),
+                    end.format("%B %-d, %Y")
+                ))
+            } else if is_trialing {
                 Ok(format!(
                     "Plan changed to {}. Your trial continues.",
                     target_plan.name()
@@ -592,6 +614,19 @@ fn setup_intent_request(
 /// `PartialOrd for BillingPlanDiscriminants` keeps the self-hosted ladder
 /// (Community → Standard → Plus) separate from the cloud one and returns
 /// `None` across them, so a cloud switch is never a downgrade here.
+/// The trial end after switching plan mid-trial to one with a
+/// `target_trial_days`-day trial: the target's full length from the trial
+/// start, when that is later than the current end. `None` otherwise, because
+/// a switch never shortens a trial.
+fn switched_trial_end(
+    trial_start: DateTime<Utc>,
+    current_end: DateTime<Utc>,
+    target_trial_days: u32,
+) -> Option<DateTime<Utc>> {
+    let target_end = trial_start + chrono::Duration::days(target_trial_days.into());
+    (target_end > current_end).then_some(target_end)
+}
+
 fn is_tier_downgrade(current: Option<BillingPlan>, target: BillingPlan) -> bool {
     current.is_some_and(|current| target.discriminant() < current.discriminant())
 }
@@ -600,7 +635,8 @@ fn is_tier_downgrade(current: Option<BillingPlan>, target: BillingPlan) -> bool 
 mod tests {
     use super::*;
     use crate::server::billing::plans::{
-        get_community_plan, get_free_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
+        get_community_plan, get_free_plan, get_purchasable_plans, get_self_hosted_plus_plan,
+        get_self_hosted_standard_plan,
     };
 
     #[test]
@@ -632,6 +668,37 @@ mod tests {
             get_free_plan()
         ));
         assert!(!is_tier_downgrade(None, get_self_hosted_standard_plan()));
+    }
+
+    /// Cloud on day 10 switching to self-hosted runs to day 30; self-hosted
+    /// on day 20 switching to cloud keeps its day-30 end.
+    #[test]
+    fn a_mid_trial_switch_lengthens_the_trial_and_never_shortens_it() {
+        let start = DateTime::<Utc>::from_timestamp(1_800_000_000, 0).unwrap();
+        let day = |n: i64| start + chrono::Duration::days(n);
+        let cloud_days = get_purchasable_plans()
+            .into_iter()
+            .find(|plan| matches!(plan, BillingPlan::Pro(_)))
+            .unwrap()
+            .current_trial_days();
+        let self_hosted_days = get_self_hosted_standard_plan().current_trial_days();
+        let cloud_end = day(cloud_days.into());
+        let self_hosted_end = day(self_hosted_days.into());
+
+        assert_eq!(
+            switched_trial_end(start, cloud_end, self_hosted_days),
+            Some(self_hosted_end)
+        );
+        assert_eq!(switched_trial_end(start, self_hosted_end, cloud_days), None);
+        // A cloud trial extended past the self-hosted length keeps its end.
+        assert_eq!(
+            switched_trial_end(
+                start,
+                self_hosted_end + chrono::Duration::days(7),
+                self_hosted_days
+            ),
+            None
+        );
     }
 
     fn setup_intent_form(payment_method_configuration: Option<&str>) -> Vec<(String, String)> {

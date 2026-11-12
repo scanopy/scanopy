@@ -1,12 +1,16 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import type { ElementNode, RenderableTopology, TopologyEdge, TopologyNode } from './types/base';
-import { containerTypes, entities } from '$lib/shared/stores/metadata';
-import { collectionLookup, type EntityLookup, type EntityType } from '$lib/shared/entity-fields';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+import { containerTypes, entities } from '#lib/shared/stores/metadata.ts';
+import {
+	collectionLookup,
+	type EntityLookup,
+	type EntityType
+} from '#lib/shared/entity-fields/index.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 import { getTopologyIndex } from './entity-index';
-import type { FreshnessSubject } from '$lib/shared/utils/freshness';
-import type { Interface } from '$lib/features/hosts/types/base';
-import type { InterfaceRelations } from '$lib/features/hosts/components/InterfaceRelationRows.svelte';
+import type { FreshnessSubject } from '#lib/shared/utils/freshness.ts';
+import type { Interface } from '#lib/features/hosts/types/base.ts';
+import type { InterfaceRelations } from '#lib/features/hosts/components/InterfaceRelationRows.svelte';
 
 /**
  * Where each entity type's instances live on a Topology.

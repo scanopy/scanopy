@@ -6,7 +6,7 @@
  * has claimed: Edit is E, Rescan R, Merge M, and an action starting with C its next letter, since C is Create. An action left with no
  * free letter shows without a key.
  */
-import type { ActionTone, CardAction } from '../types';
+import type { ActionTone, RowAction } from '../types';
 
 /** Single keys the list already uses: C for Create, T for the tag island. */
 export const RESERVED_ACTION_KEYS = ['C', 'T'];
@@ -15,7 +15,7 @@ export const RESERVED_ACTION_KEYS = ['C', 'T'];
 export const DELETE_KEY = 'Delete';
 
 export interface KeyedAction {
-	action: CardAction;
+	action: RowAction;
 	/** A capital letter, `DELETE_KEY`, or null when none was free. */
 	key: string | null;
 }
@@ -29,7 +29,7 @@ export interface SelectionReasons {
 }
 
 /** The actions a row draws: all but those `unavailable` in the `hidden` state. */
-export function shownActions(actions: CardAction[]): CardAction[] {
+export function shownActions(actions: RowAction[]): RowAction[] {
 	return actions.filter((action) => action.unavailable?.state !== 'hidden');
 }
 
@@ -44,17 +44,17 @@ export function shownActions(actions: CardAction[]): CardAction[] {
  * `onBulk` is disabled with `reasons.oneRowAtATime`.
  */
 export function selectionActions(
-	perRow: CardAction[][],
-	runBulk: (action: CardAction) => () => void,
+	perRow: RowAction[][],
+	runBulk: (action: RowAction) => () => void,
 	reasons: SelectionReasons
-): CardAction[] {
+): RowAction[] {
 	if (perRow.length === 1) {
 		return shownActions(perRow[0]).map((action) =>
 			action.onBulk && !action.unavailable ? { ...action, onClick: runBulk(action) } : action
 		);
 	}
 
-	return mergeRowOrders(perRow.map(shownActions)).map((action): CardAction => {
+	return mergeRowOrders(perRow.map(shownActions)).map((action): RowAction => {
 		if (!action.onBulk) {
 			return { ...action, unavailable: { state: 'disabled', reason: reasons.oneRowAtATime } };
 		}
@@ -72,8 +72,8 @@ export function selectionActions(
  * earlier row lacks goes right after its neighbour in that row, so Enable sits beside Disable. The
  * delete action goes last.
  */
-function mergeRowOrders(rows: CardAction[][]): CardAction[] {
-	const merged: CardAction[] = [];
+function mergeRowOrders(rows: RowAction[][]): RowAction[] {
+	const merged: RowAction[] = [];
 	const indexOf = (label: string) => merged.findIndex((a) => a.label === label);
 	for (const row of rows) {
 		let after = -1;
@@ -97,7 +97,7 @@ function mergeRowOrders(rows: CardAction[][]): CardAction[] {
 }
 
 /** An action's tooltip as it reads in its current state: why it's unavailable, or its hint. */
-export function resolveTooltip(action: CardAction): string | undefined {
+export function resolveTooltip(action: RowAction): string | undefined {
 	return action.unavailable?.reason ?? action.tooltip;
 }
 
@@ -125,10 +125,10 @@ export function toolbarButtonClass(tone: ActionTone | undefined): string {
 	return tone ? TOOLBAR_BUTTON_CLASS[tone] : 'btn-secondary';
 }
 
-/** What key assignment reads from an action: a toolbar's `CardAction`, or a modal's. */
-export type KeyableAction = Pick<CardAction, 'label' | 'isDelete' | 'shortcut'>;
+/** What key assignment reads from an action: a toolbar's `RowAction`, or a modal's. */
+export type KeyableAction = Pick<RowAction, 'label' | 'isDelete' | 'shortcut'>;
 
-export function assignActionKeys<A extends KeyableAction = CardAction>(
+export function assignActionKeys<A extends KeyableAction = RowAction>(
 	actions: A[],
 	reserved: readonly string[] = RESERVED_ACTION_KEYS
 ): { action: A; key: string | null }[] {

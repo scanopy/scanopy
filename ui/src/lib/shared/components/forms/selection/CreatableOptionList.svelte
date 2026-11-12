@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	export interface CreatableOption {
 		id: string;
@@ -22,9 +22,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Plus } from '@lucide/svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { keyLabel } from '$lib/shared/utils/shortcuts';
-	import { common_ungrouped } from '$lib/paraglide/messages';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { keyLabel } from '#lib/shared/utils/shortcuts.ts';
+	import { common_ungrouped } from '#lib/paraglide/messages.js';
 
 	/**
 	 * The rows of a type-to-filter dropdown that can also create what was typed: an optional

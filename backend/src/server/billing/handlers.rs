@@ -1,4 +1,4 @@
-use crate::server::auth::middleware::permissions::{Authorized, Owner};
+use crate::server::auth::middleware::permissions::{Authorized, Billing, Can, Read, Write};
 use crate::server::billing::types::api::{
     CancelSubscriptionRequest, CancelSubscriptionResponse, ChangePlanPreview, ChangePlanRequest,
     CreateCheckoutRequest, FinalizePaymentMethodRequest, PauseSubscriptionRequest, SaveOfferCoupon,
@@ -52,7 +52,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_billing_plans(
     State(state): State<Arc<AppState>>,
-    _auth: Authorized<Owner>,
+    _auth: Authorized<Can<Billing, Read>>,
 ) -> Result<impl IntoResponse, ApiError> {
     if let Some(billing_service) = state.services.billing_service.clone() {
         let plans = billing_service.get_plans();
@@ -79,7 +79,7 @@ async fn get_billing_plans(
 )]
 async fn create_checkout_session(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<CreateCheckoutRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
@@ -257,7 +257,7 @@ async fn create_checkout_session(
 )]
 async fn create_payment_method_setup_intent(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<SetupIntentResponse>>> {
     let organization_id = auth
         .organization_id()
@@ -291,7 +291,7 @@ async fn create_payment_method_setup_intent(
 )]
 async fn finalize_payment_method(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<FinalizePaymentMethodRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth
@@ -324,7 +324,7 @@ async fn finalize_payment_method(
 )]
 async fn change_plan(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<ChangePlanRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
@@ -367,7 +367,7 @@ async fn change_plan(
 )]
 async fn preview_plan_change(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Read>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> ApiResult<Json<ApiResponse<ChangePlanPreview>>> {
     let organization_id = auth
@@ -440,7 +440,7 @@ async fn handle_webhook(
 )]
 async fn create_portal_session(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(return_url): ApiJson<String>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
@@ -475,7 +475,7 @@ async fn create_portal_session(
 )]
 async fn pause_subscription(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<PauseSubscriptionRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
@@ -510,7 +510,7 @@ async fn pause_subscription(
 )]
 async fn resume_subscription(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -542,7 +542,7 @@ async fn resume_subscription(
 )]
 async fn reactivate_subscription(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -571,7 +571,7 @@ async fn reactivate_subscription(
 )]
 async fn extend_trial(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -603,7 +603,7 @@ async fn extend_trial(
 )]
 async fn end_trial(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -638,7 +638,7 @@ async fn end_trial(
 )]
 async fn cancel_subscription(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<CancelSubscriptionRequest>,
 ) -> ApiResult<Json<ApiResponse<CancelSubscriptionResponse>>> {
     let organization_id = auth
@@ -671,7 +671,7 @@ async fn cancel_subscription(
 )]
 async fn apply_discount_save_offer(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -705,7 +705,7 @@ async fn apply_discount_save_offer(
 )]
 async fn get_save_offer_coupon(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Read>>,
 ) -> ApiResult<Json<ApiResponse<Option<SaveOfferCoupon>>>> {
     let organization_id = auth
         .organization_id()

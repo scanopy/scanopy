@@ -1,46 +1,34 @@
 import type { Snippet } from 'svelte';
-import type { Daemon } from '$lib/features/daemons/types/base';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import { osLabel, daemonOsIds } from '#lib/features/daemons/utils.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { daemonHealths, entities } from '#lib/shared/stores/metadata.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { User } from '#lib/features/users/types.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import type { components, operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import {
-	daemonStatusTag,
-	getDaemonStatus,
-	getDaemonStatusTag,
-	osLabel,
-	daemonOsIds,
-	DAEMON_STATUSES
-} from '$lib/features/daemons/utils';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { siteItems } from '$lib/features/sites/columns';
-import { entityRef } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { User } from '$lib/features/users/types';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import type { components, operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
-import {
-	common_operatingSystem,
-	common_created,
 	common_host,
 	common_maintainer,
 	common_site,
-	common_status,
 	common_tags,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
 	daemons_config_mode,
-	daemons_interfacesWith,
 	daemons_lastSeen,
 	daemons_mode_daemonPoll,
 	daemons_mode_daemonPollDescription,
 	daemons_mode_serverPoll,
 	daemons_mode_serverPollDescription
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type DaemonOrderField = components['schemas']['DaemonOrderField'];
 /** The daemon list endpoint's query params, which the filters are sent and linked as. */
@@ -98,42 +86,37 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 				groupable: false,
 				display: { order: 2, recency: true }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// The status the server derives, which also carries version lifecycle (deprecated,
 			// unsupported). The home page shows the same tag.
 			status: {
-				label: common_status(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
 				queryParam: 'statuses',
-				filterOptions: DAEMON_STATUSES,
-				getFilterValue: (daemon) => getDaemonStatus(daemon),
-				filterLabel: (value) => {
-					const status = DAEMON_STATUSES.find((s) => s === value);
-					return status ? daemonStatusTag(status).label : value;
-				},
-				getGroupValue: (daemon) => getDaemonStatus(daemon),
-				getValue: (daemon) => getDaemonStatusTag(daemon).label,
+				filterOptions: daemonHealths.getItems().map((health) => health.id),
+				getFilterValue: (daemon) => daemon.health,
+				filterLabel: (value) => daemonHealths.getName(value),
+				getGroupValue: (daemon) => daemon.health,
+				getValue: (daemon) => daemonHealths.getName(daemon.health),
 				display: {
 					order: 1,
 					getItems: (daemon) => {
-						const tag = getDaemonStatusTag(daemon);
+						const tag = daemonHealths.getTag(daemon.health);
 						return [
 							{
 								id: tag.label,
 								label: tag.label,
 								color: tag.color,
-								icon: tag.icon,
-								href: tag.href
+								title: tag.title,
+								icon: daemonHealths.getIconComponent(daemon.health)
 							}
 						];
 					}
 				}
 			},
 			os: {
-				label: common_operatingSystem(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -255,7 +238,6 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 			},
 			{
 				key: 'interfaced_subnet_ids',
-				label: daemons_interfacesWith(),
 				type: 'array',
 				// Daemons share subnets, so this filters; as an array it neither sorts nor groups.
 				filterable: true,

@@ -3,8 +3,8 @@
 <script lang="ts" generics="T, C">
 	import { onMount, getContext } from 'svelte';
 	import Tag from '../../data/Tag.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import InlineDescription from '#lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
 	import { displayTags, fitTags, HIDDEN_TAGS_CHIP_WIDTH } from './display-tags';
 	import DisplayTag from './DisplayTag.svelte';
@@ -15,17 +15,9 @@
 		displayComponent: EntityDisplayComponent<T, C>;
 		context: C;
 		staticTags?: boolean;
-		/** Show every tag instead of fitting them to the row (a hover popover, which can widen to fit). */
-		showAllTags?: boolean;
 	}
 
-	let {
-		item,
-		displayComponent,
-		context,
-		staticTags = false,
-		showAllTags = false
-	}: Props = $props();
+	let { item, displayComponent, context, staticTags = false }: Props = $props();
 
 	const staticTagsContext = getContext<boolean>('staticTags') ?? false;
 
@@ -110,8 +102,8 @@
 		if (containerEl) requestAnimationFrame(() => calculateVisibleTags());
 	});
 
-	let visibleTags = $derived(showAllTags ? tags : tags.slice(0, visibleTagCount));
-	let hiddenTags = $derived(showAllTags ? [] : tags.slice(visibleTagCount));
+	let visibleTags = $derived(tags.slice(0, visibleTagCount));
+	let hiddenTags = $derived(tags.slice(visibleTagCount));
 </script>
 
 <div class="flex min-w-0 items-center gap-3" class:list-select-item-container={showTagPicker}>

@@ -3,9 +3,9 @@ import {
 	ipAddressBindingOptions,
 	portBindingInterfaceOptions,
 	portBindingPortOptions
-} from '$lib/shared/components/forms/selection/display/bindingOptions';
-import type { IPAddress, Port } from '$lib/features/hosts/types/base';
-import type { IPAddressBinding, PortBinding, Service } from '$lib/features/services/types/base';
+} from '#lib/shared/components/forms/selection/display/bindingOptions.ts';
+import type { IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+import type { IPAddressBinding, PortBinding, Service } from '#lib/features/services/types/base.ts';
 
 const ip = (id: string) => ({ id, ip_address: id }) as unknown as IPAddress;
 const port = (id: string) => ({ id, number: 80, protocol: 'Tcp' }) as unknown as Port;

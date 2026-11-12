@@ -1,30 +1,35 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
-	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
-	import { billingPlans, entities, productAreas } from '$lib/shared/stores/metadata';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { modalState } from '$lib/shared/stores/modal-registry';
-	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
-	import type { EntityDiscriminants } from '$lib/api/entities';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { Menu, ChevronDown, History, Settings, Clock, Home, Search } from '@lucide/svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '$lib/features/search/results';
-	import { tableSearchFocused } from '$lib/shared/components/data/controls/listShortcuts';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import { useCan, type Resource } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isBillingPlanActive, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import SettingsModal from '#lib/features/settings/SettingsModal.svelte';
+	import {
+		billingPlans,
+		daemonHealths,
+		entities,
+		productAreas,
+		setupItemTiers
+	} from '#lib/shared/stores/metadata.ts';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { useApiKeysQuery } from '#lib/features/daemon_api_keys/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { modalState } from '#lib/shared/stores/modal-registry.ts';
+	import { entityUIConfig, TAB_LABELS } from '#lib/shared/entity-ui-config.ts';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { Bell, Menu, ChevronDown, History, Settings, Clock, Search } from '@lucide/svelte';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+	import NavBadge from '#lib/shared/components/layout/NavBadge.svelte';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '#lib/features/search/results.ts';
+	import { tableSearchFocused } from '#lib/shared/components/data/controls/listShortcuts.ts';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
-	import type { UserOrgPermissions } from '$lib/features/users/types';
-	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
+	import type { SubTab } from '#lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
 		common_plans,
 		billing_trialPill,
@@ -36,38 +41,35 @@
 		daemons_legacyKeyHelp,
 		common_settings,
 		common_shortcutsPausedInSearch
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import {
 		getTrialDaysLeft,
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
-	} from '$lib/shared/utils/trial';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
-	import { isAllComplete } from '$lib/shared/onboarding/checklist';
-	import SidebarChecklist from './SidebarChecklist.svelte';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/shared/utils/trial.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
 
 	// Import tab components
-	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
-	import DiscoveryScheduledTab from '$lib/features/discovery/components/tabs/DiscoveryScheduledTab.svelte';
-	import DiscoveryHistoryTab from '$lib/features/discovery/components/tabs/DiscoveryHistoryTab.svelte';
-	import SitesTab from '$lib/features/sites/components/SitesTab.svelte';
-	import SubnetTab from '$lib/features/subnets/components/SubnetTab.svelte';
-	import VlanTab from '$lib/features/vlans/components/VlanTab.svelte';
-	import HostTab from '$lib/features/hosts/components/HostTab.svelte';
-	import ServiceTab from '$lib/features/services/components/ServiceTab.svelte';
-	import DaemonTab from '$lib/features/daemons/components/DaemonTab.svelte';
-	import ApiKeyTab from '$lib/features/daemon_api_keys/components/ApiKeyTab.svelte';
-	import UserTab from '$lib/features/users/components/UserTab.svelte';
-	import UserApiKeyTab from '$lib/features/user_api_keys/components/UserApiKeyTab.svelte';
-	import TagTab from '$lib/features/tags/components/TagTab.svelte';
-	import TagGroupTab from '$lib/features/tags/components/TagGroupTab.svelte';
-	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
+	import TopologyTab from '#lib/features/topology/components/TopologyTab.svelte';
+	import DiscoveryScheduledTab from '#lib/features/discovery/components/tabs/DiscoveryScheduledTab.svelte';
+	import DiscoveryHistoryTab from '#lib/features/discovery/components/tabs/DiscoveryHistoryTab.svelte';
+	import SitesTab from '#lib/features/sites/components/SitesTab.svelte';
+	import SubnetTab from '#lib/features/subnets/components/SubnetTab.svelte';
+	import VlanTab from '#lib/features/vlans/components/VlanTab.svelte';
+	import HostTab from '#lib/features/hosts/components/HostTab.svelte';
+	import ServiceTab from '#lib/features/services/components/ServiceTab.svelte';
+	import DaemonTab from '#lib/features/daemons/components/DaemonTab.svelte';
+	import ApiKeyTab from '#lib/features/daemon_api_keys/components/ApiKeyTab.svelte';
+	import UserTab from '#lib/features/users/components/UserTab.svelte';
+	import UserApiKeyTab from '#lib/features/user_api_keys/components/UserApiKeyTab.svelte';
+	import TagTab from '#lib/features/tags/components/TagTab.svelte';
+	import TagGroupTab from '#lib/features/tags/components/TagGroupTab.svelte';
+	import CredentialsTab from '#lib/features/credentials/components/CredentialsTab.svelte';
 
-	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	import IssuesTab from '#lib/features/home/components/IssuesTab.svelte';
+	import SetupTab from '#lib/features/home/components/SetupTab.svelte';
+	import { setupStepsLeft } from '#lib/features/home/setup-list.ts';
 
 	let {
 		activeTab = $bindable('topology'),
@@ -78,7 +80,6 @@
 				id: string;
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				component: any;
-				isReadOnly: boolean;
 				subTabIds?: string[];
 				subTabDefs?: SubTab[];
 				subTabNotifications?: Record<string, string>;
@@ -98,7 +99,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -124,9 +124,6 @@
 	} = $props();
 
 	// TanStack Query for current user and organization
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
@@ -136,10 +133,9 @@
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 
 	// Derived values from queries
-	let userPermissions = $derived(currentUser?.permissions);
+	const can = useCan();
 	let isBillingEnabled = $derived(organization ? isBillingPlanActive(organization) : false);
 	let planMeta = $derived(billingPlans.getMetadata(organization?.plan?.type ?? null));
-	let isDemoOrg = $derived(planMeta.is_demo === true);
 	// A free tier: cloud Free (`is_free`), or self-hosted Community, the one plan that is neither
 	// commercial nor billed through Stripe. Both have plans to move up to; Starter, though not
 	// commercial, is a paid Stripe plan.
@@ -147,7 +143,7 @@
 		planMeta.is_free === true ||
 			(planMeta.is_commercial === false && planMeta.is_stripe_managed === false)
 	);
-	let isOwner = $derived(userPermissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let trialDaysLeft = $derived(getTrialDaysLeft(organization));
 	let showTrialPill = $derived(
 		isOwner &&
@@ -163,12 +159,6 @@
 		if (trialDaysLeft === 1) return billing_trialPillOneDay();
 		return billing_trialPill({ days: trialDaysLeft });
 	});
-	// A lapsed org (subscription ended, no paid plan chosen since) is read-only
-	// for everyone: the backend refuses its writes, so the tabs drop their edit
-	// affordances the same way they do for a Viewer.
-	let isReadOnly = $derived(
-		userPermissions === 'Viewer' || (organization != null && isPlanLapsed(organization))
-	);
 
 	// Show notification on settings only when trialing without payment method
 	// Free plan users don't need a payment method, so no dot for them.
@@ -192,47 +182,57 @@
 	const activeSessionsQuery = useActiveSessionsQuery(() => mainAppAvailable);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
-	// Daemons needing a version update (Deprecated/Unsupported) — drives the
-	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
+	// The most severe health among daemons that aren't Healthy — drives the Daemons nav dot,
+	// same mechanism as the Scans active-sessions dot. Fixture order is severity order.
 	const daemonsQuery = useDaemonsQuery({ enabled: () => mainAppAvailable });
-	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
+	let worstDaemonHealth = $derived.by(() => {
+		const daemons = daemonsQuery.data ?? [];
+		return (
+			daemonHealths
+				.getItems()
+				.find((h) => h.id !== 'healthy' && daemons.some((d) => d.health === h.id))?.id ?? null
+		);
+	});
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
-	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => mainAppAvailable });
+	const daemonApiKeysQuery = useApiKeysQuery({
+		enabled: () => mainAppAvailable && can('DaemonApiKey', 'Read')
+	});
 	let hasLegacyDaemonKeys = $derived(
 		(daemonApiKeysQuery.data ?? []).some((k) => k.daemon_id == null)
 	);
 
 	// Whether a content sub-tab should be shown: permission-gated, plus data gates
 	// (the Daemon API Keys sub-tab only appears while legacy keys exist).
-	function isSubTabVisible(st: {
-		id: string;
-		requiredPermissions?: UserOrgPermissions[];
-	}): boolean {
-		const permitted =
-			!st.requiredPermissions ||
-			st.requiredPermissions.length === 0 ||
-			!!(userPermissions && st.requiredPermissions.includes(userPermissions));
-		if (!permitted) return false;
+	function isSubTabVisible(st: { id: string; requires?: Resource }): boolean {
+		if (st.requires && !can(st.requires, 'Read')) return false;
 		if (st.id === entityUIConfig.DaemonApiKey!.tabId && !hasLegacyDaemonKeys) return false;
 		return true;
 	}
 
-	// Onboarding checklist state
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
-	let showSidebarChecklist = $derived(organization && !isAllComplete(onboarding));
-	let isDiscoveryActive = $derived(
-		(activeSessionsQuery.data ?? []).some(
-			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
+	// The Issues badge counts the Issues the summary reports, which the Issues tab pages through;
+	// the Setup badge counts the steps left. Each entry shows while it has any, and while it is
+	// the open tab, so clearing the last one doesn't take the page away.
+	const dashboardQuery = useDashboardQuery({ enabled: () => mainAppAvailable });
+	let setupIssues = $derived(dashboardQuery.data?.issue_count ?? 0);
+	let setupStepsRemaining = $derived(
+		setupStepsLeft(
+			dashboardQuery.data?.setup_items ?? [],
+			organization ? isPlanLapsed(organization) : false
 		)
 	);
 
-	// Subscribe to daemon setup state
-	let daemonStatus = $state<'idle' | 'waiting' | 'connected' | 'trouble'>('idle');
-	const unsubscribeDaemon = daemonSetupState.subscribe((s) => {
-		daemonStatus = s.connectionStatus;
-	});
+	/**
+	 * Whether the Issues or Setup entry shows: while it has something in it, or is open. Never on
+	 * a licensed self-hosted plan, whose pages say to open them on its own server.
+	 */
+	function isHomeTabVisible(id: string): boolean {
+		if ((id === 'issues' || id === 'setup') && showLockedMainNav) return false;
+		if (id === 'issues') return setupIssues > 0 || activeTab === 'issues';
+		if (id === 'setup') return setupStepsRemaining > 0 || activeTab === 'setup';
+		return true;
+	}
 
 	// Sync settings modal state from modal registry (for deep-link opens)
 	$effect(() => {
@@ -249,12 +249,13 @@
 		entityType?: EntityDiscriminants; // Links this nav item to an entity type via entityUIConfig
 		component?: Component;
 		position?: 'main' | 'bottom';
+		/** A bottom item drawn as an icon button, in one row with the others, its label the tooltip. */
+		iconOnly?: boolean;
 		onClick?: () => void | Promise<void>;
-		requiredPermissions?: UserOrgPermissions[]; // Which permissions can see this item. If empty, Viewer+ is allowed.
+		requires?: Resource; // The resource a user has to be able to read to see this item.
 		requiresBilling?: boolean; // Whether this requires billing to be enabled
-		hideInDemo?: boolean; // Whether to hide this in demo mode
 		children?: NavItem[]; // Nested child items (displayed indented under parent)
-		subTabs?: (SubTab & { requiredPermissions?: UserOrgPermissions[] })[]; // Content area sub-tabs
+		subTabs?: (SubTab & { requires?: Resource })[]; // Content area sub-tabs
 	}
 
 	interface NavSection {
@@ -356,7 +357,7 @@
 					}),
 					icon: entities.getIconComponent('DaemonApiKey'),
 					component: ApiKeyTab,
-					requiredPermissions: ['Member', 'Admin', 'Owner'] as UserOrgPermissions[]
+					requires: 'DaemonApiKey'
 				}
 			]
 		},
@@ -386,7 +387,7 @@
 			icon: entities.getIconComponent('User'),
 			entityType: 'User',
 			component: UserTab,
-			requiredPermissions: ['Admin', 'Owner']
+			requires: 'Member'
 		},
 		UserApiKey: {
 			id: entityUIConfig.UserApiKey!.tabId,
@@ -394,7 +395,7 @@
 			icon: entities.getIconComponent('UserApiKey'),
 			entityType: 'UserApiKey',
 			component: UserApiKeyTab,
-			requiredPermissions: ['Member', 'Admin', 'Owner']
+			requires: 'UserApiKey'
 		},
 		Credential: {
 			id: entityUIConfig.Credential!.tabId,
@@ -422,17 +423,26 @@
 
 	const baseNavConfig: NavConfig = [
 		{
-			id: 'home',
-			label: TAB_LABELS['home'],
-			icon: Home as IconComponent,
-			component: HomeTab
+			id: 'setup',
+			label: TAB_LABELS['setup'],
+			icon: setupItemTiers.getIconComponent('Setup'),
+			component: SetupTab
 		},
 		...entitySections,
+		{
+			id: 'issues',
+			label: TAB_LABELS['issues'],
+			icon: Bell as IconComponent,
+			component: IssuesTab,
+			position: 'bottom',
+			iconOnly: true
+		},
 		{
 			id: 'settings',
 			label: common_settings(),
 			icon: Settings as IconComponent,
 			position: 'bottom',
+			iconOnly: true,
 			onClick: async () => {
 				showSettings = true;
 			}
@@ -447,7 +457,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -462,7 +471,6 @@
 					tabs.push({
 						id: item.id,
 						component: null,
-						isReadOnly,
 						subTabIds: visibleSubTabs.map((st) => st.id),
 						subTabDefs: visibleSubTabs,
 						subTabNotifications:
@@ -472,7 +480,7 @@
 					});
 				}
 			} else if (item.component) {
-				tabs.push({ id: item.id, component: item.component, isReadOnly });
+				tabs.push({ id: item.id, component: item.component });
 			}
 			// Also extract tabs from children
 			if (item.children) {
@@ -497,22 +505,6 @@
 		allTabs = tabs;
 	});
 
-	// Helper to check if user has required permissions
-	function hasRequiredPermissions(item: NavItem): boolean {
-		// If no permissions specified, everyone can see it
-		if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-			return true;
-		}
-
-		// If user has no permissions, they can't see items with permission requirements
-		if (!userPermissions) {
-			return false;
-		}
-
-		// Check if user's permission is in the allowed list
-		return item.requiredPermissions.includes(userPermissions);
-	}
-
 	// Helper to check billing requirements
 	function meetsBillingRequirement(item: NavItem): boolean {
 		// If billing not required, always show
@@ -524,21 +516,12 @@
 		return isBillingEnabled;
 	}
 
-	// Helper to check demo mode requirements
-	function meetsDemoModeRequirements(item: NavItem): boolean {
-		// Only hide items marked hideInDemo when in demo mode and user is not Owner
-		if (item.hideInDemo && isDemoOrg && userPermissions != 'Owner') {
-			return false;
-		}
-		return true;
-	}
-
 	// Helper to check if item should be visible
 	function isItemVisible(item: NavItem): boolean {
 		return (
-			hasRequiredPermissions(item) &&
+			(!item.requires || can(item.requires, 'Read')) &&
 			meetsBillingRequirement(item) &&
-			meetsDemoModeRequirements(item)
+			isHomeTabVisible(item.id)
 		);
 	}
 
@@ -615,7 +598,11 @@
 	let mainNavItems = $derived(
 		mainAppLocked && !showLockedMainNav ? [] : filterByPosition(navConfig, 'main')
 	);
-	let bottomNavItems = $derived(filterByPosition(navConfig, 'bottom'));
+	let bottomNavItems = $derived(
+		filterByPosition(navConfig, 'bottom').filter((item): item is NavItem => !isSection(item))
+	);
+	let labelledBottomItems = $derived(bottomNavItems.filter((item) => !item.iconOnly));
+	let iconBottomItems = $derived(bottomNavItems.filter((item) => item.iconOnly));
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
@@ -641,8 +628,6 @@
 				console.warn('Failed to load sidebar state from localStorage:', error);
 			}
 		}
-
-		return unsubscribeDaemon;
 	});
 
 	function toggleCollapse() {
@@ -654,19 +639,6 @@
 				localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed));
 			} catch (error) {
 				console.error('Failed to save sidebar state to localStorage:', error);
-			}
-		}
-	}
-
-	function expandSidebar() {
-		if (collapsed) {
-			collapsed = false;
-			if (typeof window !== 'undefined') {
-				try {
-					localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(false));
-				} catch (error) {
-					console.error('Failed to save sidebar state to localStorage:', error);
-				}
 			}
 		}
 	}
@@ -706,15 +678,24 @@
 		return activeTab === item.id;
 	}
 
-	// Notification-dot color for a nav item, or null for none. One place that maps
-	// an item to its dot so the same rendering covers every item that has one
-	// (Scans → active sessions; Daemons → updates needed).
-	function itemNotificationColor(item: NavItem): string | null {
+	// The badge on a nav item, or null for none: one place that maps an item to its badge (Scans →
+	// active sessions; Daemons → a daemon that isn't Healthy; Issues → its Issues, counted;
+	// Setup → its steps left, counted; Settings → a billing action).
+	function itemBadge(item: NavItem): { color: string; count?: number } | null {
 		if (item.id === 'discovery' && hasActiveSessions) {
-			return entities.getColorHelper('Discovery').rgb;
+			return { color: entities.getColorHelper('Discovery').rgb };
 		}
-		if (item.id === 'daemons-group' && hasDaemonUpdatesNeeded) {
-			return createColorHelper('Yellow').rgb;
+		if (item.id === 'daemons-group' && worstDaemonHealth) {
+			return { color: daemonHealths.getColorHelper(worstDaemonHealth).rgb };
+		}
+		if (item.id === 'issues' && setupIssues > 0) {
+			return { color: setupItemTiers.getColorHelper('Issue').rgb, count: setupIssues };
+		}
+		if (item.id === 'setup' && setupStepsRemaining > 0) {
+			return { color: setupItemTiers.getColorHelper('Setup').rgb, count: setupStepsRemaining };
+		}
+		if (item.id === 'settings' && showBillingNotification) {
+			return { color: createColorHelper('Amber').rgb };
 		}
 		return null;
 	}
@@ -726,10 +707,37 @@
 		'text-secondary hover:text-primary flex w-full items-center rounded-lg text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-gray-100/50 dark:hover:bg-gray-800/50';
 
 	const baseClasses = 'flex w-full items-center rounded-lg font-medium transition-colors';
+	const iconButtonClasses =
+		'flex items-center justify-center rounded-lg font-medium transition-colors';
 
 	/** The palette's shortcut as this platform spells it. */
 	const searchShortcut = GLOBAL_SEARCH_KEY;
 </script>
+
+<!-- A bottom entry: a labelled row, or an icon button whose label is its tooltip. -->
+{#snippet bottomButton(item: NavItem, iconOnly: boolean)}
+	{@const badge = itemBadge(item)}
+	<button
+		onclick={() => handleItemClick(item)}
+		class="{iconOnly ? iconButtonClasses : baseClasses} {activeTab === item.id ||
+		(item.id === 'settings' && showSettings)
+			? 'border border-blue-500/30 bg-blue-100 text-primary dark:border-blue-600 dark:bg-blue-700'
+			: inactiveButtonClass}"
+		style="height: 2rem; padding: 0.375rem 0.75rem;"
+		title={iconOnly || collapsed ? item.label : ''}
+		aria-label={item.label}
+	>
+		<span class="relative">
+			<item.icon class="h-5 w-5 shrink-0" />
+			{#if badge}
+				<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
+			{/if}
+		</span>
+		{#if !iconOnly && !collapsed}
+			<span class="ml-3 truncate">{item.label}</span>
+		{/if}
+	</button>
+{/snippet}
 
 <div
 	class="sidebar flex shrink-0 flex-col transition-all duration-300"
@@ -781,24 +789,31 @@
 			{/if}
 		</div>
 
-		<!-- Sidebar Checklist -->
-		{#if showSidebarChecklist && !mainAppLocked}
-			<SidebarChecklist
-				{onboarding}
-				{collapsed}
-				onNavigate={(tab) => {
-					activeTab = tab;
-				}}
-				{isDiscoveryActive}
-				{daemonStatus}
-				onExpandSidebar={expandSidebar}
-			/>
-		{/if}
-
 		<!-- Main Navigation -->
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
 			<ul class="space-y-3">
 				{#each mainNavItems as configItem (configItem.id)}
+					{#if showTrialPill && configItem.id === entityUIConfig.Topology!.tabId}
+						<!-- The trial's days left, above Topology. It opens the card dialog. -->
+						<li>
+							<button
+								class="{baseClasses} text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+								style="height: 2rem; padding: 0.375rem 0.75rem;"
+								title={collapsed ? trialPillLabel : ''}
+								onclick={() =>
+									startSetupPayment({
+										org: organization,
+										source: 'sidebar_trial_pill',
+										trialDaysLeft
+									})}
+							>
+								<Clock class="h-5 w-5 shrink-0" />
+								{#if !collapsed}
+									<span class="ml-3 truncate">{trialPillLabel}</span>
+								{/if}
+							</button>
+						</li>
+					{/if}
 					{#if isSection(configItem)}
 						<!-- Section with items -->
 						<li>
@@ -820,7 +835,7 @@
 							{#if !sectionStates[configItem.id] || collapsed}
 								<ul class="mt-1 space-y-1" class:mt-0={collapsed}>
 									{#each configItem.items as item (item.id)}
-										{@const dotColor = itemNotificationColor(item)}
+										{@const badge = itemBadge(item)}
 										<li>
 											<button
 												onclick={() => handleItemClick(item)}
@@ -832,11 +847,8 @@
 											>
 												<span class="relative">
 													<item.icon class="h-4 w-4 shrink-0" />
-													{#if dotColor}
-														<span
-															class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full"
-															style="background-color: {dotColor}"
-														></span>
+													{#if badge}
+														<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
 													{/if}
 												</span>
 												{#if !collapsed}
@@ -872,6 +884,7 @@
 						</li>
 					{:else}
 						<!-- Standalone item (no section, no indentation) -->
+						{@const badge = itemBadge(configItem)}
 						<li>
 							<button
 								onclick={() => handleItemClick(configItem)}
@@ -882,7 +895,12 @@
 								style="height: 2rem; padding: 0.375rem 0.75rem;"
 								title={collapsed ? configItem.label : ''}
 							>
-								<configItem.icon class="h-4 w-4 shrink-0" />
+								<span class="relative">
+									<configItem.icon class="h-4 w-4 shrink-0" />
+									{#if badge}
+										<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
+									{/if}
+								</span>
 								{#if !collapsed}
 									<span class="ml-2.5 truncate">{configItem.label}</span>
 								{/if}
@@ -897,85 +915,31 @@
 	<!-- Bottom Navigation -->
 	<div class="shrink-0 border-t px-2 py-2" style="border-color: var(--color-border)">
 		<ul class="space-y-1">
-			{#snippet sidebarAmberCta({
-				Icon,
-				label,
-				onclick
-			}: {
-				Icon: IconComponent;
-				label: string;
-				onclick: () => void;
-			})}
-				<button
-					class="{baseClasses} text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
-					style="height: 2rem; padding: 0.375rem 0.75rem;"
-					title={collapsed ? label : ''}
-					{onclick}
-				>
-					<span class="relative">
-						<Icon class="h-5 w-5 shrink-0" />
-					</span>
-					{#if !collapsed}
-						<span class="ml-3 truncate">{label}</span>
-					{/if}
-				</button>
-			{/snippet}
-
-			{#if showTrialPill}
+			{#each labelledBottomItems as item (item.id)}
 				<li>
-					{@render sidebarAmberCta({
-						Icon: Clock,
-						label: trialPillLabel,
-						onclick: () =>
-							startSetupPayment({
-								org: organization,
-								source: 'sidebar_trial_pill',
-								trialDaysLeft
-							})
-					})}
+					{@render bottomButton(item, false)}
 				</li>
-			{:else if showFreeUpgradeButton}
-				<!-- The way to the plans: a nav entry like the others, marked with the paid crown. -->
-				<li>
-					<button
-						class="{baseClasses} {inactiveButtonClass}"
-						style="height: 2rem; padding: 0.375rem 0.75rem;"
-						title={collapsed ? common_plans() : ''}
-						onclick={() => triggerUpgrade({ source: 'sidebar', surface: 'sidebar' })}
-					>
-						<PaidCrown size={20} />
-						{#if !collapsed}
-							<span class="ml-3 truncate">{common_plans()}</span>
-						{/if}
-					</button>
+			{/each}
+			{#if iconBottomItems.length > 0 || (!showTrialPill && showFreeUpgradeButton)}
+				<!-- Icon buttons spread evenly across one row (a centered column when collapsed), each label its tooltip. -->
+				<li class="flex items-center justify-evenly gap-1 {collapsed ? 'flex-col' : ''}">
+					{#if !showTrialPill && showFreeUpgradeButton}
+						<!-- The way to the plans, marked with the paid crown. -->
+						<button
+							class="{iconButtonClasses} {inactiveButtonClass}"
+							style="height: 2rem; padding: 0.375rem 0.75rem;"
+							title={common_plans()}
+							aria-label={common_plans()}
+							onclick={() => triggerUpgrade({ source: 'sidebar', surface: 'sidebar' })}
+						>
+							<PaidCrown size={20} />
+						</button>
+					{/if}
+					{#each iconBottomItems as item (item.id)}
+						{@render bottomButton(item, true)}
+					{/each}
 				</li>
 			{/if}
-			{#each bottomNavItems as item (item.id)}
-				{#if !isSection(item)}
-					<li>
-						<button
-							onclick={() => handleItemClick(item)}
-							class="{baseClasses} {activeTab === item.id ||
-							(item.id === 'settings' && showSettings)
-								? 'border border-blue-500/30 bg-blue-100 text-primary dark:border-blue-600 dark:bg-blue-700'
-								: inactiveButtonClass}"
-							style="height: 2rem; padding: 0.375rem 0.75rem;"
-							title={collapsed ? item.label : ''}
-						>
-							<span class="relative">
-								<item.icon class="h-5 w-5 shrink-0" />
-								{#if item.id === 'settings' && showBillingNotification}
-									<span class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500"
-									></span>
-								{/if}
-							</span>
-							{#if !collapsed}
-								<span class="ml-3 truncate">{item.label}</span>
-							{/if}
-						</button>
-					</li>
-				{/if}
-			{/each}
 		</ul>
 	</div>
 </div>

@@ -142,6 +142,9 @@ pub enum SnmpV3PrivProtocol {
     Aes128,
     /// AES-256-CFB
     Aes256,
+    /// DES-CBC, the one privacy protocol RFC 3414 itself defines, for devices that offer no
+    /// AES. Only daemons newer than 0.19.6 parse it (see `UsesSnmpV3DesPrivacy`).
+    Des,
 }
 
 impl SnmpV3PrivProtocol {
@@ -150,6 +153,7 @@ impl SnmpV3PrivProtocol {
         match self {
             Self::Aes128 => "AES-128",
             Self::Aes256 => "AES-256",
+            Self::Des => "DES",
         }
     }
 
@@ -162,6 +166,10 @@ impl SnmpV3PrivProtocol {
         SelectOption {
             value: "Aes256",
             label: "AES-256",
+        },
+        SelectOption {
+            value: "Des",
+            label: "DES",
         },
     ];
 }
@@ -497,12 +505,15 @@ impl TypeMetadataProvider for SnmpV3PrivProtocol {
         self.label()
     }
 
-    /// The name net-snmp's `-x` takes for this protocol. The daemon extends AES-256 keys the
-    /// Blumenthal way, which is what net-snmp's `AES-256` does (`AES-256C` is the Reeder way).
+    /// The name net-snmp's `-x` takes for this protocol. An AES-256 key under MD5 or SHA-1 is
+    /// extended one of two ways, and the daemon tries both: Blumenthal, net-snmp's `AES-256`,
+    /// then Reeder, net-snmp's `AES-256-C` and Cisco IOS's `aes 256`. The name here is the
+    /// first, so a check command built from it reads a net-snmp agent and not a Cisco one.
     fn metadata(&self) -> serde_json::Value {
         let net_snmp_name = match self {
             Self::Aes128 => "AES",
             Self::Aes256 => "AES-256",
+            Self::Des => "DES",
         };
         serde_json::json!({ "net_snmp_name": net_snmp_name })
     }
@@ -757,7 +768,7 @@ mod tests {
         assert_eq!(context_name.as_deref(), Some("vlan-20"));
 
         // And it reaches the daemon unchanged.
-        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload() else {
+        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload(None).unwrap() else {
             panic!("an SNMP credential");
         };
         assert_eq!(

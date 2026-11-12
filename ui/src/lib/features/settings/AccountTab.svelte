@@ -1,28 +1,30 @@
 <script lang="ts">
-	import { formatDate } from '$lib/shared/utils/formatting';
-	import { useCurrentUserQuery, useLogoutMutation } from '$lib/features/auth/queries';
+	import { formatDate } from '#lib/shared/utils/formatting.ts';
+	import {
+		mergeCurrentUser,
+		useCurrentUserQuery,
+		useLogoutMutation
+	} from '#lib/features/auth/queries.ts';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import { apiClient } from '$lib/api/client';
-	import type { User } from '$lib/features/users/types';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+	import { apiClient } from '#lib/api/client.ts';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
 	import { Link, Key, LogOut, Mail, Shield } from '@lucide/svelte';
-	import CookieSettingsPanel from '$lib/shared/components/feedback/CookieSettingsPanel.svelte';
+	import CookieSettingsPanel from '#lib/shared/components/feedback/CookieSettingsPanel.svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import {
 		required,
 		password as passwordValidator,
 		confirmPasswordMatch
-	} from '$lib/shared/components/forms/validators';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import OidcProviderLogo from '$lib/features/auth/components/OidcProviderLogo.svelte';
-	import EmailChangeForm from '$lib/features/auth/components/EmailChangeForm.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import Password from '$lib/shared/components/forms/input/Password.svelte';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { useModalActions } from '$lib/shared/components/layout/modalActionsContext.svelte';
+	} from '#lib/shared/components/forms/validators.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import OidcProviderLogo from '#lib/features/auth/components/OidcProviderLogo.svelte';
+	import EmailChangeForm from '#lib/features/auth/components/EmailChangeForm.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import Password from '#lib/shared/components/forms/input/Password.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { useModalActions } from '#lib/shared/components/layout/modalActionsContext.svelte.ts';
 	import {
 		common_back,
 		common_currentPassword,
@@ -53,7 +55,7 @@
 		settings_account_cookiePreferencesDesc,
 		cookies_preferences,
 		common_manage
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		subView = $bindable<'main' | 'credentials' | 'email-change' | 'cookies'>('main'),
@@ -105,7 +107,7 @@
 				});
 
 				if (data?.success && data.data) {
-					queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
+					mergeCurrentUser(queryClient, data.data);
 					pushSuccess(settings_account_credentialsUpdated());
 					subView = 'main';
 				}
@@ -139,7 +141,7 @@
 		});
 
 		if (data?.success && data.data) {
-			queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
+			mergeCurrentUser(queryClient, data.data);
 			pushSuccess(settings_account_oidcUnlinked());
 		}
 	}

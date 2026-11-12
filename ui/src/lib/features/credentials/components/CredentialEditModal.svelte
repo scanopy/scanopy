@@ -1,24 +1,33 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import type { components } from '$lib/api/schema';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import type { components } from '#lib/api/schema';
 	import type { Credential } from '../types/base';
-	import { createDefaultCredential, getCredentialTypeId, isDaemonHostOnly } from '../types/base';
-	import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { pushError, pushWarning } from '$lib/shared/stores/feedback';
+	import {
+		createDefaultCredential,
+		getCredentialTypeId,
+		isDaemonHostOnly,
+		isLoginType
+	} from '../types/base';
+	import {
+		credentialIntegrations,
+		credentialTypes,
+		entities
+	} from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { pushError, pushWarning } from '#lib/shared/stores/feedback.ts';
 	import { pruneAssignmentsForTargets } from '../utils/credentialTargets';
 	import { prefillCredentialName, typesForIntegration } from '../utils/prefill';
-	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import { useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
 	import CredentialForm from './CredentialForm.svelte';
 	import CredentialAssignmentsSection from './CredentialAssignmentsSection.svelte';
-	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import { submitForm, validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import { Info, KeyRound, Link } from '@lucide/svelte';
 	import {
 		common_assignments,
@@ -38,8 +47,9 @@
 		credentials_description,
 		credentials_docsGuide,
 		credentials_docsGuideLinkText,
+		credentials_loginInUse,
 		credentials_typeNeedsDaemon
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type CredentialHostAssignment = components['schemas']['CredentialHostAssignment'];
 
@@ -53,7 +63,8 @@
 		name = undefined,
 		initialIntegration = null,
 		initialHostIds = [],
-		initialSiteIds = []
+		initialSiteIds = [],
+		loginOnly = false
 	}: {
 		credential?: Credential | null;
 		isOpen?: boolean;
@@ -68,6 +79,9 @@
 		initialHostIds?: string[];
 		/** Create mode only: sites the new credential starts assigned to. */
 		initialSiteIds?: string[];
+		/** Create mode only: the type picker offers only SSH logins, for a login made from another
+		 *  credential's login picker. */
+		loginOnly?: boolean;
 	} = $props();
 
 	// Declared before the queries below, whose options TanStack reads as each query is created.
@@ -76,8 +90,10 @@
 	// The transports a pre-filled create flow offers: those that can apply where it comes assigned,
 	// falling back to all of the integration's when none can.
 	let typeChoices = $derived.by(() => {
-		if (isEditing || !initialIntegration) return undefined;
+		if (isEditing) return undefined;
 		const types = credentialTypes.getItems() ?? [];
+		if (loginOnly) return types.filter((t) => isLoginType(t.id)).map((t) => t.id);
+		if (!initialIntegration) return undefined;
 		const target = initialSiteIds.length ? 'Site' : initialHostIds.length ? 'Hosts' : null;
 		const fitting = typesForIntegration(types, initialIntegration, target);
 		return fitting.length ? fitting : typesForIntegration(types, initialIntegration, null);
@@ -133,8 +149,13 @@
 	let deleting = $state(false);
 	// Tabs, which are also the create flow's steps, in order: who the credential is, what it
 	// holds, where it applies. Creating walks them with Next and a stepper; editing jumps freely.
-	const steps = ['details', 'credential', 'assignments'] as const;
-	type Step = (typeof steps)[number];
+	let selectedTypeId = $state('SnmpCommunity');
+	const allSteps = ['details', 'credential', 'assignments'] as const;
+	type Step = (typeof allSteps)[number];
+	// A login is never assigned, so it has no Assignments step.
+	let steps = $derived<readonly Step[]>(
+		isLoginType(selectedTypeId) ? allSteps.filter((s) => s !== 'assignments') : allSteps
+	);
 	let activeTab = $state<Step>('details');
 	let furthestReached = $state(0);
 	let stepIndex = $derived(steps.indexOf(activeTab));
@@ -144,7 +165,9 @@
 			{ id: 'details', label: common_details(), icon: Info },
 			{ id: 'credential', label: common_credential(), icon: KeyRound },
 			{ id: 'assignments', label: common_assignments(), icon: Link }
-		].map((tab, i) => ({ ...tab, disabled: !isEditing && i > furthestReached }))
+		]
+			.filter((tab) => steps.includes(tab.id as Step))
+			.map((tab, i) => ({ ...tab, disabled: !isEditing && i > furthestReached }))
 	);
 	let saveLabel = $derived(
 		isEditing ? common_update() : isLastStep ? common_create() : common_next()
@@ -173,14 +196,22 @@
 	// Assignment state (source of truth; synced into the submit payload).
 	// The selected type drives which assignment surface(s) show; kept in sync via
 	// CredentialForm's onTypeChange and reset on open.
-	let selectedTypeId = $state('SnmpCommunity');
 	let assignedSiteIds = $state<string[]>([]);
 	let hostAssignments = $state<CredentialHostAssignment[]>([]);
 
-	function getDefaultValues(): Credential {
-		if (credential) return { ...credential };
-		if (organization) return createDefaultCredential(organization.id);
-		return createDefaultCredential('');
+	// The form leaves out `source`: the server sets it, and its nested union is too deep for the
+	// form's field-path types.
+	type CredentialFormValues = Omit<Credential, 'source'>;
+	function formValuesOf(c: Credential): CredentialFormValues {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { source, ...values } = c;
+		return values;
+	}
+
+	function getDefaultValues(): CredentialFormValues {
+		if (credential) return formValuesOf(credential);
+		if (organization) return formValuesOf(createDefaultCredential(organization.id));
+		return formValuesOf(createDefaultCredential(''));
 	}
 
 	// Form owns the name field; CredentialForm handles the rest
@@ -215,9 +246,11 @@
 
 			const credentialData: Credential = {
 				...(formValues as unknown as Credential),
+				source: credential?.source ?? { type: 'Manual' },
 				organization_id: organization.id,
 				credential_type: credentialType,
 				daemon_os: credentialFormRef?.getDaemonOs() ?? null,
+				login_credential_id: credentialFormRef?.getLoginCredentialId() ?? null,
 				description: (formValues.description as string | null | undefined)?.trim() || null,
 				assigned_site_ids: permitted.assignedSiteIds,
 				host_assignments: permitted.hostAssignments
@@ -286,6 +319,11 @@
 	}
 
 	async function handleSave() {
+		// The login field unmounts off its step, so a save from Assignments checks it here.
+		if (!credentialFormRef?.validateLogin()) {
+			activeTab = 'credential';
+			return;
+		}
 		loading = true;
 		try {
 			await submitForm(form, (path) => credentialFormRef?.fieldLabel(path) ?? path);
@@ -301,7 +339,12 @@
 						role: 'danger' as const,
 						label: deleting ? common_deleting() : common_delete(),
 						onClick: handleDelete,
-						disabled: deleting || loading
+						// A login still in use can't go; the server refuses it too.
+						disabled: deleting || loading || credential.used_by.length > 0,
+						tooltip:
+							credential.used_by.length > 0
+								? credentials_loginInUse({ count: credential.used_by.length })
+								: undefined
 					}
 				]
 			: []),

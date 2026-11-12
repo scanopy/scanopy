@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Lock } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import { useWrittenOffInvoice } from '$lib/features/billing/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { hasLicensedPlan, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { useWrittenOffInvoice } from '#lib/features/billing/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		billing_lapsedBannerAskOwner,
 		billing_lapsedBannerBody,
@@ -15,7 +15,7 @@
 		settings_billing_license_lapsed,
 		settings_billing_license_lapsedUnpaid,
 		settings_billing_payInvoice
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// A lapsed org (subscription ended, no paid plan chosen since) keeps its
 	// plan and browses read-only. The backend refuses its writes; this banner
@@ -25,14 +25,14 @@
 	// It is the one place the lapse is explained. A licensed org reaches only
 	// Settings, where this renders in the frame above the License tab, so the
 	// licensed wording is about the key.
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
 	const writtenOffInvoice = useWrittenOffInvoice();
 
 	let org = $derived(organizationQuery.data);
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let shouldShow = $derived(isCloudDeployment && org != null && isPlanLapsed(org));
 	let plan = $derived(billingPlans.getName(org?.plan?.type ?? null));
 	// A write-off takes the paid-through date back to the start of the period

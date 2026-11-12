@@ -6,8 +6,8 @@ import {
 	adjacentEntityId,
 	entityListOrderFor,
 	registerEntityList
-} from '$lib/shared/stores/modal-registry';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
+} from '#lib/shared/stores/modal-registry.ts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
 
 const order = ['aaa', 'bbb', 'ccc'];
 

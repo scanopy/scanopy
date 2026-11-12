@@ -4,16 +4,12 @@ use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::{
     auth::middleware::{
-        auth::AuthenticatedEntity,
         features::{ConfluenceExportFeature, MermaidExportFeature, RequireFeature},
-        permissions::{Authorized, Member, Viewer},
+        permissions::{Authorized, Can, Read, Write},
     },
     config::AppState,
+    setup::types::{SetupItemDiscriminants, SetupOperation},
     shared::{
-        events::{
-            traits::{Event as BusEvent, OrgScope},
-            types::{OnboardingOperation, OnboardingOperationDiscriminants},
-        },
         handlers::{
             query::{FilterQueryExtractor, SiteFilterQuery},
             traits::{CrudHandlers, update_handler},
@@ -86,10 +82,10 @@ pub struct TopologyDataQuery {
     /// When omitted, returns live entities.
     #[serde(default)]
     pub snapshot_id: Option<Uuid>,
-    /// When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has
-    /// viewed their topology). Only the frontend's explicit on-tab view sets this — the
-    /// background topology-data query never does — so the milestone never fires from other
-    /// tabs. One-time per org (guarded below + subscriber dedup).
+    /// When `true`, records the `OpenTopology` setup item (the user has viewed their topology),
+    /// and `ExploreViews` when `view` is not the default view.
+    /// Only the frontend's explicit on-tab view sets this — the background topology-data query
+    /// never does — so it is never recorded from other tabs. Once per org.
     #[serde(default)]
     pub mark_viewed: Option<bool>,
     /// The view to build the graph for. When omitted, the graph of every view is built and
@@ -126,7 +122,7 @@ pub struct TopologyExportQuery {
 )]
 async fn get_topology_data(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     Query(params): Query<TopologyDataQuery>,
 ) -> ApiResult<Json<ApiResponse<TopologyData>>> {
     let site_ids = auth.site_ids();
@@ -156,54 +152,71 @@ async fn get_topology_data(
         Some(view) => vec![view],
         None => TopologyView::iter().collect(),
     };
-    let data = state
+    let mut data = state
         .services
         .topology_service
         .get_topology_render_data(params.site_id, params.snapshot_id, &views)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    // Onboarding: mark the topology "viewed" only when the frontend explicitly requests it
-    // (`mark_viewed=true`), which it does solely while the topology tab is focused. The
-    // background topology-data query never sets the flag, so the milestone can't fire from
-    // other tabs. Still gated to a live view with hosts and a completed discovery, one-time
-    // per org: the not_onboarded read skips the org lock once recorded, and record_milestone
-    // decides which request publishes.
+    let organization_id = auth.require_organization_id()?;
+    data.has_interface_credential = state
+        .services
+        .credential_service
+        .has_manual_interface_credential(organization_id)
+        .await?;
+
+    // Record OpenTopology, and ExploreViews for a view other than the default, only when the
+    // frontend explicitly requests it (`mark_viewed=true`), which it does solely while the
+    // topology tab is focused. The background topology-data query never sets the flag, so neither
+    // is recorded from other tabs. Still gated to a live view with hosts once RunFirstScan is
+    // done: the unlocked read skips the org lock once recorded, and `record_setup` decides which
+    // request publishes.
     if params.mark_viewed.unwrap_or(false)
         && params.snapshot_id.is_none()
         && !data.hosts.is_empty()
-        && let Ok(Some(site)) = state.services.site_service.get_by_id(&params.site_id).await
         && let Ok(Some(org)) = state
             .services
             .organization_service
-            .get_by_id(&site.base.organization_id)
+            .get_by_id(&organization_id)
             .await
         && org.base.plan.features().includes_topology()
-        && org.has_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
-        && org.not_onboarded(&OnboardingOperationDiscriminants::FirstTopologyRebuild)
-        && let Ok(true) = state
-            .services
-            .organization_service
-            .record_milestone(
-                org.id,
-                OnboardingOperationDiscriminants::FirstTopologyRebuild,
-            )
-            .await
+        && org.has_setup(SetupItemDiscriminants::RunFirstScan)
     {
-        state
-            .services
-            .event_bus
-            .publish(BusEvent::new(
-                OrgScope {
-                    organization_id: org.id,
-                },
-                OnboardingOperation::FirstTopologyRebuild,
-                AuthenticatedEntity::System,
-            ))
-            .await;
+        let entity = auth.into_entity();
+        for item_type in setup_items_viewed(params.view) {
+            if org.has_setup(item_type) {
+                continue;
+            }
+            if let Err(e) = state
+                .services
+                .organization_service
+                .record_setup(
+                    org.id,
+                    SetupOperation::Completed {
+                        item_type,
+                        subject_id: None,
+                    },
+                    entity.clone(),
+                )
+                .await
+            {
+                tracing::warn!(error = %e, ?item_type, "Could not record a topology view");
+            }
+        }
     }
 
     Ok(Json(ApiResponse::success(data)))
+}
+
+/// The Setup items viewing `view` on the topology tab completes: OpenTopology, and ExploreViews
+/// for a view other than the default. A fetch of every view (`None`) is no view switch.
+fn setup_items_viewed(view: Option<TopologyView>) -> Vec<SetupItemDiscriminants> {
+    let mut viewed = vec![SetupItemDiscriminants::OpenTopology];
+    if view.is_some_and(|v| v != TopologyView::default()) {
+        viewed.push(SetupItemDiscriminants::ExploreViews);
+    }
+    viewed
 }
 
 /// Update topology
@@ -223,7 +236,7 @@ async fn get_topology_data(
 )]
 async fn update_topology(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     id: Path<Uuid>,
     topology: ApiJson<Topology>,
 ) -> ApiResult<Json<ApiResponse<Topology>>> {
@@ -254,7 +267,7 @@ async fn update_topology(
 )]
 async fn get_all_topologies(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     query: Query<SiteFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Topology>>> {
     let site_ids = auth.site_ids();
@@ -331,7 +344,7 @@ async fn get_all_topologies(
 )]
 async fn update_node_position(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodePositionUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -385,7 +398,7 @@ async fn update_node_position(
 )]
 async fn update_edge_handles(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyEdgeHandleUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -440,7 +453,7 @@ async fn update_edge_handles(
 )]
 async fn update_node_resize(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodeResizeUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -497,7 +510,7 @@ async fn update_node_resize(
 )]
 async fn export_mermaid(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     _feature: RequireFeature<MermaidExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
@@ -564,7 +577,7 @@ async fn export_mermaid(
 )]
 async fn export_confluence(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     _feature: RequireFeature<ConfluenceExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
@@ -613,4 +626,19 @@ async fn export_confluence(
     );
 
     Ok((headers, Body::from(content)))
+}
+
+#[cfg(test)]
+mod setup_tests {
+    use super::*;
+
+    #[test]
+    fn only_a_view_other_than_the_default_completes_explore_views() {
+        let explores =
+            |view| setup_items_viewed(view).contains(&SetupItemDiscriminants::ExploreViews);
+        assert!(!explores(Some(TopologyView::default())));
+        assert!(!explores(None));
+        assert!(explores(Some(TopologyView::Workloads)));
+        assert!(setup_items_viewed(None).contains(&SetupItemDiscriminants::OpenTopology));
+    }
 }

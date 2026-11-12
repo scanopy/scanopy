@@ -15,11 +15,11 @@
 
 	import ConfirmEntityModal, {
 		type ConfirmAction
-	} from '$lib/shared/components/confirmation/ConfirmEntityModal.svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/components/confirmation/ConfirmEntityModal.svelte';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import type { Subnet, SubnetResponse } from '../types/base';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import {
 		subnets_confirmRange,
 		subnets_confirmRangeDetail,
@@ -32,7 +32,7 @@
 		subnets_rangeEvidenceAddresses,
 		subnets_resolveRange,
 		subnets_resolveRangeIntro
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		subnet: SubnetResponse | null;

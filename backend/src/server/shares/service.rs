@@ -76,7 +76,7 @@ fn issue_token_impl(share: &Share) -> Result<ShareAccessToken, ApiError> {
         .as_ref()
         .ok_or_else(ApiError::share_token_invalid)?;
 
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let expires_at = now + Duration::days(SHARE_TOKEN_TTL_DAYS);
     let claims = ShareAccessTokenClaims {
         sub: share.id.to_string(),
@@ -191,8 +191,8 @@ mod tests {
     fn make_share(password_hash: Option<&str>) -> Share {
         Share {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ShareBase {
                 password_hash: password_hash.map(|s| s.to_string()),
                 ..Default::default()
@@ -208,13 +208,13 @@ mod tests {
         let share = make_share(Some(TEST_HASH));
         let issued = issue_token_impl(&share).expect("issue");
         verify_token_impl(&share, &issued.token).expect("verify");
-        assert!(issued.expires_at > Utc::now());
+        assert!(issued.expires_at > crate::server::shared::clock::now());
     }
 
     #[test]
     fn verify_expired() {
         let share = make_share(Some(TEST_HASH));
-        let past = Utc::now() - Duration::days(1);
+        let past = crate::server::shared::clock::now() - Duration::days(1);
         let claims = ShareAccessTokenClaims {
             sub: share.id.to_string(),
             iat: (past - Duration::days(1)).timestamp(),

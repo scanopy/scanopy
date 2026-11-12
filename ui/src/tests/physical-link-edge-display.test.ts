@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PhysicalLinkEdgeDisplay } from '$lib/shared/components/forms/selection/display/PhysicalLinkEdgeDisplay.svelte';
-import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
+import { PhysicalLinkEdgeDisplay } from '#lib/shared/components/forms/selection/display/PhysicalLinkEdgeDisplay.svelte';
+import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
 
 const topology = {
 	hosts: [

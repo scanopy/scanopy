@@ -1,5 +1,5 @@
-import { tagGroupFieldKey, tagGroupIdOf } from '$lib/features/tags/groupFields';
-import { SEARCH_MAX_LENGTH } from '$lib/shared/components/forms/input/SearchInput.svelte';
+import { tagGroupFieldKey, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
+import { SEARCH_MAX_LENGTH } from '#lib/shared/components/forms/input/SearchInput.svelte';
 import { getFieldKey, type FieldConfig, type FilterCodec } from '../types';
 import { parseSortState, type StoredFieldFilter } from './dataControlsStorage';
 import { booleanFilterValues, isFieldFilterActive, type FilterState } from './filtering';
@@ -26,12 +26,14 @@ const GROUP_BY_TAG_GROUP = 'group_by_tag_group';
 const ORDER_PARAMS = [ORDER_BY, ORDER_DIRECTION, GROUP_BY, ORDER_BY_TAG_GROUP, GROUP_BY_TAG_GROUP];
 
 /**
- * The parts of the view an endpoint may not take. Search, ordering and `serverFiltered` fields
- * always reach the server; tags and staleness only where the endpoint has them.
+ * The parts of the view an endpoint may not take. Ordering and `serverFiltered` fields always
+ * reach the server; search, tags and staleness only where the endpoint has them. A list whose
+ * endpoint takes no search shows no search box.
  */
 export interface ServerQuery {
 	tags: boolean;
 	stale: boolean;
+	search: boolean;
 }
 
 export interface ListQueryState {
@@ -119,7 +121,7 @@ export function listParams<T>(
 	};
 
 	const search = state.search.trim();
-	if (search) add([[SEARCH_PARAM, search]], true);
+	if (search) add([[SEARCH_PARAM, search]], server.search);
 
 	for (const field of fields) {
 		const filter = state.filterState[getFieldKey(field)];

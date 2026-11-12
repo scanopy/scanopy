@@ -1,17 +1,17 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import { max } from '$lib/shared/components/forms/validators';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import { max } from '#lib/shared/components/forms/validators.ts';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import IdentitySection from './IdentitySection.svelte';
 	import DeviceFactsSection from './DeviceFactsSection.svelte';
 	import {
 		common_tags,
 		common_description,
 		hosts_details_descriptionPlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

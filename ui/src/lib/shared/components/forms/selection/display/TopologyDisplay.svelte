@@ -1,8 +1,8 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import type { Site } from '$lib/features/sites/types';
-	import { common_unknownSite } from '$lib/paraglide/messages';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import { common_unknownSite } from '#lib/paraglide/messages.js';
 
 	export const TopologyDisplay: EntityDisplayComponent<Topology, object> = {
 		getId: (topology: Topology) => topology.id,
@@ -21,7 +21,7 @@
 <script lang="ts">
 	import type { EntityDisplayComponent } from '../types';
 	import ListSelectItem from '../ListSelectItem.svelte';
-	import type { Topology } from '$lib/features/topology/types/base';
+	import type { Topology } from '#lib/features/topology/types/base.ts';
 
 	let {
 		item,

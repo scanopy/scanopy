@@ -49,8 +49,12 @@ impl EmailService {
     /// `bulk` paces the sends below the transport's own limit. Containers
     /// contend on an advisory lock, so one sweep runs at a time.
     pub async fn send_terms_notices(&self, bulk: &DefaultDirectRateLimiter) -> Result<()> {
-        self.send_terms_notices_from(TermsCatalog::embedded(), Utc::now().date_naive(), bulk)
-            .await
+        self.send_terms_notices_from(
+            TermsCatalog::embedded(),
+            crate::server::shared::clock::now().date_naive(),
+            bulk,
+        )
+        .await
     }
 
     pub(crate) async fn send_terms_notices_from(

@@ -940,7 +940,7 @@ mod tests {
         );
     }
 
-    /// The trap the scan-time stamp exists to avoid. `Utc::now()` at mint time is *after* the
+    /// The trap the scan-time stamp exists to avoid. `crate::server::shared::clock::now()` at mint time is *after* the
     /// daemon's `finished_at`, which is where the window closes — so a host stamped with the wall
     /// clock falls outside the window that exists to report it, and `is_new` rejects it even
     /// though the session both created and scanned it. Nothing about this is visible at the call

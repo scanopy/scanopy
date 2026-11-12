@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { virtualizationSummary } from '$lib/features/hosts/host-virtualization';
-import type { HostVirtualization } from '$lib/features/hosts/types/base';
-import { hosts_virtualizationSummary_unknownOwner } from '$lib/paraglide/messages';
+import { virtualizationSummary } from '#lib/features/hosts/host-virtualization.ts';
+import type { HostVirtualization } from '#lib/features/hosts/types/base.ts';
+import { hosts_virtualizationSummary_unknownOwner } from '#lib/paraglide/messages.js';
 
 /** One of every virtualization type, so a new variant without a sentence fails here. */
 const everyType: HostVirtualization[] = [

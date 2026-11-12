@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
@@ -57,8 +57,8 @@ async fn finished_session_stamps_scanned_host_with_its_historical_discovery() {
     );
     update.phase = DiscoveryPhase::Complete;
     update.progress = 100;
-    update.started_at = Some(Utc::now() - Duration::minutes(1));
-    update.finished_at = Some(Utc::now());
+    update.started_at = Some(crate::server::shared::clock::now() - Duration::minutes(1));
+    update.finished_at = Some(crate::server::shared::clock::now());
     update.scanned = Some(ScannedEntityIds {
         host_ids: vec![scanned_host.id],
         ..Default::default()
@@ -92,6 +92,102 @@ async fn finished_session_stamps_scanned_host_with_its_historical_discovery() {
         .unwrap()
         .unwrap();
     assert_eq!(untouched.last_discovery_id, None);
+}
+
+/// Before its first scan, a daemon's Docker socket credential exists only as a `DaemonHost`
+/// target on its discovery config. An interface refresh has no config of its own, so it borrows
+/// that target, or it classifies no bridges and reports every bridge as an interfaced subnet.
+/// Another daemon's targets and the config's other scopes stay out.
+#[tokio::test]
+async fn an_interface_refresh_borrows_its_daemons_daemon_host_targets() {
+    use crate::server::credentials::r#impl::mapping::IntegrationTarget;
+    use crate::server::discovery::r#impl::base::{Discovery, DiscoveryBase};
+    use crate::server::discovery::r#impl::types::RunType;
+
+    let (storage, services, _container) = test_services().await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let site_row = services
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let daemon_host = services
+        .host_service
+        .create(host(&site_row.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+    let mut d = daemon(&site_row.id, &daemon_host.id);
+    d.base.user_id = owner.id;
+    storage.daemons.create(&d).await.unwrap();
+    let mut other = daemon(&site_row.id, &daemon_host.id);
+    other.base.user_id = owner.id;
+    storage.daemons.create(&other).await.unwrap();
+
+    let config = |daemon_id: Uuid, integration_targets: Vec<IntegrationTarget>| Discovery {
+        id: Uuid::new_v4(),
+        base: DiscoveryBase {
+            name: "Discovery".to_string(),
+            site_id: site_row.id,
+            daemon_id,
+            discovery_type: DiscoveryType::Unified {
+                host_id: daemon_host.id,
+                subnet_ids: None,
+                host_naming_fallback: Default::default(),
+                scan_settings: Default::default(),
+            },
+            run_type: RunType::AdHoc { last_run: None },
+            tags: vec![],
+        },
+        integration_targets,
+        ..Default::default()
+    };
+    let socket = Uuid::new_v4();
+    let community = Uuid::new_v4();
+    storage
+        .discovery
+        .create(&config(
+            d.id,
+            vec![
+                IntegrationTarget::DaemonHost {
+                    credential_id: socket,
+                },
+                IntegrationTarget::Site {
+                    credential_id: community,
+                },
+            ],
+        ))
+        .await
+        .unwrap();
+    storage
+        .discovery
+        .create(&config(
+            other.id,
+            vec![IntegrationTarget::DaemonHost {
+                credential_id: Uuid::new_v4(),
+            }],
+        ))
+        .await
+        .unwrap();
+
+    let refresh = services
+        .discovery_service
+        .start_interface_refresh(d.id, site_row.id, daemon_host.id)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        services
+            .discovery_service
+            .get_integration_targets_for_session(&refresh.session_id)
+            .await,
+        vec![IntegrationTarget::DaemonHost {
+            credential_id: socket
+        }]
+    );
 }
 
 /// Records the phase and previous phase of every discovery event it receives.
@@ -152,5 +248,77 @@ async fn daemon_updates_publish_one_event_per_phase_change() {
             (DiscoveryPhase::Started, None),
             (DiscoveryPhase::Scanning, Some(DiscoveryPhase::Started)),
         ]
+    );
+}
+
+/// An interface refresh runs through the queue like any session and leaves nothing behind: no
+/// entry in the live session list, no historical row, no phase event.
+#[tokio::test]
+async fn an_interface_refresh_leaves_no_history_and_stays_out_of_view() {
+    let (storage, services, _container) = test_services().await;
+    let recorder = Arc::new(PhaseRecorder::default());
+    services
+        .event_bus
+        .register::<DiscoveryPhase>(recorder.clone(), "phase_recorder:interface_refresh")
+        .await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let site_row = services
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let daemon_host = services
+        .host_service
+        .create(host(&site_row.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+    let mut d = daemon(&site_row.id, &daemon_host.id);
+    d.base.user_id = owner.id;
+    storage.daemons.create(&d).await.unwrap();
+
+    let mut update = services
+        .discovery_service
+        .start_interface_refresh(d.id, site_row.id, daemon_host.id)
+        .await
+        .unwrap();
+    assert_eq!(update.phase, DiscoveryPhase::Pending);
+    assert!(
+        services
+            .discovery_service
+            .get_all_sessions(&[site_row.id])
+            .await
+            .is_empty()
+    );
+
+    update.phase = DiscoveryPhase::Complete;
+    update.progress = 100;
+    update.started_at = Some(crate::server::shared::clock::now() - Duration::seconds(5));
+    update.finished_at = Some(crate::server::shared::clock::now());
+    services.discovery_service.update_session(update).await;
+    services.event_bus.flush().await;
+
+    let history = services
+        .discovery_service
+        .get_all(
+            crate::server::shared::storage::filter::StorableFilter::new_from_site_ids(&[
+                site_row.id
+            ])
+            .historical_discovery(),
+        )
+        .await
+        .unwrap();
+    assert!(history.is_empty());
+    assert!(recorder.seen.lock().unwrap().is_empty());
+    assert!(
+        services
+            .discovery_service
+            .sessions_on_daemon(&d.id)
+            .await
+            .iter()
+            .all(|s| s.phase.is_terminal())
     );
 }

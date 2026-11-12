@@ -14,12 +14,13 @@
  * Below the detail threshold a card draws as its box, and a white box is noise. The tempting
  * sources are identity palettes, and they all fail the same way: entity type is constant within a
  * view, and a service definition's colour per instance is a rainbow, not information. So the fill
- * is a small ordered vocabulary (down, stale, up) or the neutral token.
+ * is stale or the neutral token, the same in every view. L2 also filled a port by its oper status
+ * until that made it the one view with green and red boxes.
  */
 
-import type { components } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import { createColorHelper } from '$lib/shared/utils/styling';
+import type { components } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import { createColorHelper } from '#lib/shared/utils/styling.ts';
 import { filterValueOf } from './interactions';
 import { cardEntityForFilter } from './resolvers';
 import type { RenderableTopology, TopologyNode } from './types/base';
@@ -45,7 +46,7 @@ export function markValue(config: ViewElementConfig, mark: ElementMark): MarkVal
 
 /**
  * The filter values `view` paints on the card `node` draws, each with its colour. Per channel the first matching mark wins,
- * which is how L2 puts a down port above a stale one.
+ * which is how Workloads puts a container's run state above its host's.
  */
 export function elementMarks(
 	view: string,

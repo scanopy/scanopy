@@ -578,11 +578,16 @@ impl Service {
                 .map(|p| Port::new_hostless(*p))
                 .collect();
 
+            // Ports bind ports. Without one, a service reached off the network (a local socket, a
+            // login it signed in through, a cloud portal) binds nothing, since the network cannot
+            // reach it at this address; anything else is present at the address itself.
             let bindings: Vec<Binding> = if !result.ports.is_empty() {
                 ports
                     .iter()
                     .map(|p| Binding::new_port_serviceless(p.id, Some(ip_address.id)))
                     .collect()
+            } else if result.reached_off_network {
+                vec![]
             } else {
                 vec![Binding::new_ip_address_serviceless(ip_address.id)]
             };

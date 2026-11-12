@@ -2,13 +2,13 @@
 	import type { Discovery } from '../../types/base';
 	import { generateDayTimeCronSchedule } from '../../queries';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
-	import TimeInput from '$lib/shared/components/forms/input/TimeInput.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import { displaySettings, timeZoneOptions } from '$lib/shared/stores/display-settings.svelte';
-	import { weekdayOrder } from '$lib/shared/utils/date-format';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
+	import TimeInput from '#lib/shared/components/forms/input/TimeInput.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import { displaySettings, timeZoneOptions } from '#lib/shared/stores/display-settings.svelte.ts';
+	import { weekdayOrder } from '#lib/shared/utils/date-format.ts';
 	import {
 		common_fri,
 		common_mon,
@@ -30,7 +30,7 @@
 		discovery_scheduleLapsedWarning,
 		discovery_scheduleResetToDayPicker,
 		discovery_scheduleTimezoneHelp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		/* eslint-disable @typescript-eslint/no-explicit-any */

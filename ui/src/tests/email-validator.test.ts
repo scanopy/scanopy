@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { email } from '$lib/shared/components/forms/validators';
+import { email } from '#lib/shared/components/forms/validators.ts';
 
 /**
  * Surrounding whitespace on a pasted address.

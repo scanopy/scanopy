@@ -4,7 +4,7 @@ import {
 	type ElementIconCard,
 	type ElementRenderResult,
 	type IconCardGroup
-} from '$lib/features/topology/element-render-data';
+} from '#lib/features/topology/element-render-data.ts';
 
 /**
  * The shape key decides which element cards the measure pass can treat as

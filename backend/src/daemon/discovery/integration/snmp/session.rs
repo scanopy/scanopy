@@ -4,6 +4,7 @@
 
 use anyhow::{Result, anyhow};
 use snmp2::AsyncSession;
+use snmp2::v3::{AuthErrorKind, KeyExtension};
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::Duration;
@@ -29,6 +30,7 @@ impl From<SnmpV3PrivProtocol> for snmp2::v3::Cipher {
         match p {
             SnmpV3PrivProtocol::Aes128 => snmp2::v3::Cipher::Aes128,
             SnmpV3PrivProtocol::Aes256 => snmp2::v3::Cipher::Aes256,
+            SnmpV3PrivProtocol::Des => snmp2::v3::Cipher::Des,
         }
     }
 }
@@ -44,6 +46,16 @@ pub const SNMP_SESSION_TIMEOUT: Duration = Duration::from_secs(5);
 /// engine-discovery handshake otherwise waits the full 5s SNMP_SESSION_TIMEOUT — costs
 /// ~2s instead of up to 7s. A responsive device answers in well under this on a LAN.
 pub const SNMP_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// How long an engine that answered discovery has to answer the first encrypted request before
+/// an AES-256 credential tries its other key extension (GH #846).
+///
+/// A net-snmp agent holding a different privacy key says nothing at all: the request decrypts
+/// to noise and is dropped (lab capture, net-snmp 5.9.4: discovery Report, then silence). So
+/// the signal is a wait, and it has to leave room inside [`SNMP_PROBE_TIMEOUT`] for the second
+/// handshake and the probe's GET. A host that passes the probe at all answers three round trips
+/// inside that cap, so it answers one inside this.
+pub const SNMP_KEY_EXTENSION_WAIT: Duration = Duration::from_millis(750);
 
 /// Default timeout for table walks (longer since they involve multiple requests).
 ///
@@ -84,18 +96,32 @@ fn starting_request_id() -> i32 {
 pub struct SnmpSession {
     inner: Box<AsyncSession>,
     getbulk_unusable: bool,
+    /// See [`SnmpWalkTransport::bulk_page_limit`].
+    ///
+    /// [`SnmpWalkTransport::bulk_page_limit`]: super::queries::SnmpWalkTransport::bulk_page_limit
+    bulk_page_limit: Option<u32>,
     /// The discovery's cancellation, checked between the requests of a walk. A table walk can run
     /// for a minute or more, and nothing else in it looks at the token.
     cancel: Option<tokio_util::sync::CancellationToken>,
+    /// The key extension this host's agent answered, for a credential whose privacy key needs
+    /// one. `None` for every other credential.
+    key_extension: Option<KeyExtension>,
 }
 
 impl SnmpSession {
-    fn new(inner: AsyncSession) -> Self {
+    fn new(inner: AsyncSession, key_extension: Option<KeyExtension>) -> Self {
         Self {
             inner: Box::new(inner),
             getbulk_unusable: false,
+            bulk_page_limit: None,
             cancel: None,
+            key_extension,
         }
+    }
+
+    /// The key extension to open this host's later sessions with. See [`create_session`].
+    pub fn key_extension(&self) -> Option<KeyExtension> {
+        self.key_extension
     }
 
     /// Stop walks on this session when `token` is cancelled.
@@ -116,6 +142,15 @@ impl SnmpSession {
 
     pub fn note_getbulk_unusable(&mut self) {
         self.getbulk_unusable = true;
+    }
+
+    /// The page size a walk on this host fell back to after a page went unanswered.
+    pub fn bulk_page_limit(&self) -> Option<u32> {
+        self.bulk_page_limit
+    }
+
+    pub fn note_bulk_page_limit(&mut self, max_repetitions: u32) {
+        self.bulk_page_limit = Some(max_repetitions);
     }
 }
 
@@ -173,13 +208,34 @@ impl SnmpV3Params {
         }
     }
 
+    /// Whether the privacy key is shorter than its cipher needs: AES-256 under MD5 or SHA-1.
+    ///
+    /// Two ways of stretching it are deployed and the credential does not say which the device
+    /// uses, so these are the credentials [`create_session`] may have to try twice.
+    pub fn extends_privacy_key(&self) -> bool {
+        match &self.security {
+            SnmpV3Security::AuthPriv {
+                auth_protocol,
+                priv_protocol,
+                ..
+            } => snmp2::v3::Cipher::from(*priv_protocol)
+                .priv_key_needs_extension(&(*auth_protocol).into()),
+            SnmpV3Security::NoAuthNoPriv | SnmpV3Security::AuthNoPriv { .. } => false,
+        }
+    }
+
     /// The snmp2 USM security for these parameters, at their security level.
     ///
     /// AES-256 with an MD5 or SHA-1 key needs the localized key stretched, and snmp2 refuses the
-    /// pair without a method. Blumenthal is the one RFC-track drafts and net-snmp's `AES-256` use;
-    /// Cisco's `aes 256` (Reeder) is not tried.
-    pub fn usm_security(&self, context: SnmpContext) -> Result<snmp2::v3::Security> {
-        use snmp2::v3::{Auth, KeyExtension, Security};
+    /// pair without a method. `key_extension` is that method: Blumenthal is what net-snmp's
+    /// `AES-256` uses, Reeder what Cisco IOS's `aes 256` and net-snmp's `AES-256-C` use. snmp2
+    /// ignores it for every pair that needs no stretching.
+    pub fn usm_security(
+        &self,
+        context: SnmpContext,
+        key_extension: KeyExtension,
+    ) -> Result<snmp2::v3::Security> {
+        use snmp2::v3::{Auth, Security};
 
         let name = self.security_name.as_bytes();
         let security = match &self.security {
@@ -207,7 +263,7 @@ impl SnmpV3Params {
                         cipher: (*priv_protocol).into(),
                         privacy_password: priv_pw.expose_secret().as_bytes().to_vec(),
                     })
-                    .with_key_extension_method(KeyExtension::Blumenthal)
+                    .with_key_extension_method(key_extension)
             }
         };
         Ok(security.with_context_name(self.wire_context(context).as_bytes()))
@@ -234,12 +290,26 @@ pub fn bridge_context(credential: &SnmpQueryCredential) -> Option<&str> {
 /// `context_name` came to be stored, rendered as a form field and documented for three releases
 /// without ever being transmitted (GH #686). Skipping a field stays possible, but only by writing
 /// `field: _` with the reason beside it. Same guard as `ServiceFactory::all_services`.
+///
+/// `key_extension` is what an earlier session to this host learned
+/// ([`SnmpSession::key_extension`]), or `None` for the first one. It matters only to an AES-256
+/// credential under MD5 or SHA-1 (GH #846), where the device stretches the privacy key one of
+/// two ways and nothing but trying tells which:
+///
+/// - `None`: Blumenthal first. If the engine answers discovery and then either stays silent to
+///   the first encrypted request for [`SNMP_KEY_EXTENSION_WAIT`] or reports
+///   `usmStatsDecryptionErrors`, the handshake is repeated once with Reeder. A host that does
+///   not answer discovery is never retried, so an offline address costs what it always did, and
+///   a wrong auth password or user is answered with a different Report and is not retried.
+/// - `Some`: that method, with the full timeout and no second try. The host has already
+///   answered it in this scan.
 #[deny(unused_variables)]
 pub async fn create_session(
     ip: IpAddr,
     credential: &SnmpQueryCredential,
     port: u16,
     context: SnmpContext,
+    key_extension: Option<KeyExtension>,
 ) -> Result<SnmpSession> {
     let target = format!("{}:{}", ip, port);
 
@@ -277,7 +347,7 @@ pub async fn create_session(
             match timeout(SNMP_SESSION_TIMEOUT, create).await {
                 Ok(Ok(session)) => {
                     tracing::debug!(ip = %ip, "SNMP session created successfully");
-                    Ok(SnmpSession::new(session))
+                    Ok(SnmpSession::new(session, None))
                 }
                 Ok(Err(e)) => Err(anyhow!(
                     "Failed to create SNMP{} session to {}: {:?}",
@@ -297,7 +367,11 @@ pub async fn create_session(
                 .as_ref()
                 .ok_or_else(|| anyhow!("SNMPv3 credential missing USM parameters"))?;
             let wire_context = params.wire_context(context);
-            let security = params.usm_security(context)?;
+            let extends_privacy_key = params.extends_privacy_key();
+            // Whether the other key extension is still worth a second handshake.
+            let untried = extends_privacy_key && key_extension.is_none();
+            let first = key_extension.unwrap_or(KeyExtension::Blumenthal);
+            let security = params.usm_security(context, first)?;
 
             tracing::debug!(
                 ip = %ip,
@@ -331,18 +405,87 @@ pub async fn create_session(
             };
 
             // SNMPv3 requires an engine-discovery handshake before queries so the
-            // session learns the authoritative engine ID / boots / time.
-            match timeout(SNMP_SESSION_TIMEOUT, session.init()).await {
+            // session learns the authoritative engine ID / boots / time. Its two steps are
+            // timed apart: the first is unauthenticated and says only that an SNMPv3 engine is
+            // there, the second is the first request the credential's keys are used on.
+            match timeout(SNMP_SESSION_TIMEOUT, session.discover_engine()).await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    return Err(anyhow!(
+                        "Failed SNMPv3 engine discovery / authentication to {}: {:?}",
+                        ip,
+                        e
+                    ));
+                }
+                Err(_) => return Err(anyhow!("Timeout during SNMPv3 engine discovery to {}", ip)),
+            }
+
+            let wait = if untried {
+                SNMP_KEY_EXTENSION_WAIT
+            } else {
+                SNMP_SESSION_TIMEOUT
+            };
+            let failure = match timeout(wait, session.synchronize_time()).await {
                 Ok(Ok(())) => {
                     tracing::debug!(ip = %ip, "SNMPv3 session initialized");
-                    Ok(SnmpSession::new(session))
+                    return Ok(SnmpSession::new(
+                        session,
+                        extends_privacy_key.then_some(first),
+                    ));
                 }
+                Ok(Err(e)) => Some(e),
+                Err(_) => None,
+            };
+            let undecryptable = matches!(
+                failure,
+                None | Some(snmp2::Error::AuthFailure(AuthErrorKind::DecryptionError))
+            );
+            if !(untried && undecryptable) {
+                return Err(match failure {
+                    Some(e) => anyhow!(
+                        "Failed SNMPv3 engine discovery / authentication to {}: {:?}",
+                        ip,
+                        e
+                    ),
+                    None => anyhow!(
+                        "The SNMPv3 engine at {} answered discovery and then no authenticated \
+                         request",
+                        ip
+                    ),
+                });
+            }
+
+            tracing::debug!(
+                ip = %ip,
+                first = ?first,
+                "SNMPv3 engine could not read a request encrypted with the first AES-256 key \
+                 extension; trying the other"
+            );
+            match timeout(
+                SNMP_KEY_EXTENSION_WAIT,
+                session.try_another_key_extension_method(),
+            )
+            .await
+            {
+                Ok(Ok(Some(answered))) => {
+                    tracing::debug!(ip = %ip, key_extension = ?answered, "SNMPv3 session initialized");
+                    Ok(SnmpSession::new(session, Some(answered)))
+                }
+                Ok(Ok(None)) => Err(anyhow!(
+                    "SNMPv3 credential for {} has no second key extension to try",
+                    ip
+                )),
                 Ok(Err(e)) => Err(anyhow!(
-                    "Failed SNMPv3 engine discovery / authentication to {}: {:?}",
+                    "The SNMPv3 engine at {} could not read a request encrypted with either \
+                     AES-256 key extension (check the privacy password): {:?}",
                     ip,
                     e
                 )),
-                Err(_) => Err(anyhow!("Timeout during SNMPv3 engine discovery to {}", ip)),
+                Err(_) => Err(anyhow!(
+                    "The SNMPv3 engine at {} answered discovery and then no request encrypted \
+                     with either AES-256 key extension (check the privacy password)",
+                    ip
+                )),
             }
         }
     }
@@ -420,6 +563,79 @@ mod session_sync_tests {
         assert!(
             outcome.is_err(),
             "the stale datagram was served to a request that never got an answer"
+        );
+    }
+
+    /// The Response an agent sends to `request`, with `text` as `sysDescr` and `request_id` in
+    /// place of the request's own when given.
+    fn answer_to(request: &[u8], text: &str, request_id: Option<i32>) -> Vec<u8> {
+        use crate::daemon::discovery::integration::snmp::sim::udp::{encode_varbinds, tlv};
+
+        let varbinds = encode_varbinds(&[(SYS_DESCR.to_vec(), tlv(0x04, text.as_bytes()))]);
+        let mut reply = snmp2::Pdu::from_bytes(request).unwrap();
+        reply.message_type = snmp2::MessageType::Response;
+        reply.req_id = request_id.unwrap_or(reply.req_id);
+        reply.varbinds = snmp2::Varbinds::from_bytes(&varbinds);
+        reply.to_bytes().unwrap()
+    }
+
+    /// GH #848: the agent takes longer than the timeout over one request and answers it just
+    /// after the next request has gone out, then answers that one. The drain before the send
+    /// cannot help, because the late answer was not there yet. The caller must get the answer to
+    /// its own request.
+    #[tokio::test]
+    async fn an_answer_arriving_after_the_next_request_is_sent_is_passed_over() {
+        let (agent, addr) = silent_agent().await;
+        let mut session = AsyncSession::new_v2c(&addr, b"public", 0).await.unwrap();
+
+        abandon_one_request(&mut session).await;
+        let mut abandoned = [0u8; 2048];
+        let (abandoned_len, _) = agent.recv_from(&mut abandoned).await.unwrap();
+
+        let answers = async {
+            let mut current = [0u8; 2048];
+            let (current_len, from) = agent.recv_from(&mut current).await.unwrap();
+            let late = answer_to(&abandoned[..abandoned_len], "late", None);
+            agent.send_to(&late, from).await.unwrap();
+            let own = answer_to(&current[..current_len], "current", None);
+            agent.send_to(&own, from).await.unwrap();
+        };
+        let oid = Oid::from(SYS_DESCR).unwrap();
+        let (response, ()) =
+            tokio::join!(timeout(Duration::from_secs(1), session.get(&oid)), answers);
+
+        let response = response
+            .expect("the request's own answer was sent")
+            .expect("the late answer is not this request's to fail on");
+        let (_, value) = response.varbinds.clone().next().unwrap();
+        assert!(
+            matches!(value, snmp2::Value::OctetString(b"current")),
+            "read {value:?}"
+        );
+    }
+
+    /// Only an answer to a request this session sent earlier is passed over. One carrying an id
+    /// the session has not issued is nobody's late answer, and the request fails on it.
+    #[tokio::test]
+    async fn an_answer_to_a_request_never_sent_fails_the_request() {
+        let (agent, addr) = silent_agent().await;
+        let mut session = AsyncSession::new_v2c(&addr, b"public", 40).await.unwrap();
+
+        let answers = async {
+            let mut request = [0u8; 2048];
+            let (len, from) = agent.recv_from(&mut request).await.unwrap();
+            for foreign in [39, 41] {
+                let reply = answer_to(&request[..len], "foreign", Some(foreign));
+                agent.send_to(&reply, from).await.unwrap();
+            }
+        };
+        let oid = Oid::from(SYS_DESCR).unwrap();
+        let (response, ()) =
+            tokio::join!(timeout(Duration::from_secs(1), session.get(&oid)), answers);
+
+        assert_eq!(
+            response.expect("an answer arrived").err(),
+            Some(snmp2::Error::RequestIdMismatch)
         );
     }
 }

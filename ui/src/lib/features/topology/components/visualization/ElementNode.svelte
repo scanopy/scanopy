@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { type NodeProps, useInternalNode } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
-	import { deviceTypes, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { deviceTypes, entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import { cardGlyph, type CardGlyph } from '../../card-glyph';
-	import DeviceGlyph from '$lib/features/hosts/components/DeviceGlyph.svelte';
+	import DeviceGlyph from '#lib/features/hosts/components/DeviceGlyph.svelte';
 	import SoftwareGlyph from './SoftwareGlyph.svelte';
 	import PortGlyph from './PortGlyph.svelte';
 	import type { EntityGlyph } from '../../entity-glyph';
@@ -14,8 +14,8 @@
 		activeView
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 
 	const sitesQuery = useSitesQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
@@ -30,22 +30,20 @@
 	} from '../../interactions';
 	import { toggleInlineGroup } from '../../collapse';
 	import * as sharedStores from '../../reactive-stores.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
 	import { getContext } from 'svelte';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { common_collapse, common_expand } from '$lib/paraglide/messages';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { hostOsIcon } from '$lib/features/hosts/host-os';
+	import { common_collapse, common_expand } from '#lib/paraglide/messages.js';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { hostOsIcon } from '#lib/features/hosts/host-os.ts';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import { ELEMENT_HANDLE_SIZE_PX, ICON_ELEMENT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
-
-	// A service badge's size, and the icon card's width inside its px-2 padding: the badge fan
-	// spreads within it.
-	const BADGE_PX = 24;
-	// The large device tile. The top service badge is centred on its bottom-right corner.
-	const TILE_PX = 48;
-	const CARD_INNER_PX = ICON_ELEMENT_WIDTH_PX - 16;
+	import {
+		ELEMENT_HANDLE_SIZE_PX,
+		ICON_BADGE_PILE_OFFSET_PX,
+		iconBadgeFanOffsetPx
+	} from '../../pipeline/build-flow-nodes';
 	import { stateFill as markedStateFill, type MarkValue } from '../../element-marks';
+	import { useDetailStaging } from '../../detail-staging.svelte';
 
 	let { id, data, width }: NodeProps = $props();
 
@@ -63,7 +61,22 @@
 	 * See `detailSimplified`: the decision needs the size of the whole graph, which a card cannot
 	 * see, and one refcounted subscription is cheaper than a viewport read per node.
 	 */
-	let simplified = $derived(sharedStores.simplified.current);
+	// Detail is staged on a large graph: this card asks for its full markup when it mounts and
+	// draws as a box until it is granted. See `detail-staging.svelte.ts`.
+	const detailStaging = useDetailStaging();
+	let rootElement = $state<HTMLElement>();
+	$effect(() => {
+		const nodeId = id;
+		detailStaging?.request(nodeId, rootElement);
+		return () => detailStaging?.release(nodeId);
+	});
+	let simplified = $derived(
+		detailStaging
+			? !detailStaging.hasDetail(id, sharedStores.simplified.current)
+			: sharedStores.simplified.current
+	);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
+	let veiled = $derived(!simplified && sharedStores.simplified.current);
 
 	/**
 	 * The height a simplified card has to hold, taken from what SvelteFlow measured.
@@ -313,7 +326,9 @@
 		hoveredRelationship === 'element' && currentHoveredTag?.tagId === null
 	);
 
-	let cardClass = $derived(`card ${isNodeSelected ? 'card-selected' : ''}`);
+	let cardClass = $derived(
+		`card ${isNodeSelected ? 'card-selected' : ''} ${simplified || veiled ? 'lod-card' : ''} ${veiled ? 'lod-veil' : ''}`
+	);
 
 	// A service definition's logo, or its glyph when it has none.
 	const serviceGlyph = (definition: string) =>
@@ -394,8 +409,9 @@
 
 {#if nodeRenderData}
 	<div
-		class={`${cardClass} ${isNewNode ? 'animate-pulse-highlight' : ''} ${serviceHoverShadowStyle ? 'animate-pulse-highlight-once' : ''} ${isEntityTypeHover ? 'entity-type-hover-active' : ''}`}
-		style={`width: ${effectiveWidth}px; height: ${simplified && pinnedHeight !== undefined ? `${pinnedHeight}px` : '100%'}; ${simplified ? `background: ${stateFill};` : ''} display: flex; flex-direction: column; padding: 0; opacity: ${nodeOpacity}; transition: opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out; ${isNewNode ? `--pulse-color: ${discoveryColorHelper.rgb};` : ''} ${serviceHoverShadowStyle} ${tagHoverRingStyle}`}
+		bind:this={rootElement}
+		class={`${cardClass}${isNewNode ? 'animate-pulse-highlight' : ''} ${serviceHoverShadowStyle ? 'animate-pulse-highlight-once' : ''} ${isEntityTypeHover ? 'entity-type-hover-active' : ''}`}
+		style={`width: ${effectiveWidth}px; height: ${simplified && pinnedHeight !== undefined ? `${pinnedHeight}px` : '100%'}; ${simplified || veiled ? `background: ${stateFill};` : ''} display: flex; flex-direction: column; padding: 0; opacity: ${nodeOpacity}; transition: opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out; ${isNewNode ? `--pulse-color: ${discoveryColorHelper.rgb};` : ''} ${serviceHoverShadowStyle} ${tagHoverRingStyle}`}
 	>
 		<!--
 			Below the zoom threshold the card is its own box and nothing else — see `shouldSimplify`.
@@ -404,8 +420,8 @@
 			would make the graph reflow as you zoom.
 		-->
 		{#if !simplified && iconCard}
-			<!-- Icon card. The glyph comes first in DOM order: the diagram exports take each
-			     node's first icon as its shape icon. -->
+			<!-- Icon card. The diagram exports redraw it from the same `iconCard`
+			     (`diagram-export/parts.ts`): a change to this layout is made there too. -->
 			<!-- The card's tooltip shows above the whole card, so it never covers the status dot. A
 			     group member row below carries its own, which wins as the nearer one. -->
 			<div
@@ -476,27 +492,24 @@
 						     Offsets are from the tile's centre to each badge's left edge; a lone badge has
 						     nothing to fan out from and stays on the corner. -->
 						{@const count = iconCard.badgeDefinitions.length}
-						{@const pileX = TILE_PX / 2 - BADGE_PX / 2}
-						{@const fanStep =
-							count > 1 ? Math.min(BADGE_PX + 2, (CARD_INNER_PX - BADGE_PX) / (count - 1)) : 0}
+						{@const pileX = ICON_BADGE_PILE_OFFSET_PX}
 						{#each iconCard.badgeDefinitions as definition, i (definition)}
 							{@const layer = Math.min(i, 2) * 3}
 							{@render glyph(
 								serviceGlyph(definition),
 								17,
 								'absolute top-[calc(100%-12px+var(--stack-y))] left-[calc(50%+var(--stack-x))] h-6 w-6 overflow-hidden rounded-full border border-gray-300 text-primary transition-[left,top] duration-150 group-hover/icon-card:top-[calc(100%-12px)] group-hover/icon-card:left-[calc(50%+var(--fan-x))] dark:border-gray-600',
-								`background: var(--color-topology-node-bg); --stack-x: ${pileX - layer}px; --stack-y: ${-layer}px; --fan-x: ${
-									count > 1 ? (i - (count - 1) / 2) * fanStep - BADGE_PX / 2 : pileX
-								}px; z-index: ${count - i};`,
+								`background: var(--color-topology-node-bg); --stack-x: ${pileX - layer}px; --stack-y: ${-layer}px; --fan-x: ${iconBadgeFanOffsetPx(
+									i,
+									count
+								)}px; z-index: ${count - i};`,
 								22
 							)}
 						{/each}
 					{/if}
 				</div>
 				{#if staleTag}
-					<div class="scale-90">
-						<Tag {...staleTag} pill />
-					</div>
+					<Tag {...staleTag} label={undefined} />
 				{/if}
 				<div
 					data-entity-header
@@ -568,9 +581,7 @@
 			     staleness, header and a line naming what is missing. -->
 			{#if staleTag}
 				<div class="flex shrink-0 justify-center px-2 pt-2">
-					<div class="scale-90">
-						<Tag {...staleTag} pill />
-					</div>
+					<Tag {...staleTag} label={undefined} />
 				</div>
 			{/if}
 			{#if nodeRenderData.headerText}

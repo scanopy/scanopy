@@ -15,18 +15,18 @@ import type {
 	FieldConfig,
 	OrderableFieldConfig,
 	OrderableFieldEntry
-} from '$lib/shared/components/data/types';
-import { entityRef, getFieldKey } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
+} from '#lib/shared/components/data/types.ts';
+import { entityRef, getFieldKey } from '#lib/shared/components/data/types.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import {
 	columnGroup,
 	entityDisplayText,
 	entityFieldLabel,
-	entityFields,
 	fieldEntityType,
 	fieldSource,
 	formatFieldValue,
 	resolveField,
+	tableFields,
 	type EntityField,
 	type EntityLookup,
 	type EntityType
@@ -125,7 +125,7 @@ export function registryColumn<T extends object>(
  * the tab never listed.
  */
 function merge<T, Q extends string>(
-	base: BaseFieldConfig<T> | undefined,
+	base: Partial<BaseFieldConfig<T>> | undefined,
 	override: ColumnOverride<T, Q>
 ) {
 	const baseDisplay = { ...base?.display };
@@ -151,8 +151,9 @@ export interface RegistryOptions<T> {
 /**
  * `defineFields` with the registry underneath: every orderable column and display column whose
  * id is a registry field starts from the registry's column, and the tab's settings win. Registry
- * fields the tab doesn't list are appended, hidden by default. Every column takes its group from
- * the backend: its field's, or the entity's declared table column's.
+ * fields the tab doesn't list are appended, hidden by default. A table-only field supplies its
+ * label and group and the tab supplies the rest, so one the tab doesn't list stays out. Every
+ * column takes its group from the backend.
  */
 export function defineRegistryFields<T extends object, O extends string, Q extends string = string>(
 	entityType: EntityType,
@@ -161,13 +162,19 @@ export function defineRegistryFields<T extends object, O extends string, Q exten
 	display: (Partial<DisplayFieldConfig<T, Q>> & { key: string })[] = [],
 	{ omit = [], root }: RegistryOptions<T> = {}
 ): FieldConfig<T, O, Q>[] {
-	const registry = new Map(
-		entityFields(entityType).map((field) => [
+	const fields = tableFields(entityType);
+	const registry = new Map<string, Partial<BaseFieldConfig<T>>>(
+		fields.map((field) => [
 			field.id,
-			registryColumn<T>(entityType, field, lookup, root)
+			field.inspector
+				? registryColumn<T>(entityType, field, lookup, root)
+				: { label: entityFieldLabel(entityType, field) }
 		])
 	);
-	const listed = new Set<string>(omit);
+	const listed = new Set<string>([
+		...omit,
+		...fields.filter((field) => !field.inspector).map((field) => field.id)
+	]);
 
 	const orderableColumns = (Object.entries(orderable) as [O, ColumnOverride<T, Q>][]).map(
 		([orderField, override]) => {

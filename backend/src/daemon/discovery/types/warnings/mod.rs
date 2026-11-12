@@ -20,6 +20,7 @@
 
 pub mod entity_ids;
 pub mod metadata;
+pub mod remedy;
 pub mod summary;
 pub mod values;
 
@@ -35,11 +36,11 @@ use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscrimin
 use crate::server::credentials::r#impl::types::{CredentialIntegration, SnmpVersion};
 
 pub use entity_ids::EntityIdSlots;
-pub use metadata::WarningRemedy;
+pub use remedy::WarningRemedy;
 pub use summary::{RemedyCount, RunWarningSummary};
 pub use values::{
-    ClaimSource, MalformedNeighbourConsequence, SnmpCheck, SnmpWalkCause, SnmpWalkFailure,
-    SnmpWalkGroup,
+    ClaimSource, DesktopVm, MalformedNeighbourConsequence, SnmpCheck, SnmpWalkCause,
+    SnmpWalkFailure, SnmpWalkGroup,
 };
 
 /// A single non-fatal finding from one discovery run, about one device, neighbour, or the scan
@@ -409,6 +410,25 @@ pub enum DiscoveryWarning {
         #[schema(value_type = String)]
         address: IpAddr,
     },
+    /// The device's VLAN tables name member ports that match none of its interfaces, so those
+    /// members carry no VLAN membership. The ports that matched keep theirs.
+    #[schema(title = "VlanPortsUnresolved")]
+    VlanPortsUnresolved {
+        /// The device that reported the VLANs.
+        #[schema(value_type = String)]
+        address: IpAddr,
+        /// Member names that matched no interface: link aggregation groups, and port names the
+        /// device's port table does not list.
+        unresolved: u32,
+        /// The stored credential the device was read with.
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+        /// The SNMP version the device answered on.
+        #[serde(default)]
+        #[schema(required)]
+        snmp_version: Option<SnmpVersion>,
+    },
     /// Two integrations that each read the device's full interface table both collected it, and
     /// their interface sets were merged.
     ///
@@ -508,6 +528,16 @@ pub enum DiscoveryWarning {
         #[schema(required)]
         credential_id: Option<Uuid>,
     },
+    /// A credential that runs over an SSH login whose login is gone or no longer usable, so it
+    /// was not sent. Raised by the server when it builds the scan's credentials, never a daemon.
+    #[schema(title = "CredentialLoginUnavailable")]
+    CredentialLoginUnavailable {
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The stored credential. `None` once it is deleted.
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+    },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
     CredentialGateClosed {
@@ -552,40 +582,58 @@ pub enum DiscoveryWarning {
         integration: CredentialIntegration,
     },
 
-    // ---- Proxmox VE guests -----------------------------------------------
+    // ---- Hypervisor guests -----------------------------------------------
+    // Shipped as `ProxmoxGuest*` with no `integration`, so the old codes are aliases and a stored
+    // record without one is Proxmox's.
     /// A running guest at addresses no subnet this scan covers, on a shared network or one the
-    /// node's config doesn't list, so it was recorded without ports or services.
-    #[schema(title = "ProxmoxGuestOutsideScan")]
-    ProxmoxGuestOutsideScan {
+    /// hypervisor's config doesn't list, so it was recorded without ports or services.
+    #[schema(title = "GuestOutsideScan")]
+    #[serde(alias = "ProxmoxGuestOutsideScan")]
+    GuestOutsideScan {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
     },
-    /// A running guest on a bridge with no uplink that only its node holds an address on (a NAT'd
-    /// `vmbr1`), so only a daemon on that node reaches it.
-    #[schema(title = "ProxmoxGuestBehindNode")]
-    ProxmoxGuestBehindNode {
+    /// A running guest on a bridge with no uplink that only its hypervisor holds an address on (a
+    /// NAT'd `vmbr1`, libvirt's `virbr0`), so only a daemon on that hypervisor reaches it.
+    #[schema(title = "GuestBehindHypervisor")]
+    #[serde(alias = "ProxmoxGuestBehindNode")]
+    GuestBehindHypervisor {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
-        /// The node it runs on.
-        node: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The hypervisor host it runs on: a Proxmox VE node, a libvirt host.
+        #[serde(alias = "node")]
+        hypervisor: String,
         /// The bridge its NIC is on.
         bridge: String,
     },
-    /// A running guest on a bridge with no uplink and no node address, so only a daemon on a guest
-    /// attached to that bridge reaches it.
-    #[schema(title = "ProxmoxGuestIsolated")]
-    ProxmoxGuestIsolated {
+    /// A running guest on a bridge with no uplink and no hypervisor address, so only a daemon on a
+    /// guest attached to that bridge reaches it.
+    #[schema(title = "GuestIsolated")]
+    #[serde(alias = "ProxmoxGuestIsolated")]
+    GuestIsolated {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
         /// The bridge its NIC is on.
         bridge: String,
     },
@@ -644,6 +692,94 @@ pub enum DiscoveryWarning {
         /// How many lookups went unanswered.
         count: u32,
     },
+    /// An interfaced subnet holds more addresses than the ARP Scan Cutoff allows, so the ARP sweep
+    /// covered only the first part of it.
+    #[schema(title = "ArpSweepTruncated")]
+    ArpSweepTruncated {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+        /// Addresses the sweep covered.
+        addresses_swept: u64,
+        /// Addresses the subnet holds.
+        subnet_addresses: u64,
+        /// The ARP Scan Cutoff in force, as a prefix length.
+        cutoff: u8,
+    },
+    /// The ping sweep's target list reached the ARP Scan Cutoff before it covered every subnet.
+    #[schema(title = "IcmpSweepTruncated")]
+    IcmpSweepTruncated {
+        /// Addresses the sweep pinged.
+        addresses_pinged: u64,
+        /// The ARP Scan Cutoff in force, as a prefix length.
+        cutoff: u8,
+        /// The subnets the sweep cut short or never reached, in CIDR notation.
+        cidrs_left_out: Vec<String>,
+    },
+    /// A subnet the daemon has no interface on took a long time to probe address by address,
+    /// counting only the addresses that turned out to hold nothing.
+    #[schema(title = "SubnetProbedWithoutInterface")]
+    SubnetProbedWithoutInterface {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+        /// Addresses probed in it that held nothing.
+        addresses: u64,
+        /// The share of the run those probes took, in minutes.
+        minutes: u32,
+    },
+    /// A container bridge network was scanned over the network, which the container runtime's
+    /// own listing makes redundant.
+    #[schema(title = "ContainerSubnetScanned")]
+    ContainerSubnetScanned {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+    },
+    /// The daemon's file-descriptor limit let it deep-scan fewer hosts at once than it otherwise
+    /// would.
+    #[schema(title = "DeepScanConcurrencyReduced")]
+    DeepScanConcurrencyReduced {
+        /// The daemon process's file-descriptor limit.
+        fd_limit: u64,
+        /// Hosts deep-scanned at once under that limit.
+        concurrency: u32,
+        /// Hosts it deep-scans at once when the limit is not the constraint.
+        expected_concurrency: u32,
+    },
+    /// The port scan ran out of file descriptors mid-run, so some ports were never probed.
+    #[schema(title = "PortScanDescriptorsExhausted")]
+    PortScanDescriptorsExhausted {
+        /// Times the scan shrank its batch after running out.
+        reductions: u32,
+        /// The smallest port batch it fell back to.
+        lowest_batch_size: u32,
+    },
+    /// The daemon's interface filter names no interface on its host, so it had no subnet of its
+    /// own to scan.
+    #[schema(title = "InterfaceFilterMatchedNothing")]
+    InterfaceFilterMatchedNothing {
+        /// The filter values configured on the daemon.
+        filters: Vec<String>,
+        /// The interfaces the host has.
+        interfaces: Vec<String>,
+    },
+    /// The daemon could not send ARP, so it found hosts by probing ports and recorded no MAC
+    /// addresses.
+    #[schema(title = "ArpSweepUnavailable")]
+    ArpSweepUnavailable,
+    /// The daemon could not send pings, so hosts that answer only to ping were not found.
+    #[schema(title = "IcmpSweepUnavailable")]
+    IcmpSweepUnavailable,
 
     // ---- Server-side LLDP/CDP resolution ---------------------------------
     /// The advertised identifier matches no host on this site.
@@ -713,6 +849,16 @@ pub enum DiscoveryWarning {
             example = "0.17.14"
         )]
         daemon_version: Option<Version>,
+    },
+    /// The daemon runs inside a desktop container VM, whose virtual network keeps ARP, mDNS and LLDP
+    /// off the LAN. Raised by the daemon at the start of every network discovery run.
+    ///
+    /// The daemon is the session's own, so the UI names it from the payload like
+    /// [`DiscoveryWarning::OutdatedDaemonFormat`].
+    #[schema(title = "DaemonInDesktopVm")]
+    DaemonInDesktopVm {
+        /// The VM the daemon runs in.
+        vm: DesktopVm,
     },
 
     // ---- Meta ------------------------------------------------------------
@@ -938,12 +1084,14 @@ pub enum DiscoveryWarningCode {
     MalformedNeighboursUnreadableIndex,
     SnmpCollectedNothing,
     VlanRecordingFailed,
+    VlanPortsUnresolved,
     EqualReachIntegrationsMerged,
     CredentialTargetNotScanned,
     CredentialTargetNotResponding,
     CredentialDaemonOsMismatch,
     CredentialNeedsNewerDaemon,
     CredentialWithoutTarget,
+    CredentialLoginUnavailable,
     CredentialGateClosed,
     CredentialRejected,
     CredentialMalformed,
@@ -954,15 +1102,27 @@ pub enum DiscoveryWarningCode {
     CredentialUnreachable,
     CredentialTimedOut,
     IntegrationWithoutCredential,
-    ProxmoxGuestOutsideScan,
-    ProxmoxGuestBehindNode,
-    ProxmoxGuestIsolated,
+    #[serde(alias = "ProxmoxGuestOutsideScan")]
+    GuestOutsideScan,
+    #[serde(alias = "ProxmoxGuestBehindNode")]
+    GuestBehindHypervisor,
+    #[serde(alias = "ProxmoxGuestIsolated")]
+    GuestIsolated,
     ConnectionsWithoutProtocolResponse,
     ScanTimeLimitWithEstimate,
     ScanTimeLimit,
     DcpSweepTimedOut,
     IcmpSweepTimedOut,
     ReverseDnsTimedOut,
+    ArpSweepTruncated,
+    IcmpSweepTruncated,
+    SubnetProbedWithoutInterface,
+    ContainerSubnetScanned,
+    DeepScanConcurrencyReduced,
+    PortScanDescriptorsExhausted,
+    InterfaceFilterMatchedNothing,
+    ArpSweepUnavailable,
+    IcmpSweepUnavailable,
     LldpNeighbourNotFound,
     LldpNeighbourAmbiguous,
     LldpPortNoStrategy,
@@ -973,6 +1133,7 @@ pub enum DiscoveryWarningCode {
     NeighbourResolutionIncomplete,
     FdbResolutionIncomplete,
     OutdatedDaemonFormat,
+    DaemonInDesktopVm,
     WarningsTruncated,
     /// Absorbs a code from a newer binary. Fieldless, so `#[serde(other)]` applies — the text of
     /// an unrecognised warning rides on [`DiscoveryWarning::Unknown`] instead, where no metric
@@ -1023,6 +1184,7 @@ impl DiscoveryWarning {
             }
             Self::SnmpCollectedNothing { .. } => DiscoveryWarningCode::SnmpCollectedNothing,
             Self::VlanRecordingFailed { .. } => DiscoveryWarningCode::VlanRecordingFailed,
+            Self::VlanPortsUnresolved { .. } => DiscoveryWarningCode::VlanPortsUnresolved,
             Self::EqualReachIntegrationsMerged { .. } => {
                 DiscoveryWarningCode::EqualReachIntegrationsMerged
             }
@@ -1039,6 +1201,9 @@ impl DiscoveryWarning {
                 DiscoveryWarningCode::CredentialNeedsNewerDaemon
             }
             Self::CredentialWithoutTarget { .. } => DiscoveryWarningCode::CredentialWithoutTarget,
+            Self::CredentialLoginUnavailable { .. } => {
+                DiscoveryWarningCode::CredentialLoginUnavailable
+            }
             Self::CredentialGateClosed { .. } => DiscoveryWarningCode::CredentialGateClosed,
             Self::CredentialRejected(_) => DiscoveryWarningCode::CredentialRejected,
             Self::CredentialMalformed(_) => DiscoveryWarningCode::CredentialMalformed,
@@ -1053,9 +1218,9 @@ impl DiscoveryWarning {
             Self::IntegrationWithoutCredential { .. } => {
                 DiscoveryWarningCode::IntegrationWithoutCredential
             }
-            Self::ProxmoxGuestOutsideScan { .. } => DiscoveryWarningCode::ProxmoxGuestOutsideScan,
-            Self::ProxmoxGuestBehindNode { .. } => DiscoveryWarningCode::ProxmoxGuestBehindNode,
-            Self::ProxmoxGuestIsolated { .. } => DiscoveryWarningCode::ProxmoxGuestIsolated,
+            Self::GuestOutsideScan { .. } => DiscoveryWarningCode::GuestOutsideScan,
+            Self::GuestBehindHypervisor { .. } => DiscoveryWarningCode::GuestBehindHypervisor,
+            Self::GuestIsolated { .. } => DiscoveryWarningCode::GuestIsolated,
             Self::ConnectionsWithoutProtocolResponse { .. } => {
                 DiscoveryWarningCode::ConnectionsWithoutProtocolResponse
             }
@@ -1066,6 +1231,23 @@ impl DiscoveryWarning {
             Self::DcpSweepTimedOut { .. } => DiscoveryWarningCode::DcpSweepTimedOut,
             Self::IcmpSweepTimedOut { .. } => DiscoveryWarningCode::IcmpSweepTimedOut,
             Self::ReverseDnsTimedOut { .. } => DiscoveryWarningCode::ReverseDnsTimedOut,
+            Self::ArpSweepTruncated { .. } => DiscoveryWarningCode::ArpSweepTruncated,
+            Self::IcmpSweepTruncated { .. } => DiscoveryWarningCode::IcmpSweepTruncated,
+            Self::SubnetProbedWithoutInterface { .. } => {
+                DiscoveryWarningCode::SubnetProbedWithoutInterface
+            }
+            Self::ContainerSubnetScanned { .. } => DiscoveryWarningCode::ContainerSubnetScanned,
+            Self::DeepScanConcurrencyReduced { .. } => {
+                DiscoveryWarningCode::DeepScanConcurrencyReduced
+            }
+            Self::PortScanDescriptorsExhausted { .. } => {
+                DiscoveryWarningCode::PortScanDescriptorsExhausted
+            }
+            Self::InterfaceFilterMatchedNothing { .. } => {
+                DiscoveryWarningCode::InterfaceFilterMatchedNothing
+            }
+            Self::ArpSweepUnavailable => DiscoveryWarningCode::ArpSweepUnavailable,
+            Self::IcmpSweepUnavailable => DiscoveryWarningCode::IcmpSweepUnavailable,
             Self::LldpNeighbourNotFound(_) => DiscoveryWarningCode::LldpNeighbourNotFound,
             Self::LldpNeighbourAmbiguous(_) => DiscoveryWarningCode::LldpNeighbourAmbiguous,
             Self::LldpPortNoStrategy(_) => DiscoveryWarningCode::LldpPortNoStrategy,
@@ -1078,9 +1260,23 @@ impl DiscoveryWarning {
             }
             Self::FdbResolutionIncomplete { .. } => DiscoveryWarningCode::FdbResolutionIncomplete,
             Self::OutdatedDaemonFormat { .. } => DiscoveryWarningCode::OutdatedDaemonFormat,
+            Self::DaemonInDesktopVm { .. } => DiscoveryWarningCode::DaemonInDesktopVm,
             Self::WarningsTruncated { .. } => DiscoveryWarningCode::WarningsTruncated,
             Self::Unknown { .. } => DiscoveryWarningCode::Unknown,
         }
+    }
+
+    /// The daemon's log line for this warning, written where the warning is raised.
+    ///
+    /// The one place a warning's condition is logged on the daemon: the line carries the code and
+    /// the warning's own fields, so the log and the scan record cannot say different things, and
+    /// no raise site writes a sentence of its own beside the push.
+    pub fn log(&self) {
+        tracing::warn!(
+            code = %self.code(),
+            warning = %serde_json::to_string(self).unwrap_or_default(),
+            "Scan warning raised"
+        );
     }
 
     /// The integration this warning came from, for the metric's second label.
@@ -1114,7 +1310,8 @@ impl DiscoveryWarning {
             | Self::MalformedNeighboursUnexpectedType(_)
             | Self::MalformedNeighboursUnreadableIndex(_)
             | Self::SnmpCollectedNothing { .. }
-            | Self::VlanRecordingFailed { .. } => Some(CredentialQueryPayloadDiscriminants::Snmp),
+            | Self::VlanRecordingFailed { .. }
+            | Self::VlanPortsUnresolved { .. } => Some(CredentialQueryPayloadDiscriminants::Snmp),
 
             Self::CredentialTargetNotScanned { integration, .. }
             | Self::CredentialTargetNotResponding { integration, .. }
@@ -1131,9 +1328,9 @@ impl DiscoveryWarning {
             | Self::CredentialUnreachable(a)
             | Self::CredentialTimedOut(a) => Some(a.integration),
 
-            Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. } => Some(CredentialQueryPayloadDiscriminants::Proxmox),
+            Self::GuestOutsideScan { integration, .. }
+            | Self::GuestBehindHypervisor { integration, .. }
+            | Self::GuestIsolated { integration, .. } => Some(*integration),
 
             // Two integrations, and neither one produced it: the merge in the daemon pipeline did.
             // Naming either would count it against an integration that did nothing wrong.
@@ -1142,6 +1339,7 @@ impl DiscoveryWarning {
             // is a wire payload type, which an integration with two transports has no single one of.
             | Self::IntegrationWithoutCredential { .. }
             // No integration ran either: the daemon never received the credential.
+            | Self::CredentialLoginUnavailable { .. }
             | Self::CredentialWithoutTarget { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
@@ -1149,6 +1347,15 @@ impl DiscoveryWarning {
             | Self::DcpSweepTimedOut { .. }
             | Self::IcmpSweepTimedOut { .. }
             | Self::ReverseDnsTimedOut { .. }
+            | Self::ArpSweepTruncated { .. }
+            | Self::IcmpSweepTruncated { .. }
+            | Self::SubnetProbedWithoutInterface { .. }
+            | Self::ContainerSubnetScanned { .. }
+            | Self::DeepScanConcurrencyReduced { .. }
+            | Self::PortScanDescriptorsExhausted { .. }
+            | Self::InterfaceFilterMatchedNothing { .. }
+            | Self::ArpSweepUnavailable
+            | Self::IcmpSweepUnavailable
             | Self::LldpNeighbourNotFound(_)
             | Self::LldpNeighbourAmbiguous(_)
             | Self::LldpPortNoStrategy(_)
@@ -1159,6 +1366,7 @@ impl DiscoveryWarning {
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => None,
         }
@@ -1173,6 +1381,7 @@ impl DiscoveryWarning {
             | Self::CredentialGateClosed { credential_id, .. }
             | Self::CredentialDaemonOsMismatch { credential_id, .. }
             | Self::CredentialNeedsNewerDaemon { credential_id, .. }
+            | Self::CredentialLoginUnavailable { credential_id, .. }
             | Self::CredentialWithoutTarget { credential_id, .. } => *credential_id,
 
             Self::CredentialRejected(a)
@@ -1201,7 +1410,8 @@ impl DiscoveryWarning {
             | Self::ClaimedCapabilityEmpty { credential_id, .. }
             | Self::LldpLocalPortDropped { credential_id, .. }
             | Self::LldpLocalPortDroppedReadCutShort { credential_id, .. }
-            | Self::LldpLocalPortMisplaced { credential_id, .. } => *credential_id,
+            | Self::LldpLocalPortMisplaced { credential_id, .. }
+            | Self::VlanPortsUnresolved { credential_id, .. } => *credential_id,
 
             Self::MalformedNeighboursWalkCutShort(m)
             | Self::MalformedNeighboursGhostRows(m)
@@ -1212,15 +1422,24 @@ impl DiscoveryWarning {
             Self::VlanRecordingFailed { .. }
             | Self::EqualReachIntegrationsMerged { .. }
             | Self::IntegrationWithoutCredential { .. }
-            | Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. }
+            | Self::GuestOutsideScan { .. }
+            | Self::GuestBehindHypervisor { .. }
+            | Self::GuestIsolated { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }
             | Self::DcpSweepTimedOut { .. }
             | Self::IcmpSweepTimedOut { .. }
             | Self::ReverseDnsTimedOut { .. }
+            | Self::ArpSweepTruncated { .. }
+            | Self::IcmpSweepTruncated { .. }
+            | Self::SubnetProbedWithoutInterface { .. }
+            | Self::ContainerSubnetScanned { .. }
+            | Self::DeepScanConcurrencyReduced { .. }
+            | Self::PortScanDescriptorsExhausted { .. }
+            | Self::InterfaceFilterMatchedNothing { .. }
+            | Self::ArpSweepUnavailable
+            | Self::IcmpSweepUnavailable
             | Self::LldpNeighbourNotFound(_)
             | Self::LldpNeighbourAmbiguous(_)
             | Self::LldpPortNoStrategy(_)
@@ -1231,6 +1450,7 @@ impl DiscoveryWarning {
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => None,
         }
@@ -1257,6 +1477,12 @@ where
 {
     let raw: Vec<serde_json::Value> = Vec::deserialize(deserializer)?;
     Ok(raw.into_iter().map(warning_from_value).collect())
+}
+
+/// The integration a hypervisor-guest warning stored before it carried one came from: they were
+/// Proxmox's alone.
+fn proxmox_integration() -> CredentialQueryPayloadDiscriminants {
+    CredentialQueryPayloadDiscriminants::Proxmox
 }
 
 pub fn warning_from_value(value: serde_json::Value) -> DiscoveryWarning {

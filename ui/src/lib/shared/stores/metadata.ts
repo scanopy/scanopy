@@ -1,40 +1,45 @@
 import { writable, get } from 'svelte/store';
-import type { components } from '$lib/api/schema';
-import serviceDefinitionsJson from '$lib/data/service-definitions.json';
-import subnetTypesJson from '$lib/data/subnet-types.json';
-import edgeTypesJson from '$lib/data/edge-types.json';
-import dependencyTypesJson from '$lib/data/dependency-types.json';
-import entitiesJson from '$lib/data/entities.json';
-import productAreasJson from '$lib/data/product-areas.json';
-import fieldGroupsJson from '$lib/data/field-groups.json';
-import entitySourcesJson from '$lib/data/entity-sources.json';
-import portsJson from '$lib/data/ports.json';
-import discoveryTypesJson from '$lib/data/discovery-types.json';
-import discoveryPhasesJson from '$lib/data/discovery-phases.json';
-import discoveryTerminalReasonsJson from '$lib/data/discovery-terminal-reasons.json';
-import billingPlansJson from '$lib/data/billing-plans-all.json';
-import planStatusesJson from '$lib/data/plan-statuses.json';
-import emailCategoriesJson from '$lib/data/email-categories.json';
-import featuresJson from '$lib/data/features.json';
-import permissionsJson from '$lib/data/permissions.json';
-import credentialTypesJson from '$lib/data/credential-types.json';
-import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
-import conceptsJson from '$lib/data/concepts.json';
-import containerTypesJson from '$lib/data/container-types.json';
-import inspectorSectionsJson from '$lib/data/inspector-sections.json';
-import viewsJson from '$lib/data/views.json';
-import serviceCategoriesJson from '$lib/data/service-categories.json';
-import attributeSourcesJson from '$lib/data/attribute-sources.json';
-import clientProbesJson from '$lib/data/client-probes.json';
-import matchConfidencesJson from '$lib/data/match-confidences.json';
-import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
-import serviceVirtualizationsJson from '$lib/data/service-virtualizations.json';
-import discoveryProtocolsJson from '$lib/data/discovery-protocols.json';
-import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
-import containerNetworkTypesJson from '$lib/data/container-network-types.json';
-import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
-import guestStatesJson from '$lib/data/guest-states.json';
-import deviceTypesJson from '$lib/data/device-types.json';
+import type { components } from '#lib/api/schema';
+import serviceDefinitionsJson from '#lib/data/service-definitions.json';
+import subnetTypesJson from '#lib/data/subnet-types.json';
+import edgeTypesJson from '#lib/data/edge-types.json';
+import dependencyTypesJson from '#lib/data/dependency-types.json';
+import entitiesJson from '#lib/data/entities.json';
+import productAreasJson from '#lib/data/product-areas.json';
+import fieldGroupsJson from '#lib/data/field-groups.json';
+import entitySourcesJson from '#lib/data/entity-sources.json';
+import portsJson from '#lib/data/ports.json';
+import discoveryTypesJson from '#lib/data/discovery-types.json';
+import discoveryPhasesJson from '#lib/data/discovery-phases.json';
+import discoveryTerminalReasonsJson from '#lib/data/discovery-terminal-reasons.json';
+import billingPlansJson from '#lib/data/billing-plans-all.json';
+import planStatusesJson from '#lib/data/plan-statuses.json';
+import emailCategoriesJson from '#lib/data/email-categories.json';
+import featuresJson from '#lib/data/features.json';
+import permissionsJson from '#lib/data/permissions.json';
+import resourcesJson from '#lib/data/resources.json';
+import credentialTypesJson from '#lib/data/credential-types.json';
+import credentialIntegrationsJson from '#lib/data/credential-integrations.json';
+import conceptsJson from '#lib/data/concepts.json';
+import containerTypesJson from '#lib/data/container-types.json';
+import inspectorSectionsJson from '#lib/data/inspector-sections.json';
+import viewsJson from '#lib/data/views.json';
+import serviceCategoriesJson from '#lib/data/service-categories.json';
+import attributeSourcesJson from '#lib/data/attribute-sources.json';
+import clientProbesJson from '#lib/data/client-probes.json';
+import matchConfidencesJson from '#lib/data/match-confidences.json';
+import hostVirtualizationsJson from '#lib/data/host-virtualizations.json';
+import serviceVirtualizationsJson from '#lib/data/service-virtualizations.json';
+import discoveryProtocolsJson from '#lib/data/discovery-protocols.json';
+import proxmoxGuestTypesJson from '#lib/data/proxmox-guest-types.json';
+import containerNetworkTypesJson from '#lib/data/container-network-types.json';
+import ifOperStatusesJson from '#lib/data/if-oper-statuses.json';
+import guestStatesJson from '#lib/data/guest-states.json';
+import daemonHealthsJson from '#lib/data/daemon-healths.json';
+import setupItemsJson from '#lib/data/setup-items.json';
+import setupItemTiersJson from '#lib/data/setup-item-tiers.json';
+import issueCategoriesJson from '#lib/data/issue-categories.json';
+import deviceTypesJson from '#lib/data/device-types.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -42,9 +47,9 @@ import {
 	type ColorStyle
 } from '../utils/styling';
 import { logoIcon } from '../utils/logos';
-import { metaName, metaDescription } from '$lib/i18n/metadata';
-import { joinList } from '$lib/i18n/list';
-import type { TagProps } from '$lib/shared/components/data/types';
+import { metaName, metaDescription } from '#lib/i18n/metadata.ts';
+import { joinList } from '#lib/i18n/list.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
 
 export type Color = components['schemas']['Color'];
 
@@ -100,6 +105,11 @@ export interface CredentialTypeMetadata {
 	 *  "Unofficial API" tag but stay selectable. A separate axis from `stability`: an integration
 	 *  can be fully validated and still ride an endpoint the vendor never published. */
 	upstream_support?: components['schemas']['UpstreamSupport'];
+	/** `Login` for an SSH login, which other credentials run over and which is never assigned;
+	 *  `Dispatched` for everything else. */
+	role?: components['schemas']['CredentialRole'];
+	/** Whether a credential of this type names the login it runs over (`login_credential_id`). */
+	requires_login?: boolean;
 	/** The plan feature needed to create this type, or null when every plan can. The type picker
 	 *  shows an upgrade badge when the organization's plan lacks it; existing credentials of the
 	 *  type keep working on any plan. */
@@ -129,6 +139,7 @@ export interface MetadataRegistry {
 	email_categories: TypeMetadata[];
 	features: TypeMetadata[];
 	permissions: TypeMetadata[];
+	resources: TypeMetadata[];
 	concepts: EntityMetadata[];
 	credential_types: TypeMetadata[];
 	credential_integrations: TypeMetadata[];
@@ -146,6 +157,10 @@ export interface MetadataRegistry {
 	container_network_types: TypeMetadata[];
 	if_oper_statuses: TypeMetadata[];
 	guest_states: TypeMetadata[];
+	daemon_healths: TypeMetadata[];
+	setup_items: TypeMetadata[];
+	setup_item_tiers: TypeMetadata[];
+	issue_categories: TypeMetadata[];
 	device_types: TypeMetadata[];
 }
 
@@ -231,7 +246,20 @@ export interface PermissionsMetadata {
 	grantable_api_key_permissions: string[];
 	/** Permission levels this user can assign to other users (Owners can grant all, Admins can grant Member/Viewer) */
 	grantable_user_permissions: string[];
-	manage_org_entities: boolean;
+	/** A person holding this role reaches every site, whatever their site list says. */
+	reaches_all_sites: boolean;
+}
+
+export interface ResourceMetadata {
+	/** Grants on each site answer for this resource, rather than the organization role. */
+	per_site: boolean;
+	/** What each role can do here; empty for no access. A site-keyed row reads the site role the role maps to. */
+	display_actions: Record<
+		components['schemas']['UserOrgPermissions'],
+		components['schemas']['DisplayAction'][]
+	>;
+	/** A lapsed org can still write this. */
+	writable_when_lapsed: boolean;
 }
 
 export interface SubnetTypeMetadata {
@@ -349,6 +377,7 @@ export const metadata = writable<MetadataRegistry>({
 	email_categories: emailCategoriesJson,
 	features: featuresJson,
 	permissions: permissionsJson,
+	resources: resourcesJson,
 	concepts: conceptsJson,
 	credential_types: credentialTypesJson,
 	credential_integrations: credentialIntegrationsJson,
@@ -366,6 +395,10 @@ export const metadata = writable<MetadataRegistry>({
 	container_network_types: containerNetworkTypesJson,
 	if_oper_statuses: ifOperStatusesJson,
 	guest_states: guestStatesJson,
+	daemon_healths: daemonHealthsJson,
+	setup_items: setupItemsJson,
+	setup_item_tiers: setupItemTiersJson,
+	issue_categories: issueCategoriesJson,
 	device_types: deviceTypesJson
 } as unknown as MetadataRegistry);
 
@@ -540,8 +573,6 @@ export interface EntityTypeMetadata {
 	entity_name_plural?: string;
 	/** What this entity type is described by; see `shared/entity-fields`. */
 	fields: components['schemas']['EntityField'][];
-	/** List-table columns that aren't fields, with the group the column menu files them under. */
-	table_columns: components['schemas']['TableColumn'][];
 	/** Fields that name one entity in text, tried in order. */
 	display_fields: string[];
 }
@@ -603,6 +634,19 @@ export const ifOperStatuses = createTypeMetadataHelpers<'if_oper_statuses', obje
 );
 /** A container's or VM's run state at the last scan (label, colour, icon), keyed by `GuestState`. */
 export const guestStates = createTypeMetadataHelpers<'guest_states', object>('guest_states');
+/** A daemon's health, the most severe status that applies, keyed by `DaemonHealth`. Fixture order
+ *  is severity order, most severe first. */
+export const daemonHealths = createTypeMetadataHelpers<'daemon_healths', object>('daemon_healths');
+/** The Setup list's item types (copy, icon, category: an Issue's `IssueCategory`, a step's tier), keyed by `SetupItemDiscriminants`. */
+export const setupItems = createTypeMetadataHelpers<'setup_items', object>('setup_items');
+/** The Setup list's tiers, in display order, keyed by `SetupItemTier`. */
+export const setupItemTiers = createTypeMetadataHelpers<'setup_item_tiers', object>(
+	'setup_item_tiers'
+);
+/** What an Issue's fix is about, in display order, keyed by `IssueCategory`. */
+export const issueCategories = createTypeMetadataHelpers<'issue_categories', object>(
+	'issue_categories'
+);
 export const deviceTypes = createTypeMetadataHelpers<'device_types', object>('device_types');
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'
@@ -626,6 +670,8 @@ export const features = createTypeMetadataHelpers<'features', FeatureMetadata>('
 export const permissions = createTypeMetadataHelpers<'permissions', PermissionsMetadata>(
 	'permissions'
 );
+/** What a role grants access to, with each role's level, keyed by `Resource`. */
+export const resources = createTypeMetadataHelpers<'resources', ResourceMetadata>('resources');
 export const concepts = createEntityMetadataHelpers('concepts');
 export const credentialTypes = createTypeMetadataHelpers<
 	'credential_types',
@@ -754,4 +800,11 @@ export function metadataName(category: TypeMetadataKeys, id: string): string {
 		($registry?.[category] as TypeMetadata[] | undefined)?.find((item) => item.id === id)?.name ||
 		id;
 	return metaName(category, id, fallback);
+}
+
+/** The colour of `id` in any type-metadata fixture, chosen at runtime as `metadataName` is. */
+export function metadataColor(category: TypeMetadataKeys, id: string): Color {
+	const $registry = get(metadata);
+	const item = ($registry?.[category] as TypeMetadata[] | undefined)?.find((i) => i.id === id);
+	return createColorHelper(item?.color || null).color;
 }

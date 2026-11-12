@@ -1,6 +1,6 @@
-import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { common_availableOnPaidPlans } from '$lib/paraglide/messages';
+import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { common_availableOnPaidPlans } from '#lib/paraglide/messages.js';
 
 /**
  * The badge on something the plan lacks (an export format, a credential type, snapshots): the

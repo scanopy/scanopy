@@ -1,13 +1,13 @@
 <script lang="ts" module>
-	import { isContainerSubnet, getSubnetById } from '$lib/features/subnets/queries';
-	import type { Subnet } from '$lib/features/subnets/types/base';
-	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
-	import type { Site } from '$lib/features/sites/types';
-	import { getFreshnessTag } from '$lib/shared/utils/freshness';
-	import { ipAddressKey } from '$lib/features/hosts/address-labels';
-	import { hosts_noMacAddress } from '$lib/paraglide/messages';
-	import type { Service } from '$lib/features/services/types/base';
-	import { concepts, guestStates, serviceVirtualizations } from '$lib/shared/stores/metadata';
+	import { isContainerSubnet, getSubnetById } from '#lib/features/subnets/queries.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import { entityRef, type TagProps } from '#lib/shared/components/data/types.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
+	import { ipAddressKey } from '#lib/features/hosts/address-labels.ts';
+	import { hosts_noMacAddress } from '#lib/paraglide/messages.js';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { concepts, guestStates, serviceVirtualizations } from '#lib/shared/stores/metadata.ts';
 
 	export type IPAddressTagRole = 'subnet' | 'stale' | 'virtualization';
 
@@ -110,10 +110,10 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import type { AllIPAddresses, IPAddress } from '$lib/features/hosts/types/base';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import type { AllIPAddresses, IPAddress } from '#lib/features/hosts/types/base.ts';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		item: IPAddress;

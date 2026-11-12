@@ -1,10 +1,10 @@
 <script lang="ts">
-	import scanSettingsFields from '$lib/data/scan-settings.json';
-	import type { FieldDefinition, ServicedDefinitionMetadata } from '$lib/shared/stores/metadata';
+	import scanSettingsFields from '#lib/data/scan-settings.json';
+	import type { FieldDefinition, ServicedDefinitionMetadata } from '#lib/shared/stores/metadata.ts';
 	import type { Discovery } from '../../types/base';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { translateFieldDefinitions } from '$lib/i18n/metadata';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import { translateFieldDefinitions } from '#lib/i18n/metadata.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		discovery_firstScanMustBeLight,
 		discovery_forceFullScan,
@@ -12,7 +12,7 @@
 		discovery_requiredToDetect,
 		discovery_requiredToDetectRouted,
 		discovery_scanModeIntervalExplainer
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: Discovery;

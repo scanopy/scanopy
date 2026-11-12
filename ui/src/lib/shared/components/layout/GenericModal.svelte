@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	/**
 	 * Tab definition for modal header tabs
@@ -32,28 +32,30 @@
 		common_previous,
 		common_shortcutsPausedWhileTyping,
 		common_shortcutWhileTyping
-	} from '$lib/paraglide/messages';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import { isEditableTarget, keyLabel, shortcutLabel } from '$lib/shared/utils/shortcuts';
+	} from '#lib/paraglide/messages.js';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import { isEditableTarget, keyLabel, shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import ModalStepper from './ModalStepper.svelte';
-	import ServerUnreachableBanner from '$lib/shared/components/feedback/ServerUnreachableBanner.svelte';
-	import { serverUnreachable } from '$lib/api/server-reachability';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { toolbarButtonClass } from '$lib/shared/components/data/controls/actionShortcuts';
+	import ServerUnreachableBanner from '#lib/shared/components/feedback/ServerUnreachableBanner.svelte';
+	import { serverUnreachable } from '#lib/api/server-reachability.ts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { toolbarButtonClass } from '#lib/shared/components/data/controls/actionShortcuts.ts';
 	import {
 		assignModalKeys,
 		closesModalOnEscape,
 		ENTER_KEY,
+		isStackedModal,
 		isTopmostModal,
+		openModalStack,
 		keyPausedAt,
 		registerOpenModal,
 		resolveModalKeydown,
 		type ModalAction
 	} from './modalActions';
 	import { provideModalActions } from './modalActionsContext.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { toColor } from '$lib/shared/utils/styling';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { toColor } from '#lib/shared/utils/styling.ts';
 	import { get } from 'svelte/store';
 	import {
 		modalState,
@@ -64,7 +66,7 @@
 		restoreModal,
 		setModalTab,
 		goBack
-	} from '$lib/shared/stores/modal-registry';
+	} from '#lib/shared/stores/modal-registry.ts';
 
 	let {
 		title = common_modal(),
@@ -248,10 +250,13 @@
 	let wasOpen = $state(false);
 
 	// Stacking order: a dialog opened over this one takes Escape and the arrow keys, not both.
+	// A modal opened over another leaves the darkening to the one beneath, so stacking doesn't
+	// shroud the page twice.
 	const stackToken = Symbol();
+	let stacked = $derived(isStackedModal($openModalStack, stackToken));
 	$effect(() => {
 		if (!isOpen) return;
-		return registerOpenModal(stackToken);
+		return registerOpenModal(stackToken, showBackdrop && anchor !== 'container');
 	});
 
 	function isTopmost(): boolean {
@@ -361,16 +366,6 @@
 		}
 		onTabChange?.(tabId);
 	}
-
-	// Lock body scroll when modal is open
-	$effect(() => {
-		if (typeof window !== 'undefined' && isOpen) {
-			document.body.style.overflow = 'hidden';
-			return () => {
-				document.body.style.overflow = '';
-			};
-		}
-	});
 
 	// Sync modal state with URL on open/close transitions
 	$effect(() => {
@@ -540,11 +535,13 @@
 {#if isOpen || keepMounted}
 	<!-- Modal backdrop -->
 	<div
-		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {anchor === 'container'
-			? 'modal-page-anchored'
-			: ''} {compactPadding ? 'px-2! py-1! sm:px-4! sm:py-4!' : ''} {listOrder
-			? 'sm:px-16!'
-			: ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen ? '' : 'invisible'}"
+		class="{showBackdrop && !stacked ? 'modal-page modal-background' : 'modal-page'} {stacked
+			? 'p-4'
+			: ''} {anchor === 'container' ? 'modal-page-anchored' : ''} {compactPadding
+			? 'px-2! py-1! sm:px-4! sm:py-4!'
+			: ''} {listOrder ? 'sm:px-16!' : ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen
+			? ''
+			: 'invisible'}"
 		inert={!isOpen}
 		aria-hidden={!isOpen}
 		onclick={handleBackdropClick}

@@ -12,10 +12,10 @@
 		common_moveUp,
 		common_noEntityAddedYet,
 		common_remove
-	} from '$lib/paraglide/messages';
-	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import type { Unavailable } from '$lib/shared/components/data/types';
+	} from '#lib/paraglide/messages.js';
+	import { lowercasePreservingAcronyms } from '#lib/shared/utils/formatting.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import type { Unavailable } from '#lib/shared/components/data/types.ts';
 
 	interface Props {
 		// Global

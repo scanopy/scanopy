@@ -2,7 +2,7 @@ use crate::server::{
     config::AppState,
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -18,9 +18,9 @@ use crate::server::{
 };
 use async_trait::async_trait;
 
-/// The sites each user API key may reach.
+/// The sites each user API key may reach. A key's All sites row names no site.
 const KEY_SITES: Junction = Junction {
-    table: "user_api_key_site_access",
+    table: "site_assignments",
     own_column: "api_key_id",
     other_column: "site_id",
     has_history: false,
@@ -37,7 +37,8 @@ impl UserApiKeyFilterQuery {
             self.search.as_deref(),
         )?;
         Ok(match &self.site_ids {
-            Some(ids) if !ids.is_empty() => filter.linked_to(KEY_SITES, ids),
+            // An All sites key reaches every requested site.
+            Some(ids) if !ids.is_empty() => filter.linked_to_or_every(KEY_SITES, ids),
             _ => filter,
         })
     }
@@ -75,9 +76,10 @@ impl CrudHandlers for UserApiKey {
     }
 }
 
-#[async_trait]
-impl PaginatedList for UserApiKey {
+impl ListRows for UserApiKey {
     type Item = UserApiKey;
+    type Field = UserApiKeyOrderField;
+    type Query = UserApiKeyFilterQuery;
 
     fn ordering(query: &UserApiKeyFilterQuery) -> ListOrdering<UserApiKeyOrderField> {
         ListOrdering {
@@ -90,7 +92,10 @@ impl PaginatedList for UserApiKey {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for UserApiKey {
     /// Each key with the sites it may reach.
     async fn items(
         state: &AppState,

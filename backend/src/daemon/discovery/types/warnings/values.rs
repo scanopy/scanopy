@@ -448,3 +448,56 @@ impl TypeMetadataProvider for MalformedNeighbourConsequence {
         }
     }
 }
+
+/// The desktop container VM a daemon was found running inside.
+///
+/// Each one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so
+/// ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    EnumIter,
+    IntoStaticStr,
+    VariantNames,
+)]
+pub enum DesktopVm {
+    DockerDesktop,
+    OrbStack,
+    Colima,
+}
+
+impl HasId for DesktopVm {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DesktopVm {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::Box
+    }
+}
+
+impl TypeMetadataProvider for DesktopVm {
+    /// The product name, as the `{vm}` slot of "{daemon} runs inside {vm}".
+    fn name(&self) -> &'static str {
+        match self {
+            Self::DockerDesktop => "Docker Desktop",
+            Self::OrbStack => "OrbStack",
+            Self::Colima => "Colima",
+        }
+    }
+}

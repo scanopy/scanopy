@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { formatEstimatedRemaining } from '$lib/features/discovery/utils/estimation';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import { discoveryPhases } from '$lib/shared/stores/metadata';
+	import { formatEstimatedRemaining } from '#lib/features/discovery/utils/estimation.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import { discoveryPhases } from '#lib/shared/stores/metadata.ts';
 	import {
 		discovery_cancellationWait,
 		discovery_foundHostsEstimating,
@@ -10,7 +10,7 @@
 		discovery_scanningForHosts,
 		home_docsDiscoveryTakesLong,
 		home_docsDiscoveryTakesLongLinkText
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		phase: string;
@@ -56,7 +56,7 @@
 		{#if phase === 'Scanning' && estimated_remaining_secs != null && estimated_remaining_secs > 3600}
 			<DocsHint
 				text={home_docsDiscoveryTakesLong()}
-				href="https://scanopy.net/docs/setting-up-daemons/troubleshooting-scans/scan-performance/#discovery-takes-hours"
+				href="https://scanopy.net/docs/using-scanopy/discovery/scans/#discovery-duration"
 				linkText={home_docsDiscoveryTakesLongLinkText()}
 				class="mt-0.5"
 			/>

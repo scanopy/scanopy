@@ -1,18 +1,18 @@
 <script lang="ts">
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { narrowsList } from '$lib/shared/components/data/controls/listQuery';
-	import { listIsEmpty } from '$lib/api/list-page';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { narrowsList } from '#lib/shared/components/data/controls/listQuery.ts';
+	import { listIsEmpty } from '#lib/api/list-page.ts';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import type { Discovery } from '../../types/base';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import { discoveryHistoryColumns } from './DiscoveryHistoryTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import {
 		useDiscoveryHistoryQuery,
 		useCreateDiscoveryMutation,
@@ -20,24 +20,23 @@
 		useBulkDeleteDiscoveriesMutation,
 		useDeleteDiscoveryMutation
 	} from '../../queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
 	import {
 		modalState,
 		openModal,
 		closeModal,
 		resolveModalDeepLink
-	} from '$lib/shared/stores/modal-registry';
+	} from '#lib/shared/stores/modal-registry.ts';
 	import { Info, Trash2 } from '@lucide/svelte';
-	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
 	import { runOutcomeTag, type OutcomeTag } from '../../utils/outcome';
 	import {
 		common_confirmDeleteName,
@@ -49,18 +48,19 @@
 		discovery_historyTitle,
 		discovery_noHistorySessions,
 		discovery_noHistorySessionsSubtitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 
-	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
+	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
-	// Organization query for onboarding state
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
+
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Pagination state (managed by DataControls, updated via callback)
 	let pageSize = $state(20);
@@ -89,29 +89,10 @@
 	// Filter options: the values the run history actually holds. Scoped to history rows the way
 	// the list is, so scheduled configurations add none, and never narrowed by the active filters,
 	// so the options do not shrink as the user filters. Gated like the list.
-	const historyScope = () => ({ historical: true });
-	const daemonValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		DISCOVERY_FIELD_VALUES,
-		'daemon_id',
-		historyScope,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'site_id',
-		historyScope,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'discovery_type',
-		historyScope,
-		() => isActive
-	);
-	const phaseValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'phase',
-		historyScope,
+		['daemon_id', 'site_id', 'discovery_type', 'phase'],
+		() => ({ historical: true }),
 		() => isActive
 	);
 	const tagsQuery = useTagsQuery();
@@ -238,14 +219,14 @@
 	}
 
 	/** Row actions. */
-	function discoveryActions(discovery: Discovery): CardAction[] {
-		const details: CardAction = {
+	function discoveryActions(discovery: Discovery): RowAction[] {
+		const details: RowAction = {
 			label: common_details(),
 			icon: Info,
 			isOpen: true,
 			onClick: () => handleEditDiscovery(discovery)
 		};
-		if (isReadOnly) return [details];
+		if (!can('Discovery', 'Delete')) return [details];
 		return [
 			details,
 			{
@@ -254,7 +235,8 @@
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteDiscovery(discovery)
+				onClick: () => handleDeleteDiscovery(discovery),
+				unavailable: refusedUnless(can('Discovery', 'Delete', discovery.site_id))
 			}
 		];
 	}
@@ -269,10 +251,10 @@
 			sites: () => sitesData,
 			tags: () => tagsData,
 			tagGroups: () => tagGroupsQuery.data,
-			daemonValues: () => daemonValuesQuery.data,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			phaseValues: () => phaseValuesQuery.data,
+			daemonValues: () => fieldValuesQuery.data?.daemon_id,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.discovery_type,
+			phaseValues: () => fieldValuesQuery.data?.phase,
 			resultsOf,
 			outcomeTag,
 			warningsOf,
@@ -303,8 +285,8 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />
 	{:else if listIsEmpty(discoveriesQuery, isNarrowed)}

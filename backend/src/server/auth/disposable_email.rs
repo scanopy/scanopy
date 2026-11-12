@@ -2,7 +2,7 @@
 //!
 //! Refuses a domain listed by the `mailchecker` crate or by the bundled
 //! `disposable-email-domains` list (`assets/disposable-email-domains.txt`, refreshed
-//! weekly by `.github/workflows/disposable-domains-refresh.yml`). A listed domain
+//! at each release by `scripts/refresh-vendored-data.sh`). A listed domain
 //! also covers its subdomains. A domain in `assets/disposable-email-allowlist.txt`
 //! is accepted whatever either list says.
 

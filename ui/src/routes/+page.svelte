@@ -1,68 +1,80 @@
 <script lang="ts">
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
-	import ServerUnreachableBanner from '$lib/shared/components/feedback/ServerUnreachableBanner.svelte';
-	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
-	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
-	import GlobalSearch from '$lib/shared/components/layout/GlobalSearch.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import Toast from '#lib/shared/components/feedback/Toast.svelte';
+	import AppBanners from '#lib/shared/components/feedback/AppBanners.svelte';
+	import ServerUnreachableBanner from '#lib/shared/components/feedback/ServerUnreachableBanner.svelte';
+	import TrialExpiryModal from '#lib/shared/components/feedback/TrialExpiryModal.svelte';
+	import Sidebar from '#lib/shared/components/layout/Sidebar.svelte';
+	import GlobalSearch from '#lib/shared/components/layout/GlobalSearch.svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import { liveUpdatesSSEManager } from '$lib/shared/live-updates';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { liveUpdatesSSEManager } from '#lib/shared/live-updates.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
 
-	import { attachUrlState, setActiveTab } from '$lib/shared/stores/url-state';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
-	import CloudPlanRequired from '$lib/features/billing/CloudPlanRequired.svelte';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { TAB_LABELS } from '$lib/shared/entity-ui-config';
-	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
-	import ReleaseNotesModal from '$lib/features/release-notes/ReleaseNotesModal.svelte';
-	import TermsAcceptanceModal from '$lib/features/auth/components/TermsAcceptanceModal.svelte';
-	import EmailVerificationGate from '$lib/features/auth/components/EmailVerificationGate.svelte';
-	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
+	import { attachUrlState, setActiveTab } from '#lib/shared/stores/url-state.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import BillingPlanModal from '#lib/features/billing/BillingPlanModal.svelte';
+	import CloudPlanRequired from '#lib/features/billing/CloudPlanRequired.svelte';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import { entityUIConfig, TAB_LABELS } from '#lib/shared/entity-ui-config.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
+	import { setupStepsLeft } from '#lib/features/home/setup-list.ts';
+	import ReleaseNotesModal from '#lib/features/release-notes/ReleaseNotesModal.svelte';
+	import TermsAcceptanceModal from '#lib/features/auth/components/TermsAcceptanceModal.svelte';
+	import EmailVerificationGate from '#lib/features/auth/components/EmailVerificationGate.svelte';
+	import AuthBackground from '#lib/shared/components/layout/AuthBackground.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
+	import { queryKeys } from '#lib/api/query-client.ts';
 	import {
 		useUnseenReleaseNotesQuery,
 		useMarkReleaseNotesSeenMutation
-	} from '$lib/features/release-notes/queries';
+	} from '#lib/features/release-notes/queries.ts';
 	import {
 		useConfigQuery,
 		isCloud,
 		isLicenseSigningAvailable
-	} from '$lib/shared/stores/config-query';
-	import {
-		useOrganizationQuery,
-		useDaemonPromptResponseMutation
-	} from '$lib/features/organizations/queries';
+	} from '#lib/shared/stores/config-query.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		hasLicensedPlan,
 		hasTopologyAccess,
 		isBillingPlanActive,
+		isPlanLapsed,
 		isPlanUnchosen,
 		isSelfHostedPlanLocked as isSelfHostedPlanLockedFor
-	} from '$lib/features/organizations/types';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { licenseTabVisible } from '$lib/features/settings/license-tab';
-	import { billingOverModal, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
+	} from '#lib/features/organizations/types.ts';
+	import {
+		isShellReady,
+		shouldCloseBillingPlanLink,
+		shouldOpenLicenseSettings
+	} from '#lib/features/organizations/onload-gates.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { licenseTabVisible } from '#lib/features/settings/license-tab.ts';
+	import {
+		licenseSettingsOpenedFor as storedLicenseSettingsOpenedFor,
+		markLicenseSettingsOpened
+	} from '#lib/features/settings/license-settings-opened.ts';
+	import { billingOverModal, reopenSettingsAfterBilling } from '#lib/features/billing/stores.ts';
 	import {
 		modalState,
 		openModal,
 		closeModal,
 		initModalFromUrl
-	} from '$lib/shared/stores/modal-registry';
-	import ContentSubTabs from '$lib/shared/components/layout/ContentSubTabs.svelte';
-	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
+	} from '#lib/shared/stores/modal-registry.ts';
+	import ContentSubTabs from '#lib/shared/components/layout/ContentSubTabs.svelte';
+	import type { SubTab } from '#lib/shared/components/layout/ContentSubTabs.svelte';
 
 	// Read hash immediately during script initialization, before onMount
-	const initialHash = typeof window !== 'undefined' ? window.location.hash.substring(1) : '';
+	// `#home` names the tab Setup and Issues replaced, so a bookmark of it opens the landing tab.
+	const RETIRED_HOME_HASH = 'home';
+	const loadedHash = typeof window !== 'undefined' ? window.location.hash.substring(1) : '';
+	const initialHash = loadedHash === RETIRED_HOME_HASH ? '' : loadedHash;
 	// Before any tab mounts, so each hydrates from the params this page loaded with.
 	const detachUrlState = typeof window !== 'undefined' ? attachUrlState() : null;
 
 	// TanStack Query for current user
 	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	let isAuthenticated = $derived(currentUserQuery.data != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 	// The server refuses this user's main-app requests until they accept the
@@ -80,6 +92,8 @@
 		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
 	);
 	let organization = $derived(organizationQuery.data);
+	// The shell paints with the modal these two decide, rather than a request before it.
+	let shellReady = $derived(isShellReady(organizationQuery, configQuery));
 	// A licensed self-hosted plan on Scanopy Cloud locks the main app:
 	// the backend rejects main-app routes, and the org only gets Settings (its keys
 	// live on the License tab). Switching to a cloud plan unlocks it on the next
@@ -144,25 +158,7 @@
 	// it, closeModal() clears $modalState but needsPlanSelection keeps showBillingModal true.
 	let planJustActivated = $state(false);
 
-	// A self-hosted signup that picks a cloud plan gets its site from the plan
-	// webhook, so the daemon prompt waits (polling) until that site exists.
-	const sitesQuery = useSitesQuery({
-		enabled: () => isAuthenticated && mainAppAvailable,
-		pollWhileEmpty: () => planJustActivated
-	});
-	let hasSite = $derived((sitesQuery.data?.length ?? 0) > 0);
-
-	// Daemon prompt: driven by modal registry
-	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
-	const daemonPromptResponseMutation = useDaemonPromptResponseMutation();
-	// Don't nag Viewers (they can't install daemons) and never re-show the prompt once
-	// the user has responded to it (either CTA persists an onboarding milestone).
-	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
-	let daemonPromptResponded = $derived(
-		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
-			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
-	);
+	let isOwner = $derived(can('Billing', 'Write'));
 
 	// A license signup's trial starts off the signup itself, a second or two
 	// after the org exists. A fresh org with no subscription yet waits for it
@@ -191,9 +187,12 @@
 				$modalState.name === 'billing-plan')
 	);
 
-	let activeTab = $state(initialHash || 'home');
+	// Empty until the landing tab is known, unless the URL named one.
+	let activeTab = $state(initialHash);
 	let appInitialized = $state(false);
 	let sidebarCollapsed = $state(false);
+	/** The banner stack's height, published as `--app-banner-height` for pages sized to the screen. */
+	let bannerHeight = $state(0);
 	let dataLoadingStarted = $state(false);
 	let showSettings = $state(false);
 	// Billing-blocking states force the Settings modal open and make it
@@ -233,7 +232,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -247,14 +245,32 @@
 		if (activeTab) setActiveTab(activeTab);
 	});
 
-	// Set initial tab based on daemons (only if no hash was specified in URL)
-	// Suppress while the plan picker is showing
+	// The tab a load with no hash opens on: Setup while steps remain, else Issues while there are
+	// any, else Topology. The sidebar shows the Setup and Issues entries on the same counts.
+	const dashboardQuery = useDashboardQuery({
+		enabled: () => isAuthenticated && mainAppAvailable
+	});
+	let landingTab = $derived.by(() => {
+		const dashboard = dashboardQuery.data;
+		if (!dashboard || !organization) return null;
+		if (setupStepsLeft(dashboard.setup_items, isPlanLapsed(organization)) > 0) return 'setup';
+		if (dashboard.issue_count > 0) return 'issues';
+		return entityUIConfig.Topology!.tabId;
+	});
+
+	// Set the initial tab (only if no hash was specified in URL). Suppress while the plan picker
+	// is showing.
 	let initialTabSet = $state(false);
 	$effect(() => {
-		if (!initialHash && !initialTabSet && daemonsQuery.isSuccess && !showBillingModal) {
-			const wantsDaemonSetup =
-				$modalState.name === 'create-daemon' || $modalState.name === 'daemon-prompt';
-			activeTab = wantsDaemonSetup ? 'daemons' : 'home';
+		if (
+			!initialHash &&
+			!initialTabSet &&
+			daemonsQuery.isSuccess &&
+			landingTab &&
+			!showBillingModal
+		) {
+			const wantsDaemonSetup = $modalState.name === 'create-daemon';
+			activeTab = wantsDaemonSetup ? 'daemons' : landingTab;
 			initialTabSet = true;
 		}
 	});
@@ -279,20 +295,32 @@
 
 	// An org on a licensed self-hosted plan gets Settings on the License tab once
 	// per plan it lands on (on load, or after moving onto it by any path); closing
-	// it leaves the sidebar. Cleared when the org leaves the plan.
+	// it leaves the sidebar, and a reload keeps it closed. Cleared when the org
+	// leaves the plan.
 	let licenseSettingsOpenedFor = $state<string | null>(null);
 	$effect(() => {
+		if (organization == null) return;
 		// A license org whose trial never started is the billing gate's, above.
-		if (!isSelfHostedPlanLocked || planUnchosen) {
+		const locked = isSelfHostedPlanLocked && !planUnchosen;
+		if (!locked) {
 			licenseSettingsOpenedFor = null;
-			return;
+			markLicenseSettingsOpened(organization.id, null);
 		}
-		const planType = organization?.plan?.type ?? null;
-		if (planType == null || licenseSettingsOpenedFor === planType) return;
-		if (!appInitialized || showBillingModal) return;
-		if ($modalState.name !== null && $modalState.name !== 'settings') return;
-		licenseSettingsOpenedFor = planType;
-		openModal('settings', { tab: licenseLockTab });
+		const planType = organization.plan?.type ?? null;
+		if (
+			shouldOpenLicenseSettings({
+				locked,
+				planType,
+				openedFor: licenseSettingsOpenedFor ?? storedLicenseSettingsOpenedFor(organization.id),
+				appInitialized,
+				planPickerShowing: showBillingModal,
+				modalName: $modalState.name
+			})
+		) {
+			licenseSettingsOpenedFor = planType;
+			markLicenseSettingsOpened(organization.id, planType);
+			openModal('settings', { tab: licenseLockTab });
+		}
 	});
 
 	// A URL deep link (initModalFromUrl) can name a main-app modal, and the org may
@@ -337,39 +365,8 @@
 	// Set when the URL named a modal at load; the user came for that one.
 	let deepLinkOpened = $state(false);
 
-	// Whether this org should see the daemon prompt: a new org with a site and
-	// no daemon that hasn't answered the prompt.
-	let daemonPromptWanted = $derived(
-		!isMainAppLocked &&
-			!isViewer &&
-			(organization?.onboarding?.includes('OrgCreated') ?? false) &&
-			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
-			!daemonPromptResponded &&
-			hasSite &&
-			daemonsQuery.isSuccess &&
-			daemonsQuery.data?.length === 0
-	);
-
-	// Auto-show daemon prompt for new orgs that haven't installed a daemon yet.
-	// Centralizes logic that previously lived in each registration path.
-	let daemonPromptShown = $state(false);
-	$effect(() => {
-		if (
-			appInitialized &&
-			!daemonPromptShown &&
-			!showBillingModal &&
-			!trialModalOpen &&
-			$modalState.name === null &&
-			daemonPromptWanted
-		) {
-			daemonPromptShown = true;
-			openModal('daemon-prompt');
-		}
-	});
-
 	// Release notes: the releases since the user last dismissed them, opened
-	// when one of them asks to be. Last in the order, so it waits until the
-	// daemon prompt's inputs have loaded. Never in the demo.
+	// when one of them asks to be. Last in the order. Never in the demo.
 	const unseenReleaseNotesQuery = useUnseenReleaseNotesQuery({
 		enabled: () => isAuthenticated && mainAppAvailable && !isDemoOrg
 	});
@@ -385,12 +382,8 @@
 			!releaseNotesShown &&
 			!deepLinkOpened &&
 			!higherModalShownThisLoad &&
-			!daemonPromptShown &&
 			!isMainAppLocked &&
 			$modalState.name === null &&
-			sitesQuery.isSuccess &&
-			daemonsQuery.isSuccess &&
-			!daemonPromptWanted &&
 			hasUnseenReleaseNotes &&
 			unseenReleaseNotesQuery.data?.auto_open
 		) {
@@ -412,7 +405,9 @@
 	function handleHashChange() {
 		if (typeof window !== 'undefined') {
 			const hash = window.location.hash.substring(1);
-			if (hash && hash !== activeTab) {
+			if (hash === RETIRED_HOME_HASH) {
+				if (landingTab) activeTab = landingTab;
+			} else if (hash && hash !== activeTab) {
 				activeTab = hash;
 			}
 		}
@@ -428,12 +423,21 @@
 		appInitialized = true;
 		initModalFromUrl();
 		deepLinkOpened = $modalState.name !== null;
+	}
 
-		// Block billing modal deep-link in non-cloud environments
-		if (!isCloudDeployment && $modalState.name === 'billing-plan') {
+	// Block billing modal deep-link in non-cloud environments. Config can land after
+	// initializeApp, so this waits for it rather than closing a Cloud link.
+	$effect(() => {
+		if (
+			shouldCloseBillingPlanLink({
+				modalName: $modalState.name,
+				configLoaded: configQuery.data != null,
+				isCloudDeployment
+			})
+		) {
 			closeModal();
 		}
-	}
+	});
 
 	// Reactive effect: initialize app when authenticated
 	// The layout handles auth check via TanStack Query, so we just wait for it to complete
@@ -467,15 +471,17 @@
 		<AuthBackground />
 		<EmailVerificationGate isOpen={true} />
 	</div>
-{:else if appInitialized}
-	<div class="flex h-dvh flex-col">
+{:else if appInitialized && shellReady}
+	<!-- A page that sizes itself to the screen, the topology canvas, subtracts the banners'
+	     height through this variable, so it fits below them instead of scrolling under them. -->
+	<div class="flex h-dvh flex-col" style="--app-banner-height: {bannerHeight}px">
 		<!-- Banners span the full width, sidebar included.
 		     Only while the main app is reachable. When it is gated, or the org is on
 		     a licensed plan, the Settings modal carries the same stack in its frame
 		     instead, so exactly one copy is ever mounted: AppBanner holds its
 		     dismissed state locally, and a second copy behind the overlay would not
 		     follow a dismissal. -->
-		<div class="shrink-0">
+		<div class="shrink-0" bind:clientHeight={bannerHeight}>
 			{#if !isBillingBlocking && !isSelfHostedPlanLocked}
 				<AppBanners />
 			{/if}
@@ -548,7 +554,6 @@
 									<ContentSubTabs
 										tabs={tab.subTabDefs}
 										bind:activeTab
-										isReadOnly={tab.isReadOnly}
 										notifications={tab.subTabNotifications}
 									/>
 								</div>
@@ -556,12 +561,12 @@
 								<div
 									class={activeTab !== tab.id ? 'relative h-0 overflow-hidden contain-[paint]' : ''}
 								>
-									<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
+									<tab.component isActive={activeTab === tab.id} />
 								</div>
 							{/if}
 						{/each}
 					{:else if isSelfHostedPlanLocked}
-						<CloudPlanRequired page={TAB_LABELS[activeTab] ?? TAB_LABELS.home} />
+						<CloudPlanRequired page={TAB_LABELS[activeTab] ?? TAB_LABELS.topology} />
 					{/if}
 				</div>
 			</main>
@@ -589,9 +594,7 @@
 			if (overModal) billingOverModal.set(null);
 			planJustActivated = true;
 			// Key the licensed check off the plan the user just picked: `organization`
-			// still holds the previous plan at this point, which is how the daemon
-			// prompt used to win the race and ask a self-hosted buyer to install a
-			// daemon they can't reach.
+			// still holds the previous plan at this point.
 			const licensed =
 				selectedPlan != null && billingPlans.getMetadata(selectedPlan.type).license_plan != null;
 			if (selectedPlan != null && !licensed) cloudPlanJustPicked = true;
@@ -602,39 +605,14 @@
 				// when the webhook lands the plan on the org, whether the org was on a
 				// cloud plan or another licensed one.
 				licensedPlanJustPicked = true;
-				daemonPromptShown = true;
 				reopenSettingsAfterBilling.set(false);
 				licenseSettingsOpenedFor = selectedPlan.type;
+				if (organization) markLicenseSettingsOpened(organization.id, selectedPlan.type);
 				openModal('settings', { tab: licenseLockTab });
 			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
-			} else if (
-				!overModal &&
-				!isViewer &&
-				!daemonPromptResponded &&
-				hasSite &&
-				daemonsQuery.data?.length === 0
-			) {
-				// Mark as shown here too so the first Skip click sticks — otherwise the
-				// auto-open $effect re-fires on close (its guard was never set on this path).
-				daemonPromptShown = true;
-				openModal('daemon-prompt');
 			}
-		}}
-	/>
-
-	<DaemonPromptModal
-		isOpen={showDaemonPrompt}
-		onInstall={() => {
-			daemonPromptResponseMutation.mutate('accepted');
-			// CreateDaemonModal lives in DaemonTab; the prompt usually opens over Home.
-			activeTab = 'daemons';
-			openModal('create-daemon');
-		}}
-		onSkip={() => {
-			daemonPromptResponseMutation.mutate('dismissed');
-			closeModal();
 		}}
 	/>
 

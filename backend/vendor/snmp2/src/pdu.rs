@@ -528,6 +528,47 @@ pub struct V1TrapInfo<'a> {
     pub timestamp: u32,
 }
 
+/// SCANOPY LOCAL PATCH (GH #848) — see vendor/snmp2/README.md.
+///
+/// The id a datagram answers, read without parsing the rest of it: the request-id of a v1 or v2c
+/// PDU, the msgID of a v3 message. `build` and `build_init` send a v3 request's msgID equal to its
+/// request-id, and RFC 3412 §7.1 has the agent return it, so both name the request. The msgID is
+/// in the plaintext header, which is what lets a v3 answer be recognised before it is
+/// authenticated or decrypted, and so before it can move the engine clock.
+///
+/// `None` for anything that does not read as far as an id.
+#[cfg(feature = "tokio")]
+pub(crate) fn peek_response_id(bytes: &[u8]) -> Option<i32> {
+    let seq = AsnReader::from_bytes(bytes)
+        .read_raw(asn1::TYPE_SEQUENCE)
+        .ok()?;
+    let mut rdr = AsnReader::from_bytes(seq);
+    let version = rdr.read_asn_integer().ok()?;
+    let id = if version == Version::V3 as i64 {
+        let global_data = rdr.read_raw(asn1::TYPE_SEQUENCE).ok()?;
+        AsnReader::from_bytes(global_data).read_asn_integer().ok()?
+    } else {
+        rdr.read_asn_octetstring().ok()?;
+        let ident = rdr.peek_byte().ok()?;
+        AsnReader::from_bytes(rdr.read_raw(ident).ok()?)
+            .read_asn_integer()
+            .ok()?
+    };
+    i32::try_from(id).ok()
+}
+
+/// SCANOPY LOCAL PATCH (GH #848) — see vendor/snmp2/README.md.
+///
+/// Whether `id` is one a session issued before `current`, given the `first` id it ever issued.
+/// Ids are issued in sequence and wrap, so the earlier ones are the `current - first` ids behind
+/// `current`. Anything else, an id ahead of `current` or behind `first`, was never sent.
+#[cfg(feature = "tokio")]
+pub(crate) fn is_earlier_request(first: i32, current: i32, id: i32) -> bool {
+    let behind = current.wrapping_sub(id) as u32;
+    let issued = current.wrapping_sub(first) as u32;
+    behind >= 1 && behind <= issued
+}
+
 impl<'a> Pdu<'a> {
     pub fn version(&self) -> Result<Version> {
         self.version.try_into()

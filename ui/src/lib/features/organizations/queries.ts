@@ -3,12 +3,12 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys, queryClient } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryKeys, queryClient } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { CreateInviteRequest, OrganizationInvite, Organization } from './types';
 import type { UserOrgPermissions, User } from '../users/types';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
 /**
  * Query hook for fetching current organization
@@ -201,36 +201,6 @@ export async function fetchDemoPopulateStatus(
 }
 
 /**
- * Mutation hook for recording the user's response to the daemon-install prompt.
- * Each CTA persists a distinct onboarding milestone so the prompt is not shown again
- * (and survives reload). Optimistically appends the milestone to the cached org so the
- * modal's open-gate flips immediately.
- */
-export function useDaemonPromptResponseMutation() {
-	const queryClient = useQueryClient();
-
-	return createMutation(() => ({
-		mutationFn: async (action: components['schemas']['DaemonPromptAction']) => {
-			requireSuccess(
-				await apiClient.POST('/api/v1/organizations/daemon-prompt-response', {
-					body: { action }
-				})
-			);
-			return action;
-		},
-		onSuccess: (action) => {
-			const milestone: components['schemas']['OnboardingOperationDiscriminants'] =
-				action === 'dismissed' ? 'DaemonPromptDismissed' : 'DaemonPromptAccepted';
-			queryClient.setQueryData<Organization>(queryKeys.organizations.current(), (old) =>
-				old && !old.onboarding.includes(milestone)
-					? { ...old, onboarding: [...old.onboarding, milestone] }
-					: old
-			);
-		}
-	}));
-}
-
-/**
  * Helper to format invite URL
  */
 export function formatInviteUrl(invite: OrganizationInvite): string {
@@ -269,6 +239,23 @@ export function useReferralSourceMutation() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+		}
+	}));
+}
+
+/** Records a Setup item finished in the app, such as the dependency tutorial. */
+export function useRecordSetupItemMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: async (item: components['schemas']['SetupItemDiscriminants']) => {
+			requireSuccess(await apiClient.POST('/api/v1/organizations/setup', { body: { item } }));
+			return true;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
 		}
 	}));
 }

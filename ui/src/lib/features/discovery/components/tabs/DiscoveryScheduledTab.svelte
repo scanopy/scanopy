@@ -1,23 +1,23 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import type { Discovery } from '../../types/base';
 	import type { DiscoveryConfigOrderField } from '../../queries';
 	import SessionPhaseProgress from '../cards/SessionPhaseProgress.svelte';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import { discoveryScheduledColumns } from './DiscoveryScheduledTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Play, Power, Edit, Trash2, Ban } from '@lucide/svelte';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useScheduledDiscoveriesQuery,
 		useCreateDiscoveryMutation,
@@ -33,20 +33,18 @@
 	} from '../../queries';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import type { components } from '$lib/api/schema';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { isPreUnifiedDaemon } from '#lib/features/daemons/utils.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -74,15 +72,15 @@
 		common_scans,
 		discovery_legacyDaemonsWarning,
 		discovery_noScheduledSessions
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	const tagsQuery = useTagsQuery();
@@ -91,30 +89,10 @@
 	const page = listPageState(() => isActive);
 	const discoveriesQuery = useScheduledDiscoveriesQuery(() => page.params());
 	// Filter options: the values the scan configurations hold, scoped the way the list is.
-	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
-	const configScope = () => ({ historical: false });
-	const daemonValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'daemon_id',
-		configScope,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'site_id',
-		configScope,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'discovery_type',
-		configScope,
-		() => isActive
-	);
-	const runTypeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'run_type',
-		configScope,
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/discoveries/field-values',
+		['daemon_id', 'site_id', 'discovery_type', 'run_type'],
+		() => ({ historical: false }),
 		() => isActive
 	);
 	const daemonsQuery = useDaemonsQuery();
@@ -279,9 +257,10 @@
 	 * A run in flight blocks the destructive and scheduling actions, and the
 	 * tooltip carries the reason.
 	 */
-	function discoveryActions(discovery: Discovery): CardAction[] {
-		if (isReadOnly) return [];
+	function discoveryActions(discovery: Discovery): RowAction[] {
+		if (!can('Discovery', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Discovery', 'Write', discovery.site_id));
 		const session = getActiveSession(discovery);
 		const running = session !== null;
 		const isRescan = discovery.discovery_type.type === 'Rescan';
@@ -301,11 +280,9 @@
 				tone: 'warning',
 				onClick: () => session?.session_id && handleCancelDiscovery(session.session_id),
 				onBulk: handleBulkCancel,
-				unavailable: hiddenWhen(
-					!session?.session_id,
-					discovery_notRunning(),
-					discovery_notRunningBulk()
-				)
+				unavailable:
+					hiddenWhen(!session?.session_id, discovery_notRunning(), discovery_notRunningBulk()) ??
+					writeRefusal
 			},
 			{
 				label: isEnabled ? common_disable() : common_enable(),
@@ -316,6 +293,7 @@
 				onBulk: setEnabled(!isEnabled),
 				unavailable:
 					hiddenWhen(!isScheduled, discovery_noSchedule(), discovery_noScheduleBulk()) ??
+					writeRefusal ??
 					whileRunning(discovery_cannotToggleWhileRunning()),
 				tooltip: isEnabled ? discovery_disableScheduleTooltip() : discovery_enableScheduleTooltip()
 			},
@@ -324,14 +302,14 @@
 				icon: Edit,
 				isOpen: true,
 				onClick: () => handleEditDiscovery(discovery),
-				unavailable: whileRescan
+				unavailable: writeRefusal ?? whileRescan
 			},
 			{
 				label: common_run(),
 				icon: Play,
 				onClick: () => handleDiscoveryRun(discovery),
 				onBulk: handleBulkRun,
-				unavailable: whileRescan ?? whileRunning(discovery_alreadyRunning())
+				unavailable: writeRefusal ?? whileRescan ?? whileRunning(discovery_alreadyRunning())
 			},
 			{
 				label: common_delete(),
@@ -340,7 +318,9 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteDiscovery(discovery),
-				unavailable: whileRunning(discovery_cannotDeleteWhileRunning())
+				unavailable:
+					refusedUnless(can('Discovery', 'Delete', discovery.site_id)) ??
+					whileRunning(discovery_cannotDeleteWhileRunning())
 			}
 		];
 	}
@@ -378,10 +358,10 @@
 			schedulePaused: () => schedulePaused,
 			getActiveSession,
 			progressCell: () => progressCell,
-			daemonValues: () => daemonValuesQuery.data,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			runTypeValues: () => runTypeValuesQuery.data
+			daemonValues: () => fieldValuesQuery.data?.daemon_id,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.discovery_type,
+			runTypeValues: () => fieldValuesQuery.data?.run_type
 		})
 	);
 </script>
@@ -398,7 +378,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && !isReadOnly}
+	{#if daemonConnected && can('Discovery', 'Write')}
 		<CreateButton onclick={handleCreateDiscovery} />
 	{/if}
 {/snippet}
@@ -416,8 +396,8 @@
 
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />
 	{:else if page.isEmpty(discoveriesQuery)}
@@ -425,8 +405,8 @@
 		<EmptyState
 			title={discovery_noScheduledSessions()}
 			subtitle=""
-			onClick={isReadOnly ? undefined : handleCreateDiscovery}
-			cta={isReadOnly ? undefined : common_create()}
+			onClick={can('Discovery', 'Write') ? handleCreateDiscovery : undefined}
+			cta={can('Discovery', 'Write') ? common_create() : undefined}
 		/>
 	{:else}
 		<DataControls
@@ -442,7 +422,7 @@
 			onQueryChange={page.onQueryChange}
 			serverQuery={{ stale: false }}
 			entityType="Discovery"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={(item) => item.tags}
 			onCsvExport={handleCsvExport}
 			getActions={discoveryActions}

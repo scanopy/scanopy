@@ -7,15 +7,15 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import { pushSuccess } from '$lib/shared/stores/feedback';
-import { formatTimestamp } from '$lib/shared/utils/formatting';
-import { topology_snapshotCreated } from '$lib/paraglide/messages';
-import type { components } from '$lib/api/schema';
-import { useOrganizationQuery } from '$lib/features/organizations/queries';
-import { hasTopologyAccess } from '$lib/features/organizations/types';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
+import { topology_snapshotCreated } from '#lib/paraglide/messages.js';
+import type { components } from '#lib/api/schema';
+import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+import { hasTopologyAccess } from '#lib/features/organizations/types.ts';
 
 export type Snapshot = components['schemas']['Snapshot'];
 

@@ -6,19 +6,19 @@
  */
 
 import { createQuery, createMutation } from '@tanstack/svelte-query';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
 import type { Topology, TopologyEdge, TopologyOptions, RenderableTopology } from './types/base';
 import type { ElementGraphRule } from './types/grouping';
-import type { Organization } from '$lib/features/organizations/types';
+import type { Organization } from '#lib/features/organizations/types.ts';
 import throttle from 'just-throttle';
 import { writable, derived, get } from 'svelte/store';
-import { registerUrlOwner, syncUrl } from '$lib/shared/stores/url-state';
+import { registerUrlOwner, syncUrl } from '#lib/shared/stores/url-state.ts';
 import { UNTAGGED_SENTINEL } from './interactions';
 import { getDefaultHiddenEdgeTypes } from './layout/edge-classification';
-import type { components } from '$lib/api/schema';
-import viewsJson from '$lib/data/views.json';
+import type { components } from '#lib/api/schema';
+import viewsJson from '#lib/data/views.json';
 import { declaredMetadataFilters, filtersFor, type HiddenMetadataValues } from './view-filters';
 
 export type TopologyView = components['schemas']['TopologyView'];
@@ -277,11 +277,12 @@ export function loadTopologyData(
 }
 
 /**
- * One-shot GET that records the `FirstTopologyRebuild` onboarding milestone ("user viewed
- * their topology"). Sends `mark_viewed=true`, which the backend only honours for a live
- * topology that has hosts and a completed discovery. Deliberately NOT routed through
- * `useTopologyDataQuery` (which never sets the flag) so the milestone only fires from an
- * explicit on-tab view, never from background fetches on other tabs.
+ * One-shot GET that records the `OpenTopology` setup item ("user viewed their topology"), and
+ * `ExploreViews` when `view` is not the default view.
+ * Sends `mark_viewed=true`, which the backend only honours for a live topology that has hosts
+ * once the first scan is done. Deliberately NOT routed through `useTopologyDataQuery` (which
+ * never sets the flag) so it is only recorded from an explicit on-tab view, never from
+ * background fetches on other tabs.
  */
 export async function markTopologyViewed(siteId: string, view: TopologyView): Promise<void> {
 	await apiClient.GET('/api/v1/topologies/data', {
@@ -433,7 +434,7 @@ export function useUpdateEdgeHandlesMutation() {
 // UI State (not server data - kept as Svelte stores)
 // ============================================================================
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { type Edge, type Node } from '@xyflow/svelte';
 
 const EXPANDED_STORAGE_KEY = 'scanopy_topology_options_expanded_state';
@@ -466,7 +467,7 @@ export const activeView = writable<TopologyView>('L3Logical');
 
 /** When true, the topology is view-only: entity edits (tags, dependencies,
  *  descriptions), grouping-rule edits, and canvas layout edits are disabled.
- *  Driven by `TopologyTab` from `isReadOnly || a snapshot being selected` — a
+ *  Driven by `TopologyTab` from `can('Topology', 'Write')` and a snapshot being selected. A
  *  snapshot is historical, so it gets the same view-only treatment as an embed.
  *  The single reactive source the inspectors / grouping editor / edit-mode read. */
 export const topologyReadOnly = writable(false);
@@ -621,6 +622,7 @@ export function showEverythingIn(view: string): void {
 			string,
 			HiddenMetadataValues
 		>;
+
 		hideMeta[view] = clearedViewHideSet(view, hideMeta[view]);
 
 		const hideEntities = { ...(opts.request.hide_entities ?? {}) };
@@ -1054,9 +1056,9 @@ class TopologyStream {
 			queryClient.invalidateQueries({ queryKey: queryKeys.snapshots.bySite(siteId) });
 		}
 
-		// Invalidate org cache until FirstTopologyRebuild milestone appears.
+		// Invalidate org cache until OpenTopology is recorded.
 		const org = queryClient.getQueryData<Organization>(queryKeys.organizations.current());
-		if (org && !org.onboarding.includes('FirstTopologyRebuild')) {
+		if (org && !org.setup.includes('OpenTopology')) {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		}
 	}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Pencil } from '@lucide/svelte';
-	import { inspector_editDescription } from '$lib/paraglide/messages';
+	import { inspector_editDescription } from '#lib/paraglide/messages.js';
 
 	function focus(node: HTMLElement) {
 		node.focus();

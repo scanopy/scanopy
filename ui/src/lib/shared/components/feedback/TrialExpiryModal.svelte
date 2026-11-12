@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
 	import { AlertTriangle, CreditCard } from '@lucide/svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import { useHasPendingQuote } from '$lib/features/billing/queries';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { wasDismissedToday, markDismissedToday } from '$lib/shared/utils/dismissed-today';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { hasLicensedPlan } from '#lib/features/organizations/types.ts';
+	import { shouldShowTrialExpiryModal } from '#lib/features/organizations/onload-gates.ts';
+	import { useHasPendingQuote } from '#lib/features/billing/queries.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import { getTrialDaysLeft, isTrialingWithoutPayment } from '#lib/shared/utils/trial.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { wasDismissedToday, markDismissedToday } from '#lib/shared/utils/dismissed-today.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		billing_addPaymentMethod,
 		billing_remindMeLater,
@@ -18,7 +19,7 @@
 		billing_trialModalBodyLicense,
 		billing_trialModalTitleToday,
 		billing_trialModalTitleTomorrow
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const DISMISS_KEY = 'trial_expiry_modal';
 
@@ -49,12 +50,14 @@
 	const hasPendingQuote = useHasPendingQuote();
 
 	let isOpen = $derived(
-		isTrialingWithoutPayment(org, isCloudDeployment) &&
-			!hasPendingQuote.current &&
-			trialDaysLeft !== null &&
-			trialDaysLeft <= 1 &&
-			!dismissedTodayState &&
-			!blocked
+		shouldShowTrialExpiryModal({
+			trialingWithoutPayment: isTrialingWithoutPayment(org, isCloudDeployment),
+			hasPendingQuote: hasPendingQuote.current,
+			pendingQuoteLoading: hasPendingQuote.loading,
+			trialDaysLeft,
+			dismissedToday: dismissedTodayState,
+			blocked
+		})
 	);
 	$effect(() => {
 		open = isOpen;

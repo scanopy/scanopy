@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { FunnelX } from '@lucide/svelte';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	import {
 		topologyOptions,
 		updateTopologyOptions,
@@ -12,7 +12,7 @@
 	import { isDisabledEdge } from '../../../layout/edge-classification';
 	import { useTopology } from '../../../context';
 	import { getTopologyEditState, getOptionDisabledTooltip } from '../../../state';
-	import { edgeTypes, views } from '$lib/shared/stores/metadata';
+	import { edgeTypes, views } from '#lib/shared/stores/metadata.ts';
 	import {
 		activeView,
 		clearedViewHideSet,
@@ -30,11 +30,11 @@
 		type MetadataFilter
 	} from '../../../view-filters';
 	import { getViewCollectiveNoun } from '../../../labels';
-	import { type Color } from '$lib/shared/utils/styling';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
+	import { type Color } from '#lib/shared/utils/styling.ts';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import type { RenderableTopology } from '../../../types/base';
-	import viewsJson from '$lib/data/views.json';
+	import viewsJson from '#lib/data/views.json';
 	import TagFilterGroup from './TagFilterGroup.svelte';
 	import OptionToggle from './OptionToggle.svelte';
 	import CategoryFilterGroup from './CategoryFilterGroup.svelte';
@@ -42,8 +42,8 @@
 	import GroupingRuleEditor from './GroupingRuleEditor.svelte';
 	import ElementSortSelect from './ElementSortSelect.svelte';
 	import EntityFilterHeader from './EntityFilterHeader.svelte';
-	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import { compareTagsByGroup } from '$lib/features/tags/groups';
+	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { compareTagsByGroup } from '#lib/features/tags/groups.ts';
 	import {
 		common_all,
 		common_visual,
@@ -62,7 +62,7 @@
 		topology_displayHelp,
 		topology_nFiltersApplied,
 		topology_clearSectionFilters
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type EntityType = components['schemas']['EntityDiscriminants'];
 
@@ -420,7 +420,7 @@
 		clearFiltersForEntity(entityType);
 		const view = $activeView;
 		updateTopologyOptions((opts) => {
-			const map = ((opts.request.hide_entities ?? {}) as Record<string, EntityType[]>) ?? {};
+			const map = (opts.request.hide_entities ?? {}) as Record<string, EntityType[]>;
 			const current = map[view] ?? [];
 			const next = current.includes(entityType)
 				? current.filter((e) => e !== entityType)

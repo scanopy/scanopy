@@ -1,23 +1,21 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import { siteColumns } from './SitesTab.columns';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import type { Site } from '../types';
 	import SiteEditModal from './SiteEditModal.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import type { CardAction } from '$lib/shared/components/data/types';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions } from '$lib/shared/stores/metadata';
-	import type { TabProps } from '$lib/shared/types';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_confirmBulkDelete,
 		common_create,
@@ -26,9 +24,12 @@
 		common_sites,
 		common_noEntityYet,
 		sites_confirmDelete
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 	import {
 		useSitesQuery,
 		useSitesListQuery,
@@ -37,22 +38,19 @@
 		useDeleteSiteMutation,
 		useBulkDeleteSitesMutation
 	} from '../queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useVlansQuery } from '$lib/features/vlans/queries';
-	import { useDependenciesQuery } from '$lib/features/dependencies/queries';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { isUserManagedSubnet, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useVlansQuery } from '#lib/features/vlans/queries.ts';
+	import { useDependenciesQuery } from '#lib/features/dependencies/queries.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
 
 	type SiteOrderField = components['schemas']['SiteOrderField'];
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 
 	// Queries
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
@@ -64,9 +62,9 @@
 	const sitesQuery = useSitesQuery();
 	const page = listPageState(() => isActive);
 	const sitesPageQuery = useSitesListQuery(() => page.params());
-	const staleWindowValuesQuery = useFieldValuesQuery(
-		'/api/v1/sites/field-values/{field}',
-		'effective_stale_after_hours',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/sites/field-values',
+		['effective_stale_after_hours'],
 		undefined,
 		() => isActive
 	);
@@ -76,15 +74,6 @@
 	const vlansQuery = useVlansQuery();
 	const credentialsQuery = useCredentialsQuery();
 	useDependenciesQuery();
-
-	// Only the hosts the daemons run on: each daemon chip needs one host name,
-	// and an unpaginated org-wide hosts query is ~1.9MB, shared by key with
-	// every other consumer.
-	let daemonHostIds = $derived([
-		...new Set((daemonsQuery.data ?? []).map((d) => d.host_id).filter((id): id is string => !!id))
-	]);
-	const daemonHostsQuery = useHostsByIds(() => daemonHostIds);
-	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
 
 	// Mutations
 	const createSiteMutation = useCreateSiteMutation();
@@ -130,25 +119,26 @@
 		}
 	});
 
-	let canManageSites = $derived(
-		!isReadOnly && currentUser
-			? permissions.getMetadata(currentUser.permissions).manage_org_entities
-			: false
-	);
-
 	/** Row actions. */
-	function siteActions(site: Site): CardAction[] {
-		if (!canManageSites) return [];
+	function siteActions(site: Site): RowAction[] {
+		if (!can('Site', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditSite(site) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditSite(site),
+				unavailable: refusedUnless(can('Site', 'Write', site.id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteSite(site)
+				onClick: () => handleDeleteSite(site),
+				unavailable: refusedUnless(can('Site', 'Delete', site.id))
 			}
 		];
 	}
@@ -221,11 +211,10 @@
 			lookup: () => lookup,
 			tags: () => tagsData,
 			daemons: () => daemonsData,
-			daemonHosts: () => daemonHosts,
 			subnets: () => subnetsData,
 			vlans: () => vlansData,
 			credentials: () => credentialsData,
-			staleWindowValues: () => staleWindowValuesQuery.data
+			staleWindowValues: () => fieldValuesQuery.data?.effective_stale_after_hours
 		})
 	);
 </script>
@@ -244,7 +233,7 @@
 				{sitesData.length} / {siteLimit}
 			</span>
 		{/if}
-		{#if canManageSites}
+		{#if can('NewSite', 'Write')}
 			<CreateButton
 				onclick={handleCreateSite}
 				upgrade={isAtSiteLimit
@@ -265,8 +254,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_sites() })}
 			subtitle=""
-			onClick={handleCreateSite}
-			cta={common_create()}
+			onClick={can('NewSite', 'Write') ? handleCreateSite : undefined}
+			cta={can('NewSite', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -275,7 +264,7 @@
 			items={pageSites}
 			fields={siteFields}
 			entityType="Site"
-			canEditTags={canManageSites}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getSiteTags}
 			storageKey="scanopy-sites-table-state"
 			defaults={tableDefaults}

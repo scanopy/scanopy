@@ -1,7 +1,8 @@
 //! Drive the real collection against a simulated device.
 //!
 //! [`collect`] runs the daemon's own query functions, in the order and with the dependencies
-//! `SnmpIntegration::execute` uses, against a device's [`super::transport::SimAgent`]. A device
+//! `SnmpIntegration::execute` uses, against a device's [`super::transport::SimAgent`].
+//! [`collect_over`] runs the same reads through any transport, a real session included. A device
 //! test then asserts on what the daemon actually read — not on the fixture, which would only
 //! prove the fixture equals itself.
 //!
@@ -12,11 +13,19 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 
+use anyhow::Result;
+use snmp2::Value;
+
 use super::SimDevice;
-use crate::daemon::discovery::integration::snmp::queries::{IfTableWalk, SnmpCollection};
+use super::transport::SimAgent;
+use crate::daemon::discovery::integration::snmp::catalog::SnmpRequest;
+use crate::daemon::discovery::integration::snmp::oids::oid_parts;
+use crate::daemon::discovery::integration::snmp::queries::{
+    IfTableWalk, SnmpCollection, SnmpWalkTransport, Varbinds, WalkPage, query_lldp_local,
+};
 use crate::daemon::discovery::integration::snmp::types::{
     ArpEntry, BridgeFdbEntry, CdpNeighbor, DeviceInventory, IfTableEntry, IpAddrEntry,
-    LldpLocalPort, LldpNeighbor, PortVlanMembership, SystemInfo, VlanInfo,
+    LldpLocalInfo, LldpLocalPort, LldpNeighbor, PortVlanMembership, SystemInfo, VlanInfo,
 };
 use crate::daemon::discovery::integration::snmp::{
     LocalPortOutcome, count_dropped_neighbours, query_arp_table, query_bridge_fdb,
@@ -65,6 +74,12 @@ pub struct Collected {
     /// The VLAN table and each port's native and tagged VLANs, by ifIndex.
     pub vlans: Vec<VlanInfo>,
     pub vlan_membership: Vec<PortVlanMembership>,
+    /// The device's own LLDP chassis ID, the last read `execute` makes and the one that gives the
+    /// device an identity other devices' neighbour tables can resolve to.
+    pub lldp_local: Option<LldpLocalInfo>,
+    /// VLAN member ports the device named that matched no interface, which `execute` reports as
+    /// a warning.
+    pub vlan_ports_unresolved: usize,
     /// Every group's outcome, built from the reads above as `SnmpIntegration::execute` builds it,
     /// so a device test can run the same warning derivation the daemon runs.
     pub outcome: SnmpCollectionOutcome,
@@ -121,25 +136,109 @@ impl Collected {
     }
 }
 
+/// One request a collection made of a device.
+#[derive(Debug, Clone)]
+pub struct Recorded {
+    pub oid: Vec<u64>,
+    pub request: SnmpRequest,
+    /// The page size asked for, on a GETBULK.
+    pub max_repetitions: Option<u32>,
+}
+
+impl Recorded {
+    pub fn is_under(&self, subtree: &str) -> bool {
+        self.oid.starts_with(&oid_parts(subtree))
+    }
+}
+
+/// A sim agent that remembers every request made of it.
+pub struct Recording {
+    inner: SimAgent,
+    pub requests: Vec<Recorded>,
+}
+
+impl Recording {
+    pub fn new(inner: SimAgent) -> Self {
+        Self {
+            inner,
+            requests: Vec::new(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl SnmpWalkTransport for Recording {
+    fn getbulk_unusable(&self) -> bool {
+        self.inner.getbulk_unusable()
+    }
+
+    fn note_getbulk_unusable(&mut self) {
+        self.inner.note_getbulk_unusable()
+    }
+
+    async fn walk_getbulk<'a>(
+        &'a mut self,
+        from: &[u64],
+        max_repetitions: u32,
+    ) -> Result<WalkPage<'a>> {
+        self.requests.push(Recorded {
+            oid: from.to_vec(),
+            request: SnmpRequest::Walk,
+            max_repetitions: Some(max_repetitions),
+        });
+        self.inner.walk_getbulk(from, max_repetitions).await
+    }
+
+    async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
+        self.requests.push(Recorded {
+            oid: from.to_vec(),
+            request: SnmpRequest::Walk,
+            max_repetitions: None,
+        });
+        self.inner.walk_getnext(from).await
+    }
+
+    async fn get_scalar<'a>(&'a mut self, oid: &[u64]) -> Result<Option<Value<'a>>> {
+        self.requests.push(Recorded {
+            oid: oid.to_vec(),
+            request: SnmpRequest::Get,
+            max_repetitions: None,
+        });
+        self.inner.get_scalar(oid).await
+    }
+}
+
 /// Run a full collection against a device.
 pub async fn collect(device: &SimDevice) -> Collected {
-    let mut agent = device.agent();
+    collect_over(&mut device.agent(), device).await
+}
+
+/// Collect one device by name, returning every request the collection sent with what it read.
+pub async fn recorded_scan(name: &str) -> (Collected, Vec<Recorded>) {
+    let device = super::device(name);
+    let mut agent = Recording::new(device.agent());
+    let collected = collect_over(&mut agent, &device).await;
+    (collected, agent.requests)
+}
+
+/// Run a full collection of `device` over `agent`: its [`super::transport::SimAgent`], or a real
+/// session to its [`super::udp::UdpAgent`] for a defect that lives in the session.
+///
+/// The reads follow `execute`'s order, because one session serves them all and what an earlier
+/// read leaves behind is part of what a later one meets. GH #848 is CDP's timed-out request
+/// breaking the `lldpLocPortTable` read that follows it.
+pub async fn collect_over<T: SnmpWalkTransport>(agent: &mut T, device: &SimDevice) -> Collected {
     let ip: IpAddr = device.ip.into();
 
-    let system = query_system_info(&mut agent, ip).await.unwrap_or_default();
-    let if_table = walk_if_table(&mut agent, ip).await.unwrap_or_default();
+    let system = query_system_info(agent, ip).await.unwrap_or_default();
+    let if_table = walk_if_table(agent, ip).await.unwrap_or_default();
 
-    // The local-port table is read before the neighbours because the remap needs both, which is
-    // the order `execute` uses.
-    let local_port_walk = query_lldp_local_ports(&mut agent, ip)
-        .await
-        .unwrap_or_default();
+    let mut neighbours = query_lldp_neighbors(agent, ip).await.unwrap_or_default();
+    let cdp = query_cdp_neighbors(agent, ip).await.unwrap_or_default();
+    let local_port_walk = query_lldp_local_ports(agent, ip).await.unwrap_or_default();
     let local_ports_complete = local_port_walk.complete;
     let local_port_walk_reason = local_port_walk.reason;
     let local_ports = local_port_walk.records;
-    let mut neighbours = query_lldp_neighbors(&mut agent, ip)
-        .await
-        .unwrap_or_default();
     // As in `execute`: neighbours read from the LLDP-V2-MIB are keyed by ifIndex already and are
     // not remapped (GH #688).
     let local_port_outcome = if neighbours.local_port_is_if_index {
@@ -153,26 +252,26 @@ pub async fn collect(device: &SimDevice) -> Collected {
     let dropped_neighbours =
         count_dropped_neighbours(&neighbours.records, &local_ports, &if_table.entries);
 
-    let arp = query_arp_table(&mut agent, ip).await.unwrap_or_default();
-    let cdp = query_cdp_neighbors(&mut agent, ip)
+    let ip_addr_walk = query_ip_addr_table(agent, ip).await.unwrap_or_default();
+    let arp = query_arp_table(agent, ip).await.unwrap_or_default();
+    let entity = query_entity_physical(agent, ip).await.unwrap_or_default();
+    let bridge_mapping = query_bridge_port_mapping(agent, ip)
         .await
         .unwrap_or_default();
-    let bridge_mapping = query_bridge_port_mapping(&mut agent, ip)
+    let fdb = query_bridge_fdb(agent, ip, &bridge_mapping)
         .await
         .unwrap_or_default();
-    let fdb = query_bridge_fdb(&mut agent, ip, &bridge_mapping)
+    // From the definition, not from `system`: snmpd answers the system group itself and the
+    // in-process agent models only the `pass` tables, so the scalars above come back empty here.
+    let sys_object_id = device.system.sys_object_id.as_deref();
+    let vlan_names = query_vlan_table(agent, ip, sys_object_id)
         .await
         .unwrap_or_default();
-    let entity = query_entity_physical(&mut agent, ip)
+    let vlan_membership = query_port_vlan_membership(agent, ip, &bridge_mapping, sys_object_id)
         .await
         .unwrap_or_default();
-    let ip_addr_walk = query_ip_addr_table(&mut agent, ip)
-        .await
-        .unwrap_or_default();
-    let vlan_names = query_vlan_table(&mut agent, ip).await.unwrap_or_default();
-    let vlan_membership = query_port_vlan_membership(&mut agent, ip, &bridge_mapping)
-        .await
-        .unwrap_or_default();
+    let vlan_ports_unresolved = vlan_membership.discarded;
+    let lldp_local = query_lldp_local(agent, ip).await.unwrap_or_default();
 
     // `execute` reads the local port table only when there are classic neighbours to place, and
     // a table it never asked for is not a shortfall.
@@ -243,6 +342,8 @@ pub async fn collect(device: &SimDevice) -> Collected {
         ip_addr_table,
         vlans: vlan_names.records,
         vlan_membership: vlan_membership.records,
+        lldp_local,
+        vlan_ports_unresolved,
         outcome,
     }
 }

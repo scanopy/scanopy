@@ -24,7 +24,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use pnet::datalink::{self, Channel, NetworkInterface};
+use pnet::datalink::{self, Channel, DataLinkReceiver, NetworkInterface};
 use pnet::packet::Packet;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet::packet::ip::IpNextHeaderProtocols;
@@ -33,6 +33,7 @@ use pnet::packet::ipv6::Ipv6Packet;
 use pnet::packet::tcp::{TcpFlags, TcpOptionNumbers, TcpPacket};
 
 use crate::server::hosts::r#impl::os::HostOsFamily;
+use crate::server::subnets::r#impl::base::Subnet;
 
 /// How long one receive waits before the listener checks whether it has been stopped.
 const READ_TIMEOUT: Duration = Duration::from_millis(250);
@@ -161,6 +162,62 @@ fn initial_ttl(observed: u8) -> u8 {
         .unwrap_or(255)
 }
 
+/// The interfaces a capture listens on: those that are up, not loopback, and carry an IPv4
+/// address inside a subnet this scan covers. A SYN-ACK answering the scan arrives on one of
+/// them. A veth (no IPv4) or a container bridge the session does not scan never does, and a
+/// host running dozens of containers has one of each per container.
+pub(crate) fn capture_interfaces(
+    nics: Vec<NetworkInterface>,
+    scanned_subnets: &[Subnet],
+) -> Vec<NetworkInterface> {
+    nics.into_iter()
+        .filter(|nic| nic.is_up() && !nic.is_loopback())
+        .filter(|nic| {
+            nic.ips.iter().any(|ip| {
+                ip.is_ipv4()
+                    && scanned_subnets
+                        .iter()
+                        .any(|s| s.base.cidr.contains(&ip.ip()))
+            })
+        })
+        .collect()
+}
+
+/// Read frames until `stop` is set, recording the first SYN-ACK from each address.
+///
+/// A timeout or an interrupted wait reads again. Any other error ends the loop and is returned:
+/// pnet reports a socket the kernel flagged (its device went down or was deleted, as a veth is
+/// on every container restart) as an error on every read without blocking, so reading on would
+/// spin a core for the rest of the scan.
+fn capture_loop(
+    rx: &mut dyn DataLinkReceiver,
+    stop: &AtomicBool,
+    seen: &Mutex<HashMap<IpAddr, TcpStackFingerprint>>,
+) -> Option<std::io::Error> {
+    while !stop.load(Ordering::Relaxed) {
+        let frame = match rx.next() {
+            Ok(frame) => frame,
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::TimedOut
+                        | std::io::ErrorKind::Interrupted
+                        | std::io::ErrorKind::WouldBlock
+                ) =>
+            {
+                continue;
+            }
+            Err(e) => return Some(e),
+        };
+        if let Some((source, fingerprint)) = TcpStackFingerprint::from_frame(frame)
+            && let Ok(mut seen) = seen.lock()
+        {
+            seen.entry(source).or_insert(fingerprint);
+        }
+    }
+    None
+}
+
 /// The SYN-ACKs captured on the scanning interfaces while a scan runs: the first one from each
 /// address. Listening stops when this is dropped.
 pub struct TcpStackCapture {
@@ -198,16 +255,12 @@ impl TcpStackCapture {
             let seen = seen.clone();
             let stop = stop.clone();
             std::thread::spawn(move || {
-                while !stop.load(Ordering::Relaxed) {
-                    // A timeout or a transient read error both just mean "check again".
-                    let Ok(frame) = rx.next() else {
-                        continue;
-                    };
-                    if let Some((source, fingerprint)) = TcpStackFingerprint::from_frame(frame)
-                        && let Ok(mut seen) = seen.lock()
-                    {
-                        seen.entry(source).or_insert(fingerprint);
-                    }
+                if let Some(e) = capture_loop(rx.as_mut(), &stop, &seen) {
+                    tracing::debug!(
+                        interface = %interface.name,
+                        error = %e,
+                        "SYN-ACK capture stopped on this interface: its channel returned an error"
+                    );
                 }
             });
         }
@@ -280,6 +333,87 @@ mod tests {
         frame[34 + 13] = 0x10; // ACK only
         assert_eq!(TcpStackFingerprint::from_frame(&frame), None);
         assert_eq!(TcpStackFingerprint::from_frame(&[0u8; 10]), None);
+    }
+
+    const IFF_UP: u32 = 0x1;
+
+    fn nic(name: &str, ips: &[&str]) -> NetworkInterface {
+        NetworkInterface {
+            name: name.to_string(),
+            description: String::new(),
+            index: 0,
+            mac: None,
+            ips: ips.iter().map(|ip| ip.parse().unwrap()).collect(),
+            flags: IFF_UP,
+        }
+    }
+
+    /// A host running about sixty containers: one LAN NIC, the default bridge, a dozen
+    /// per-network bridges and a veth per container. The session scans the LAN only, so the
+    /// capture opens one socket.
+    #[test]
+    fn a_capture_listens_only_on_interfaces_carrying_a_scanned_subnet() {
+        let mut nics = vec![
+            nic("enp6s18", &["192.168.1.10/24", "fe80::1/64"]),
+            nic("docker0", &["172.17.0.1/16", "fe80::2/64"]),
+        ];
+        for i in 0..12 {
+            nics.push(nic(
+                &format!("br-{:012x}", 0xabc000 + i),
+                &[&format!("172.{}.0.1/16", 18 + i)],
+            ));
+        }
+        for i in 0..46 {
+            nics.push(nic(&format!("veth{i:07x}"), &["fe80::3/64"]));
+        }
+        let lan = Subnet::from_discovery(
+            "enp6s18".to_string(),
+            &"192.168.1.10/24".parse().unwrap(),
+            uuid::Uuid::nil(),
+            crate::server::shared::attribution::AttributeSource::DaemonSelfReport,
+        )
+        .unwrap();
+
+        let names: Vec<String> = capture_interfaces(nics, &[lan])
+            .into_iter()
+            .map(|nic| nic.name)
+            .collect();
+
+        assert_eq!(names, vec!["enp6s18".to_string()]);
+    }
+
+    /// Returns `Other` on every read, as pnet does once the kernel has flagged the socket with
+    /// an error (a veth deleted under it). Sets `stop` after `limit` reads so a loop that never
+    /// gives up still ends the test.
+    struct FailingReceiver {
+        reads: usize,
+        limit: usize,
+        stop: Arc<AtomicBool>,
+    }
+
+    impl DataLinkReceiver for FailingReceiver {
+        fn next(&mut self) -> std::io::Result<&[u8]> {
+            self.reads += 1;
+            if self.reads >= self.limit {
+                self.stop.store(true, Ordering::Relaxed);
+            }
+            Err(std::io::Error::other("Unexpected poll event"))
+        }
+    }
+
+    #[test]
+    fn a_capture_stops_reading_an_interface_that_errors() {
+        let stop = Arc::new(AtomicBool::new(false));
+        let mut rx = FailingReceiver {
+            reads: 0,
+            limit: 1000,
+            stop: stop.clone(),
+        };
+
+        let error = capture_loop(&mut rx, &stop, &Mutex::new(HashMap::new()));
+
+        assert_eq!(rx.reads, 1);
+        assert!(error.is_some());
     }
 
     #[test]

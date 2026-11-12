@@ -379,7 +379,8 @@ pub(crate) mod tests {
                 panic!("{stem}: {e}");
             }
         }
-        let problems = TermsCatalog::from_files(files).check_dates(chrono::Utc::now().date_naive());
+        let problems = TermsCatalog::from_files(files)
+            .check_dates(crate::server::shared::clock::now().date_naive());
         assert!(problems.is_empty(), "{problems:#?}");
     }
 }

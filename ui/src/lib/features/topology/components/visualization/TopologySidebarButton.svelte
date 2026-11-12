@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
 
 	let {
 		onclick,

@@ -6,7 +6,7 @@
  * bounds and call `fitBounds`, which moves at once, so the bounds have to be right.
  */
 import { describe, it, expect } from 'vitest';
-import { boundsOfAdoptedNodes, type AdoptedNode } from '$lib/features/topology/viewport-fit';
+import { boundsOfAdoptedNodes, type AdoptedNode } from '#lib/features/topology/viewport-fit.ts';
 
 const node = (x: number, y: number, width: number, height: number): AdoptedNode => ({
 	internals: { positionAbsolute: { x, y } },

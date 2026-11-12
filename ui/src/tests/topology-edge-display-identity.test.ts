@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Edge } from '@xyflow/svelte';
-import { computeEdgeDisplayUpdates } from '$lib/features/topology/pipeline/sync-edge-display';
-import { setEdgeHover, clearEdgeHoverState } from '$lib/features/topology/interactions';
+import { computeEdgeDisplayUpdates } from '#lib/features/topology/pipeline/sync-edge-display.ts';
+import { setEdgeHover, clearEdgeHoverState } from '#lib/features/topology/interactions.ts';
 
 /**
  * `computeEdgeDisplayUpdates` runs on every selection change and every edge

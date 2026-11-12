@@ -1,31 +1,26 @@
-import { entityRef, type LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { tagNames } from '$lib/features/tags/columns';
+import { entityRef, type LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
 import {
 	entities,
 	entitySources,
 	guestStates,
 	matchConfidences
-} from '$lib/shared/stores/metadata';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import type { components, operations } from '$lib/api/schema';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
+} from '#lib/shared/stores/metadata.ts';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import type { components, operations } from '#lib/api/schema';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
 import type { Service } from '../types/base';
 import {
 	common_containerizedBy,
-	common_firstFoundBy,
-	common_lastFoundBy,
-	common_created,
 	common_host,
-	common_lastSeen,
-	common_category,
 	common_tags,
 	common_type,
 	common_portBindings,
@@ -33,22 +28,20 @@ import {
 	common_unknown,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
-	services_matchConfidence,
 	services_notContainerized,
 	services_notDiscovered,
 	meta_entities_Service_field_guest_state_label
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import {
 	serviceDefinitions,
 	serviceCategories as serviceCategoryMeta,
 	concepts
-} from '$lib/shared/stores/metadata';
+} from '#lib/shared/stores/metadata.ts';
 import {
 	fieldValueOptions,
 	hasEmptyFieldValue,
 	type FieldValueCount
-} from '$lib/shared/api/field-values';
+} from '#lib/shared/api/field-values.ts';
 
 type ServiceOrderField = components['schemas']['ServiceOrderField'];
 /** The service list endpoint's query params, which the filters are sent and linked as. */
@@ -178,15 +171,14 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 					]
 				}
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// Staleness rides on the date rather than a Status column of its own: a
 			// service has no status, and `getFreshnessTag` returns a tag only when
 			// the row is past its site's window — so the column was empty on
 			// every healthy service. `getItems` returning undefined falls back to
 			// the date.
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				staleFilter: true,
 				display: {
@@ -237,7 +229,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 				}
 			},
 			match_confidence: {
-				label: services_matchConfidence(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
@@ -326,7 +317,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'category',
-				label: common_category(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
@@ -357,7 +347,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -366,7 +355,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

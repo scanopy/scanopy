@@ -452,7 +452,7 @@ mod tests {
 
     /// Valid claims for `CLIENT_ID`; tests change one thing at a time.
     fn claims(audiences: &[&str]) -> CoreIdTokenClaims {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         CoreIdTokenClaims::new(
             IssuerUrl::new(ISSUER.to_string()).unwrap(),
             audiences
@@ -529,7 +529,10 @@ mod tests {
 
     #[test]
     fn an_expired_token_is_rejected() {
-        let token = sign(claims(&[CLIENT_ID]).set_expiration(Utc::now() - Duration::minutes(1)));
+        let token = sign(
+            claims(&[CLIENT_ID])
+                .set_expiration(crate::server::shared::clock::now() - Duration::minutes(1)),
+        );
         assert!(verify(&provider(), &token).is_err());
     }
 

@@ -1,8 +1,8 @@
 import posthog from 'posthog-js';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { Organization } from '$lib/features/organizations/types';
-import { billingPlans } from '$lib/shared/stores/metadata';
-import { campaignParams, getFirstTouch, getSessionEntry } from '$lib/shared/utils/first-touch';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
+import { billingPlans } from '#lib/shared/stores/metadata.ts';
+import { campaignParams, getFirstTouch, getSessionEntry } from '#lib/shared/utils/first-touch.ts';
 
 // Event queue for events that fire before PostHog loads
 type QueuedEvent =

@@ -286,7 +286,9 @@ pub async fn query_lldp_neighbors_for<T: SnmpWalkTransport>(
     );
     if discarded > 0 {
         shortfall.complete = false;
-        warn!(
+        // Reported on the run as a malformed-neighbours warning. This keeps the per-column
+        // counts, which the warning does not carry.
+        tracing::debug!(
             ip = %ip,
             dropped = discarded,
             ghost_rows,

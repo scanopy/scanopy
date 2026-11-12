@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import type { Site } from '$lib/features/sites/types';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
 import {
 	buildElementRender,
-	entityTooltip,
-	hostTooltip,
 	type ElementRenderInputs
-} from '$lib/features/topology/element-render-data';
-import { inlineGroupKey } from '$lib/features/topology/collapse';
-import { hiddenEntityTypesIn } from '$lib/features/topology/queries';
+} from '#lib/features/topology/element-render-data.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import { entityTooltip, hostTooltip } from '#lib/shared/entity-tooltip.ts';
+import { inlineGroupKey } from '#lib/features/topology/collapse.ts';
+import { hiddenEntityTypesIn } from '#lib/features/topology/queries.ts';
 import {
 	elementWidthPx,
 	ICON_ELEMENT_WIDTH_PX
-} from '$lib/features/topology/pipeline/build-flow-nodes';
-import { formatBitsPerSecond, formatPort } from '$lib/shared/utils/formatting';
-import { deviceTypes, hostVirtualizations } from '$lib/shared/stores/metadata';
+} from '#lib/features/topology/pipeline/build-flow-nodes.ts';
+import { formatBitsPerSecond, formatPort } from '#lib/shared/utils/formatting.ts';
+import { deviceTypes, hostVirtualizations } from '#lib/shared/stores/metadata.ts';
 
 /**
  * What an icon card carries now that it is the only card: a port carries its oper status, a
@@ -170,7 +170,7 @@ describe('a port draws as an icon card', () => {
 		expect(result.iconCard?.label).toBe('Gi1/0/1');
 		expect(result.marks.Status?.id).toBe('Up');
 		const rows = result.iconCard!.tooltip().sections.flatMap((s) => ('rows' in s ? s.rows : []));
-		expect(rows.some((r) => r?.dot)).toBe(true);
+		expect(rows.some((r) => r?.chips?.some((c) => c.type === 'Tag'))).toBe(true);
 		expect(rowValues(result.iconCard!.tooltip())).toContain(formatBitsPerSecond(1_000_000_000));
 	});
 });
@@ -189,9 +189,11 @@ describe('a manager box opens and closes', () => {
 });
 
 describe('facts the detailed card printed reach the tooltip', () => {
-	it("names an address card's address", () => {
-		const result = render(addressNode, 'L3Logical');
-		expect(rowValues(result.iconCard!.tooltip())).toContain('mgmt');
+	it("gives an address card the address's tooltip, not its host's", () => {
+		const tooltip = render(addressNode, 'L3Logical').iconCard!.tooltip();
+		expect(rowValues(tooltip)).toContain('mgmt');
+		expect(rowValues(tooltip)).toContain('guest');
+		expect(rowValues(tooltip)).not.toContain(deviceTypes.getName('Unidentified'));
 	});
 
 	it('lists each service with the ports it listens on at this address only, set apart', () => {
@@ -216,31 +218,29 @@ describe('facts the detailed card printed reach the tooltip', () => {
 });
 
 describe('a container tooltip comes from the entity it stands for', () => {
-	const ctx = (view: string) => ({ topology: buildTopology(), view, sites: [SITE] });
+	const ctx = () => ({ lookup: topologyLookup(buildTopology()) });
 
 	it("shows a subnet's summary fields", () => {
 		const subnet = buildTopology().subnets[0];
-		expect(rowValues(entityTooltip('Subnet', subnet, ctx('L3Logical')))).toContain('10.0.0.0/24');
+		expect(rowValues(entityTooltip('Subnet', subnet, ctx()))).toContain('10.0.0.0/24');
 	});
 
 	it("names a subnet's VLANs, and adds no VLAN row to a subnet without any", () => {
 		const [lan, dmz] = buildTopology().subnets;
-		expect(rowValues(entityTooltip('Subnet', lan, ctx('L3Logical')))).toContain('10');
+		expect(rowValues(entityTooltip('Subnet', lan, ctx()))).toContain('10');
 		const vlanLabel = (s: object) =>
-			entityTooltip('Subnet', s, ctx('L3Logical')).sections.flatMap((sec) =>
+			entityTooltip('Subnet', s, ctx()).sections.flatMap((sec) =>
 				'rows' in sec && sec.rows ? sec.rows.map((r) => r.label) : []
 			);
 		const vlanRow = vlanLabel(lan).find((l) => !vlanLabel(dmz).includes(l));
 		expect(vlanRow).toBeDefined();
 	});
 
-	it('shows a host the way its card does, in any view', () => {
+	it('shows a host the way its card does', () => {
 		const host = buildTopology().hosts.find((h) => h.id === 'switch')!;
-		for (const view of ['L2Physical', 'Workloads']) {
-			expect(rowValues(entityTooltip('Host', host, ctx(view)))).toContain(
-				deviceTypes.getName('Unidentified')
-			);
-		}
+		expect(rowValues(entityTooltip('Host', host, ctx()))).toContain(
+			deviceTypes.getName('Unidentified')
+		);
 	});
 });
 

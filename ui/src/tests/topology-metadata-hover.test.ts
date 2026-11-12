@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { matchesHoveredMetadata, type HoveredMetadata } from '$lib/features/topology/interactions';
-import { containerEntity, elementEntity } from '$lib/features/topology/resolvers';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { Site } from '$lib/features/sites/types';
-import { getFreshnessTag } from '$lib/shared/utils/freshness';
+import {
+	matchesHoveredMetadata,
+	type HoveredMetadata
+} from '#lib/features/topology/interactions.ts';
+import { containerEntity, elementEntity } from '#lib/features/topology/resolvers.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = new Date('2026-07-22T12:00:00Z').getTime();

@@ -1,9 +1,11 @@
 <script lang="ts">
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import { licenseProblemMessage } from './license-problem';
 	import {
 		useOrganizationQuery,
 		useUpdateOrganizationMutation,
@@ -11,19 +13,19 @@
 		usePopulateDemoDataMutation,
 		useDeleteOrganizationMutation,
 		fetchDemoPopulateStatus
-	} from '$lib/features/organizations/queries';
-	import { queryClient } from '$lib/api/query-client';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	} from '#lib/features/organizations/queries.ts';
+	import { queryClient } from '#lib/api/query-client.ts';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { hasLicensedPlan } from '#lib/features/organizations/types.ts';
 	import { resolve } from '$app/paths';
-	import { formatLongDate, formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatLongDate, formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { required, max } from '$lib/shared/components/forms/validators';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { useModalActions } from '$lib/shared/components/layout/modalActionsContext.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { useModalActions } from '#lib/shared/components/layout/modalActionsContext.svelte.ts';
 	import {
 		common_back,
 		common_created,
@@ -50,9 +52,12 @@
 		settings_org_deleteSuccess,
 		settings_org_deleteTypeName,
 		settings_org_info,
+		settings_billing_license_installLinkText,
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_validThrough,
+		settings_org_communityLicenseHint,
 		settings_org_licenseKeyType,
+		settings_org_licenseStatus,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -66,7 +71,7 @@
 		settings_org_unableToLoad,
 		settings_org_updateName,
 		settings_org_updated
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		subView = $bindable<'main' | 'edit'>('main')
@@ -75,8 +80,6 @@
 	} = $props();
 
 	// TanStack Query for current user
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
@@ -95,9 +98,10 @@
 	let showDeleteConfirm = $state(false);
 
 	const configQuery = useConfigQuery();
+	const can = useCan();
 
 	let org = $derived(organizationQuery.data);
-	let isOwner = $derived(currentUser?.permissions === 'Owner');
+	let isOwner = $derived(can('Organization', 'Write'));
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
 	// Reset and populate-demo hit main-app routes, which stay locked on a licensed
 	// plan.
@@ -164,7 +168,7 @@
 			// A full load, as logout does: `queryClient.clear()` orphans the queries of
 			// components that stay mounted across a client-side navigation (AppShell's
 			// banners and payment dialog), which would keep showing the deleted org.
-			window.location.assign(resolve('/onboarding'));
+			window.location.assign(resolve('onboarding'));
 		} catch {
 			// API client middleware auto-toasts the translated error message
 			// (e.g. "Cancel your subscription before deleting your organization").
@@ -256,6 +260,19 @@
 									? common_online()
 									: common_offline()}
 							</InfoRow>
+						{/if}
+						{#if configQuery.data?.license_problem}
+							<InfoRow label={settings_org_licenseStatus()}>
+								{licenseProblemMessage(configQuery.data.license_problem)}
+							</InfoRow>
+						{/if}
+						{#if configQuery.data?.deployment_type === 'community'}
+							<DocsHint
+								class="mt-2"
+								text={settings_org_communityLicenseHint()}
+								href="https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial"
+								linkText={settings_billing_license_installLinkText()}
+							/>
 						{/if}
 						{#if configQuery.data?.license_key_type === 'Online'}
 							<InfoRow label={settings_billing_license_lastCheckIn()}>

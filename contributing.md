@@ -103,12 +103,12 @@ This is a great way to contribute without needing to set up a development enviro
 2. **Install development dependencies**
 
     On Ubuntu/Debian:
-   1. Install NVM and Node.js 22
+   1. Install NVM and Node.js 24
 
         ```bash
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
-        nvm install 22
-        nvm use 22
+        nvm install 24
+        nvm use 24
         ```
 
    2. Install postgresql-17

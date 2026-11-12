@@ -16,9 +16,7 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::hosts::r#impl::api::HostResponse;
 use crate::server::hosts::r#impl::base::{Host, HostBase};
-use crate::server::hosts::r#impl::virtualization::{
-    HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization,
-};
+use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
 use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, InterfaceDataComplete};
 use crate::server::ip_addresses::r#impl::base::{
     IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
@@ -119,14 +117,10 @@ fn interface(lab: &Lab, name: &str, mac_address: &str, source: AttributeSource) 
     })
 }
 
-fn snmp_test() -> HostBase {
+/// The `snmp-test` VM (107) as a guest of `kind`: the rules hold under every hypervisor.
+fn snmp_test(kind: HostVirtualizationDiscriminants) -> HostBase {
     HostBase {
-        virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
-            state: Default::default(),
-            vm_name: Some("snmp-test".to_string()),
-            vm_id: Some("107".to_string()),
-            guest_type: Some(ProxmoxGuestType::Qemu),
-        })),
+        virtualization_metadata: Some(kind.guest("snmp-test", "107")),
         ..Default::default()
     }
 }
@@ -191,120 +185,122 @@ async fn service_names(services: &ServiceFactory, host_id: Uuid) -> Vec<String> 
 }
 
 /// snmp-test carrying two other devices: the VMware guest at 6.1 with its Gateway service, and
-/// switch-bulkdrop-01 at .231 with its SNMP service and its three-port ifTable. Its next Proxmox
+/// switch-bulkdrop-01 at .231 with its SNMP service and its three-port ifTable. Its next hypervisor
 /// report names eth0 and the `mv-snmp231` link. Each device's rows leave for a host of their own,
 /// with what is bound only to them; the VM keeps its own address and its link; and .231's own
 /// next payload finds .231's new host, not the VM.
 #[tokio::test]
 async fn a_guests_report_gives_other_devices_their_rows_back() {
     let (storage, services, _container) = test_services().await;
-    let org = organization();
-    storage.organizations.create(&org).await.unwrap();
-    let lab = lab(&services, org.id).await;
+    for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+        let org = organization();
+        storage.organizations.create(&org).await.unwrap();
+        let lab = lab(&services, org.id).await;
 
-    let own = address(&lab, "192.168.4.21", ETH0, AttributeSource::ArpReply);
-    let vmware = address(&lab, "192.168.6.1", VMWARE_GUEST, AttributeSource::ArpReply);
-    let switch = address(&lab, "192.168.7.231", MV_SNMP231, AttributeSource::ArpReply);
-    let snmp = AttributeSource::Probe(ClientProbe::Snmp);
-    let vm = discover(
-        &services,
-        &lab,
-        HostBase::default(),
-        vec![own, vmware.clone(), switch.clone()],
-        vec![
-            bound_service(&lab, "Gateway", &vmware),
-            bound_service(&lab, "SNMP", &switch),
-        ],
-        vec![
-            interface(&lab, "Gi0/1", "00:1a:2b:00:5c:01", snmp),
-            interface(&lab, "Gi0/2", "00:1a:2b:00:5c:02", snmp),
-            interface(&lab, "Gi0/3", "00:1a:2b:00:5c:03", snmp),
-        ],
-    )
-    .await;
-    assert_eq!(
-        ips_of(&services, vm.id).await.len(),
-        3,
-        "the stray state reproduces"
-    );
-
-    let reported = discover(
-        &services,
-        &lab,
-        snmp_test(),
-        vec![address(
+        let own = address(&lab, "192.168.4.21", ETH0, AttributeSource::ArpReply);
+        let vmware = address(&lab, "192.168.6.1", VMWARE_GUEST, AttributeSource::ArpReply);
+        let switch = address(&lab, "192.168.7.231", MV_SNMP231, AttributeSource::ArpReply);
+        let snmp = AttributeSource::Probe(ClientProbe::Snmp);
+        let vm = discover(
+            &services,
             &lab,
-            "192.168.4.21",
-            ETH0,
-            AttributeSource::HypervisorConfig,
-        )],
-        vec![],
-        vec![interface(
-            &lab,
-            "mv-snmp231",
-            MV_SNMP231,
-            AttributeSource::Probe(ClientProbe::Proxmox),
-        )],
-    )
-    .await;
-    assert_eq!(reported.id, vm.id, "the report is the VM's");
-    assert_eq!(
-        ips_of(&services, vm.id).await,
-        vec!["192.168.4.21".parse::<IpAddr>().unwrap()],
-        "the VM keeps only its own address"
-    );
-    assert!(service_names(&services, vm.id).await.is_empty());
-    let vm_interfaces: Vec<Option<String>> = services
-        .interface_service
-        .get_for_host(&vm.id)
-        .await
-        .unwrap()
-        .into_iter()
-        .map(|i| i.base.if_name)
-        .collect();
-    assert_eq!(
-        vm_interfaces,
-        vec![Some("mv-snmp231".to_string())],
-        "the switch's ifTable leaves with its SNMP service; the VM's link stays"
-    );
+            HostBase::default(),
+            vec![own, vmware.clone(), switch.clone()],
+            vec![
+                bound_service(&lab, "Gateway", &vmware),
+                bound_service(&lab, "SNMP", &switch),
+            ],
+            vec![
+                interface(&lab, "Gi0/1", "00:1a:2b:00:5c:01", snmp),
+                interface(&lab, "Gi0/2", "00:1a:2b:00:5c:02", snmp),
+                interface(&lab, "Gi0/3", "00:1a:2b:00:5c:03", snmp),
+            ],
+        )
+        .await;
+        assert_eq!(
+            ips_of(&services, vm.id).await.len(),
+            3,
+            "the stray state reproduces"
+        );
 
-    let holder_of = |row: &IPAddress| {
-        let row_id = row.id;
-        let services = &services;
-        async move {
-            services
-                .ip_address_service
-                .get_by_id(&row_id)
-                .await
-                .unwrap()
-                .expect("the row moved with its id")
-                .base
-                .host_id
-        }
-    };
-    let vmware_host = holder_of(&vmware).await;
-    let switch_host = holder_of(&switch).await;
-    assert_ne!(vmware_host, vm.id);
-    assert_ne!(switch_host, vm.id);
-    assert_ne!(vmware_host, switch_host, "one host per device");
-    assert_eq!(service_names(&services, vmware_host).await, vec!["Gateway"]);
-    assert_eq!(service_names(&services, switch_host).await, vec!["SNMP"]);
-
-    let swept_again = discover(
-        &services,
-        &lab,
-        HostBase::default(),
-        vec![address(
+        let reported = discover(
+            &services,
             &lab,
-            "192.168.7.231",
-            MV_SNMP231,
-            AttributeSource::ArpReply,
-        )],
-        vec![],
-        vec![],
-    )
-    .await;
-    assert_eq!(swept_again.id, switch_host, ".231 now finds its own host");
+            snmp_test(kind),
+            vec![address(
+                &lab,
+                "192.168.4.21",
+                ETH0,
+                AttributeSource::HypervisorConfig,
+            )],
+            vec![],
+            vec![interface(
+                &lab,
+                "mv-snmp231",
+                MV_SNMP231,
+                AttributeSource::GuestAgent,
+            )],
+        )
+        .await;
+        assert_eq!(reported.id, vm.id, "the report is the VM's");
+        assert_eq!(
+            ips_of(&services, vm.id).await,
+            vec!["192.168.4.21".parse::<IpAddr>().unwrap()],
+            "the VM keeps only its own address"
+        );
+        assert!(service_names(&services, vm.id).await.is_empty());
+        let vm_interfaces: Vec<Option<String>> = services
+            .interface_service
+            .get_for_host(&vm.id)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|i| i.base.if_name)
+            .collect();
+        assert_eq!(
+            vm_interfaces,
+            vec![Some("mv-snmp231".to_string())],
+            "the switch's ifTable leaves with its SNMP service; the VM's link stays"
+        );
+
+        let holder_of = |row: &IPAddress| {
+            let row_id = row.id;
+            let services = &services;
+            async move {
+                services
+                    .ip_address_service
+                    .get_by_id(&row_id)
+                    .await
+                    .unwrap()
+                    .expect("the row moved with its id")
+                    .base
+                    .host_id
+            }
+        };
+        let vmware_host = holder_of(&vmware).await;
+        let switch_host = holder_of(&switch).await;
+        assert_ne!(vmware_host, vm.id);
+        assert_ne!(switch_host, vm.id);
+        assert_ne!(vmware_host, switch_host, "one host per device");
+        assert_eq!(service_names(&services, vmware_host).await, vec!["Gateway"]);
+        assert_eq!(service_names(&services, switch_host).await, vec!["SNMP"]);
+
+        let swept_again = discover(
+            &services,
+            &lab,
+            HostBase::default(),
+            vec![address(
+                &lab,
+                "192.168.7.231",
+                MV_SNMP231,
+                AttributeSource::ArpReply,
+            )],
+            vec![],
+            vec![],
+        )
+        .await;
+        assert_eq!(swept_again.id, switch_host, ".231 now finds its own host");
+    }
 }
 
 /// A sim link's first ARP reply, with no stored address, finds nothing on the VM through the
@@ -312,48 +308,50 @@ async fn a_guests_report_gives_other_devices_their_rows_back() {
 #[tokio::test]
 async fn a_links_first_arp_reply_never_lands_on_its_guest() {
     let (storage, services, _container) = test_services().await;
-    let org = organization();
-    storage.organizations.create(&org).await.unwrap();
-    let lab = lab(&services, org.id).await;
+    for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+        let org = organization();
+        storage.organizations.create(&org).await.unwrap();
+        let lab = lab(&services, org.id).await;
 
-    let vm = discover(
-        &services,
-        &lab,
-        snmp_test(),
-        vec![address(
+        let vm = discover(
+            &services,
             &lab,
-            "192.168.4.21",
-            ETH0,
-            AttributeSource::HypervisorConfig,
-        )],
-        vec![],
-        vec![interface(
+            snmp_test(kind),
+            vec![address(
+                &lab,
+                "192.168.4.21",
+                ETH0,
+                AttributeSource::HypervisorConfig,
+            )],
+            vec![],
+            vec![interface(
+                &lab,
+                "mv-snmp231",
+                MV_SNMP231,
+                AttributeSource::GuestAgent,
+            )],
+        )
+        .await;
+        let swept = discover(
+            &services,
             &lab,
-            "mv-snmp231",
-            MV_SNMP231,
-            AttributeSource::Probe(ClientProbe::Proxmox),
-        )],
-    )
-    .await;
-    let swept = discover(
-        &services,
-        &lab,
-        HostBase::default(),
-        vec![address(
-            &lab,
-            "192.168.7.231",
-            MV_SNMP231,
-            AttributeSource::ArpReply,
-        )],
-        vec![],
-        vec![],
-    )
-    .await;
-    assert_ne!(swept.id, vm.id);
-    assert_eq!(
-        ips_of(&services, vm.id).await,
-        vec!["192.168.4.21".parse::<IpAddr>().unwrap()]
-    );
+            HostBase::default(),
+            vec![address(
+                &lab,
+                "192.168.7.231",
+                MV_SNMP231,
+                AttributeSource::ArpReply,
+            )],
+            vec![],
+            vec![],
+        )
+        .await;
+        assert_ne!(swept.id, vm.id);
+        assert_eq!(
+            ips_of(&services, vm.id).await,
+            vec!["192.168.4.21".parse::<IpAddr>().unwrap()]
+        );
+    }
 }
 
 /// The Mac daemon host holding `bridge102`'s 192.168.4.1, with the router's services filed on it.

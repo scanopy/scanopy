@@ -60,33 +60,55 @@ export function shouldCull({ renderedCount, measuring, exporting }: CullingCondi
 }
 
 /**
- * Zoom below which a node stops rendering its contents.
+ * Size on screen, in CSS pixels, a card's text must reach before the card is drawn in full.
  *
- * A card mixes four type sizes, so there is no single point where "the text" stops being readable.
- * Measured against a 6px floor — roughly where glyphs stop resolving at all — and an 8px
- * comfortable-reading mark:
+ * WCAG 2.2 sets no minimum text size: no success criterion gives one. The nearest published floor
+ * is the APCA Readability Criterion, the contrast work drafted for WCAG 3 (not a ratified
+ * standard), whose Silver level puts label text read at a glance, which is what a card holds, at
+ * 10px and body text at 13 to 14px:
+ * https://a11yreadtech.github.io/ARC/tests/visual-readability-contrast
  *
- *   text            used by                                6px at   8px at
- *   8.8px @ 70%     the MAC address line                     0.68     0.91
- *   12px            headers, port/speed, status, tags        0.50     0.67
- *   14px            subtitles, container titles              0.43     0.57
- *   16px            the largest container title              0.38     0.50
+ * Set to 5.4px, well under that floor, by Maya's choice after using 10, 9 and 6: at those the
+ * cards arrived too late when zooming in. It is a judgement of when a card is worth drawing, not
+ * a claim that text this size is legible by any published criterion.
  *
- * Set below the 12px floor on purpose. Keeping detail to 0.50 would cut it off exactly as the bulk
- * text stopped resolving, which is the defensible reading of the arithmetic but the wrong reading
- * of how the view is used: an operator scanning at 0.4 wants to see which card is which and can
- * lean in, and having the whole graph turn to boxes at the moment they were still getting something
- * from it is worse than a few hundred milliseconds of frame time. At 0.35 the container titles are
- * ~5px and still shaped like words, while the smallest line — the MAC, which has been illegible
- * since 0.68 — is long past useful either way.
+ * A CSS pixel is a visual angle (about 0.0213 degrees: 1/96 inch at 28 inches) that each device
+ * maps to whole device pixels, so this holds across screen resolutions and pixel densities with
+ * no correction. Browser zoom and viewing distance do change the real size, and a page can read
+ * neither.
+ */
+export const MIN_CARD_TEXT_PX = 5.4;
+
+/**
+ * Font size of the text a card is made of.
  *
- * The trade is stated rather than hidden: below this the graph is boxes, and the indicator in the
- * viewer says so, because a view that silently drops what it was showing reads as a bug.
+ * Measured on rendered cards in L2 and L3 (system font, x-height 0.51 of the size):
+ * every line is 12px (names, subgroup rows, counts, addresses) except the summary line of a
+ * collapsed container, which is 16px.
+ */
+export const CARD_TEXT_PX = 12;
+
+/**
+ * Zoom below which a node stops rendering its contents: where the text a card is made of drops
+ * under `MIN_CARD_TEXT_PX`. 5.4 / 12, which is 0.45.
+ *
+ * This was 0.35, picked by eye as the point where titles were "still shaped like words" at about
+ * 5px. Nothing on a card can be read there, and drawing it cost 125 ms a frame while zooming a
+ * 252-switch view. Below this zoom the graph is boxes with each container's name drawn at a
+ * legible size on its own layer (`label-placement.ts`), and the indicator in the viewer says so.
  *
  * It is the only zoom transition: a card goes from its state-coloured box straight to full detail,
  * its status dot and badges included.
  */
-export const DETAIL_ZOOM = 0.35;
+export const DETAIL_ZOOM = MIN_CARD_TEXT_PX / CARD_TEXT_PX;
+
+/**
+ * Zoom below which a graph that keeps full cards (one under `LOD_MIN_NODES`) also gets its
+ * container names on the names layer. Its titles are 3px here. Set under the zoom a small site
+ * fits at (0.33 to 0.57 across the demo sites' views, less in a small window), so its fit view
+ * is its cards alone and the names come in only on zooming out past it.
+ */
+export const FULL_CARD_NAMES_ZOOM = 0.25;
 
 /** Below this on-screen width a box is too small to be worth drawing structure inside. */
 export const BOX_MIN_PX = 12;
@@ -95,18 +117,27 @@ export const BOX_MIN_PX = 12;
  * Graph size at or above which reduced detail is worth having at all.
  *
  * Simplifying is a real cost to the operator — the cards stop saying what they are — and it only
- * buys anything on a graph big enough for the DOM to hurt. On a few hundred nodes there is nothing
- * to reclaim and hiding detail is just worse. Set well above `CULLING_THRESHOLD_ELEMENTS`, since
- * culling is invisible and this is not, and at the scale the cost was actually measured: the
- * capture behind this work peaked at 1,501 mounted nodes before its tab ran out of memory.
+ * buys anything on a graph big enough for the DOM to hurt. Below this a graph keeps full cards at
+ * every zoom.
+ *
+ * The same line as `CULLING_THRESHOLD_ELEMENTS`. It was 1,000, which left a view of a few hundred
+ * containers drawing every card in full from a zoom of 0.04 up: 252 collapsed switches are 13,460
+ * DOM elements, mounted in one 1.7 s frame on the way in and then repainted at 125 ms a frame
+ * with text 1 to 5px tall. The demo sites this must leave alone top out at 102 nodes in their
+ * largest fully expanded view.
  */
-export const LOD_MIN_NODES = 1_000;
+export const LOD_MIN_NODES = CULLING_THRESHOLD_ELEMENTS;
 
 export interface SimplifyConditions {
 	/** The viewport's current zoom. */
 	zoom: number;
 	/** Nodes in the store. Below `LOD_MIN_NODES` nothing is simplified at any zoom. */
 	nodeCount: number;
+	/**
+	 * Layout width of the widest node drawn, in flow pixels. Once even that node is narrower than
+	 * `BOX_MIN_PX` on screen, no card has anything legible on it, whatever the graph's size.
+	 */
+	widestNodeWidth: number;
 	/** A DOM measurement pass is in progress. */
 	measuring: boolean;
 	/** An export is capturing the flow element. */
@@ -132,13 +163,49 @@ export interface SimplifyConditions {
  * of the DOM wants it whole and detailed, which is the same thing that switch already means.
  */
 export function shouldSimplify(conditions: SimplifyConditions): boolean {
-	return reducedDetailAllowed(conditions) && conditions.zoom < DETAIL_ZOOM;
+	if (reducedDetailSuspended(conditions)) return false;
+	if (conditions.nodeCount >= LOD_MIN_NODES && conditions.zoom < DETAIL_ZOOM) return true;
+	return everyNodeTooSmallToRead(conditions);
 }
 
-/** The gates every reduction shares: no measure pass, export or tooling, and a large graph. */
-function reducedDetailAllowed({ nodeCount, measuring, exporting }: SimplifyConditions): boolean {
-	if (measuring || exporting || cullingDisabledForTooling()) return false;
-	return nodeCount >= LOD_MIN_NODES;
+/**
+ * Zoom from which card detail is prepared ahead of `DETAIL_ZOOM`, as a share of it. See
+ * `detail-staging.svelte.ts`: the cards on screen are mounted a few per frame through this
+ * stretch, so that reaching the threshold only has to reveal them.
+ */
+export const PREWARM_ZOOM = DETAIL_ZOOM * 0.65;
+
+/**
+ * Zoom below which prepared detail is dropped again. Under `PREWARM_ZOOM`, so a zoom resting
+ * near it does not mount and unmount the same cards.
+ */
+export const PREWARM_RELEASE_ZOOM = PREWARM_ZOOM * 0.9;
+
+/**
+ * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
+ * nothing needs every card in full at this moment.
+ */
+export function detailIsStaged(
+	conditions: Omit<SimplifyConditions, 'zoom' | 'widestNodeWidth'>
+): boolean {
+	if (conditions.measuring || conditions.exporting || cullingDisabledForTooling()) return false;
+	return conditions.nodeCount >= LOD_MIN_NODES;
+}
+
+/** The suspensions every reduction shares: a measure pass, an export, or tooling. */
+function reducedDetailSuspended({ measuring, exporting }: SimplifyConditions): boolean {
+	return measuring || exporting || cullingDisabledForTooling();
+}
+
+/**
+ * Every node is under `BOX_MIN_PX` wide on screen, so full cards show nothing and still cost a
+ * repaint per pan frame. Measured on 252 collapsed switch cards (13,460 DOM elements) at the
+ * zoom they fit at, 0.015: 11 fps drawn in full, 46 fps as boxes. Not gated on `LOD_MIN_NODES`,
+ * because there is no detail left to lose. A small site reaches it only by zooming far out past
+ * its fit zoom.
+ */
+function everyNodeTooSmallToRead({ zoom, widestNodeWidth }: SimplifyConditions): boolean {
+	return widestNodeWidth > 0 && widestNodeWidth * zoom < BOX_MIN_PX;
 }
 
 /**

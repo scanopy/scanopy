@@ -6,10 +6,14 @@
  * with no modifier. Every other action takes a letter from `assignActionKeys`, as the list
  * toolbar's actions do. Only the topmost open modal answers keys.
  */
-import type { ActionTone } from '$lib/shared/components/data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
-import { assignActionKeys, DELETE_KEY } from '$lib/shared/components/data/controls/actionShortcuts';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
+import { writable } from 'svelte/store';
+import type { ActionTone } from '#lib/shared/components/data/types.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import {
+	assignActionKeys,
+	DELETE_KEY
+} from '#lib/shared/components/data/controls/actionShortcuts.ts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
 
 export type ModalActionRole = 'primary' | 'secondary' | 'danger' | 'cancel';
 
@@ -181,18 +185,49 @@ function isChoiceButton(el: HTMLElement): boolean {
 	);
 }
 
-/** Open modals, oldest first. Only the last one answers keys shared by every modal. */
-const openModals: symbol[] = [];
+/** An open modal, and whether it darkens the whole page (an anchored one darkens only its area). */
+export interface OpenModal {
+	token: symbol;
+	shroudsPage: boolean;
+}
 
-/** Records `token`'s modal as opened on top; the returned function records it closed. */
-export function registerOpenModal(token: symbol): () => void {
-	openModals.push(token);
+/** Open modals, oldest first. Only the last one answers keys shared by every modal. */
+const openModals: OpenModal[] = [];
+/** The same list as a store, so a modal follows the ones beneath it opening and closing. */
+const openModalStackStore = writable<readonly OpenModal[]>([]);
+export const openModalStack = { subscribe: openModalStackStore.subscribe };
+
+/**
+ * Records `token`'s modal as opened on top; the returned function records it closed.
+ *
+ * The page stops scrolling while any modal is open, and scrolls again only when the last one
+ * closes, so closing a dialog stacked over another leaves the one beneath it locked.
+ */
+export function registerOpenModal(token: symbol, shroudsPage = true): () => void {
+	openModals.push({ token, shroudsPage });
+	openModalStackStore.set([...openModals]);
+	if (typeof document !== 'undefined') document.body.style.overflow = 'hidden';
 	return () => {
-		const at = openModals.indexOf(token);
+		const at = openModals.findIndex((m) => m.token === token);
 		if (at !== -1) openModals.splice(at, 1);
+		openModalStackStore.set([...openModals]);
+		if (openModals.length === 0 && typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+		}
 	};
 }
 
+/**
+ * Whether `token`'s modal sits over an open modal that darkens the page, which then darkens it
+ * for both. Read from the live stack: a modal that replaces the one beneath it shrouds the page
+ * once that one closes. A modal beneath that darkens only its own area, such as the topology's
+ * anchored prompts, leaves the page to the one above.
+ */
+export function isStackedModal(stack: readonly OpenModal[], token: symbol): boolean {
+	const at = stack.findIndex((m) => m.token === token);
+	return at > 0 && stack.slice(0, at).some((m) => m.shroudsPage);
+}
+
 export function isTopmostModal(token: symbol): boolean {
-	return openModals.at(-1) === token;
+	return openModals.at(-1)?.token === token;
 }

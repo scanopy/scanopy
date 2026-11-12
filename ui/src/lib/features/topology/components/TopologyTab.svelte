@@ -1,28 +1,28 @@
 <script lang="ts">
-	import { applicationGroupId, isApplicationTag } from '$lib/features/tags/groups';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import { applicationGroupId, isApplicationTag } from '#lib/features/tags/groups.ts';
+	import TopologyCanvasPlaceholder from './TopologyCanvasPlaceholder.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import TopologyViewer from './visualization/TopologyViewer.svelte';
 	import TopologyOptionsPanel from './panel/TopologyOptionsPanel.svelte';
 	import { Camera, Radar, Share2, Trash2 } from '@lucide/svelte';
 	import LiveDot from './LiveDot.svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
 	import ExportButton from './ExportButton.svelte';
 	import ExportModal from './ExportModal.svelte';
-	import SharesModal from '$lib/features/shares/components/SharesModal.svelte';
-	import { modalState, openModal, closeModal } from '$lib/shared/stores/modal-registry';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import SharesModal from '#lib/features/shares/components/SharesModal.svelte';
+	import { modalState, openModal, closeModal } from '#lib/shared/stores/modal-registry.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import { SvelteFlowProvider } from '@xyflow/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { onMount, setContext } from 'svelte';
-	import { takeInitialParams } from '$lib/shared/stores/url-state';
-	import { preloadElk } from '$lib/features/topology/layout/elk-layout';
+	import { takeInitialParams } from '#lib/shared/stores/url-state.ts';
+	import { preloadElk } from '#lib/features/topology/layout/elk-layout.ts';
 	import { get, writable } from 'svelte/store';
-	import { isScaleCollapsed } from '../collapse';
+	import { collapseScope, isScaleCollapsed } from '../collapse';
+	import { beginLoad, cancelDownload, LOAD_STAGES, loadProgress } from '../pipeline/load-progress';
 	import {
 		useTopologiesQuery,
 		useTopologyDataQuery,
@@ -54,12 +54,12 @@
 		useTakeSnapshotMutation,
 		useDeleteSnapshotMutation,
 		type Snapshot
-	} from '$lib/features/snapshots/queries';
-	import { SnapshotDisplay } from '$lib/shared/components/forms/selection/display/SnapshotDisplay.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
+	} from '#lib/features/snapshots/queries.ts';
+	import { SnapshotDisplay } from '#lib/shared/components/forms/selection/display/SnapshotDisplay.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { makeGraphRule } from '../types/grouping';
 	import type { ContainerGraphRule } from '../types/grouping';
 	import {
@@ -69,35 +69,36 @@
 		activeViewFilters
 	} from '../interactions';
 	import { clearSelection } from '../selection';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { formatDate, formatTimestamp } from '$lib/shared/utils/formatting';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { entityBundleFrom, toRenderableTopology } from '#lib/features/topology/enriched.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { formatDate, formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import ApplicationSetupWizard from './application-wizard/ApplicationSetupWizard.svelte';
 	import L2EmptyStateOverlay from './L2EmptyStateOverlay.svelte';
 	import TopologyPlanRequiredOverlay from './TopologyPlanRequiredOverlay.svelte';
-	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
-	import { hasTopologyAccess } from '$lib/features/organizations/types';
+	import { upgradeTagProps } from '#lib/features/billing/upgrade-tag.ts';
+	import { hasTopologyAccess } from '#lib/features/organizations/types.ts';
 	import ViewFiltersEmptyState from './ViewFiltersEmptyState.svelte';
 	import ViewSwitcherHint from './ViewSwitcherHint.svelte';
 	import DependencyTutorial from './DependencyTutorial.svelte';
 	import { TUTORIAL_TOPOLOGY } from './dependency-tutorial-data';
-	import { useUsersQuery } from '$lib/features/users/queries';
-	import { canListUsers } from '$lib/features/users/types';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import type { components } from '$lib/api/schema';
-	import { billingPlans, edgeTypes, entities, views } from '$lib/shared/stores/metadata';
+	import { useUsersQuery } from '#lib/features/users/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import {
+		useOrganizationQuery,
+		useRecordSetupItemMutation
+	} from '#lib/features/organizations/queries.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import { billingPlans, edgeTypes, entities, views } from '#lib/shared/stores/metadata.ts';
 	import { getInspectorConfig } from './panel/inspectors/view-config';
-	import type { TabProps } from '$lib/shared/types';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_delete,
 		common_firstDiscoveryEmailHint,
@@ -105,19 +106,18 @@
 		daemons_installPromptTopology,
 		topology_asOf,
 		common_current,
+		topology_noSiteAccess,
 		topology_noSites,
 		topology_siteTopologyMissing,
 		topology_snapshotDeleteConfirm,
 		topology_takeSnapshot
-	} from '$lib/paraglide/messages';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	} from '#lib/paraglide/messages.js';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
 
-	// Get current user to check permissions
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-	let canViewUsers = $derived(currentUser ? canListUsers(currentUser.permissions) : false);
+	const can = useCan();
+	let canViewUsers = $derived(can('Member', 'Read'));
 
 	// Snapshot selection drives as-of-T entity reads. When a snapshot is
 	// selected, entity queries read SCD2 state as of its `taken_at` instead of
@@ -181,8 +181,8 @@
 
 	let currentInspectorConfig = $derived(getInspectorConfig($activeView));
 
-	// View-only when the tab is read-only or a snapshot is selected. Single
-	// reactive source consumed by the inspectors / grouping editor / edit mode.
+	// View-only when the user can't edit this topology or a snapshot is selected.
+	// Single reactive source consumed by the inspectors / grouping editor / edit mode.
 	$effect(() => {
 		topologyReadOnly.set(isReadOnly || $selectedSnapshotId !== null);
 	});
@@ -225,6 +225,9 @@
 		return topologiesData.find((t) => t.site_id === siteId) ?? null;
 	});
 
+	// What the user can do on the site this topology belongs to.
+	let isReadOnly = $derived(!can('Topology', 'Write', currentTopologyRow?.site_id));
+
 	// Site name for export headers and filenames, live or snapshot.
 	let currentSiteName = $derived(
 		currentTopologyRow
@@ -243,6 +246,10 @@
 	});
 
 	// Enriched topology: graph row + entity bundle for the selected view.
+	// What the load-progress bar keys its recorded stage times by, known as soon as the site is.
+	// The same form the viewer uses once it has the topology.
+	let loadScope = $derived(collapseScope(currentTopologyRow?.id ?? '', $activeView));
+
 	// Live view → live entities; snapshot view → entities as-of the snapshot's
 	// `taken_at` (single backend endpoint serves both).
 	let currentTopology = $derived.by(() => {
@@ -362,7 +369,7 @@
 	});
 
 	// View selector — built from fixture data
-	import viewsJson from '$lib/data/views.json';
+	import viewsJson from '#lib/data/views.json';
 
 	const allViewOptions: SimpleOption[] = viewsJson.map((p) => ({
 		value: p.id,
@@ -394,20 +401,17 @@
 
 	let viewColorStyle = $derived(views.getColorHelper($activeView));
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let setup = $derived(organizationQuery.data?.setup ?? []);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 	let topologyAccess = $derived(hasTopologyAccess(organizationQuery.data));
-	let hasCompletedFirstDiscovery = $derived(
-		onboarding.length === 0 || onboarding.includes('FirstDiscoveryCompleted')
-	);
+	let hasCompletedFirstDiscovery = $derived(setup.includes('RunFirstScan'));
 
-	// Complete the "View your topology" onboarding step the first time the user is focused on
-	// the topology tab with hosts to look at (and discovery already done). markTopologyViewed
-	// is a one-shot GET carrying mark_viewed=true — only sent here, never by the background
-	// data query — so the milestone only fires from an actual on-tab view, never from other
-	// tabs. Then poll the org until the milestone lands so the checklist updates. The
-	// `tracked` flag only flips once we actually call, so if discovery completes later while
-	// the user is on the tab, the effect re-fires.
+	// Record OpenTopology the first time the user is focused on the topology tab with hosts to
+	// look at (and the first scan already done). markTopologyViewed is a one-shot GET carrying
+	// mark_viewed=true — only sent here, never by the background data query — so it is only
+	// recorded from an actual on-tab view, never from other tabs. Then poll the org until it
+	// lands so the checklist updates. The `tracked` flag only flips once we actually call, so if
+	// discovery completes later while the user is on the tab, the effect re-fires.
 	let firstTopologyMilestoneTracked = $state(false);
 	$effect(() => {
 		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
@@ -415,23 +419,51 @@
 			isActive &&
 			$selectedSiteId &&
 			hasHosts &&
-			onboarding.includes('FirstDiscoveryCompleted') &&
+			setup.includes('RunFirstScan') &&
 			topologyAccess &&
 			!firstTopologyMilestoneTracked &&
-			!onboarding.includes('FirstTopologyRebuild')
+			!setup.includes('OpenTopology')
 		) {
 			firstTopologyMilestoneTracked = true;
 			const siteId = $selectedSiteId;
 			void (async () => {
 				await markTopologyViewed(siteId, get(activeView));
-				void waitForOrgUpdate((o) => o.onboarding.includes('FirstTopologyRebuild'));
+				void waitForOrgUpdate((o) => o.setup.includes('OpenTopology'));
+			})();
+		}
+	});
+
+	// Record ExploreViews once the user views another view: each view shown on the tab is sent
+	// once with mark_viewed=true, and the server records ExploreViews for any but the default.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	let viewsMarked = new Set<string>();
+	$effect(() => {
+		const view = $activeView;
+		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
+		if (
+			isActive &&
+			$selectedSiteId &&
+			hasHosts &&
+			topologyAccess &&
+			setup.includes('OpenTopology') &&
+			!setup.includes('ExploreViews') &&
+			!viewsMarked.has(view)
+		) {
+			viewsMarked.add(view);
+			const siteId = $selectedSiteId;
+			void (async () => {
+				await markTopologyViewed(siteId, view);
+				void organizationQuery.refetch();
 			})();
 		}
 	});
 
 	// URL params: read once on init for topology/view deep-linking
 	const urlParams = topologyParamsFrom(takeInitialParams('topology'));
-	let urlViewConsumed = false;
+	// Applied here, before the data query's first fetch. The query is keyed by view, so applying
+	// it once the first response had arrived fetched the default view's whole bundle first and
+	// then the linked view's: two site-sized requests in a row for every link to another view.
+	if (urlParams.view) activeView.set(urlParams.view);
 
 	// Initialize/validate the selected site against the accessible list.
 	// Runs whenever sitesData changes so a stale persisted id (deleted site,
@@ -482,10 +514,6 @@
 		if (currentTopology && currentTopology.id !== lastHydratedId) {
 			lastHydratedId = currentTopology.id;
 			hydrateStoresFromTopology(currentTopology, isFirstHydration);
-			if (!urlViewConsumed && urlParams.view) {
-				urlViewConsumed = true;
-				activeView.set(urlParams.view);
-			}
 			isFirstHydration = false;
 		}
 	});
@@ -610,15 +638,30 @@
 	// next one before switching: the current graph stays on screen in the meantime instead of the
 	// viewer unmounting behind a loading screen. A failed load leaves the current view in place
 	// (the API client has already shown the error).
+	//
+	// The current graph staying put says nothing about the pick having registered, so the
+	// viewer's progress bar starts with the download and runs on through the new view's layout
+	// and draw. A view already in the cache resolves before the delay and shows no bar.
+	const VIEW_SWITCH_BAR_DELAY_MS = 150;
 	let viewSwitchRequest = 0;
 	async function handleViewChange(value: string) {
 		const view = value as TopologyView;
 		const siteId = $selectedSiteId;
 		const request = ++viewSwitchRequest;
+		const scope = collapseScope(currentTopologyRow?.id ?? '', view);
+		const barTimer = setTimeout(() => {
+			// A run still drawing the current view owns the bar until it ends.
+			const current = get(loadProgress);
+			if (!current || current.stage === 'data') beginLoad(scope, LOAD_STAGES);
+		}, VIEW_SWITCH_BAR_DELAY_MS);
 		try {
 			if (siteId) await loadTopologyData(siteId, $selectedSnapshotId ?? undefined, view);
 		} catch {
+			// A later pick still loading keeps the bar.
+			if (request === viewSwitchRequest) cancelDownload();
 			return;
+		} finally {
+			clearTimeout(barTimer);
 		}
 		// A later pick superseded this one while it loaded.
 		if (request !== viewSwitchRequest) return;
@@ -636,6 +679,14 @@
 		showDependencyTutorial.set(false);
 		selectedNodes.set([]);
 		tutorialTypeToggled = false;
+	}
+
+	// Finishing the tutorial, unlike skipping it, records it, so the Setup list's next "Map a
+	// dependency" opens the map without it.
+	const recordSetupItem = useRecordSetupItemMutation();
+	function finishDependencyTutorial() {
+		recordSetupItem.mutate('DependencyTutorial');
+		dismissDependencyTutorial();
 	}
 
 	$effect(() => {
@@ -721,8 +772,8 @@
 		<!-- Onboarding comes from the organization, and reading a failed load as an empty one
 		     would ask the user to install a daemon. -->
 		<LoadFailedState onRetry={organizationLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptTopology()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptTopology()} />
 	{:else}
 		<div class="space-y-3">
 			<!-- Header -->
@@ -737,7 +788,7 @@
 						     graph from live entities + options), so the button stays available
 						     while viewing a snapshot; the share modal shows an inline notice
 						     clarifying that a share captures the live view, not the snapshot. -->
-						{#if !isReadOnly}
+						{#if can('Share', 'Write', currentTopologyRow?.site_id)}
 							<button
 								class="btn-secondary"
 								onclick={() => openModal('topology-share')}
@@ -850,10 +901,10 @@
 			{#if topologyLoad.failed}
 				<LoadFailedState onRetry={topologyLoad.retry} />
 			{:else if sitesQuery.isPending || topologiesQuery.isPending}
-				<Loading />
+				<TopologyCanvasPlaceholder scope={loadScope} />
 			{:else if sitesData.length === 0}
 				<div class="card-static card text-secondary">
-					{topology_noSites()}
+					{can('NewSite', 'Write') ? topology_noSites() : topology_noSiteAccess()}
 				</div>
 			{:else if $selectedSiteId && !currentTopologyRow}
 				<LoadFailedState
@@ -870,7 +921,7 @@
 							{isReadOnly}
 							raised={showFiltersEmptyState || showL2EmptyState}
 							onClearSelection={$showDependencyTutorial
-								? dismissDependencyTutorial
+								? finishDependencyTutorial
 								: clearMultiSelect}
 							onGroupCreated={() => {
 								clearMultiSelect();
@@ -887,9 +938,7 @@
 					{#if !topologyAccess}
 						<!-- Free: the plan prompt from the first scan on, with its progress while it runs,
 						     then over the org's own diagram, shrouded. -->
-						<TopologyPlanRequiredOverlay
-							scanning={!onboarding.includes('FirstDiscoveryCompleted')}
-						/>
+						<TopologyPlanRequiredOverlay scanning={!setup.includes('RunFirstScan')} />
 					{:else if $showDependencyTutorial}
 						<DependencyTutorial
 							onDismiss={dismissDependencyTutorial}
@@ -911,13 +960,13 @@
 						/>
 					{:else if topologyAccess && showL2EmptyState}
 						<L2EmptyStateOverlay
-							hasInterfaceCredential={onboarding.includes('FirstInterfaceCredentialCreated')}
+							hasInterfaceCredential={topologyDataQuery.data?.has_interface_credential ?? false}
 						/>
 					{/if}
 				</div>
 			{:else}
 				<!-- A site is being selected, or the selected view's data is on its way. -->
-				<Loading />
+				<TopologyCanvasPlaceholder scope={loadScope} />
 			{/if}
 		</div>
 

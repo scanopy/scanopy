@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::server::{
     discovery::r#impl::types::DiscoveryType,
+    setup::types::{SetupOperation, SetupOperationDiscriminants},
     shared::{
         events::{
             log::EventLog,
@@ -21,7 +22,6 @@ use crate::server::{
                 AnalyticsOperation, AnalyticsOperationDiscriminants, AuthOperation,
                 AuthOperationDiscriminants, BillingOperation, BillingOperationDiscriminants,
                 EntityOperation, EntityOperationDiscriminants, EventLogLevel, LabelColor,
-                OnboardingOperation, OnboardingOperationDiscriminants,
             },
         },
         types::metadata::HasId,
@@ -54,16 +54,21 @@ impl Operation for BillingOperation {
     }
 }
 
-impl Operation for OnboardingOperation {
+impl Operation for SetupOperation {
     type Scope = OrgScope;
     type Flags = EventFlags;
-    type Filter = EventFilter<OnboardingOperation>;
+    type Filter = EventFilter<SetupOperation>;
     fn log_level(&self) -> EventLogLevel {
         EventLogLevel::Info
     }
 
+    /// `setup_completed`, `setup_stuck`, ...: the bare variant names say nothing on their own.
     fn event_name(&self, _scope: &OrgScope) -> Cow<'static, str> {
-        self.to_string().into()
+        format!("setup_{self}").into()
+    }
+
+    fn metadata<'a>(&'a self, _scope: &'a OrgScope) -> impl Serialize + Send + 'a {
+        SetupOperation::metadata(self)
     }
 }
 
@@ -242,7 +247,7 @@ impl Operation for DiscoveryPhase {
 // Convenience aliases for the discriminant types so consumers don't have to
 // write `<BillingOperation as IntoDiscriminant>::Discriminant`.
 pub type BillingDiscriminant = BillingOperationDiscriminants;
-pub type OnboardingDiscriminant = OnboardingOperationDiscriminants;
+pub type SetupDiscriminant = SetupOperationDiscriminants;
 pub type AnalyticsDiscriminant = AnalyticsOperationDiscriminants;
 pub type AuthDiscriminant = AuthOperationDiscriminants;
 pub type EntityDiscriminant = EntityOperationDiscriminants;
@@ -300,7 +305,7 @@ pub(crate) mod tests {
             address: "192.0.2.1".parse().expect("address"),
             collected: 3,
         };
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         vec![
             sample(
@@ -360,7 +365,10 @@ pub(crate) mod tests {
             sample(
                 Event::new(
                     OrgScope { organization_id },
-                    OnboardingOperation::OnboardingModalCompleted,
+                    SetupOperation::Completed {
+                        item_type: crate::server::setup::types::SetupItemDiscriminants::Tags,
+                        subject_id: None,
+                    },
                     system(),
                 ),
                 organization_id,
@@ -486,7 +494,7 @@ pub(crate) mod tests {
                 user_id: Uuid::new_v4(),
                 organization_id,
                 permissions: UserOrgPermissions::Member,
-                site_ids: vec![],
+                access: Default::default(),
             },
         );
 

@@ -1,83 +1,19 @@
 import { coerce, gt } from 'semver';
 import { fieldDefs } from './config';
-import type { components } from '$lib/api/schema';
-import daemonOsMetadata from '$lib/data/daemon-os.json';
-import osFamilies from '$lib/data/os-families.json';
+import type { components } from '#lib/api/schema';
+import daemonOsMetadata from '#lib/data/daemon-os.json';
+import osFamilies from '#lib/data/os-families.json';
 import type { Daemon } from './types/base';
-import type { FormValue } from '$lib/shared/components/forms/validators';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { toColor } from '$lib/shared/utils/styling';
-import { getServerUrl } from '$lib/api/client';
-import { CircleHelp } from '@lucide/svelte';
+import type { FormValue } from '#lib/shared/components/forms/validators.ts';
+import { getServerUrl } from '#lib/api/client.ts';
 import {
-	common_deprecated,
 	common_freebsd,
 	common_linux,
 	common_macos,
-	common_windows,
-	common_healthy,
-	common_outdated,
-	common_standby,
-	common_unreachable,
-	common_unsupported,
-	common_unknown,
-	daemons_awaitingConnection
-} from '$lib/paraglide/messages';
+	common_windows
+} from '#lib/paraglide/messages.js';
 
 export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/reference/daemon-status/';
-
-/** A daemon's status, the most severe that applies. The server derives it (`DaemonHealth`), so
- * the list can sort, group and filter on it. */
-export type DaemonStatus = components['schemas']['DaemonHealth'];
-
-/** Every status, for the filter's options. Keyed by the generated type, so a status the server
- * adds fails to compile until it is listed here. */
-const ALL_STATUSES: Record<DaemonStatus, true> = {
-	unsupported: true,
-	unreachable: true,
-	standby: true,
-	awaiting_connection: true,
-	deprecated: true,
-	outdated: true,
-	unknown: true,
-	healthy: true
-};
-export const DAEMON_STATUSES = Object.keys(ALL_STATUSES) as DaemonStatus[];
-
-export function getDaemonStatus(daemon: Daemon): DaemonStatus {
-	return daemon.health;
-}
-
-/**
- * A status's tag. The `label` is guaranteed, unlike the optional one on `TagProps`: callers use it
- * as the daemon's searchable status text and as the chip's id, not only as display text.
- */
-export function daemonStatusTag(status: DaemonStatus): TagProps & { label: string } {
-	const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
-	switch (status) {
-		case 'unsupported':
-			return { label: common_unsupported(), color: toColor('red'), ...docsTag };
-		case 'unreachable':
-			return { label: common_unreachable(), color: toColor('red'), ...docsTag };
-		case 'standby':
-			return { label: common_standby(), color: toColor('purple'), ...docsTag };
-		case 'awaiting_connection':
-			return { label: daemons_awaitingConnection(), color: toColor('blue'), ...docsTag };
-		case 'deprecated':
-			return { label: common_deprecated(), color: toColor('orange'), ...docsTag };
-		case 'outdated':
-			return { label: common_outdated(), color: toColor('yellow'), ...docsTag };
-		case 'unknown':
-			return { label: common_unknown(), color: toColor('gray'), ...docsTag };
-		case 'healthy':
-			return { label: common_healthy(), color: toColor('green') };
-	}
-}
-
-/** The tag for a daemon's current status. */
-export function getDaemonStatusTag(daemon: Daemon): TagProps & { label: string } {
-	return daemonStatusTag(getDaemonStatus(daemon));
-}
 
 /**
  * Whether a daemon is known to predate unified discovery: it has checked in, and the version it
@@ -90,15 +26,6 @@ export function getDaemonStatusTag(daemon: Daemon): TagProps & { label: string }
  */
 export function isPreUnifiedDaemon(daemon: Daemon): boolean {
 	return !!daemon.last_seen && daemon.version_status?.supports_unified_discovery === false;
-}
-
-/**
- * Whether a daemon has an active or upcoming sunset the user should act on.
- * True for Deprecated (a sunset date is scheduled) and Unsupported (past it).
- */
-export function hasSunsetWarning(daemon: Daemon): boolean {
-	const status = daemon.version_status.status;
-	return status === 'Deprecated' || status === 'Unsupported';
 }
 
 /// Derived from the generated schema rather than hand-listed: this was a parallel string union

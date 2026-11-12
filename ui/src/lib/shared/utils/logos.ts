@@ -3,9 +3,9 @@
  * path and what fills its frame, so whatever draws a logo only names its id.
  */
 
-import logos from '$lib/data/logos.json';
-import { createLogoIconComponent } from '$lib/shared/utils/styling';
-import type { IconComponent } from '$lib/shared/utils/types';
+import logos from '#lib/data/logos.json';
+import { createLogoIconComponent } from '#lib/shared/utils/styling.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 type LogoEntry = (typeof logos)[number];
 

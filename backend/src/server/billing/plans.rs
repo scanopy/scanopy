@@ -21,7 +21,7 @@ pub const SELF_HOSTED_PRODUCTION_INSTANCES: u32 = 1;
 pub const SELF_HOSTED_NON_PRODUCTION_INSTANCES: u32 = 2;
 
 /// Card-less trial length for both paid self-hosted tiers.
-pub const SELF_HOSTED_TRIAL_DAYS: u32 = 14;
+pub const SELF_HOSTED_TRIAL_DAYS: u32 = 30;
 
 /// Days the once-per-org self-serve trial extension adds.
 pub const TRIAL_EXTENSION_DAYS: u32 = 7;

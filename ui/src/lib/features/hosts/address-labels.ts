@@ -2,8 +2,8 @@ import {
 	common_port,
 	common_unknownEntity,
 	hosts_bindings_unknownIPAddress
-} from '$lib/paraglide/messages';
-import { formatPort } from '$lib/shared/utils/formatting';
+} from '#lib/paraglide/messages.js';
+import { formatPort } from '#lib/shared/utils/formatting.ts';
 import type { AllIPAddresses, IPAddress, Port } from './types/base';
 
 const SEPARATOR = ' · ';

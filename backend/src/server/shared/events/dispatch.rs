@@ -513,8 +513,8 @@ impl<Op: Operation> TypedChannel<Op> {
 mod tests {
     use super::*;
     use crate::server::auth::middleware::auth::AuthenticatedEntity;
+    use crate::server::setup::types::{SetupItemDiscriminants, SetupOperation};
     use crate::server::shared::events::traits::{EventFilter, OrgScope};
-    use crate::server::shared::events::types::OnboardingOperation;
     use uuid::Uuid;
 
     use crate::server::shared::storage::lock::{LockError, LockKey};
@@ -527,11 +527,11 @@ mod tests {
     }
 
     #[async_trait::async_trait]
-    impl Subscriber<OnboardingOperation> for ScriptedSubscriber {
-        fn filter(&self) -> EventFilter<OnboardingOperation> {
+    impl Subscriber<SetupOperation> for ScriptedSubscriber {
+        fn filter(&self) -> EventFilter<SetupOperation> {
             EventFilter::all()
         }
-        async fn handle(&self, _: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+        async fn handle(&self, _: Vec<Event<SetupOperation>>) -> anyhow::Result<()> {
             let call = self.calls.fetch_add(1, Ordering::SeqCst);
             if call < self.failures {
                 return Err((self.make_error)());
@@ -548,7 +548,7 @@ mod tests {
         let _guard = metrics::set_default_local_recorder(&recorder);
 
         let calls = Arc::new(AtomicUsize::new(0));
-        let channel = TypedChannel::<OnboardingOperation>::new();
+        let channel = TypedChannel::<SetupOperation>::new();
         channel
             .register(
                 Arc::new(ScriptedSubscriber {
@@ -556,7 +556,7 @@ mod tests {
                     make_error,
                     calls: calls.clone(),
                 }),
-                "scripted_subscriber:onboarding_operation",
+                "scripted_subscriber:setup_operation",
             )
             .await;
         channel
@@ -564,7 +564,10 @@ mod tests {
                 OrgScope {
                     organization_id: Uuid::new_v4(),
                 },
-                OnboardingOperation::OnboardingModalCompleted,
+                SetupOperation::Completed {
+                    item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
+                },
                 AuthenticatedEntity::System,
             ))
             .await;
@@ -581,7 +584,7 @@ mod tests {
 
     fn series(outcome: &str, reason: &str, value: u64) -> String {
         format!(
-            r#"scanopy_event_subscriber_errors_total{{subscriber="scripted_subscriber",event_type="onboarding_operation",outcome="{outcome}",reason="{reason}"}} {value}"#
+            r#"scanopy_event_subscriber_errors_total{{subscriber="scripted_subscriber",event_type="setup_operation",outcome="{outcome}",reason="{reason}"}} {value}"#
         )
     }
 
@@ -666,7 +669,7 @@ mod tests {
         let (sender, mut receiver) = mpsc::unbounded_channel();
         let tracker = Arc::new(DispatchTracker::default());
         tracker.set_failure_reporter(Arc::new(ForwardingReporter(sender)));
-        let channel = TypedChannel::<OnboardingOperation>::with_tracker(tracker);
+        let channel = TypedChannel::<SetupOperation>::with_tracker(tracker);
         channel
             .register(
                 Arc::new(ScriptedSubscriber {
@@ -674,13 +677,16 @@ mod tests {
                     make_error,
                     calls: Arc::new(AtomicUsize::new(0)),
                 }),
-                "scripted_subscriber:onboarding_operation",
+                "scripted_subscriber:setup_operation",
             )
             .await;
         channel
             .publish(Event::new(
                 OrgScope { organization_id },
-                OnboardingOperation::OnboardingModalCompleted,
+                SetupOperation::Completed {
+                    item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
+                },
                 AuthenticatedEntity::System,
             ))
             .await;
@@ -718,17 +724,14 @@ mod tests {
         let [failure] = received.as_slice() else {
             panic!("expected one report, got {received:?}");
         };
-        assert_eq!(
-            failure.subscriber,
-            "scripted_subscriber:onboarding_operation"
-        );
+        assert_eq!(failure.subscriber, "scripted_subscriber:setup_operation");
         assert_eq!(failure.outcome, SubscriberErrorOutcome::NotRetried);
         assert_eq!(failure.reason, SubscriberErrorReason::LockTimeout);
         assert_eq!(
             failure.organizations,
             vec![ScopeOrganization::Org(organization_id)]
         );
-        assert_eq!(failure.operations, vec!["onboarding_modal_completed"]);
+        assert_eq!(failure.operations, vec!["setup_completed"]);
         assert!(failure.error.contains("timed out"), "{}", failure.error);
     }
 
@@ -745,7 +748,7 @@ mod tests {
         assert!(rendered.is_empty(), "{rendered}");
     }
 
-    fn onboarding_event(op: OnboardingOperation) -> Event<OnboardingOperation> {
+    fn setup_event(op: SetupOperation) -> Event<SetupOperation> {
         Event::new(
             OrgScope {
                 organization_id: Uuid::new_v4(),
@@ -762,11 +765,11 @@ mod tests {
     }
 
     #[async_trait::async_trait]
-    impl Subscriber<OnboardingOperation> for GatedSubscriber {
-        fn filter(&self) -> EventFilter<OnboardingOperation> {
+    impl Subscriber<SetupOperation> for GatedSubscriber {
+        fn filter(&self) -> EventFilter<SetupOperation> {
             EventFilter::all()
         }
-        async fn handle(&self, _: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+        async fn handle(&self, _: Vec<Event<SetupOperation>>) -> anyhow::Result<()> {
             self.gate.notified().await;
             self.handled.fetch_add(1, Ordering::SeqCst);
             Ok(())
@@ -777,21 +780,22 @@ mod tests {
     async fn publish_returns_before_a_slow_subscriber_finishes() {
         let gate = Arc::new(Notify::new());
         let handled = Arc::new(AtomicUsize::new(0));
-        let channel = TypedChannel::<OnboardingOperation>::new();
+        let channel = TypedChannel::<SetupOperation>::new();
         channel
             .register(
                 Arc::new(GatedSubscriber {
                     gate: gate.clone(),
                     handled: handled.clone(),
                 }),
-                "gated_subscriber:onboarding_operation",
+                "gated_subscriber:setup_operation",
             )
             .await;
 
         channel
-            .publish(onboarding_event(
-                OnboardingOperation::OnboardingModalCompleted,
-            ))
+            .publish(setup_event(SetupOperation::Completed {
+                item_type: SetupItemDiscriminants::Tags,
+                subject_id: None,
+            }))
             .await;
         assert_eq!(handled.load(Ordering::SeqCst), 0);
 
@@ -806,11 +810,11 @@ mod tests {
     }
 
     #[async_trait::async_trait]
-    impl Subscriber<OnboardingOperation> for RecordingSubscriber {
-        fn filter(&self) -> EventFilter<OnboardingOperation> {
+    impl Subscriber<SetupOperation> for RecordingSubscriber {
+        fn filter(&self) -> EventFilter<SetupOperation> {
             EventFilter::all()
         }
-        async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+        async fn handle(&self, events: Vec<Event<SetupOperation>>) -> anyhow::Result<()> {
             tokio::task::yield_now().await;
             self.seen
                 .lock()
@@ -823,17 +827,20 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn a_subscriber_receives_events_in_publish_order() {
         let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
-        let channel = TypedChannel::<OnboardingOperation>::new();
+        let channel = TypedChannel::<SetupOperation>::new();
         channel
             .register(
                 Arc::new(RecordingSubscriber { seen: seen.clone() }),
-                "recording_subscriber:onboarding_operation",
+                "recording_subscriber:setup_operation",
             )
             .await;
 
         let mut published = Vec::new();
         for _ in 0..100 {
-            let event = onboarding_event(OnboardingOperation::OnboardingModalCompleted);
+            let event = setup_event(SetupOperation::Completed {
+                item_type: SetupItemDiscriminants::Tags,
+                subject_id: None,
+            });
             published.push(event.id);
             channel.publish(event).await;
         }
@@ -848,11 +855,11 @@ mod tests {
     }
 
     #[async_trait::async_trait]
-    impl Subscriber<OnboardingOperation> for PanickingSubscriber {
-        fn filter(&self) -> EventFilter<OnboardingOperation> {
+    impl Subscriber<SetupOperation> for PanickingSubscriber {
+        fn filter(&self) -> EventFilter<SetupOperation> {
             EventFilter::all()
         }
-        async fn handle(&self, _: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+        async fn handle(&self, _: Vec<Event<SetupOperation>>) -> anyhow::Result<()> {
             if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
                 panic!("subscriber bug");
             }
@@ -867,27 +874,28 @@ mod tests {
         let _guard = metrics::set_default_local_recorder(&recorder);
 
         let calls = Arc::new(AtomicUsize::new(0));
-        let channel = TypedChannel::<OnboardingOperation>::new();
+        let channel = TypedChannel::<SetupOperation>::new();
         channel
             .register(
                 Arc::new(PanickingSubscriber {
                     calls: calls.clone(),
                 }),
-                "panicking_subscriber:onboarding_operation",
+                "panicking_subscriber:setup_operation",
             )
             .await;
         for _ in 0..2 {
             channel
-                .publish(onboarding_event(
-                    OnboardingOperation::OnboardingModalCompleted,
-                ))
+                .publish(setup_event(SetupOperation::Completed {
+                    item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
+                }))
                 .await;
         }
         channel.flush().await;
 
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         assert!(handle.render().lines().any(|l| l.starts_with(
-            r#"scanopy_event_subscriber_errors_total{subscriber="panicking_subscriber",event_type="onboarding_operation",outcome="exhausted",reason="panic"} 1"#
+            r#"scanopy_event_subscriber_errors_total{subscriber="panicking_subscriber",event_type="setup_operation",outcome="exhausted",reason="panic"} 1"#
         )));
     }
 
@@ -898,11 +906,11 @@ mod tests {
         struct Debounced(Arc<AtomicUsize>);
 
         #[async_trait::async_trait]
-        impl Subscriber<OnboardingOperation> for Debounced {
-            fn filter(&self) -> EventFilter<OnboardingOperation> {
+        impl Subscriber<SetupOperation> for Debounced {
+            fn filter(&self) -> EventFilter<SetupOperation> {
                 EventFilter::all()
             }
-            async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+            async fn handle(&self, events: Vec<Event<SetupOperation>>) -> anyhow::Result<()> {
                 self.0.fetch_add(events.len(), Ordering::SeqCst);
                 Ok(())
             }
@@ -912,20 +920,21 @@ mod tests {
         }
 
         let handled = Arc::new(AtomicUsize::new(0));
-        let channel = TypedChannel::<OnboardingOperation>::new();
+        let channel = TypedChannel::<SetupOperation>::new();
         channel
             .register(
                 Arc::new(Debounced(handled.clone())),
-                "debounced:onboarding_operation",
+                "debounced:setup_operation",
             )
             .await;
         // The interval's first tick fires at once; let it pass on an empty batch.
         tokio::task::yield_now().await;
         for _ in 0..3 {
             channel
-                .publish(onboarding_event(
-                    OnboardingOperation::OnboardingModalCompleted,
-                ))
+                .publish(setup_event(SetupOperation::Completed {
+                    item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
+                }))
                 .await;
         }
         tokio::time::timeout(Duration::from_secs(5), channel.flush())

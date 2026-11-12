@@ -30,7 +30,7 @@ pub(crate) use container_bridge::{
     retain_reachable_overrides,
 };
 pub(crate) use parses_type::ParsesCredentialType;
-pub(crate) use snmp_v3::UsesSnmpV3SecurityOptions;
+pub(crate) use snmp_v3::{UsesSnmpV3DesPrivacy, UsesSnmpV3SecurityOptions};
 
 /// Something a credential's configuration can rely on that older daemons lack.
 pub(crate) trait DaemonCapability {
@@ -80,11 +80,7 @@ pub(crate) fn retain_capable<C: DaemonCapability>(
         }
         C::withhold(&gap, typed);
         withheld.push(DiscoveryWarning::CredentialNeedsNewerDaemon {
-            integration: typed
-                .discriminant
-                .to_credential_type()
-                .to_query_payload()
-                .discriminant(),
+            integration: typed.discriminant.wire_discriminant(),
             credential_id: Some(*credential_id),
             gap: gap.into(),
             last_unsupported_daemon_version: last_without,
@@ -106,10 +102,13 @@ pub(crate) fn refusal_for_daemon(
     daemon_version: Option<&Version>,
 ) -> Option<String> {
     let mut typed = TypedCredentialMapping::new(credential.base.credential_type.discriminant());
-    typed.mapping.default_credential = Some(credential.base.credential_type.to_query_payload());
+    // The payload only matters to the SNMPv3 check; a credential that runs over a login is judged
+    // on its type, which needs no login to read.
+    typed.mapping.default_credential = credential.base.credential_type.to_query_payload(None);
 
     let missing = missing_gap::<ParsesCredentialType>(&(), &typed, daemon_version)
-        .or_else(|| missing_gap::<UsesSnmpV3SecurityOptions>(&(), &typed, daemon_version))?;
+        .or_else(|| missing_gap::<UsesSnmpV3SecurityOptions>(&(), &typed, daemon_version))
+        .or_else(|| missing_gap::<UsesSnmpV3DesPrivacy>(&(), &typed, daemon_version))?;
     let (gap, last_without) = missing;
     Some(format!(
         "The \"{}\" credential {}. That needs a daemon newer than {last_without}, and \"{daemon_name}\" \
@@ -173,5 +172,32 @@ mod tests {
         let too_old = v(0, 17, 18);
         assert!(refusal_for_daemon(&ssh, "lab", Some(&too_old)).is_some());
         assert!(refusal_for_daemon(&ssh, "lab", Some(&v(0, 17, 19))).is_none());
+    }
+
+    /// An option of a type the daemon otherwise parses refuses the save the same way: the
+    /// credential could never run there.
+    #[test]
+    fn a_save_is_refused_for_a_daemon_too_old_for_des_privacy() {
+        use crate::server::credentials::r#impl::types::{
+            CredentialType, SecretValue, SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpV3Security,
+        };
+        let secret = || SecretValue::Inline {
+            value: secrecy::SecretString::from("lab-secret-12345".to_string()),
+        };
+        let mut des = Credential::default();
+        des.base.name = "Lab".to_string();
+        des.base.credential_type = CredentialType::SnmpV3 {
+            security_name: "scanopy".into(),
+            security: SnmpV3Security::AuthPriv {
+                auth_protocol: SnmpV3AuthProtocol::Sha1,
+                auth_password: secret(),
+                priv_protocol: SnmpV3PrivProtocol::Des,
+                priv_password: secret(),
+            },
+            context_name: None,
+        };
+
+        assert!(refusal_for_daemon(&des, "lab", Some(&v(0, 19, 6))).is_some());
+        assert!(refusal_for_daemon(&des, "lab", Some(&v(0, 19, 7))).is_none());
     }
 }

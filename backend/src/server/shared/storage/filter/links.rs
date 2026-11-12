@@ -20,7 +20,17 @@ impl<T: Storable> StorableFilter<T> {
     ///
     /// `IN (subquery)` rather than a JOIN, so a row linked to several of `ids` is still one row
     /// and the paginated `COUNT(*)` stays right. An empty `ids` matches nothing.
-    pub fn linked_to(mut self, junction: Junction, ids: &[Uuid]) -> Self {
+    pub fn linked_to(self, junction: Junction, ids: &[Uuid]) -> Self {
+        self.linked_where(junction, ids, false)
+    }
+
+    /// [`Self::linked_to`], also matching rows whose link names no row, which `junction` uses to
+    /// mean every row (an All sites assignment).
+    pub fn linked_to_or_every(self, junction: Junction, ids: &[Uuid]) -> Self {
+        self.linked_where(junction, ids, true)
+    }
+
+    fn linked_where(mut self, junction: Junction, ids: &[Uuid], or_every: bool) -> Self {
         if ids.is_empty() {
             self.conditions.push("FALSE".to_string());
             return self;
@@ -38,8 +48,14 @@ impl<T: Storable> StorableFilter<T> {
             ""
         };
 
+        let every = if or_every {
+            format!(" OR link.{} IS NULL", junction.other_column)
+        } else {
+            String::new()
+        };
+
         self.conditions.push(format!(
-            "{col} IN (SELECT link.{own} FROM {table} link WHERE link.{other} IN ({ids}){live})",
+            "{col} IN (SELECT link.{own} FROM {table} link WHERE (link.{other} IN ({ids}){every}){live})",
             own = junction.own_column,
             table = junction.table,
             other = junction.other_column,

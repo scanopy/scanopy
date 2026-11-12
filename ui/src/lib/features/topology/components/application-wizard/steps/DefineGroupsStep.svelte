@@ -1,24 +1,24 @@
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { applicationGroupId, tagIcon, tagTooltip } from '$lib/features/tags/groups';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
-	import { createDefaultTag } from '$lib/features/tags/types/base';
-	import type { Tag as TagType } from '$lib/features/tags/types/base';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { applicationGroupId, tagIcon, tagTooltip } from '#lib/features/tags/groups.ts';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import { AVAILABLE_COLORS, type Color } from '#lib/shared/utils/styling.ts';
+	import { createDefaultTag } from '#lib/features/tags/types/base.ts';
+	import type { Tag as TagType } from '#lib/features/tags/types/base.ts';
 	import {
 		useCreateTagMutation,
 		useDeleteTagMutation,
 		useTagGroupsQuery,
 		useTagsQuery,
 		useUpdateTagMutation
-	} from '$lib/features/tags/queries';
+	} from '#lib/features/tags/queries.ts';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { getSuggestions } from '../suggestions';
-	import { concepts } from '$lib/shared/stores/metadata';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import { concepts } from '#lib/shared/stores/metadata.ts';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import {
 		appWizard_convertExisting,
 		appWizard_createYourOwn,
@@ -30,7 +30,7 @@
 		appWizard_noGroupsYet,
 		appWizard_suggestedGroups,
 		appWizard_mspCallout
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		appTags
@@ -205,6 +205,7 @@
 			}}
 			onRemove={(tagId) => deleteAppTag(tagId)}
 			createAsApplication={true}
+			onePerGroup={false}
 		/>
 	</div>
 

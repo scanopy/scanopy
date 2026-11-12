@@ -3,14 +3,16 @@
  */
 
 import { createQuery } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { unwrapData } from '$lib/api/query-helpers';
-import type { components } from '$lib/api/schema';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
+import type { components } from '#lib/api/schema';
 
 export type OidcProviderMetadata = components['schemas']['OidcProviderMetadata'];
 export type DeploymentType = components['schemas']['DeploymentType'];
 export type PublicServerConfig = components['schemas']['PublicConfigResponse'];
+
+const LOCKED_CONFIG_REFETCH_MS = 30_000;
 
 export const isLicenseLocked = (cfg: PublicServerConfig) =>
 	cfg.license_status === 'expired' ||
@@ -69,6 +71,10 @@ export function useConfigQuery() {
 			return unwrapData(await apiClient.GET('/api/config', {})) as PublicServerConfig;
 		},
 		staleTime: Infinity, // Config rarely changes
-		gcTime: Infinity
+		gcTime: Infinity,
+		// A check-in can lift the lock at any moment, and nothing else tells the
+		// page, so a locked server watches for it.
+		refetchInterval: (query) =>
+			query.state.data && isLicenseLocked(query.state.data) ? LOCKED_CONFIG_REFETCH_MS : false
 	}));
 }

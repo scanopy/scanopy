@@ -15,21 +15,21 @@
 	 *   until it is reconfigured.
 	 */
 	import { KeyRound } from '@lucide/svelte';
-	import type { Daemon } from '$lib/features/daemons/types/base';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
 	import {
 		useProvisionDaemonMutation,
 		useDaemonInstallCommandQuery
-	} from '$lib/features/daemons/queries';
+	} from '#lib/features/daemons/queries.ts';
 	import {
 		fillInstallArtifactsKey,
 		osInstallCommand,
 		type OsInstallMethod
-	} from '$lib/features/daemons/types/base';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
+	} from '#lib/features/daemons/types/base.ts';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
 	import OsSelector from './OsSelector.svelte';
-	import type { DaemonOS } from '$lib/features/daemons/utils';
+	import type { DaemonOS } from '#lib/features/daemons/utils.ts';
 	import {
 		common_associating,
 		daemons_bindKey,
@@ -40,7 +40,7 @@
 		daemons_reconfigureCommandDaemonPoll,
 		daemons_reconfigureCommandServerPoll,
 		daemons_reconfigureTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { daemon }: { daemon: Daemon } = $props();
 

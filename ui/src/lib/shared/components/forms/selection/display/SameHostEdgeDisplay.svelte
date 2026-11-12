@@ -1,8 +1,8 @@
 <script lang="ts" module>
-	import { edgeTypes } from '$lib/shared/stores/metadata';
-	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { common_host, common_unknownEntity } from '$lib/paraglide/messages';
+	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
+	import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { common_host, common_unknownEntity } from '#lib/paraglide/messages.js';
 
 	export const SameHostEdgeDisplay: EntityDisplayComponent<TopologyEdge, EdgeDisplayContext> = {
 		getId: (edge) => edge.id,

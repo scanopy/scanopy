@@ -49,7 +49,7 @@ impl Storable for Service {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -306,20 +306,6 @@ impl Entity for Service {
 
     fn set_source(&mut self, source: EntitySource) {
         self.base.source = source;
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // source is set at creation time (Manual or Discovery), cannot be changed
-        self.base.source = existing.base.source.clone();
-        // Preserve virtualization if not explicitly set (discovery-managed fields). Both halves
-        // are preserved independently: a caller that supplies neither must not lose the
-        // container's identity or its owning runtime.
-        if self.base.virtualization_metadata.is_none() {
-            self.base.virtualization_metadata = existing.base.virtualization_metadata.clone();
-        }
-        if self.base.virtualization_service_id.is_none() {
-            self.base.virtualization_service_id = existing.base.virtualization_service_id;
-        }
     }
 }
 

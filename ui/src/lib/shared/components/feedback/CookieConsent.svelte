@@ -43,7 +43,7 @@
 		cookies_rejectAll,
 		cookies_settings,
 		cookies_settingsDesc
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let showBanner = $state(false);
 	let showSettings = $state(false);

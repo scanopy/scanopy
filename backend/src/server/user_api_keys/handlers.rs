@@ -1,16 +1,17 @@
 use crate::server::openapi::tags as api_tags;
-use crate::server::shared::events::traits::{Event, OrgScope};
-use crate::server::shared::events::types::{
-    OnboardingOperation, OnboardingOperationDiscriminants, UpdateReason,
-};
+use crate::server::shared::events::types::UpdateReason;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
+    auth::access::{Action, Assignment, Resource},
     auth::middleware::{
         features::{ApiKeyFeature, RequireFeature},
-        permissions::{And, Authorized, IsUser, Member, RequireVerified, Viewer},
+        permissions::{
+            And, Authorized, Can, Delete, IsUser, PermissionRequirement, Read, RequireVerified,
+            Write,
+        },
     },
     config::AppState,
     shared::{
@@ -26,17 +27,19 @@ use crate::server::{
                 get_by_id_handler,
             },
         },
-        services::traits::{CrudService, EventBusService},
+        services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
-        types::api::{
-            ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
-            PaginatedApiResponse,
+        types::{
+            api::{
+                ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
+                PaginatedApiResponse,
+            },
+            error_codes::ErrorCode,
         },
     },
-    user_api_keys::{
-        r#impl::{api::UserApiKeyResponse, base::UserApiKey},
-        service::UserApiKeyService,
-    },
+    site_assignments::r#impl::base::Principal,
+    sites::r#impl::Site,
+    user_api_keys::r#impl::{api::UserApiKeyResponse, base::UserApiKey},
     users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{
@@ -198,12 +201,54 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 pub async fn get_all(
     State(state): State<Arc<AppState>>,
     _feature: RequireFeature<ApiKeyFeature>,
-    auth: Authorized<IsUser>,
+    auth: Authorized<And<IsUser, Can<UserApiKey, Read>>>,
     Query(query): Query<UserApiKeyFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<UserApiKey>>> {
     // Only the signed-in user's own keys: `UserApiKey::access_filter` scopes by user.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<UserApiKey>(&state, &scope, &query).await?))
+}
+
+/// Refuses a key scope the caller can't hand out: an empty site list, All sites from a caller
+/// without All sites, or a listed site the caller can't reach. All sites gets the same refusal as
+/// an unreachable site.
+fn refuse_unreachable_key_sites<P: PermissionRequirement>(
+    auth: &Authorized<P>,
+    key: &UserApiKey,
+) -> Result<(), ApiError> {
+    // The sites the user can hand out: a key is org-keyed, the sites in it aren't.
+    match key.base.site_ids.as_deref() {
+        Some([]) => Err(ApiError::validation(ErrorCode::ValidationEmpty {
+            field: "site_ids".to_string(),
+        })),
+        Some(site_ids) => validate_site_ids_access(
+            site_ids,
+            &auth.entity.site_ids_for(Resource::Site, Action::Read),
+        ),
+        None if auth.entity.all_sites_allow(Resource::Site, Action::Read) => Ok(()),
+        None => Err(ApiError::entity_access_denied::<Site>(Uuid::nil())),
+    }
+}
+
+/// Refuses a key holding anything its user doesn't, at the organization or on any site.
+async fn refuse_key_escalation<P: PermissionRequirement>(
+    state: &AppState,
+    auth: &Authorized<P>,
+    organization_id: Uuid,
+    key: &UserApiKey,
+) -> Result<(), ApiError> {
+    let role = key.base.permissions;
+    let assignments = Assignment::for_api_key(role, key.base.site_ids.as_deref());
+    let granted = state
+        .services
+        .access_service
+        .resolve(organization_id, role, &assignments)
+        .await?;
+    if auth.require_access()?.may_grant_to_key(&granted) {
+        Ok(())
+    } else {
+        Err(ApiError::permission_denied())
+    }
 }
 
 /// Create user API key
@@ -223,22 +268,16 @@ pub async fn get_all(
 )]
 pub async fn create_user_api_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<IsUser, Member>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<UserApiKey, Write>>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     ApiJson(mut api_key): ApiJson<UserApiKey>,
 ) -> ApiResult<Json<ApiResponse<UserApiKeyResponse>>> {
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
-    let user_permissions = auth.require_permissions()?;
-    let user_site_ids = auth.site_ids();
     let entity = auth.entity.clone();
 
-    // Validate permissions don't exceed user's permissions
-    UserApiKeyService::validate_permissions(api_key.base.permissions, user_permissions)
-        .map_err(|_| ApiError::permission_denied())?;
-
-    // Validate site access is a subset of user's access
-    validate_site_ids_access(&api_key.base.site_ids, &user_site_ids)?;
+    refuse_unreachable_key_sites(&auth, &api_key)?;
+    refuse_key_escalation(&state, &auth, organization_id, &api_key).await?;
 
     // Set user_id and organization_id from authenticated user
     api_key.base.user_id = user_id;
@@ -249,9 +288,10 @@ pub async fn create_user_api_key(
 
     let site_ids = api_key.base.site_ids.clone();
 
-    let service = &state.services.user_api_key_service;
-    let api_key = service
-        .create_with_sites(api_key, site_ids, entity.clone())
+    let api_key = state
+        .services
+        .access_service
+        .create_api_key(api_key, site_ids, entity)
         .await
         .map_err(|e| {
             tracing::error!(
@@ -261,26 +301,6 @@ pub async fn create_user_api_key(
             );
             ApiError::internal_error(&e.to_string())
         })?;
-
-    // Emit FirstUserApiKeyCreated telemetry event if this is the first user API key
-    if state
-        .services
-        .organization_service
-        .record_milestone(
-            organization_id,
-            OnboardingOperationDiscriminants::FirstUserApiKeyCreated,
-        )
-        .await?
-    {
-        service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstUserApiKeyCreated,
-                entity,
-            ))
-            .await;
-    }
 
     Ok(Json(ApiResponse::success(UserApiKeyResponse {
         key: plaintext,
@@ -305,14 +325,13 @@ pub async fn create_user_api_key(
 )]
 pub async fn update_user_api_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<IsUser, Member>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<UserApiKey, Write>>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<UserApiKey>,
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.require_user_id()?;
-    let user_permissions = auth.require_permissions()?;
-    let user_site_ids = auth.site_ids();
+    let organization_id = auth.require_organization_id()?;
 
     let service = &state.services.user_api_key_service;
 
@@ -327,29 +346,32 @@ pub async fn update_user_api_key(
         return Err(ApiError::entity_access_denied::<UserApiKey>(id));
     }
 
-    // Validate permissions don't exceed user's permissions
-    UserApiKeyService::validate_permissions(request.base.permissions, user_permissions)
-        .map_err(|_| ApiError::permission_denied())?;
-
-    // Validate site access is a subset of user's access
-    validate_site_ids_access(&request.base.site_ids, &user_site_ids)?;
+    refuse_unreachable_key_sites(&auth, &request)?;
+    refuse_key_escalation(&state, &auth, organization_id, &request).await?;
 
     // Preserve immutable fields
     request.preserve_immutable_fields(&existing);
 
-    // Update site access
     let site_ids = request.base.site_ids.clone();
-    service.update_site_access(&id, &site_ids).await?;
+    let role = request.base.permissions;
+    let entity = auth.into_entity();
 
     // Update the entity
     let updated = service
-        .update(
-            &mut request,
-            auth.into_entity(),
-            UpdateReason::EntityRequested,
-        )
+        .update(&mut request, entity.clone(), UpdateReason::EntityRequested)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
+    state
+        .services
+        .access_service
+        .set_access(
+            Principal::ApiKey(id),
+            role,
+            &Assignment::for_api_key(role, site_ids.as_deref()),
+            entity,
+        )
+        .await?;
 
     // Return with hydrated site_ids
     let mut result = updated;
@@ -374,7 +396,7 @@ pub async fn update_user_api_key(
 )]
 pub async fn rotate_key_handler(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<IsUser, Member>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<UserApiKey, Write>>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
@@ -384,6 +406,14 @@ pub async fn rotate_key_handler(
     let user_agent = user_agent.map(|u| u.to_string());
 
     let service = &state.services.user_api_key_service;
+    let existing = service
+        .get_by_id(&api_key_id)
+        .await?
+        .ok_or_else(|| ApiError::entity_not_found::<UserApiKey>(api_key_id))?;
+    if existing.base.user_id != user_id {
+        return Err(ApiError::entity_access_denied::<UserApiKey>(api_key_id));
+    }
+
     let key = service
         .rotate_key(api_key_id, ip, user_agent, auth.into_entity())
         .await
@@ -415,22 +445,24 @@ pub async fn rotate_key_handler(
 )]
 pub async fn get_by_id(
     state: State<Arc<AppState>>,
-    auth: Authorized<And<IsUser, Viewer>>,
+    auth: Authorized<And<IsUser, Can<UserApiKey, Read>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.user_id().unwrap_or(Uuid::nil());
-    let result =
-        get_by_id_handler::<UserApiKey>(state, auth.into_permission::<Viewer>(), Path(id)).await?;
+    let result = get_by_id_handler::<UserApiKey>(state.clone(), auth, Path(id)).await?;
 
-    if result
-        .data()
-        .map(|k| k.base.user_id != user_id)
-        .unwrap_or(true)
-    {
+    let Some(key) = result.data().filter(|k| k.base.user_id == user_id) else {
         return Err(ApiError::entity_not_found::<UserApiKey>(id));
-    }
-    Ok(result)
+    };
+    let mut keys = [key.clone()];
+    state
+        .services
+        .user_api_key_service
+        .hydrate_site_ids(&mut keys)
+        .await?;
+    let [key] = keys;
+    Ok(Json(ApiResponse::success(key)))
 }
 
 /// Delete user API key
@@ -448,7 +480,7 @@ pub async fn get_by_id(
 )]
 pub async fn delete(
     state: State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<IsUser, Member>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<UserApiKey, Delete>>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -464,7 +496,7 @@ pub async fn delete(
         return Err(ApiError::entity_not_found::<UserApiKey>(id));
     }
 
-    delete_handler::<UserApiKey>(state, auth.into_permission::<Member>(), Path(id)).await
+    delete_handler::<UserApiKey>(state, auth, Path(id)).await
 }
 
 /// Bulk delete user API keys
@@ -481,7 +513,7 @@ pub async fn delete(
 )]
 pub async fn bulk_delete(
     state: State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<IsUser, Member>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<UserApiKey, Delete>>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
@@ -498,12 +530,7 @@ pub async fn bulk_delete(
         }
     }
 
-    let result = bulk_delete_handler::<UserApiKey>(
-        state,
-        auth.into_permission::<Member>(),
-        ApiJson(owned_ids),
-    )
-    .await?;
+    let result = bulk_delete_handler::<UserApiKey>(state, auth, ApiJson(owned_ids)).await?;
 
     // Combine counts
     Ok(Json(ApiResponse::success(BulkDeleteResponse {

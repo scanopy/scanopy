@@ -504,9 +504,9 @@ fn record(feedback_type: &'static str, bounce_type: &'static str) {
 mod tests {
     use std::sync::OnceLock;
 
-    use password_hash::rand_core::OsRng;
     use rsa::RsaPrivateKey;
     use rsa::pkcs1v15::SigningKey;
+    use rsa::rand_core::OsRng;
     use rsa::signature::{SignatureEncoding, Signer};
 
     use super::*;

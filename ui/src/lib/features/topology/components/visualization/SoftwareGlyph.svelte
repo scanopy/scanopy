@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 
 	/**
 	 * Software: its service definition's logo in a round frame. The circle is the shape the

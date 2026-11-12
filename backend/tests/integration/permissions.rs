@@ -2,7 +2,7 @@
 //!
 //! Tests that users cannot access resources on sites/organizations they don't have access to.
 
-use crate::infra::{TestContext, exec_sql};
+use crate::infra::{TestContext, exec_sql, set_user_access};
 use cidr::{IpCidr, Ipv4Cidr};
 use reqwest::StatusCode;
 use scanopy::server::hosts::r#impl::api::CreateHostRequest;
@@ -26,31 +26,20 @@ pub async fn run_permission_tests(ctx: &TestContext) -> Result<(), String> {
     // Create a second site in the same org that we won't grant access to
     let other_site_id = create_inaccessible_site(ctx).await?;
 
-    // Downgrade user to Member so they don't auto-get access to all sites
-    // (Owners/Admins automatically have access to all sites in their org)
-    set_user_permissions("Member")?;
+    // Make the user a Member on ctx.site_id alone, so the other site is out of reach
+    set_user_access(ctx.organization_id, "Member", Some(ctx.site_id))?;
 
     test_cannot_read_host_on_other_site(ctx, other_site_id).await?;
     test_cannot_create_host_on_other_site(ctx, other_site_id).await?;
     test_cannot_create_subnet_on_other_site(ctx, other_site_id).await?;
 
-    // Restore Owner permissions
-    set_user_permissions("Owner")?;
+    // Restore Owner access
+    set_user_access(ctx.organization_id, "Owner", None)?;
 
     // Clean up
     cleanup_inaccessible_site(ctx, other_site_id).await?;
 
     println!("\n✅ All permission tests passed!");
-    Ok(())
-}
-
-/// Set user permissions via direct SQL update
-fn set_user_permissions(permissions: &str) -> Result<(), String> {
-    exec_sql(&format!(
-        "UPDATE users SET permissions = '{}';",
-        permissions
-    ))?;
-    println!("  Set user permissions to: {}", permissions);
     Ok(())
 }
 

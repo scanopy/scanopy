@@ -274,10 +274,12 @@ async fn walk_qbridge_fdb<T: SnmpWalkTransport>(
 }
 
 /// Query VLAN table for VLAN IDs and names.
-/// Tries Q-BRIDGE dot1qVlanStaticName first, falls back to Cisco VTP vtpVlanName.
+/// Tries Q-BRIDGE dot1qVlanStaticName first, then TP-Link's private VLAN table on a TP-Link
+/// agent (`sys_object_id` under enterprise 11863), then Cisco VTP vtpVlanName.
 pub async fn query_vlan_table<T: SnmpWalkTransport>(
     session: &mut T,
     ip: IpAddr,
+    sys_object_id: Option<&str>,
 ) -> Result<SnmpCollection<Vec<VlanInfo>>> {
     let mut vlans: Vec<VlanInfo> = Vec::new();
     let mut shortfall = Shortfall::default();
@@ -301,7 +303,14 @@ pub async fn query_vlan_table<T: SnmpWalkTransport>(
     )
     .await;
 
-    // Fall back to Cisco VTP if Q-BRIDGE returned nothing. VTP index is
+    // A TP-Link agent with no Q-BRIDGE VLAN names keeps them in its own MIB (GH #847). Asked
+    // before VTP, so a switch that answers here is never sent a walk of Cisco's tree.
+    if vlans.is_empty() && tplink::is_tplink_agent(sys_object_id) {
+        shortfall = Shortfall::default();
+        vlans = tplink::walk_vlan_names(session, ip, &mut shortfall).await;
+    }
+
+    // Fall back to Cisco VTP if nothing above returned a VLAN. VTP index is
     // mgmtDomainIndex.vlanId — use the last sub-id as the VLAN ID.
     if vlans.is_empty() {
         // A device with no Q-BRIDGE VLAN names has not fallen short if VTP answers instead, so
@@ -327,7 +336,7 @@ pub async fn query_vlan_table<T: SnmpWalkTransport>(
     }
 
     debug!(
-        "VLAN table query from {} returned {} entries (Q-BRIDGE or VTP)",
+        "VLAN table query from {} returned {} entries (Q-BRIDGE, TP-Link or VTP)",
         ip,
         vlans.len()
     );
@@ -335,10 +344,33 @@ pub async fn query_vlan_table<T: SnmpWalkTransport>(
     Ok(SnmpCollection::from_walk(vlans, shortfall))
 }
 
-/// Query per-port VLAN membership from Q-BRIDGE-MIB.
+/// Query per-port VLAN membership: Q-BRIDGE-MIB first, then TP-Link's private VLAN tables on a
+/// TP-Link agent (`sys_object_id` under enterprise 11863) that gave no Q-BRIDGE membership.
+///
+/// The TP-Link read takes ifIndexes from its own port table, so it runs whether or not the
+/// device served a bridge-port mapping. When it finds nothing either, the Q-BRIDGE result
+/// stands, with its account of why it is empty.
+pub async fn query_port_vlan_membership<T: SnmpWalkTransport>(
+    session: &mut T,
+    ip: IpAddr,
+    bridge_ports: &SnmpCollection<HashMap<i32, i32>>,
+    sys_object_id: Option<&str>,
+) -> Result<SnmpCollection<Vec<PortVlanMembership>>> {
+    let q_bridge = query_q_bridge_port_vlan_membership(session, ip, bridge_ports).await?;
+    if !q_bridge.records.is_empty() || !tplink::is_tplink_agent(sys_object_id) {
+        return Ok(q_bridge);
+    }
+    let tplink = tplink::query_port_vlan_membership(session, ip).await;
+    if tplink.records.is_empty() && tplink.discarded == 0 {
+        return Ok(q_bridge);
+    }
+    Ok(tplink)
+}
+
+/// Per-port VLAN membership from Q-BRIDGE-MIB.
 /// Uses dot1qPvid for native VLANs and dot1qVlanCurrentEgressPorts/UntaggedPorts
 /// for tagged VLAN membership. Resolves bridge ports to ifIndex.
-pub async fn query_port_vlan_membership<T: SnmpWalkTransport>(
+async fn query_q_bridge_port_vlan_membership<T: SnmpWalkTransport>(
     session: &mut T,
     ip: IpAddr,
     // Step 1 (`query_bridge_port_mapping`) is done by the caller and shared with

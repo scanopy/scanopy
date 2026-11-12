@@ -1,12 +1,12 @@
 <script lang="ts" module>
-	import { isContainerSubnet } from '$lib/features/subnets/queries';
+	import { isContainerSubnet } from '#lib/features/subnets/queries.ts';
 
 	export type SubnetTagRole = 'subnetType';
 
 	export interface SubnetDisplayContext extends DisplayTagContext<SubnetTagRole> {
 		showEntityTagPicker?: boolean;
 		tagPickerDisabled?: boolean;
-		entityTags?: import('$lib/features/tags/types/base').Tag[];
+		entityTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		showEditableEntityDescription?: boolean;
 		entityDescription?: string | null;
 		entityDescriptionDisabled?: boolean;
@@ -46,10 +46,10 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import { subnetTypes } from '$lib/shared/stores/metadata';
-	import type { Subnet } from '$lib/features/subnets/types/base';
+	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
 
 	interface Props {
 		item: Subnet;

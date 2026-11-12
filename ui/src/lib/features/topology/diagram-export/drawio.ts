@@ -2,17 +2,25 @@
  * draw.io (mxGraph XML) serializer for a `DiagramModel`.
  *
  * Containers are container cells that hold their children, so moving one in draw.io moves its
- * contents. Edges name their source and target cells, so they stay attached when either moves.
+ * contents. Each part of a shape (a tile, a badge, a title pill) is a child cell of that shape,
+ * so it moves with it and stays editable. Edges name their source and target cells, so they stay
+ * attached when either moves.
+ *
+ * Every size and colour comes from the model; this file decides only how draw.io spells them.
  */
 
 import {
 	DIAGRAM_PADDING,
 	sideAnchor,
+	type DiagramBox,
 	type DiagramConnector,
 	type DiagramField,
 	type DiagramModel,
+	type DiagramPart,
 	type DiagramShape
 } from './model';
+import { overlayDashArray } from '../layout/edge-classification';
+import { STYLE } from './style';
 import { escapeXml, fieldKeys, hexColor, num } from './xml';
 
 const ROOT_ID = '0';
@@ -34,9 +42,12 @@ export interface DrawioCell {
 }
 
 const shapeCellId = (id: string) => `n-${id}`;
+const partCellId = (id: string, index: number) => `p-${id}-${index}`;
 const connectorCellId = (id: string) => `e-${id}`;
 
-function style(entries: Record<string, string | number | undefined>): string {
+type StyleEntries = Record<string, string | number | undefined>;
+
+function style(entries: StyleEntries): string {
 	return Object.entries(entries)
 		.filter(([, v]) => v !== undefined)
 		.map(([k, v]) => `${k}=${v}`)
@@ -54,54 +65,38 @@ function cellData(fields: DiagramField[]): DrawioCell['data'] {
 	return fields.map((f, i) => ({ key: keys[i], value: f.value }));
 }
 
-/** HTML label: bold title, then one line per entry. */
-function htmlLabel(title: string, lines: string[]): string {
-	const parts = [];
-	if (title) parts.push(`<b>${escapeXml(title)}</b>`);
-	for (const line of lines) parts.push(escapeXml(line));
-	return parts.join('<br>');
+/** An outline's style: draw.io measures `arcSize` across the corner, twice the radius. */
+function boxStyle(box: DiagramBox): StyleEntries {
+	return {
+		shape: box.outline === 'ellipse' ? 'ellipse' : undefined,
+		perimeter: box.outline === 'ellipse' ? 'ellipsePerimeter' : undefined,
+		rounded: box.outline === 'rect' && box.radius ? 1 : 0,
+		absoluteArcSize: box.radius ? 1 : undefined,
+		arcSize: box.radius ? box.radius * 2 : undefined,
+		fillColor: box.fill ? hexColor(box.fill) : 'none',
+		strokeColor: box.stroke ? hexColor(box.stroke) : 'none',
+		strokeWidth: box.stroke ? (box.strokeWidth ?? 1) : undefined,
+		dashed: box.dashed ? 1 : undefined
+	};
 }
 
-function shapeCell(
-	shape: DiagramShape,
-	model: DiagramModel,
-	byId: Map<string, DiagramShape>
-): DrawioCell {
+/** A shape's own box. Everything it draws on it, its name included, is a part. */
+function shapeCell(shape: DiagramShape, byId: Map<string, DiagramShape>): DrawioCell {
 	const parent = shape.parentId ? byId.get(shape.parentId) : undefined;
-	const icon = shape.iconKey ? model.icons.get(shape.iconKey) : undefined;
 	const isContainer = shape.type === 'container';
-	const iconSize = isContainer ? 16 : 20;
 
 	return {
 		id: shapeCellId(shape.id),
 		parent: parent ? shapeCellId(parent.id) : LAYER_ID,
-		value: htmlLabel(shape.title, shape.lines),
+		value: '',
 		vertex: true,
 		data: cellData(shape.data),
 		style: style({
-			shape: icon ? 'label' : undefined,
-			image: icon ? styleImage(icon.dataUri) : undefined,
-			imageWidth: icon ? iconSize : undefined,
-			imageHeight: icon ? iconSize : undefined,
-			imageAlign: icon ? 'left' : undefined,
-			imageVerticalAlign: icon ? 'top' : undefined,
-			rounded: 1,
-			absoluteArcSize: 1,
-			arcSize: isContainer ? 12 : 8,
-			whiteSpace: 'wrap',
+			...boxStyle(shape.box),
 			html: 1,
 			container: isContainer ? 1 : undefined,
 			collapsible: isContainer ? 0 : undefined,
-			recursiveResize: isContainer ? 0 : undefined,
-			fillColor: hexColor(shape.style.fill),
-			strokeColor: hexColor(shape.style.accent ?? shape.style.stroke),
-			strokeWidth: isContainer && shape.style.accent ? 2 : 1,
-			fontColor: hexColor(shape.style.text),
-			fontSize: isContainer ? 12 : 11,
-			align: isContainer || icon ? 'left' : 'center',
-			verticalAlign: isContainer || icon ? 'top' : 'middle',
-			spacingLeft: icon ? iconSize + 14 : 8,
-			spacingTop: 6
+			recursiveResize: isContainer ? 0 : undefined
 		}),
 		geometry: {
 			x: shape.x - (parent?.x ?? 0),
@@ -112,9 +107,62 @@ function shapeCell(
 	};
 }
 
+/** A part as a child cell of its shape. A part whose icon did not load is not drawn. */
+function partCell(
+	shape: DiagramShape,
+	part: DiagramPart,
+	index: number,
+	model: DiagramModel
+): DrawioCell | null {
+	const base = {
+		id: partCellId(shape.id, index),
+		parent: shapeCellId(shape.id),
+		vertex: true,
+		geometry: { x: part.x, y: part.y, width: part.width, height: part.height }
+	};
+	if (part.iconKey) {
+		const icon = model.icons.get(part.iconKey);
+		if (!icon) return null;
+		return {
+			...base,
+			value: '',
+			style: style({
+				shape: 'image',
+				image: styleImage(icon.dataUri),
+				imageAspect: 1,
+				aspect: 'fixed',
+				connectable: 0
+			})
+		};
+	}
+	const text = part.text;
+	const align = text?.align ?? 'center';
+	return {
+		...base,
+		value: text ? escapeXml(text.value) : '',
+		style: style({
+			...boxStyle(part),
+			html: 1,
+			connectable: 0,
+			// One line clipped to the part, or wrapped at its width from the top.
+			whiteSpace: text?.wrap ? 'wrap' : undefined,
+			overflow: text && !text.wrap ? 'hidden' : undefined,
+			fontColor: text ? hexColor(text.color) : undefined,
+			fontSize: text?.size,
+			fontStyle: text ? (text.bold ? 1 : 0) : undefined,
+			align: text ? align : undefined,
+			verticalAlign: text ? (text.wrap ? 'top' : 'middle') : undefined,
+			spacing: text ? 0 : undefined,
+			spacingLeft: text && align === 'left' ? (text.inset ?? 0) : undefined,
+			spacingRight: text && align === 'right' ? (text.inset ?? 0) : undefined
+		})
+	};
+}
+
 function connectorCell(connector: DiagramConnector, background: string): DrawioCell {
 	const exit = sideAnchor(connector.sourceSide);
 	const entry = sideAnchor(connector.targetSide);
+	const label = connector.labelStyle;
 	return {
 		id: connectorCellId(connector.id),
 		parent: LAYER_ID,
@@ -125,6 +173,7 @@ function connectorCell(connector: DiagramConnector, background: string): DrawioC
 		target: shapeCellId(connector.targetId),
 		style: style({
 			edgeStyle: 'orthogonalEdgeStyle',
+			curved: connector.curved ? 1 : undefined,
 			rounded: 1,
 			orthogonalLoop: 1,
 			html: 1,
@@ -134,7 +183,7 @@ function connectorCell(connector: DiagramConnector, background: string): DrawioC
 			strokeWidth: connector.width,
 			dashed: connector.dash === 'solid' ? undefined : 1,
 			dashPattern:
-				connector.dash === 'dotted' ? '1 4' : connector.dash === 'dashed' ? '6 3' : undefined,
+				connector.dash === 'solid' ? undefined : overlayDashArray(connector.dash === 'dotted'),
 			exitX: exit.x,
 			exitY: exit.y,
 			exitDx: 0,
@@ -143,8 +192,10 @@ function connectorCell(connector: DiagramConnector, background: string): DrawioC
 			entryY: entry.y,
 			entryDx: 0,
 			entryDy: 0,
-			fontSize: 10,
-			labelBackgroundColor: hexColor(background)
+			fontSize: label?.size,
+			fontColor: label ? hexColor(label.color) : undefined,
+			labelBackgroundColor: hexColor(label?.fill ?? background),
+			labelBorderColor: label ? hexColor(label.stroke) : undefined
 		})
 	};
 }
@@ -171,7 +222,7 @@ function headerCells(model: DiagramModel): DrawioCell[] {
 			parent: LAYER_ID,
 			value: escapeXml(title),
 			vertex: true,
-			style: text(color, 18, true),
+			style: text(color, STYLE.header.titleText, true),
 			geometry: { x: DIAGRAM_PADDING, y: DIAGRAM_PADDING - 8, width, height: 26 }
 		},
 		{
@@ -179,20 +230,24 @@ function headerCells(model: DiagramModel): DrawioCell[] {
 			parent: LAYER_ID,
 			value: escapeXml(subtitle),
 			vertex: true,
-			style: text(subtitleColor, 12, false),
+			style: text(subtitleColor, STYLE.header.subtitleText, false),
 			geometry: { x: DIAGRAM_PADDING, y: DIAGRAM_PADDING + 18, width, height: 20 }
 		}
 	];
 }
 
-/** The cells of the diagram, root and layer first, parents before children. */
+/** The cells of the diagram, root and layer first, each shape before its parts and children. */
 export function toDrawioCells(model: DiagramModel): DrawioCell[] {
 	const byId = new Map(model.shapes.map((s) => [s.id, s]));
+	const shapes = model.shapes.flatMap((shape) => [
+		shapeCell(shape, byId),
+		...shape.parts.flatMap((part, i) => partCell(shape, part, i, model) ?? [])
+	]);
 	return [
 		{ id: ROOT_ID, parent: '', value: '', style: '' },
 		{ id: LAYER_ID, parent: ROOT_ID, value: '', style: '' },
 		...headerCells(model),
-		...model.shapes.map((s) => shapeCell(s, model, byId)),
+		...shapes,
 		...model.connectors.map((c) => connectorCell(c, model.background))
 	];
 }
@@ -227,7 +282,9 @@ export function serializeDrawio(model: DiagramModel): string {
 		'<?xml version="1.0" encoding="UTF-8"?>',
 		'<mxfile host="Scanopy" type="device">',
 		`<diagram id="scanopy-topology" name="${escapeXml(model.name)}">`,
-		`<mxGraphModel dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${num(model.width)}" pageHeight="${num(model.height)}" background="${hexColor(model.background)}" math="0" shadow="0">`,
+		// `adaptiveColors="none"`: draw.io otherwise recolours a diagram for its own light or dark
+		// mode, which shows a dark export in light colours in a dark editor.
+		`<mxGraphModel adaptiveColors="none" dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${num(model.width)}" pageHeight="${num(model.height)}" background="${hexColor(model.background)}" math="0" shadow="0">`,
 		'<root>',
 		body,
 		'</root>',

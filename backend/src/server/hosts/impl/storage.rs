@@ -82,7 +82,7 @@ impl Storable for Host {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -401,14 +401,16 @@ impl Entity for Host {
     fn set_source(&mut self, source: EntitySource) {
         self.base.source = source;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // source is set at creation time (Manual or Discovery), cannot be changed — with one
-        // exception. `Inferred` says "nothing has ever contacted this device", and the moment a
-        // scan does, that stops being true. Pinning it would leave a host that answers SNMP still
-        // badged as second-hand for ever, which is the opposite of what the rung is for.
-        // Another report (a neighbour advertising a host a switch's forwarding table minted) is
-        // not contact, so it keeps the source the host was minted with.
+impl Host {
+    /// source is set at creation time (Manual or Discovery), cannot be changed — with one
+    /// exception. `Inferred` says "nothing has ever contacted this device", and the moment a
+    /// scan does, that stops being true. Pinning it would leave a host that answers SNMP still
+    /// badged as second-hand for ever, which is the opposite of what the rung is for.
+    /// Another report (a neighbour advertising a host a switch's forwarding table minted) is
+    /// not contact, so it keeps the source the host was minted with.
+    pub(crate) fn merge_source(&mut self, existing: &Self) {
         self.base.source = match (&existing.base.source, &self.base.source) {
             (EntitySource::Inferred { .. }, incoming)
                 if incoming.is_from_discovery() && !incoming.confirmation().is_unconfirmed() =>
@@ -417,8 +419,12 @@ impl Entity for Host {
             }
             (existing_source, _) => existing_source.clone(),
         };
-        // A dismissal stands until a scan reaches the device, which is new evidence. Only the
-        // dismiss action sets it, so an incoming value is taken over a stored one.
+    }
+
+    /// A dismissal stands until a scan reaches the device, which is new evidence. Only the
+    /// dismiss action sets it, so an incoming value is taken over a stored one. Reads the merged
+    /// source, so it follows [`Self::merge_source`] in the registry.
+    pub(crate) fn merge_dismissed_at(&mut self, existing: &Self) {
         let promoted = existing.base.source.confirmation().is_unconfirmed()
             && !self.base.source.confirmation().is_unconfirmed();
         self.dismissed_at = if promoted {
@@ -426,8 +432,6 @@ impl Entity for Host {
         } else {
             self.dismissed_at.or(existing.dismissed_at)
         };
-        self.created_at = existing.created_at;
-        self.updated_at = existing.updated_at;
     }
 }
 

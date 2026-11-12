@@ -1,15 +1,16 @@
 use crate::daemon::runtime::state::DaemonStatus;
 use crate::daemon::shared::config::{DaemonArgs, parse_integration_target_tokens};
 use crate::server::auth::middleware::permissions::{
-    And, Authorized, IsDaemon, IsUser, Member, RequireVerified, Viewer,
+    And, Authorized, Can, Delete, IsDaemon, IsUser, Read, RequireVerified, Write,
 };
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
+use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::r#impl::api::{
-    DaemonHealth, DaemonHeartbeatPayload, ProvisionDaemonRequest, ProvisionDaemonResponse,
-    ProvisionEligibility, TestReachabilityRequest, TestReachabilityResponse,
+    DaemonHealth, DaemonHeartbeatPayload, DaemonWorkResponse, ProvisionDaemonRequest,
+    ProvisionDaemonResponse, ProvisionEligibility, TestReachabilityRequest,
+    TestReachabilityResponse,
 };
 use crate::server::daemons::r#impl::base::DaemonOs;
-use crate::server::daemons::service::DaemonLimit;
 use crate::server::metrics::dependency::{Dependency, observe_http};
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::api_key_common::hash_api_key;
@@ -283,7 +284,7 @@ fn active_session_error() -> ApiError {
 )]
 async fn update_daemon(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<Daemon>,
 ) -> ApiResult<Json<ApiResponse<Daemon>>> {
@@ -398,7 +399,7 @@ impl InstallCommandQuery {
 )]
 async fn get_install_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<DaemonApiKey, Read>>,
     Path(id): Path<Uuid>,
     Query(query): Query<InstallCommandQuery>,
 ) -> ApiResult<Json<ApiResponse<crate::server::daemons::r#impl::install_artifacts::InstallArtifacts>>>
@@ -444,7 +445,7 @@ async fn get_install_command(
 )]
 async fn get_upgrade_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<DaemonApiKey, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<UpgradeArtifacts>>> {
     let daemon = Daemon::get_service(&state)
@@ -581,7 +582,7 @@ fn count_msi_download(state: &AppState, client_ip: std::net::IpAddr) {
 )]
 async fn delete_daemon(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if state
@@ -611,7 +612,7 @@ async fn delete_daemon(
 )]
 async fn bulk_delete_daemons(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
     for id in &ids {
@@ -674,7 +675,7 @@ pub struct EmailInstallCommandRequest {
 )]
 async fn email_install_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<Member, IsUser>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<DaemonApiKey, Read>>>>,
     ApiJson(request): ApiJson<EmailInstallCommandRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     // Unreachable: `IsUser` has already rejected every variant that lacks an address, and the
@@ -802,10 +803,10 @@ pub fn create_internal_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Daemon, Read>>,
     Query(query): Query<DaemonFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<DaemonResponse>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Daemon>(&state, &scope, &query).await?))
 }
 
@@ -828,7 +829,7 @@ async fn get_all(
 )]
 async fn get_by_id(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Daemon, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DaemonResponse>>> {
     let site_ids = auth.site_ids();
@@ -1008,7 +1009,8 @@ async fn update_capabilities(
 ///
 /// Internal endpoint for daemons to poll for pending discovery sessions.
 /// Also updates heartbeat and returns any pending cancellation requests.
-/// Returns tuple of (next_session, should_cancel).
+/// Returns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it
+/// (see [`DaemonWorkResponse`]).
 #[utoipa::path(
     post,
     path = "/{id}/request-work",
@@ -1016,7 +1018,7 @@ async fn update_capabilities(
     params(("id" = Uuid, Path, description = "Daemon ID")),
     request_body = DaemonStatus,
     responses(
-        (status = 200, description = "Work request processed - returns (Option<Value>, bool)"),
+        (status = 200, description = "Work request processed - returns [Option<Value>, bool, Option<Uuid>]"),
         (status = 404, description = "Daemon not found", body = ApiErrorResponse),
     ),
     security(("daemon_api_key" = []))
@@ -1026,7 +1028,7 @@ async fn receive_work_request(
     auth: Authorized<IsDaemon>,
     Path(daemon_id): Path<Uuid>,
     ApiJson(status): ApiJson<DaemonStatus>,
-) -> ApiResult<Json<ApiResponse<(Option<serde_json::Value>, bool)>>> {
+) -> ApiResult<Json<ApiResponse<DaemonWorkResponse<serde_json::Value>>>> {
     let daemon_site_id = auth.site_ids()[0];
 
     // Validate daemon exists and belongs to the authenticated daemon's site
@@ -1120,7 +1122,7 @@ async fn receive_work_request(
     // Unified: build credential_mappings via discovery_service and use with_exposed_credentials()
     // Legacy: use with_exposed_snmp() (SNMP inline in DiscoveryType::Network)
     let next_session_value = match next_session {
-        Some(payload) if payload.discovery_type.runs_network_scan() => {
+        Some(payload) if payload.discovery_type.carries_credential_mappings() => {
             let integration_targets = state
                 .services
                 .discovery_service
@@ -1152,10 +1154,14 @@ async fn receive_work_request(
         None => None,
     };
 
-    Ok(Json(ApiResponse::success((
-        next_session_value,
-        has_cancellation,
-    ))))
+    Ok(Json(ApiResponse::success(DaemonWorkResponse {
+        next_session: next_session_value,
+        cancel: has_cancellation,
+        cancel_session_id: cancellation,
+        sends_cancel_session_id: crate::server::daemons::r#impl::version::reads_cancel_session_id(
+            status.version.as_ref(),
+        ),
+    })))
 }
 
 /// Receive daemon heartbeat (deprecated)
@@ -1204,7 +1210,8 @@ async fn receive_heartbeat(
         mode: request.mode,
         version: None, // Old daemons don't send version in heartbeat
         capabilities: LegacyCapabilities::default(),
-        interfaced_subnets: Vec::new(),
+        interfaced_subnets: None,
+        interfaces_fingerprint: None,
         ready_for_work: true,
         os: None, // Old daemons don't report their OS
     };
@@ -1271,19 +1278,16 @@ async fn load_reprovision_target(
 )]
 async fn get_provision_eligibility(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
 ) -> ApiResult<Json<ApiResponse<ProvisionEligibility>>> {
     let organization_id = auth.require_organization_id()?;
-    let limit = state
+    let eligibility = state
         .services
         .daemon_service
-        .daemon_limit_reached(organization_id)
+        .provision_eligibility(organization_id, &auth.site_ids())
         .await?;
 
-    Ok(Json(ApiResponse::success(ProvisionEligibility {
-        email_verification_required: limit == Some(DaemonLimit::EmailVerification),
-        plan_required: limit == Some(DaemonLimit::PlanRequired),
-    })))
+    Ok(Json(ApiResponse::success(eligibility)))
 }
 
 /// Provision a Daemon, or re-provision an existing one
@@ -1316,10 +1320,21 @@ async fn get_provision_eligibility(
 )]
 async fn provision_daemon(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
     ApiJson(request): ApiJson<ProvisionDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<ProvisionDaemonResponse>>> {
     let site_ids = auth.site_ids();
+
+    let seeded_credential_ids: Vec<Uuid> = request
+        .seed_credential_refs
+        .iter()
+        .map(|target| target.credential_id())
+        .collect();
+    state
+        .services
+        .credential_service
+        .validate_ids_in_org(&seeded_credential_ids, auth.require_organization_id()?)
+        .await?;
 
     // ---- Resolve the target daemon, enforcing tenant access ---------------------------
     // `load_reprovision_target` access-checks the existing record; the create path is checked
@@ -1379,8 +1394,21 @@ async fn provision_daemon(
 )]
 async fn test_reachability(
     State(state): State<Arc<AppState>>,
-    _auth: Authorized<Member>,
+    _auth: Authorized<Can<Daemon, Write>>,
     ApiJson(request): ApiJson<TestReachabilityRequest>,
+) -> axum::response::Response {
+    // Resolving, connecting to and health-checking a user-chosen address takes up to its
+    // timeouts by design, so it stays out of the server's latency histogram.
+    let mut response = check_reachability(&state, request).await.into_response();
+    response
+        .extensions_mut()
+        .insert(crate::server::shared::types::api::LatencyExempt);
+    response
+}
+
+async fn check_reachability(
+    state: &AppState,
+    request: TestReachabilityRequest,
 ) -> ApiResult<Json<ApiResponse<TestReachabilityResponse>>> {
     // Parse the URL
     let parsed =

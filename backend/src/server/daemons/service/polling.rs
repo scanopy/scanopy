@@ -438,10 +438,10 @@ impl DaemonService {
                 .discovery_service
                 .build_daemon_request(
                     &work,
-                    work.site_id,
+                    daemon.base.site_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
-                    self.site_subnets(work.site_id).await,
+                    self.site_subnets(daemon.base.site_id).await,
                     self.subnets_scanned_elsewhere(&work).await,
                 )
                 .await;
@@ -493,19 +493,29 @@ impl DaemonService {
                 let auth = AuthenticatedEntity::System;
 
                 // Processing runs as `System`, so the daemon's site scope is enforced here: the
-                // DaemonPoll endpoint refuses VLANs for a site the daemon is not assigned to, and
-                // the same submission arriving by poll must not get further.
-                poll_response.entities.vlans.retain(|batch| {
-                    let allowed = batch.request.site_id == daemon.base.site_id;
-                    if !allowed {
+                // DaemonPoll endpoints refuse a submission for a site the daemon is not assigned
+                // to, and the same submission arriving by poll must not get further.
+                let site_id = daemon.base.site_id;
+                let refused = |site: Uuid, what: &str| {
+                    if site != site_id {
                         tracing::warn!(
                             daemon_id = %daemon.id,
-                            site_id = %batch.request.site_id,
-                            "Dropping VLAN batch for a site the daemon is not assigned to"
+                            site_id = %site,
+                            "Dropping {what} for a site the daemon is not assigned to"
                         );
                     }
-                    allowed
-                });
+                    site != site_id
+                };
+                let entities = &mut poll_response.entities;
+                entities
+                    .vlans
+                    .retain(|batch| !refused(batch.request.site_id, "VLAN batch"));
+                entities
+                    .hosts
+                    .retain(|request| !refused(request.host.base.site_id, "host"));
+                entities
+                    .subnets
+                    .retain(|subnet| !refused(subnet.base.site_id, "subnet"));
 
                 // Entities before progress. A poll response can carry both the
                 // session's terminal update and the last hosts of that session,
@@ -542,8 +552,16 @@ impl DaemonService {
                 }
 
                 // Process progress update if available
-                if let Some(progress) = poll_response.progress {
-                    self.process_discovery_progress(progress).await;
+                if let Some(progress) = poll_response.progress
+                    && let Err(e) = self
+                        .process_discovery_progress(daemon.id, site_id, progress)
+                        .await
+                {
+                    tracing::warn!(
+                        daemon_id = %daemon.id,
+                        error = %e.message,
+                        "Refused a polled discovery report"
+                    );
                 }
                 true
             }

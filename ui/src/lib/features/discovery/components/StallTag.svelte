@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { Clock } from '@lucide/svelte';
-	import { sessionStallMinutes } from '$lib/features/discovery/utils/staleness';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { toColor } from '$lib/shared/utils/styling';
-	import { discovery_noUpdatesMinutes, discovery_noUpdatesTooltip } from '$lib/paraglide/messages';
+	import { sessionStall } from '#lib/features/discovery/utils/staleness.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { toColor } from '#lib/shared/utils/styling.ts';
+	import {
+		discovery_noProgressTooltip,
+		discovery_noUpdatesMinutes,
+		discovery_noUpdatesTooltip
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		session_id: string;
@@ -14,14 +18,16 @@
 
 	let { session_id, phase, cancelling = false }: Props = $props();
 
-	let minutes = $derived(cancelling ? null : $sessionStallMinutes(session_id, phase));
+	let stall = $derived(cancelling ? null : $sessionStall(session_id, phase));
 </script>
 
-{#if minutes !== null}
+{#if stall !== null}
 	<Tag
 		icon={Clock}
 		color={toColor('amber')}
-		label={discovery_noUpdatesMinutes({ minutes })}
-		title={discovery_noUpdatesTooltip({ minutes })}
+		label={discovery_noUpdatesMinutes({ minutes: stall.minutes })}
+		title={stall.source === 'activity'
+			? discovery_noProgressTooltip({ minutes: stall.minutes })
+			: discovery_noUpdatesTooltip({ minutes: stall.minutes })}
 	/>
 {/if}

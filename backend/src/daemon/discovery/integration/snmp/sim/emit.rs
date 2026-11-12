@@ -7,6 +7,7 @@
 //! can drift from the structs.
 
 use secrecy::ExposeSecret;
+use snmp2::v3::KeyExtension;
 
 use super::transport::{Handler, Registration};
 use super::{CommunityVersions, SimDevice, VLAN20};
@@ -79,8 +80,24 @@ fn pass_line(device: &SimDevice, registration: &Registration, files: &[String]) 
     )
 }
 
+/// net-snmp's own enterprise MIBs, which every lab agent serves: UCD-SNMP and NET-SNMP-AGENT.
+/// See [`super::Tables::hides_agent_mibs`].
+const AGENT_MIBS: [&str; 2] = ["1.3.6.1.4.1.2021", "1.3.6.1.4.1.8072"];
+
 /// How a credential is expressed in an `snmpd.conf`.
 fn access_lines(device: &SimDevice) -> Vec<String> {
+    assert!(
+        !device.tables.hides_agent_mibs
+            || matches!(
+                (&device.credential, device.community_versions),
+                (
+                    CredentialType::SnmpCommunity { .. },
+                    CommunityVersions::Both
+                )
+            ),
+        "{}: hides_agent_mibs is emitted only for a community device answering v1 and v2c",
+        device.name
+    );
     match &device.credential {
         CredentialType::SnmpCommunity { community } => {
             // VACM rather than `rocommunity`, which answers both v1 and v2c. Locked to one
@@ -95,6 +112,19 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
                 ]
             };
             match device.community_versions {
+                CommunityVersions::Both if device.tables.hides_agent_mibs => {
+                    let mut lines = vec!["view devview included .1".to_string()];
+                    lines.extend(
+                        AGENT_MIBS.iter().map(|mib| {
+                            format!("view devview excluded {}", dotted(&oid_parts(mib)))
+                        }),
+                    );
+                    lines.push(format!(
+                        "rocommunity {} default -V devview",
+                        expose(community)
+                    ));
+                    lines
+                }
                 CommunityVersions::Both => vec![format!("rocommunity {}", expose(community))],
                 CommunityVersions::V1Only => locked_to("v1"),
                 CommunityVersions::V2cOnly => locked_to("v2c"),
@@ -131,7 +161,7 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
                         "{security_name} {} \"{}\" {} \"{}\"",
                         net_snmp_auth(*auth_protocol),
                         expose(auth_password),
-                        net_snmp_priv(*priv_protocol),
+                        net_snmp_priv(*priv_protocol, device.agent_key_extension()),
                         expose(priv_password)
                     ),
                     "priv",
@@ -162,12 +192,12 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
 }
 
 /// `snmpget`/`snmpwalk` flags that authenticate as a v3 device's user; empty for any other.
-fn net_snmp_client_args(credential: &CredentialType) -> String {
+fn net_snmp_client_args(device: &SimDevice) -> String {
     let CredentialType::SnmpV3 {
         security_name,
         security,
         ..
-    } = credential
+    } = &device.credential
     else {
         return String::new();
     };
@@ -190,7 +220,7 @@ fn net_snmp_client_args(credential: &CredentialType) -> String {
             "-l authPriv -u {security_name} -a {} -A {} -x {} -X {}",
             net_snmp_auth(*auth_protocol),
             expose(auth_password),
-            net_snmp_priv(*priv_protocol),
+            net_snmp_priv(*priv_protocol, device.agent_key_extension()),
             expose(priv_password)
         ),
     }
@@ -205,11 +235,14 @@ fn net_snmp_auth(protocol: SnmpV3AuthProtocol) -> &'static str {
     }
 }
 
-/// net-snmp's `createUser` keyword for a privacy protocol.
-fn net_snmp_priv(protocol: SnmpV3PrivProtocol) -> &'static str {
-    match protocol {
-        SnmpV3PrivProtocol::Aes128 => "AES",
-        SnmpV3PrivProtocol::Aes256 => "AES-256",
+/// net-snmp's `createUser` keyword for a privacy protocol, on an agent that extends a short key
+/// with `key_extension`. AES-128 and DES keys are never extended, so each has one keyword.
+fn net_snmp_priv(protocol: SnmpV3PrivProtocol, key_extension: KeyExtension) -> &'static str {
+    match (protocol, key_extension) {
+        (SnmpV3PrivProtocol::Des, _) => "DES",
+        (SnmpV3PrivProtocol::Aes128, _) => "AES",
+        (SnmpV3PrivProtocol::Aes256, KeyExtension::Blumenthal) => "AES-256",
+        (SnmpV3PrivProtocol::Aes256, KeyExtension::Reeder) => "AES-256-C",
     }
 }
 
@@ -268,6 +301,14 @@ pub fn shim_args(device: &SimDevice) -> Option<String> {
         args.push(format!(
             "--error-status {}",
             device.tables.faults.error_status
+        ));
+    }
+    let slow = device.slow_rows();
+    if !slow.is_empty() {
+        args.extend(slow.iter().map(|oid| format!("--slow {}", dotted(oid))));
+        args.push(format!(
+            "--row-cost {}",
+            device.tables.faults.row_cost.as_millis()
         ));
     }
     (!args.is_empty()).then(|| args.join(" "))
@@ -401,7 +442,7 @@ pub fn lab_env(devices: &[SimDevice]) -> String {
     // v1/v2c devices. Words split on spaces, which no lab user or password contains.
     out.push_str(&format!(
         "V3_ARGS=({})\n",
-        field(&|d| format!("\"{}\"", net_snmp_client_args(&d.credential)))
+        field(&|d| format!("\"{}\"", net_snmp_client_args(d)))
     ));
     // One entry per device needing `snmp-bulk-refuser.py` in front of it, empty for the rest:
     // `unit|listen-ip|upstream-port|shim-args`. Everything the unit needs is here rather than in
@@ -665,14 +706,18 @@ mod tests {
     /// `<ip>:161` the two would contend for it and whichever started second would fail to bind,
     /// and if `lab.env` named a different port the shim would forward into nothing. They are
     /// generated from one place so they cannot drift, and this is what says so. One device per
-    /// shim mode: GH #668's getbulk drop, GH #685's silent column, and GH #710's error-status
-    /// answer.
+    /// shim mode: GH #668's getbulk drop, GH #685's silent column, GH #710's error-status
+    /// answer, and GH #848's slow rows.
     #[test]
     fn a_device_behind_a_bulk_shim_moves_its_agent_behind_it() {
         for (name, args) in [
             ("switch-slowbulk-01", "--refuse .1.0.8802.1.1.2.1.4"),
             ("switch-quietcol-01", "--silence .1.0.8802.1.1.2.1.4.1.1.10"),
             ("switch-hikvision-01", "--reject-above 10 --error-status 5"),
+            (
+                "switch-omada-02",
+                "--slow .1.3.6.1.4.1.11863.6.1.1.11 --row-cost 506",
+            ),
         ] {
             let device = super::super::device(name);
             let port = upstream_port(&device);

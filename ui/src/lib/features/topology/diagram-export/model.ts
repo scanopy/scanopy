@@ -37,12 +37,61 @@ export interface DiagramSourceEdge {
 	targetHandle?: string | null;
 }
 
-export interface DiagramShapeStyle {
-	fill: string;
-	stroke: string;
-	text: string;
-	/** Container accent (the coloured top border on the canvas). */
-	accent?: string;
+/** The text in a part: one run, in one colour and size. */
+export interface DiagramText {
+	value: string;
+	color: string;
+	/** Font size in diagram units. */
+	size: number;
+	bold?: boolean;
+	align?: 'left' | 'center' | 'right';
+	/** Space before the text on its aligned side, e.g. past a pill's icon. */
+	inset?: number;
+	/** Break onto further lines at the part's width. Otherwise the text is one line. */
+	wrap?: boolean;
+}
+
+/** How a shape's or a part's outline is drawn. A missing `fill` or `stroke` leaves it undrawn. */
+export interface DiagramBox {
+	outline: 'rect' | 'ellipse';
+	/** Corner radius of a `rect`, in diagram units. */
+	radius?: number;
+	fill?: string;
+	stroke?: string;
+	strokeWidth?: number;
+	dashed?: boolean;
+}
+
+/** What a part is, so a reader of the file (and a test) can tell a status dot from a badge. */
+export type DiagramPartRole =
+	| 'accent'
+	| 'tile'
+	| 'glyph'
+	| 'status'
+	| 'badge'
+	| 'os'
+	| 'freshness'
+	| 'title'
+	| 'label'
+	| 'tag'
+	| 'text'
+	| 'group'
+	| 'row';
+
+/**
+ * Something a shape draws besides its own box and label: a tile, a badge, a title pill. Placed
+ * relative to the shape's top-left, and free to sit outside it (a container's title pill sits
+ * above its box).
+ */
+export interface DiagramPart extends DiagramBox {
+	role: DiagramPartRole;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	/** Key into `DiagramModel.icons`: the part is that image, drawn to fill its box. */
+	iconKey?: string;
+	text?: DiagramText;
 }
 
 /** A named fact about the entity a shape stands for, written as Visio Shape Data and draw.io properties. */
@@ -52,19 +101,20 @@ export interface DiagramField {
 }
 
 export interface DiagramNodeDescription {
-	title: string;
-	lines: string[];
-	style: DiagramShapeStyle;
-	/** Key into `DiagramModel.icons`. */
-	iconKey?: string;
+	box: DiagramBox;
+	parts: DiagramPart[];
 	data?: DiagramField[];
 }
 
 export interface DiagramEdgeDescription {
 	label?: string;
+	/** The label's text colour and the card it sits on. */
+	labelStyle?: { color: string; size: number; fill: string; stroke: string };
 	color: string;
 	width: number;
 	dash: 'solid' | 'dashed' | 'dotted';
+	/** The canvas draws the edge as a curve, not as right-angled segments. */
+	curved?: boolean;
 	data?: DiagramField[];
 }
 
@@ -90,10 +140,8 @@ export interface DiagramShape {
 	y: number;
 	width: number;
 	height: number;
-	title: string;
-	lines: string[];
-	style: DiagramShapeStyle;
-	iconKey?: string;
+	box: DiagramBox;
+	parts: DiagramPart[];
 	data: DiagramField[];
 }
 
@@ -104,9 +152,11 @@ export interface DiagramConnector {
 	sourceSide: DiagramSide;
 	targetSide: DiagramSide;
 	label?: string;
+	labelStyle?: DiagramEdgeDescription['labelStyle'];
 	color: string;
 	width: number;
 	dash: 'solid' | 'dashed' | 'dotted';
+	curved: boolean;
 	data: DiagramField[];
 }
 
@@ -170,18 +220,26 @@ export function buildDiagramModel(input: DiagramModelInput): DiagramModel {
 	let minY = Infinity;
 	let maxX = -Infinity;
 	let maxY = -Infinity;
-	for (const n of nodes) {
+	const descriptions = nodes.map((node) => input.describe.node(node));
+	for (const [i, n] of nodes.entries()) {
 		minX = Math.min(minX, n.x);
 		minY = Math.min(minY, n.y);
 		maxX = Math.max(maxX, n.x + n.width);
 		maxY = Math.max(maxY, n.y + n.height);
+		// A part can sit outside its shape (a title pill above a container), so it counts too.
+		for (const part of descriptions[i].parts) {
+			minX = Math.min(minX, n.x + part.x);
+			minY = Math.min(minY, n.y + part.y);
+			maxX = Math.max(maxX, n.x + part.x + part.width);
+			maxY = Math.max(maxY, n.y + part.y + part.height);
+		}
 	}
 	if (nodes.length === 0) minX = minY = maxX = maxY = 0;
 	const offsetX = DIAGRAM_PADDING - minX;
 	const offsetY = DIAGRAM_PADDING + (header ? DIAGRAM_HEADER_HEIGHT : 0) - minY;
 
-	const shapes: DiagramShape[] = nodes.map((node) => {
-		const description = input.describe.node(node);
+	const shapes: DiagramShape[] = nodes.map((node, i) => {
+		const description = descriptions[i];
 		const parentId = node.parentId && nodeIds.has(node.parentId) ? node.parentId : null;
 		return {
 			id: node.id,
@@ -191,10 +249,8 @@ export function buildDiagramModel(input: DiagramModelInput): DiagramModel {
 			y: node.y + offsetY,
 			width: node.width,
 			height: node.height,
-			title: description.title,
-			lines: description.lines,
-			style: description.style,
-			iconKey: description.iconKey,
+			box: description.box,
+			parts: description.parts,
 			data: description.data ?? []
 		};
 	});
@@ -212,9 +268,11 @@ export function buildDiagramModel(input: DiagramModelInput): DiagramModel {
 			sourceSide: toSide(edge.sourceHandle, 'Bottom'),
 			targetSide: toSide(edge.targetHandle, 'Top'),
 			label: description.label || undefined,
+			labelStyle: description.labelStyle,
 			color: description.color,
 			width: description.width,
 			dash: description.dash,
+			curved: description.curved ?? false,
 			data: description.data ?? []
 		});
 	}

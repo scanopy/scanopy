@@ -3,10 +3,10 @@
      pointer is inside, it stays open until a click outside, Escape or a scroll, so a tag's own
      popover can be reached from it. Static contexts get the tag names as a plain tooltip. -->
 <script lang="ts">
-	import Popover from '$lib/shared/components/data/Popover.svelte';
-	import type { TagProps } from '$lib/shared/components/data/types';
-	import { tooltip, tooltipLabel } from '$lib/shared/actions/tooltip';
-	import { common_moreTags, common_oneMoreTag } from '$lib/paraglide/messages';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
+	import { tooltip, tooltipLabel } from '#lib/shared/actions/tooltip.ts';
+	import { common_moreTags, common_oneMoreTag } from '#lib/paraglide/messages.js';
 	import DisplayTag from './DisplayTag.svelte';
 	import { Info } from '@lucide/svelte';
 

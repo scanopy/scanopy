@@ -1,0 +1,3 @@
+#cloud-config
+hostname: kvm-isolated
+# On br-iso, a bridge with no port and no host address.

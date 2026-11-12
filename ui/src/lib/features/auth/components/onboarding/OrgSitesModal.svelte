@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { createForm, type AnyFieldApi } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import { type UseCase, type SetupRequest, getUseCases } from '../../types/base';
-	import { required, max, min } from '$lib/shared/components/forms/validators';
+	import { required, max, min } from '#lib/shared/components/forms/validators.ts';
 	import { onboardingStore } from '../../stores/onboarding';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_scanopyLogo,
 		common_continue,
@@ -17,7 +17,7 @@
 		onboarding_visualizeCompany,
 		onboarding_visualizeHomelab,
 		onboarding_visualizeMsp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

@@ -11,7 +11,6 @@ use crate::server::{
     subnets::r#impl::types::{SubnetType, SubnetTypeDiscriminants},
     topology::{
         service::{
-            anchor_planner::ChildAnchorPlanner,
             context::TopologyContext,
             element_rules::{
                 ElementMatchData, TaggableLookups, apply_element_rules, apply_stack_runtime_logos,
@@ -19,7 +18,6 @@ use crate::server::{
             },
         },
         types::{
-            edges::Edge,
             grouping::{ElementRule, GroupingConfig},
             nodes::{ContainerType, ElementEntityType, Node, NodeType},
         },
@@ -80,7 +78,6 @@ impl SubnetGraphBuilder {
     pub fn create_subnet_child_nodes(
         &mut self,
         ctx: &TopologyContext,
-        all_edges: &mut [Edge],
         grouping: &GroupingConfig,
     ) -> (HashSet<Uuid>, Vec<Node>) {
         let container_bridge_grouping = if grouping.should_group_container_bridges() {
@@ -89,7 +86,7 @@ impl SubnetGraphBuilder {
             HashMap::new()
         };
         let children_by_subnet =
-            self.group_children_by_subnet(ctx, all_edges, grouping, container_bridge_grouping);
+            self.group_children_by_subnet(ctx, grouping, container_bridge_grouping);
         let mut child_nodes = Vec::new();
 
         let subnet_ids: HashSet<Uuid> = children_by_subnet
@@ -181,7 +178,6 @@ impl SubnetGraphBuilder {
     fn group_children_by_subnet(
         &mut self,
         ctx: &TopologyContext,
-        all_edges: &mut [Edge],
         grouping: &GroupingConfig,
         container_bridge_grouping: HashMap<(Uuid, SubnetTypeDiscriminants), Uuid>,
     ) -> HashMap<Uuid, Vec<SubnetChildData>> {
@@ -203,9 +199,6 @@ impl SubnetGraphBuilder {
                 continue;
             }
             let subnet_type = subnet.map(|s| s.base.subnet_type()).unwrap_or_default();
-
-            // Update source/target handles for edges
-            ChildAnchorPlanner::plan_anchors(ip_address.id, all_edges, ctx);
 
             let header_text =
                 self.determine_subnet_child_header_text(ctx, ip_address, host, &subnet_type);
@@ -289,7 +282,7 @@ impl SubnetGraphBuilder {
     /// First-match-wins: nodes already claimed by an earlier rule are not reassigned.
     fn create_nested_group_containers(
         &self,
-        _subnet_id: Uuid,
+        subnet_id: Uuid,
         children: &[SubnetChildData],
         ctx: &TopologyContext,
         child_nodes: &mut Vec<Node>,
@@ -339,15 +332,21 @@ impl SubnetGraphBuilder {
             HashMap::new()
         };
 
+        // Resolve the deployment group (compose project) only for elements
+        // inside container subnets. LAN ip_addresses shouldn't be grouped by stack.
+        let is_container_subnet = ctx
+            .get_subnet_by_id(subnet_id)
+            .map(|s| s.base.subnet_type().is_container_network())
+            .unwrap_or(false);
+
         let _ = apply_element_rules(
             child_nodes,
             &grouping.element_rules,
             |node| {
                 let child = children_by_id.get(&node.id)?;
-                let categories = ctx
-                    .services
+                let host_services = ctx.get_services_for_host(child.host_id);
+                let categories = host_services
                     .iter()
-                    .filter(|s| s.base.host_id == child.host_id)
                     .map(|s| s.base.service_definition.category())
                     .collect();
                 let tag_ids = resolve_element_tag_ids(
@@ -355,14 +354,6 @@ impl SubnetGraphBuilder {
                     child.host_id,
                     &tag_lookups,
                 );
-                // Resolve the deployment group (compose project) only for elements
-                // inside container subnets. LAN ip_addresses shouldn't be grouped by stack.
-                let is_container_subnet = ctx
-                    .subnets
-                    .iter()
-                    .find(|s| s.id == _subnet_id)
-                    .map(|s| s.base.subnet_type().is_container_network())
-                    .unwrap_or(false);
                 // An address on a container subnet belongs to a container, and its host's device type
                 // (nearly always Server) says nothing about it. Leaving it out keeps it free for
                 // ByStack, which groups only container subnets, the inverse of this check.
@@ -378,20 +369,15 @@ impl SubnetGraphBuilder {
                     let services_iter: Box<dyn Iterator<Item = _>> =
                         if let Some(iface_id) = child.ip_address_id {
                             // Interface-specific: only services bound to this interface
-                            Box::new(ctx.services.iter().filter(move |s| {
-                                s.base.host_id == child.host_id
-                                    && s.base
-                                        .bindings
-                                        .iter()
-                                        .any(|b| b.ip_address_id() == Some(iface_id))
+                            Box::new(host_services.iter().copied().filter(move |s| {
+                                s.base
+                                    .bindings
+                                    .iter()
+                                    .any(|b| b.ip_address_id() == Some(iface_id))
                             }))
                         } else {
                             // Fallback: all services on the host
-                            Box::new(
-                                ctx.services
-                                    .iter()
-                                    .filter(|s| s.base.host_id == child.host_id),
-                            )
+                            Box::new(host_services.iter().copied())
                         };
                     // Runtime-agnostic: any container runtime (Docker, Podman, …) that
                     // carries a compose project participates in stack grouping.

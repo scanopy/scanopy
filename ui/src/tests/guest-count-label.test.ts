@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import serviceDefinitionsJson from '$lib/data/service-definitions.json';
-import { guestCountLabel } from '$lib/features/services/virtualized-count';
+import serviceDefinitionsJson from '#lib/data/service-definitions.json';
+import { guestCountLabel } from '#lib/features/services/virtualized-count.ts';
 
 /** Every definition that runs guests, by the kind of guest it runs, from the backend's fixture. */
 const VIRTUALIZERS = serviceDefinitionsJson

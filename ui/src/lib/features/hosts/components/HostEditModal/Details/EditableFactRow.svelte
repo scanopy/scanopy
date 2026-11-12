@@ -12,17 +12,17 @@
 	import { untrack } from 'svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import { Pencil } from '@lucide/svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		DeviceTypeDisplay,
 		deviceTypeOptions
-	} from '$lib/features/hosts/components/DeviceTypeDisplay';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { max } from '$lib/shared/components/forms/validators';
-	import { attributeSourceTag } from '$lib/shared/utils/attribute-source';
-	import { deviceTypes } from '$lib/shared/stores/metadata';
-	import { hosts_deviceFacts_edit } from '$lib/paraglide/messages';
+	} from '#lib/features/hosts/components/DeviceTypeDisplay.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { max } from '#lib/shared/components/forms/validators.ts';
+	import { attributeSourceTag } from '#lib/shared/utils/attribute-source.ts';
+	import { deviceTypes } from '#lib/shared/stores/metadata.ts';
+	import { hosts_deviceFacts_edit } from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

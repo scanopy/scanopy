@@ -1,7 +1,7 @@
 <script lang="ts">
 	import GenericModal from './GenericModal.svelte';
-	import SupportOptions from '$lib/features/support/SupportOptions.svelte';
-	import { daemons_troubleshootingTitle } from '$lib/paraglide/messages';
+	import SupportOptions from '#lib/features/support/SupportOptions.svelte';
+	import { daemons_troubleshootingTitle } from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen = false,

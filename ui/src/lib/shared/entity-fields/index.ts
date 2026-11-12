@@ -7,15 +7,15 @@
  * from, is decided once on the backend.
  */
 
-import type { components } from '$lib/api/schema';
-import { common_no, common_yes } from '$lib/paraglide/messages';
-import { entities, edgeTypes, metadataName } from '$lib/shared/stores/metadata';
-import { metaFieldLabel } from '$lib/i18n/metadata';
-import { formatBitsPerSecond, formatPort, formatTimestamp } from '$lib/shared/utils/formatting';
-import { hostOsLabel } from '$lib/features/hosts/host-os';
-import type { Port } from '$lib/features/hosts/types/base';
-import { attributeSourceLabel, type AttributeSource } from '$lib/shared/utils/attribute-source';
-import type { FieldGroup } from '$lib/shared/components/data/types';
+import type { components } from '#lib/api/schema';
+import { common_no, common_yes } from '#lib/paraglide/messages.js';
+import { entities, edgeTypes, metadataName } from '#lib/shared/stores/metadata.ts';
+import { metaFieldLabel } from '#lib/i18n/metadata.ts';
+import { formatBitsPerSecond, formatPort, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+import { hostOsLabel } from '#lib/features/hosts/host-os.ts';
+import type { Port } from '#lib/features/hosts/types/base.ts';
+import { attributeSourceLabel, type AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+import type { FieldGroup } from '#lib/shared/components/data/types.ts';
 
 export type EntityField = components['schemas']['EntityField'];
 export type FieldFormat = components['schemas']['FieldFormat'];
@@ -32,6 +32,8 @@ type Obj = Record<string, unknown>;
  */
 export interface EntityLookup {
 	byColumn(type: EntityType, column: string, id: string): Obj[];
+	/** Whether this lookup holds a collection of `type`, so an empty result means there are none. */
+	loads(type: EntityType): boolean;
 }
 
 /**
@@ -58,7 +60,8 @@ export function collectionLookup(
 				indexes.set(key, index);
 			}
 			return index.get(id) ?? [];
-		}
+		},
+		loads: (type) => collections[type] !== undefined
 	};
 }
 
@@ -81,17 +84,35 @@ function valuesAt(object: Obj, path: string): unknown[] {
 	return current;
 }
 
+/** Each entity once, by id, in first-seen order. */
+function distinctById(objects: Obj[]): Obj[] {
+	const seen = new Set<unknown>();
+	return objects.filter((o) => {
+		if (seen.has(o.id)) return false;
+		seen.add(o.id);
+		return true;
+	});
+}
+
+/**
+ * The objects one hop away. A relation hop yields each entity once: two of a host's IP addresses
+ * on one subnet reach that subnet twice, and it is still one related subnet.
+ */
 function follow(hop: Hop, objects: Obj[], lookup: EntityLookup): Obj[] {
 	switch (hop.type) {
 		case 'Embedded':
 			return objects.flatMap((o) => valuesAt(o, hop.key) as Obj[]);
 		case 'Parent':
-			return objects.flatMap((o) =>
-				idsAt(o, hop.key).flatMap((id) => lookup.byColumn(hop.entity, 'id', id))
+			return distinctById(
+				objects.flatMap((o) =>
+					idsAt(o, hop.key).flatMap((id) => lookup.byColumn(hop.entity, 'id', id))
+				)
 			);
 		case 'Children':
-			return objects.flatMap((o) =>
-				idsAt(o, 'id').flatMap((id) => lookup.byColumn(hop.entity, hop.key, id))
+			return distinctById(
+				objects.flatMap((o) =>
+					idsAt(o, 'id').flatMap((id) => lookup.byColumn(hop.entity, hop.key, id))
+				)
 			);
 	}
 }
@@ -159,21 +180,19 @@ export function fieldText(field: EntityField, root: object, lookup: EntityLookup
 		.join(', ');
 }
 
-/** The registry fields of an entity type. */
+/** The registry fields that describe an entity outside its list table. */
 export function entityFields(type: EntityType): EntityField[] {
-	return entities.getMetadata(type).fields ?? [];
+	return (entities.getMetadata(type).fields ?? []).filter((field) => field.inspector);
 }
 
-/**
- * The column-menu group of a list-table column: its registry field's, else the one the backend
- * declares for the table's own column. `undefined` for a key neither declares.
- */
+/** The registry fields an entity's list table can show. */
+export function tableFields(type: EntityType): EntityField[] {
+	return (entities.getMetadata(type).fields ?? []).filter((field) => field.table);
+}
+
+/** The column-menu group of a list-table column. `undefined` for a key the registry lacks. */
 export function columnGroup(type: EntityType, key: string): FieldGroup | undefined {
-	const metadata = entities.getMetadata(type);
-	return (
-		metadata.fields?.find((field) => field.id === key)?.group ??
-		metadata.table_columns?.find((column) => column.id === key)?.group
-	);
+	return entities.getMetadata(type).fields?.find((field) => field.id === key)?.group;
 }
 
 /** The registry fields of an edge type, read from the edge's own data. */

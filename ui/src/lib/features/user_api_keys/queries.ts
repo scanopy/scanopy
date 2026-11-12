@@ -4,12 +4,12 @@
  */
 
 import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { useListPageQuery, type ListPageParams } from '$lib/api/list-page';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import type { components } from '$lib/api/schema';
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import type { components } from '#lib/api/schema';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 export type UserApiKey = components['schemas']['UserApiKey'];
 export type UserApiKeyBase = components['schemas']['UserApiKeyBase'];

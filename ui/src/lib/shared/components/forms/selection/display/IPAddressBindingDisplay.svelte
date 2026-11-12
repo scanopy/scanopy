@@ -1,10 +1,10 @@
 <script lang="ts" context="module">
-	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { IPAddressBinding, Service } from '$lib/features/services/types/base';
-	import type { HostFormData, IPAddress } from '$lib/features/hosts/types/base';
+	import { entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import type { IPAddressBinding, Service } from '#lib/features/services/types/base.ts';
+	import type { HostFormData, IPAddress } from '#lib/features/hosts/types/base.ts';
 	import type { EntityDisplayComponent } from '../types';
-	import { formatIPAddress } from '$lib/features/hosts/address-labels';
-	import { hosts_bindings_unknownIPAddress } from '$lib/paraglide/messages';
+	import { formatIPAddress } from '#lib/features/hosts/address-labels.ts';
+	import { hosts_bindings_unknownIPAddress } from '#lib/paraglide/messages.js';
 	import IPAddressBindingInlineEditor from './IPAddressBindingInlineEditor.svelte';
 
 	// Context for binding display within form editing

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { topologyStream } from '$lib/features/topology/queries';
-import { queryClient } from '$lib/api/query-client';
+import { topologyStream } from '#lib/features/topology/queries.ts';
+import { queryClient } from '#lib/api/query-client.ts';
 
 /**
  * The live-update stream sends topology pings ~5×/sec/site during discovery, and each ping

@@ -391,8 +391,8 @@ async fn test_discovery_crud(ctx: &TestContext) -> Result<(), String> {
 
     let discovery = Discovery {
         id: Uuid::nil(), // Server assigns ID
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
+        created_at: scanopy::server::shared::clock::now(),
+        updated_at: scanopy::server::shared::clock::now(),
         base: DiscoveryBase {
             discovery_type: DiscoveryType::Unified {
                 host_id,
@@ -524,7 +524,7 @@ async fn test_user_api_key_crud(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     // User API keys are at /api/v1/user-api-keys
@@ -580,7 +580,7 @@ async fn test_user_api_key_authentication(ctx: &TestContext) -> Result<(), Strin
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -684,7 +684,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let result = ctx
@@ -713,7 +713,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx
@@ -747,7 +747,7 @@ async fn test_user_api_key_rotation(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -813,7 +813,7 @@ async fn test_user_api_key_rotation(ctx: &TestContext) -> Result<(), String> {
 
 /// Test that expired and disabled keys are rejected during authentication
 async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), String> {
-    use chrono::{Duration, Utc};
+    use chrono::Duration;
 
     println!("Testing Expired/Disabled API Key Rejection...");
 
@@ -828,7 +828,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -876,7 +876,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
 
     // Re-enable but set expiration in the past
     fetched.base.is_enabled = true;
-    fetched.base.expires_at = Some(Utc::now() - Duration::hours(1));
+    fetched.base.expires_at = Some(scanopy::server::shared::clock::now() - Duration::hours(1));
     let _updated: UserApiKey = ctx
         .client
         .put(&format!("/api/v1/user-api-keys/{}", key_id), &fetched)
@@ -907,7 +907,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
 
 /// Test that API keys only have access to assigned sites
 async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> {
-    use crate::infra::exec_sql;
+    use crate::infra::set_user_access;
     use scanopy::server::sites::r#impl::{Site, SiteBase};
 
     println!("Testing User API Key Site Access Enforcement...");
@@ -952,7 +952,7 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id], // Only first site
+        site_ids: Some(vec![ctx.site_id]), // Only first site
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -992,11 +992,9 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
     println!("  ✓ API key cannot access subnet on non-assigned site");
 
     // Verify attempting to create API key with access to site user doesn't own fails
-    // First, downgrade user to Member so they don't have auto-access to all sites
-    exec_sql("UPDATE users SET permissions = 'Member';")?;
+    // First, make the user a Member on ctx.site_id alone
+    set_user_access(ctx.organization_id, "Member", Some(ctx.site_id))?;
 
-    // Remove user's access to the other site (Members don't auto-get all sites)
-    // The user only has access to ctx.site_id via the site_users table
     let restricted_key = UserApiKey::new(UserApiKeyBase {
         key: String::new(),
         name: "Overreach Key".to_string(),
@@ -1007,7 +1005,7 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id, other_site.id], // Includes site user shouldn't access
+        site_ids: Some(vec![ctx.site_id, other_site.id]), // Includes site user shouldn't access
     });
 
     let result = ctx
@@ -1019,8 +1017,8 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         )
         .await;
 
-    // Restore Owner permissions
-    exec_sql("UPDATE users SET permissions = 'Owner';")?;
+    // Restore Owner access
+    set_user_access(ctx.organization_id, "Owner", None)?;
 
     assert!(
         result.is_ok(),
@@ -1057,7 +1055,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -1078,7 +1076,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
     let other_key = ctx.insert_entity(&other_key).await?;
     println!(

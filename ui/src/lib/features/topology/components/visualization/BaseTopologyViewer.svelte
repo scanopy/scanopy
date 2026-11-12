@@ -8,6 +8,7 @@
 		BackgroundVariant,
 		useNodesInitialized,
 		useViewport,
+		useStore,
 		type Connection,
 		useSvelteFlow
 	} from '@xyflow/svelte';
@@ -23,13 +24,20 @@
 		topology_detailSimplified,
 		topology_updatedDuringScan,
 		common_refresh,
-		common_rendering,
 		topology_minimizeMinimap,
 		topology_expandMinimap
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
-	import { shouldSimplify } from '../../pipeline/render-mode';
+	import {
+		DETAIL_ZOOM,
+		FULL_CARD_NAMES_ZOOM,
+		PREWARM_RELEASE_ZOOM,
+		PREWARM_ZOOM,
+		detailIsStaged,
+		shouldSimplify
+	} from '../../pipeline/render-mode';
+	import { provideDetailStaging } from '../../detail-staging.svelte';
 	import {
 		ABSOLUTE_MIN_ZOOM,
 		DEFAULT_MIN_ZOOM,
@@ -41,7 +49,7 @@
 	import './topology-viewer.css';
 	import { Minimize2, Map as MapIcon } from '@lucide/svelte';
 	import TopologySidebarButton from './TopologySidebarButton.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		baseFlowEdges,
 		selectedNodes,
@@ -68,6 +76,7 @@
 		isExporting,
 		isMeasuring,
 		detailSimplified,
+		viewportZoom,
 		isRenderingTopology
 	} from '../../interactions';
 
@@ -76,10 +85,20 @@
 	import ElementNode from './ElementNode.svelte';
 	import CustomEdge from './CustomEdge.svelte';
 	import TopologySidebarControls from './TopologySidebarControls.svelte';
+	import TopologyLoadProgress from './TopologyLoadProgress.svelte';
+	import ContainerLabelLayer from './ContainerLabelLayer.svelte';
+	import {
+		beginLoad,
+		endLoadOfRun,
+		enterLoadStage,
+		loadProgress,
+		paintBeforeLongStage
+	} from '../../pipeline/load-progress';
 	import type { RenderableTopology } from '../../types/base';
 	import {
 		collapsedContainers,
 		collapseLevel,
+		collapseScope,
 		expandedInlineGroups,
 		stepExpand,
 		stepCollapse,
@@ -111,14 +130,23 @@
 	} from '../../selection';
 	import { onMount, tick, setContext, getContext } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
-	import { themeStore } from '$lib/shared/stores/theme.svelte';
-	import { containerTypes } from '$lib/shared/stores/metadata';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
+	import { containerTypes } from '#lib/shared/stores/metadata.ts';
 
 	// Pipeline imports
 	import { createInitialState, type XY } from '../../pipeline/types';
 	import { prepareTopologyData, hiddenMetadataKey } from '../../pipeline/prepare';
 	import { resolveNodeSizes } from '../../pipeline/measure';
 	import { executeLayout } from '../../pipeline/execute-layout';
+	import {
+		adoptStoredSizes,
+		containerSizesFor,
+		deleteStoredLayout,
+		layoutStoreKey,
+		readStoredLayout,
+		writeStoredLayout
+	} from '../../pipeline/layout-store';
+	import type { LayoutResult } from '../../layout/engine';
 	import { preloadElk } from '../../layout/elk-layout';
 	import { buildFlowNodes, sortFlowNodes, stripSizeSeed } from '../../pipeline/build-flow-nodes';
 	import { buildFlowEdges } from '../../pipeline/build-flow-edges';
@@ -230,16 +258,6 @@
 		useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
-
-	/**
-	 * Bounds of the graph the pipeline last wrote, in graph coordinates.
-	 *
-	 * Read from `$nodes` rather than `getNodes()`: on a view switch SvelteFlow has not adopted the
-	 * new set yet, and the bounds are wanted exactly then.
-	 */
-	function getLayoutBounds(): Rect | null {
-		return boundsOfNodes($nodes);
-	}
 
 	/**
 	 * The viewport that frames `bounds`, at a given zoom floor.
@@ -400,9 +418,59 @@
 	 * know the bounds — the pipeline just laid them out.
 	 */
 	export async function triggerFitView() {
-		const bounds = getLayoutBounds();
-		if (!bounds) return;
-		await setViewport(viewportFor(bounds, derivedMinZoom));
+		await fitToNodes($nodes);
+	}
+
+	/**
+	 * Fit the viewport to `fitNodes`, which need not be in the store yet.
+	 *
+	 * The pipeline calls this with the nodes it is about to write. Fitting first means they mount
+	 * once, at the zoom and detail they will be shown at. Written at the previous viewport, every
+	 * node mounted there in full detail (SvelteFlow renders a node once regardless of culling) and
+	 * was redrawn as a box when the fit followed: 3 s of script for 4,358 nodes.
+	 */
+	async function fitToNodes(fitNodes: readonly Node[]): Promise<number | null> {
+		const bounds = boundsOfNodes(fitNodes);
+		if (!bounds) return null;
+		const target = viewportFor(bounds, minZoomFor(bounds));
+		publishDetailFor(fitNodes, target.zoom);
+		await setViewport(target);
+		return target.zoom;
+	}
+
+	/**
+	 * Publish the zoom and the reduced-detail state for `detailNodes` drawn at `zoom`.
+	 *
+	 * Called before the write or the viewport move that brings nodes into view. The effects that
+	 * keep both stores current run after the DOM has updated, which is after those nodes have
+	 * mounted: left to them, a node mounts in full detail and is redrawn as a box one flush later.
+	 * 252 collapsed switch cards took 5.7 s of script that way.
+	 */
+	function publishDetailFor(detailNodes: readonly Node[], zoom: number) {
+		viewportZoom.set(zoom);
+		detailSimplified.set(
+			shouldSimplify({
+				zoom,
+				nodeCount: detailNodes.length,
+				widestNodeWidth: widestWidthOf(detailNodes),
+				measuring: measurePassActive,
+				exporting: $isExporting
+			})
+		);
+	}
+
+	function widestWidthOf(widthNodes: readonly Node[]): number {
+		return widthNodes.reduce(
+			(widest, node) => Math.max(widest, node.measured?.width ?? node.width ?? 0),
+			0
+		);
+	}
+
+	/** The zoom floor that lets a graph with these bounds be fitted. */
+	function minZoomFor(bounds: Rect | null): number {
+		if (!bounds) return DEFAULT_MIN_ZOOM;
+		const required = requiredFitZoom(bounds);
+		return required === null ? DEFAULT_MIN_ZOOM : zoomFloorFor(required);
 	}
 
 	export function fitViewToNodes(nodeIds: string[]) {
@@ -449,6 +517,9 @@
 
 	// Pipeline state
 	const layoutState = createInitialState();
+	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const distrustedLayoutKeys = new Set<string>();
 
 	/**
 	 * A DOM measurement pass is running.
@@ -477,6 +548,21 @@
 	let coldLoadMeasure = $state(false);
 	let animatingCollapse = $state(false);
 
+	/**
+	 * A run shows its progress when it is expected to take this long, or has. Most runs are a
+	 * filter toggle or a return to a stored layout and finish in a few frames; a bar that appears
+	 * and vanishes for each of them is noise.
+	 */
+	const LONG_RUN_MS = 400;
+
+	let runIsLong = $state(false);
+	let longRunTimer: ReturnType<typeof setTimeout> | undefined;
+	// A download in progress always shows: it is a view switch waiting on the next view's data,
+	// with the current graph still on screen and nothing else to say the pick registered.
+	let loadProgressShown = $derived(
+		$loadProgress !== null && (runIsLong || $loadProgress.stage === 'data')
+	);
+
 	/** Minimum gap between collapsed-size refreshes while panning. */
 	const COLLAPSED_SIZE_REFRESH_MS = 500;
 
@@ -493,11 +579,17 @@
 	 * to do nothing and the canvas showed a fraction of the graph at a tenth scale. Recomputed as
 	 * the store changes, since the graph a collapse press produces is a different size.
 	 */
-	let derivedMinZoom = $derived.by(() => {
-		const bounds = boundsOfNodes($nodes);
-		if (!bounds) return DEFAULT_MIN_ZOOM;
-		const required = requiredFitZoom(bounds);
-		return required === null ? DEFAULT_MIN_ZOOM : zoomFloorFor(required);
+	let derivedMinZoom = $derived(minZoomFor(boundsOfNodes($nodes)));
+
+	// SvelteFlow reads `minZoom` into the pan-zoom engine once, when it mounts, and the prop
+	// changing afterwards does not reach it. The viewer mounts before it has nodes, so the engine
+	// kept the default floor of 0.1: a fit could go below it, and the wheel then could not zoom
+	// back out to where the fit had been. Hand the engine the floor whenever it changes.
+	// Derived, as `useSvelteFlow` does it: the provider's store is replaced when `<SvelteFlow>`
+	// mounts, and a store read once here would be the provider's empty one.
+	const flowStore = $derived(useStore());
+	$effect(() => {
+		flowStore.panZoom?.setScaleExtent([derivedMinZoom, MAX_ZOOM]);
 	});
 
 	// Cull off-screen nodes once the graph is big enough — see
@@ -513,13 +605,32 @@
 	 * Reading the viewport reactively costs one component here, and the value is a boolean, so the
 	 * badge appears and disappears on threshold crossings rather than on every pan frame.
 	 */
+	let widestNodeWidth = $derived(widestWidthOf($nodes));
+
+	// Switched the moment the zoom crosses the threshold, mid-gesture included. Holding boxes until
+	// the zoom came to rest was tried, to keep the mount of the on-screen cards out of the gesture,
+	// and read as detail failing to appear: Maya zooms past the threshold and keeps going.
 	let detailHidden = $derived(
 		shouldSimplify({
 			zoom: viewerViewport.current.zoom,
 			nodeCount: $nodes.length,
+			widestNodeWidth,
 			measuring: measurePassActive,
 			exporting: $isExporting
 		})
+	);
+
+	// Container names are drawn on their own layer wherever a header cannot be read: at reduced
+	// detail, where it is not mounted, and on a small graph that keeps full cards, below the zoom
+	// where its titles are a few pixels tall. While searching, a small graph gets them as soon as
+	// its headers are too small to read: the names left are the ones holding a match, and finding
+	// a match is what the search is for.
+	let namesUnreadable = $derived(
+		!measurePassActive &&
+			!$isExporting &&
+			(detailHidden ||
+				viewerViewport.current.zoom <
+					($searchHiddenNodeIds.size > 0 ? DETAIL_ZOOM : FULL_CARD_NAMES_ZOOM))
 	);
 
 	// The running scan changed this site and the layout is held (see `heldTopologySites`).
@@ -528,6 +639,26 @@
 	// Publish rather than let each node decide: the size term above is not visible to a node, and
 	// one refcounted subscription beats a viewport read per node. See `detailSimplified`.
 	$effect(() => detailSimplified.set(detailHidden));
+
+	// Card detail is prepared a few cards a frame from a little under the detail zoom, so that
+	// reaching it only has to reveal them: see `detail-staging.svelte.ts`. The two zooms differ so
+	// that resting near the lower one does not mount and unmount the same cards.
+	let detailStaged = $derived(
+		detailIsStaged({
+			nodeCount: $nodes.length,
+			measuring: measurePassActive,
+			exporting: $isExporting
+		})
+	);
+	let wasPrewarming = false;
+	let detailPrewarming = $derived.by(() => {
+		const zoom = viewerViewport.current.zoom;
+		wasPrewarming = zoom >= PREWARM_ZOOM || (wasPrewarming && zoom >= PREWARM_RELEASE_ZOOM);
+		return wasPrewarming;
+	});
+	const detailStaging = provideDetailStaging();
+	$effect(() => detailStaging.set(detailStaged, detailPrewarming));
+	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
 
 	let cullOffscreen = $derived(
 		shouldCull({
@@ -707,6 +838,9 @@
 		noteRunStart(source);
 		setLoadInProgress(true);
 		pendingReload = false;
+		// A run that was not expected to be long, and is: show its progress from here on.
+		clearTimeout(longRunTimer);
+		longRunTimer = setTimeout(() => (runIsLong = true), LONG_RUN_MS);
 		// Give the browser one frame to draw the indicator before the run starts.
 		//
 		// Svelte flushes the DOM on a microtask, but painting needs a frame, and a run reaches its
@@ -724,6 +858,8 @@
 	}
 
 	function runPipeline(): Promise<void> {
+		// What this run draws, as `prepareTopologyData` reads it at the start of the run.
+		const scope = collapseScope(topology.id ?? '', get(activeView));
 		return loadTopologyData()
 			.catch((err) => {
 				endMeasurePass();
@@ -732,6 +868,9 @@
 			.finally(() => {
 				noteRunEnd();
 				setLoadInProgress(false);
+				endLoadOfRun(scope);
+				clearTimeout(longRunTimer);
+				runIsLong = false;
 				if (pendingReload) {
 					pendingReload = false;
 					// Only re-run if an input actually differs from what the run
@@ -900,6 +1039,23 @@
 		const { needsElk, collapsed, visibleNodes: initialVisibleNodes } = prep;
 		let visibleNodes = initialVisibleNodes;
 
+		// Plan the progress bar for this run: see `load-progress.ts`. The first draw of a topology
+		// always shows it, continuing the bar the download started, and so does a run that follows
+		// a download whose bar is already up (a view switch).
+		const continuesDownload = get(loadProgress)?.stage === 'data';
+		const planned = beginLoad(
+			collapseScope(prep.topologyId, prep.currentView),
+			needsElk ? ['measure', 'layout', 'layoutRefine', 'draw'] : ['draw'],
+			visibleNodes.length
+		);
+		if (
+			continuesDownload ||
+			layoutState.lastRenderedTopoKey === '' ||
+			(planned?.remainingMs ?? 0) >= LONG_RUN_MS
+		) {
+			runIsLong = true;
+		}
+
 		// Sizes measured by *this* run, once it has measured. Preferred over the view cache so the
 		// same frame that lays a node out can also size it — which is what lets culling work on
 		// the first render after an expand rather than only after everything has mounted once.
@@ -933,113 +1089,131 @@
 				})
 			);
 
+		// A layout kept from an earlier run with the same inputs replaces the measure pass and the
+		// layout engine — see `layout-store.ts`. `distrustedLayoutKeys` holds keys whose stored
+		// sizes disagreed with what rendered, so the re-layout that follows runs for real.
+		let layoutKey: string | null = null;
+		let layoutFromStore = false;
+		let layoutToStore: { sizes: Map<string, XY>; result: LayoutResult } | null = null;
+
 		if (needsElk) {
+			const storeLookupDone = perf.stage('layout-store.lookup');
+			layoutKey = layoutStoreKey({
+				structureKey: prep.structureKey,
+				deferCollapse: prep.deferCollapse,
+				hiddenEdgeTypes: prep.hiddenEdgeTypes,
+				edges: prep.elevatedEdges,
+				nodes: prep.layoutNodes
+			});
+			const storedLayout = distrustedLayoutKeys.has(layoutKey)
+				? undefined
+				: await readStoredLayout(layoutKey);
+			storeLookupDone();
+			if (isStale()) return;
+			layoutFromStore = storedLayout !== undefined;
+			perf.count(layoutFromStore ? 'layout-store:hit' : 'layout-store:miss');
+
 			const measureDone = perf.stage('measure');
-			const elementNodeSizes = await resolveNodeSizes(
-				layoutState,
-				prep,
-				topology,
-				containerElement,
-				isStale,
-				{
-					setMeasuring: (v) => {
-						// Culling is suspended for every measurement pass, unconditionally —
-						// the pass reads heights out of the DOM, so a culled node measures as
-						// absent and ELK gets a fallback size for it.
-						isMeasuring.set(v);
-						// Only hide viewport during measurement for initial load
-						// (no nodes on screen). For subsequent measurements (e.g.
-						// cacheMisses on collapse), nodes keep their current positions
-						// so hiding is unnecessary — and skipping it lets shouldAnimate
-						// fire normally.
-						if (layoutState.lastRenderedTopoKey === '') {
-							coldLoadMeasure = v;
-						}
-					},
-					setNodes: (n) => setStoreNodes(n),
-					setEdges: (e) => baseFlowEdges.set(e),
-					buildMeasureNodes: (onlyIds?: Set<string>) => {
-						// Strip the seeded sizes. The pass exists to learn what a card actually
-						// renders as, and a node carrying `measured` + `handles` reads as already
-						// initialised — so it would be presented at the size we guessed and could
-						// only ever confirm that guess. Dropping both also re-attaches
-						// `NodeWrapper`'s ResizeObserver, which is otherwise never reattached.
-						let measureNodes = stripSizeSeed(makeNodes(false, true));
-						if (onlyIds) {
-							// Ancestors come too, whether or not they need measuring: SvelteFlow
-							// resolves a child's position against its parent and drops a node whose
-							// `parentId` is absent from the set it was given.
-							// Not `SvelteSet`: this is a local computed inside a callback and never read
-							// reactively — the lint rule targets reactive state, and a reactive Set here
-							// would add tracking overhead for a value that is discarded on return.
-							// eslint-disable-next-line svelte/prefer-svelte-reactivity
-							const keep = new Set(onlyIds);
-							const parentOf = new Map(
-								measureNodes.map((n) => [n.id, n.parentId as string | undefined])
-							);
-							for (const id of onlyIds) {
-								let parent = parentOf.get(id);
-								while (parent && !keep.has(parent)) {
-									keep.add(parent);
-									parent = parentOf.get(parent);
-								}
+			const elementNodeSizes = storedLayout
+				? adoptStoredSizes(layoutState, viewCacheKey, storedLayout)
+				: await resolveNodeSizes(layoutState, prep, topology, containerElement, isStale, {
+						setMeasuring: (v) => {
+							// Culling is suspended for every measurement pass, unconditionally —
+							// the pass reads heights out of the DOM, so a culled node measures as
+							// absent and ELK gets a fallback size for it.
+							isMeasuring.set(v);
+							// Only hide viewport during measurement for initial load
+							// (no nodes on screen). For subsequent measurements (e.g.
+							// cacheMisses on collapse), nodes keep their current positions
+							// so hiding is unnecessary — and skipping it lets shouldAnimate
+							// fire normally.
+							if (layoutState.lastRenderedTopoKey === '') {
+								coldLoadMeasure = v;
 							}
-							measureNodes = measureNodes.filter((n) => keep.has(n.id));
-						}
-						// Preserve current positions during measurement — DOM
-						// measurement only needs element presence, not positions.
-						// This prevents nodes from jumping to (0,0) while visible.
-						const currentPositions = new Map(getNodes().map((n) => [n.id, n.position]));
-						if (currentPositions.size === 0) return measureNodes;
-						return measureNodes.map((n) => ({
-							...n,
-							position: currentPositions.get(n.id) ?? n.position
-						}));
-					},
-					waitForNodesRendered: async (expectedIds?: Set<string>) => {
-						// Wait for SvelteFlow to render node DOM elements.
-						// We only need DOM presence for measurement, not full initialization.
-						await tick();
-						// Poll for DOM nodes with a short timeout — nodesInitialized
-						// can hang indefinitely for large topologies.
-						const start = performance.now();
-						const expectedCount = expectedIds?.size ?? 0;
-						while (performance.now() - start < 2000) {
-							const nodeEls = containerElement?.querySelectorAll('.svelte-flow__node');
-							if (nodeEls && nodeEls.length > 0) {
-								if (expectedCount === 0) break;
-								// Cheap gate first. Verifying every expected id means building
-								// a Set of all rendered ids, which is O(nodes) — doing that on
-								// every frame of a wait that can span a hundred frames is
-								// itself a meaningful cost at a thousand-plus nodes. The DOM
-								// can only hold every expected node once it holds at least
-								// that many, so the count check rules out almost every frame
-								// for the price of a property read.
-								if (nodeEls.length >= expectedCount) {
-									// Require every expected id to be present before breaking.
-									// Breaking on the first node (old-render leftovers) lets a
-									// newly-added SSE host miss measurement, so ELK falls back
-									// to metadata defaults and positions siblings too close.
-									const present = new Set(
-										Array.from(nodeEls)
-											.map((el) => (el as HTMLElement).dataset.id)
-											.filter((id): id is string => !!id)
-									);
-									let allPresent = true;
-									for (const id of expectedIds!) {
-										if (!present.has(id)) {
-											allPresent = false;
-											break;
-										}
+						},
+						setNodes: (n) => setStoreNodes(n),
+						setEdges: (e) => baseFlowEdges.set(e),
+						buildMeasureNodes: (onlyIds?: Set<string>) => {
+							// Strip the seeded sizes. The pass exists to learn what a card actually
+							// renders as, and a node carrying `measured` + `handles` reads as already
+							// initialised — so it would be presented at the size we guessed and could
+							// only ever confirm that guess. Dropping both also re-attaches
+							// `NodeWrapper`'s ResizeObserver, which is otherwise never reattached.
+							let measureNodes = stripSizeSeed(makeNodes(false, true));
+							if (onlyIds) {
+								// Ancestors come too, whether or not they need measuring: SvelteFlow
+								// resolves a child's position against its parent and drops a node whose
+								// `parentId` is absent from the set it was given.
+								// Not `SvelteSet`: this is a local computed inside a callback and never read
+								// reactively — the lint rule targets reactive state, and a reactive Set here
+								// would add tracking overhead for a value that is discarded on return.
+								// eslint-disable-next-line svelte/prefer-svelte-reactivity
+								const keep = new Set(onlyIds);
+								const parentOf = new Map(
+									measureNodes.map((n) => [n.id, n.parentId as string | undefined])
+								);
+								for (const id of onlyIds) {
+									let parent = parentOf.get(id);
+									while (parent && !keep.has(parent)) {
+										keep.add(parent);
+										parent = parentOf.get(parent);
 									}
-									if (allPresent) break;
 								}
+								measureNodes = measureNodes.filter((n) => keep.has(n.id));
 							}
-							await new Promise((r) => requestAnimationFrame(r));
+							// Preserve current positions during measurement — DOM
+							// measurement only needs element presence, not positions.
+							// This prevents nodes from jumping to (0,0) while visible.
+							const currentPositions = new Map(getNodes().map((n) => [n.id, n.position]));
+							if (currentPositions.size === 0) return measureNodes;
+							return measureNodes.map((n) => ({
+								...n,
+								position: currentPositions.get(n.id) ?? n.position
+							}));
+						},
+						waitForNodesRendered: async (expectedIds?: Set<string>) => {
+							// Wait for SvelteFlow to render node DOM elements.
+							// We only need DOM presence for measurement, not full initialization.
+							await tick();
+							// Poll for DOM nodes with a short timeout — nodesInitialized
+							// can hang indefinitely for large topologies.
+							const start = performance.now();
+							const expectedCount = expectedIds?.size ?? 0;
+							while (performance.now() - start < 2000) {
+								const nodeEls = containerElement?.querySelectorAll('.svelte-flow__node');
+								if (nodeEls && nodeEls.length > 0) {
+									if (expectedCount === 0) break;
+									// Cheap gate first. Verifying every expected id means building
+									// a Set of all rendered ids, which is O(nodes) — doing that on
+									// every frame of a wait that can span a hundred frames is
+									// itself a meaningful cost at a thousand-plus nodes. The DOM
+									// can only hold every expected node once it holds at least
+									// that many, so the count check rules out almost every frame
+									// for the price of a property read.
+									if (nodeEls.length >= expectedCount) {
+										// Require every expected id to be present before breaking.
+										// Breaking on the first node (old-render leftovers) lets a
+										// newly-added SSE host miss measurement, so ELK falls back
+										// to metadata defaults and positions siblings too close.
+										const present = new Set(
+											Array.from(nodeEls)
+												.map((el) => (el as HTMLElement).dataset.id)
+												.filter((id): id is string => !!id)
+										);
+										let allPresent = true;
+										for (const id of expectedIds!) {
+											if (!present.has(id)) {
+												allPresent = false;
+												break;
+											}
+										}
+										if (allPresent) break;
+									}
+								}
+								await new Promise((r) => requestAnimationFrame(r));
+							}
 						}
-					}
-				}
-			);
+					});
 			measureDone();
 			// The measurement pass is over the moment `resolveNodeSizes` returns — it has already
 			// read every height it needed out of the DOM — so culling resumes here rather than at
@@ -1057,13 +1231,26 @@
 			}
 			runSizes = elementNodeSizes;
 
+			// The layout engine is the long, blocking part, in two passes. Each gets a stage, and a
+			// frame to start its animation in when it is expected to block for long. A stored layout
+			// and a local expand run no full pass and go straight to drawing.
+			const runsEngine = !storedLayout && !prep.localExpand;
+			if (runsEngine) {
+				await paintBeforeLongStage(enterLoadStage('layout'));
+				if (isStale()) {
+					endMeasurePass();
+					return;
+				}
+			}
 			const layoutDone = perf.stage('layout');
 			const layoutResult = await executeLayout(
 				topology,
 				layoutState,
 				prep,
 				elementNodeSizes,
-				isStale
+				isStale,
+				storedLayout?.result,
+				runsEngine ? () => paintBeforeLongStage(enterLoadStage('layoutRefine')) : undefined
 			);
 			layoutDone();
 			if (!layoutResult) {
@@ -1071,12 +1258,21 @@
 				return;
 			}
 			visibleNodes = layoutResult.visibleNodes;
+			if (!layoutFromStore && layoutResult.engineResult) {
+				layoutToStore = { sizes: elementNodeSizes, result: layoutResult.engineResult };
+			}
 		}
 
 		// Build final nodes and edges. Edge handles are computed inside
 		// buildFlowEdges against final post-layout positions (from layoutGraph)
 		// rather than being precomputed by the layout engines.
 		const needsLayout = needsElk || prep.collapseChanged;
+
+		await paintBeforeLongStage(enterLoadStage('draw'));
+		if (isStale()) {
+			endMeasurePass();
+			return;
+		}
 
 		// Edges first, then nodes.
 		//
@@ -1117,6 +1313,23 @@
 		const handlesDone = perf.stage('render.publish-handles');
 		edgeHandlesByNode.set(realHandles);
 		handlesDone();
+
+		// When this run ends in a fit, move the viewport there before the nodes are written, so
+		// they mount once at the zoom and detail they will be shown at — see `fitToNodes`. The fit
+		// after the render still runs: it is what lands a view whose pane changed size meanwhile.
+		const fitFollows =
+			prep.viewChanged ||
+			prep.topologyChanged ||
+			layoutState.lastRenderedTopoKey === '' ||
+			layoutState.fitViewPending;
+		const fitZoom = fitFollows && needsLayout ? await fitToNodes(allNodes) : null;
+		if (isStale()) {
+			endMeasurePass();
+			return;
+		}
+		// Same turn as the write below, so the nodes it mounts read the detail state for this
+		// graph and not the previous one's.
+		publishDetailFor(allNodes, fitZoom ?? viewerViewport.current.zoom);
 
 		// Render
 		//
@@ -1215,7 +1428,12 @@
 		// every branch; the animation branch above awaits phase 2 so new
 		// nodes are in the DOM by the time we measure.
 		if (containerElement && layoutState.layoutGraph) {
+			// Timed because this is where the node write is actually paid for. `nodes.set()`
+			// returns in a millisecond; SvelteFlow adopts the set and Svelte mounts or updates
+			// every node component in the flush this awaits.
+			const flushDone = perf.stage('render.flush');
 			await tick();
+			flushDone();
 			const cacheSizesDone = perf.stage('post-render.cache-collapsed');
 			const newEntries = cacheCollapsedSizes(
 				containerElement,
@@ -1255,6 +1473,13 @@
 				// self-heal fires every time, and each recursion is a full pipeline
 				// run including two more elk.layout() calls.
 				perf.count('post-render-relayout');
+				// A stored layout whose sizes the DOM just contradicted is wrong for this content.
+				// Drop it, and keep the re-layout below from reading it back.
+				if (layoutFromStore && layoutKey) {
+					perf.count('layout-store:invalidated');
+					deleteStoredLayout(layoutKey);
+					distrustedLayoutKeys.add(layoutKey);
+				}
 				// Invalidate structureKey to force ELK re-run. Do NOT
 				// invalidate baseKey — base structure hasn't changed, and
 				// clearing it would delete viewSizeCache (element sizes).
@@ -1277,6 +1502,16 @@
 				await loadTopologyData();
 				return;
 			}
+		}
+
+		// Kept only now: the layout rendered and the post-render check found nothing to correct.
+		if (layoutKey && layoutToStore && !isStale()) {
+			writeStoredLayout(layoutKey, {
+				sizes: layoutToStore.sizes,
+				containerSizes: containerSizesFor(layoutState, layoutToStore.sizes),
+				result: layoutToStore.result
+			});
+			distrustedLayoutKeys.delete(layoutKey);
 		}
 
 		const isFirstRender = layoutState.lastRenderedTopoKey === '';
@@ -1615,7 +1850,7 @@
 	class:card={!isEmbed}
 	class:card-static={!isEmbed}
 	class:collapse-transition={animatingCollapse}
-	style:visibility={coldLoadMeasure ? 'hidden' : 'visible'}
+	class:cold-measure={coldLoadMeasure}
 	bind:this={containerElement}
 >
 	<SvelteFlow
@@ -1654,6 +1889,8 @@
 			gap={50}
 			size={1}
 		/>
+
+		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} />
 
 		{#if showControls}
 			<TopologySidebarControls
@@ -1714,29 +1951,25 @@
 			</Panel>
 		{/if}
 
-		{#if $isRenderingTopology || detailHidden || heldUpdatePending}
+		{#if loadProgressShown || detailHidden || heldUpdatePending}
 			<!--
-				One pill for what the view is doing to itself, in flow chrome rather than in the graph
-				so it belongs to the view and not to any node.
+				One pill for what the view is doing to itself (styles in `topology-viewer.css`).
 
 				Both lines can be true at once — a large graph is usually the reason a run is slow and
 				the reason detail is off — so they stack rather than compete. Absent during export,
 				because `shouldSimplify` suspends there and a run is never in flight mid-capture.
 			-->
-			<div class="detail-hidden-badge">
-				{#if $isRenderingTopology}
-					<span class="detail-hidden-row">
-						<span class="lod-spinner" aria-hidden="true"></span>
-						{common_rendering()}
-					</span>
+			<div class="topology-status-pill">
+				{#if loadProgressShown}
+					<span class="topology-status-row"><TopologyLoadProgress /></span>
 				{/if}
 				{#if detailHidden}
-					<span class="detail-hidden-row">
+					<span class="topology-status-row">
 						{topology_detailSimplified()}
 					</span>
 				{/if}
 				{#if heldUpdatePending && !$isRenderingTopology}
-					<span class="detail-hidden-row">
+					<span class="topology-status-row">
 						{topology_updatedDuringScan()}
 						<button
 							type="button"
@@ -1768,38 +2001,18 @@
 
 <style>
 	/*
-	 * Says the canvas is drawing boxes rather than contents.
+	 * The first measure pass mounts every node at a throwaway position to read its size. Hide what
+	 * it draws, and the minimap that mirrors it, and nothing else: the background, the controls and
+	 * the progress pill stay, so the canvas is there from the start. Sizes are read with
+	 * `offsetWidth` and `offsetHeight`, which a transparent element still reports.
 	 *
-	 * Bottom-centre: out of the way of the minimap (bottom-left), the sidebar controls (right) and
-	 * the branding badge, and in the one place nothing else claims. Non-interactive — it reports a
-	 * state, it is not a control, and it must not eat pointer events over the graph.
+	 * Opacity, not `visibility`: SvelteFlow sets `visibility: visible` on each node once it is
+	 * initialised, and a child's own `visible` shows through a hidden parent.
 	 */
-	.detail-hidden-badge {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 2px;
-		position: absolute;
-		bottom: 12px;
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 5;
-		padding: 4px 10px;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		line-height: 1.2;
-		white-space: nowrap;
+	.cold-measure :global(.svelte-flow__viewport),
+	.cold-measure :global(.svelte-flow__minimap) {
+		opacity: 0;
 		pointer-events: none;
-		color: var(--color-text-tertiary, #64748b);
-		background: var(--color-topology-node-bg, #fff);
-		border: 1px solid var(--color-border, #e2e8f0);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
-	}
-
-	.detail-hidden-row {
-		display: flex;
-		align-items: center;
-		gap: 5px;
 	}
 
 	/* The pill ignores the pointer so the graph under it stays usable; this one control takes it. */
@@ -1809,40 +2022,6 @@
 		color: var(--color-text-primary, #0f172a);
 		text-decoration: underline;
 		text-underline-offset: 2px;
-	}
-
-	/*
-	 * A ring drawn in CSS, not an icon.
-	 *
-	 * The whole point of this indicator is to stay alive while the main thread is not: ELK is the
-	 * bundled build and runs in-process, so for the eighteen to twenty-two seconds of a layout on a
-	 * large estate, no frame callback fires and nothing scripted can advance. A transform animation
-	 * can still run, but only from the compositor, and only if the element was promoted — and an
-	 * inline SVG generally is not, which is why the lucide spinner rendered and then sat there.
-	 *
-	 * A single element with a border and a radius is the shape most reliably promoted, so the ring
-	 * is borders rather than an icon. `will-change` asks for the layer explicitly; the animation is
-	 * pure `transform`, which is the one property the compositor can drive on its own.
-	 *
-	 * This also matches what the caret did for the same reason — see `ContainerHeader` — and costs
-	 * one element instead of the five a lucide icon brings.
-	 */
-	.lod-spinner {
-		display: block;
-		width: 11px;
-		height: 11px;
-		flex-shrink: 0;
-		border-radius: 9999px;
-		border: 1.5px solid var(--color-topology-lod-stroke);
-		border-top-color: transparent;
-		will-change: transform;
-		animation: lod-spin 0.7s linear infinite;
-	}
-
-	@keyframes lod-spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 
 	.branding-badge {

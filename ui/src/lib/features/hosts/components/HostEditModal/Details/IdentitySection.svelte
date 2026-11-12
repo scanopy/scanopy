@@ -2,13 +2,13 @@
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import { untrack } from 'svelte';
 	import { Pencil } from '@lucide/svelte';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import { discoveredName, overrideOf, rungLabel } from '$lib/features/hosts/host-identity';
-	import { hostnameFormat, max } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import AttributeSourceTag from '$lib/shared/components/data/AttributeSourceTag.svelte';
-	import { attributeSourceTag } from '$lib/shared/utils/attribute-source';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import { discoveredName, overrideOf, rungLabel } from '#lib/features/hosts/host-identity.ts';
+	import { hostnameFormat, max } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import AttributeSourceTag from '#lib/shared/components/data/AttributeSourceTag.svelte';
+	import { attributeSourceTag } from '#lib/shared/utils/attribute-source.ts';
 	import {
 		common_hostname,
 		common_name,
@@ -20,7 +20,7 @@
 		hosts_identity_overrideHelp,
 		hosts_identity_overrideLabel,
 		hosts_unnamedHost
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

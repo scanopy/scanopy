@@ -1,4 +1,4 @@
-//! PostHog subscriber for billing, onboarding, analytics, auth, entity, and
+//! PostHog subscriber for billing, setup, analytics, auth, entity, and
 //! discovery events.
 //!
 //! Captures product analytics. Every event goes out through
@@ -19,6 +19,7 @@ use crate::{
     server::{
         organizations::r#impl::base::UseCase,
         posthog::service::PosthogService,
+        setup::types::SetupOperation,
         shared::{
             events::{
                 registry::SubscriberRegistration,
@@ -26,7 +27,6 @@ use crate::{
                 types::{
                     AnalyticsOperation, AuthOperation, AuthOperationDiscriminants,
                     BillingOperation, EntityOperation, EntityOperationDiscriminants,
-                    OnboardingOperation, OnboardingOperationDiscriminants,
                 },
             },
             types::metadata::HasId,
@@ -101,7 +101,7 @@ fn entity_filter() -> EntityEventFilter {
         EntityOperationDiscriminants::Deleted,
     ]);
     EntityEventFilter::by_entity(std::collections::HashMap::from([
-        // Deleted only: creation is already `org_created` (onboarding). Deleting an org deletes
+        // Deleted only: creation is already `org_created` (auth). Deleting an org deletes
         // its Stripe customer and the cancellation webhook then finds no org, so without this a
         // trial org that deletes itself leaves no outcome event.
         (
@@ -144,11 +144,50 @@ inventory::submit!(SubscriberRegistration::new::<PosthogService, EntityOperation
 #[async_trait]
 impl Subscriber<AuthOperation> for PosthogService {
     fn filter(&self) -> EventFilter<AuthOperation> {
-        EventFilter::ops(vec![AuthOperationDiscriminants::LoginSuccess])
+        EventFilter::ops(vec![
+            AuthOperationDiscriminants::LoginSuccess,
+            AuthOperationDiscriminants::OrgCreated,
+        ])
     }
 
+    /// A new org names its PostHog group and sets the creator's org, plan and use case.
     async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
-        failures_to_result(self.capture_all(&events).await)
+        let mut failures = Vec::new();
+        for event in events {
+            let Some((distinct_id, result)) = self.capture_event(&event).await else {
+                continue;
+            };
+            failures.extend(result.err());
+
+            if let AuthOperation::OrgCreated {
+                org_name,
+                plan,
+                use_case,
+                ..
+            } = &event.operation
+                && let Some(org_id) = event.scope.organization_id
+            {
+                let person = PersonProperties {
+                    plan_type: plan.as_ref().map(|plan| plan.id()),
+                    organization_id: Some(org_id),
+                    use_case: Some(use_case),
+                };
+                failures.extend(self.identify(&distinct_id, &person).await.err());
+
+                let group = OrgGroupProperties {
+                    plan_type: plan.as_ref().map(|plan| plan.id()),
+                    name: Some(org_name),
+                    use_case: Some(use_case),
+                    created_at: Some(event.timestamp.to_rfc3339()),
+                };
+                failures.extend(
+                    self.group_identify("organization", &org_id.to_string(), &group)
+                        .await
+                        .err(),
+                );
+            }
+        }
+        failures_to_result(failures)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -227,80 +266,22 @@ inventory::submit!(SubscriberRegistration::new::<
 >());
 
 #[async_trait]
-impl Subscriber<OnboardingOperation> for PosthogService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
-        EventFilter::ops(vec![
-            OnboardingOperationDiscriminants::OrgCreated,
-            OnboardingOperationDiscriminants::OnboardingModalCompleted,
-            OnboardingOperationDiscriminants::PlanSelected,
-            OnboardingOperationDiscriminants::DaemonPromptDismissed,
-            OnboardingOperationDiscriminants::DaemonPromptAccepted,
-            OnboardingOperationDiscriminants::FirstDaemonRegistered,
-            OnboardingOperationDiscriminants::FirstTopologyRebuild,
-            OnboardingOperationDiscriminants::FirstDiscoveryCompleted,
-            OnboardingOperationDiscriminants::FirstHostDiscovered,
-            OnboardingOperationDiscriminants::SecondSiteCreated,
-            OnboardingOperationDiscriminants::FirstTagCreated,
-            OnboardingOperationDiscriminants::FirstDependencyCreated,
-            OnboardingOperationDiscriminants::FirstUserApiKeyCreated,
-            OnboardingOperationDiscriminants::FirstInterfaceCredentialCreated,
-            OnboardingOperationDiscriminants::FirstCredentialCreated,
-            OnboardingOperationDiscriminants::InviteSent,
-            OnboardingOperationDiscriminants::InviteAccepted,
-            OnboardingOperationDiscriminants::ProfileCompleted,
-            OnboardingOperationDiscriminants::FirstApplicationTagCreated,
-            OnboardingOperationDiscriminants::FirstSnapshotCreated,
-            OnboardingOperationDiscriminants::ReferralSourceCompleted,
-        ])
+impl Subscriber<SetupOperation> for PosthogService {
+    /// Every setup event, grouped on its organization like every other event. Same reasoning as
+    /// the billing filter: an allowlist lets a new variant go missing from analytics.
+    fn filter(&self) -> EventFilter<SetupOperation> {
+        EventFilter::all()
     }
 
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
-        let mut failures = Vec::new();
-        for event in events {
-            let Some((distinct_id, result)) = self.capture_event(&event).await else {
-                continue;
-            };
-            failures.extend(result.err());
-
-            if let OnboardingOperation::OrgCreated {
-                org_name,
-                plan,
-                use_case,
-                ..
-            } = &event.operation
-            {
-                let org_id = event.scope.organization_id;
-                let person = PersonProperties {
-                    plan_type: plan.as_ref().map(|plan| plan.id()),
-                    organization_id: Some(org_id),
-                    use_case: Some(use_case),
-                };
-                failures.extend(self.identify(&distinct_id, &person).await.err());
-
-                let group = OrgGroupProperties {
-                    plan_type: plan.as_ref().map(|plan| plan.id()),
-                    name: Some(org_name),
-                    use_case: Some(use_case),
-                    created_at: Some(event.timestamp.to_rfc3339()),
-                };
-                failures.extend(
-                    self.group_identify("organization", &org_id.to_string(), &group)
-                        .await
-                        .err(),
-                );
-            }
-        }
-        failures_to_result(failures)
+    async fn handle(&self, events: Vec<Event<SetupOperation>>) -> Result<(), Error> {
+        failures_to_result(self.capture_all(&events).await)
     }
 
     fn debounce_window_ms(&self) -> u64 {
         5000
     }
 }
-inventory::submit!(SubscriberRegistration::new::<
-    PosthogService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<PosthogService, SetupOperation>());
 
 #[async_trait]
 impl Subscriber<AnalyticsOperation> for PosthogService {
@@ -474,6 +455,7 @@ mod tests {
             server::{
                 billing::plans::{get_commercial_self_hosted_plan, get_enterprise_plan},
                 discovery::r#impl::types::DiscoveryType,
+                setup::types::SetupItemDiscriminants,
                 shared::{
                     events::{
                         operations::tests::sample,
@@ -496,33 +478,25 @@ mod tests {
             Event::new(OrgScope { organization_id }, op, authentication.clone())
         }
         let system = AuthenticatedEntity::System;
-        let trial_end = chrono::Utc::now();
+        let trial_end = crate::server::shared::clock::now();
 
         vec![
             (
                 sample(
-                    on(
-                        organization_id,
-                        &owner,
-                        OnboardingOperation::OrgCreated {
+                    Event::new(
+                        AuthScope {
+                            user_id: Some(user.id),
+                            organization_id: Some(organization_id),
+                            ip_address: "192.0.2.2".parse().expect("address"),
+                            user_agent: None,
+                        },
+                        AuthOperation::OrgCreated {
                             org_name: "Acme".to_string(),
                             plan: Some(get_commercial_self_hosted_plan()),
                             use_case: UseCase::InternalIt,
                             site: None,
                         },
-                    ),
-                    organization_id,
-                ),
-                true,
-            ),
-            (
-                sample(
-                    on(
-                        organization_id,
-                        &owner,
-                        OnboardingOperation::PlanSelected {
-                            plan: get_enterprise_plan(),
-                        },
+                        owner.clone(),
                     ),
                     organization_id,
                 ),
@@ -594,10 +568,9 @@ mod tests {
                     on(
                         organization_id,
                         &system,
-                        OnboardingOperation::FirstDaemonRegistered {
-                            daemon_id: Uuid::new_v4(),
-                            daemon_name: "edge".to_string(),
-                            site_name: "HQ".to_string(),
+                        SetupOperation::Completed {
+                            item_type: SetupItemDiscriminants::InstallDaemon,
+                            subject_id: Some(Uuid::new_v4()),
                         },
                     ),
                     organization_id,
@@ -609,19 +582,9 @@ mod tests {
                     on(
                         organization_id,
                         &system,
-                        OnboardingOperation::FirstHostDiscovered,
-                    ),
-                    organization_id,
-                ),
-                false,
-            ),
-            (
-                sample(
-                    on(
-                        organization_id,
-                        &system,
-                        OnboardingOperation::FirstDiscoveryCompleted {
-                            discovery_type: DiscoveryType::default(),
+                        SetupOperation::Completed {
+                            item_type: SetupItemDiscriminants::RunFirstScan,
+                            subject_id: Some(Uuid::new_v4()),
                         },
                     ),
                     organization_id,

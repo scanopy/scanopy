@@ -3,10 +3,10 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import { publicApiClient, publicFailure } from '$lib/api/public-client';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import { publicApiClient, publicFailure } from '#lib/api/public-client.ts';
 import type { Share, CreateUpdateShareRequest } from './types/base';
 
 /**

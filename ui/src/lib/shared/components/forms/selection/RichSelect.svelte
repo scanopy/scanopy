@@ -1,8 +1,8 @@
 <script lang="ts" generics="V, OC">
 	import { ChevronDown } from '@lucide/svelte';
 	import ListSelectItem from './ListSelectItem.svelte';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
-	import { tooltip, tooltipLabel } from '$lib/shared/actions/tooltip';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
+	import { tooltip, tooltipLabel } from '#lib/shared/actions/tooltip.ts';
 	import type { EntityDisplayComponent } from './types';
 	import { tick } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -13,7 +13,7 @@
 		common_selectOption,
 		common_typeToFilter,
 		common_noOptionsMatch
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		label = '',

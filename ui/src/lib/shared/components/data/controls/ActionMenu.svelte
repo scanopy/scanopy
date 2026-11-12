@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { ChevronDown, MoreHorizontal } from '@lucide/svelte';
 	import Popover from '../Popover.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import { resolveTooltip } from './actionShortcuts';
-	import type { CardAction } from '../types';
+	import type { RowAction } from '../types';
 
 	/**
 	 * A list's actions folded into one menu, for a phone where a row of buttons doesn't fit: a
@@ -15,7 +15,7 @@
 		label,
 		variant = 'icon'
 	}: {
-		actions: CardAction[];
+		actions: RowAction[];
 		/** The trigger's text, or its accessible name when `variant` is `icon`. */
 		label: string;
 		variant?: 'icon' | 'button';
@@ -24,7 +24,7 @@
 	let open = $state(false);
 	let trigger: HTMLButtonElement | undefined = $state();
 
-	function run(action: CardAction) {
+	function run(action: RowAction) {
 		open = false;
 		action.onClick();
 	}

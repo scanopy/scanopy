@@ -1,5 +1,5 @@
-import { deviceTypes } from '$lib/shared/stores/metadata';
-import type { EntityDisplayComponent } from '$lib/shared/components/forms/selection/types';
+import { deviceTypes } from '#lib/shared/stores/metadata.ts';
+import type { EntityDisplayComponent } from '#lib/shared/components/forms/selection/types.ts';
 
 /** A device type id from the `device_types` fixture, as a RichSelect option. */
 export type DeviceTypeOption = string;

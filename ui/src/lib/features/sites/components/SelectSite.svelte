@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import { common_site } from '$lib/paraglide/messages';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import { common_site } from '#lib/paraglide/messages.js';
 
 	/**
 	 * Site picker for TanStack Form fields:

@@ -3,7 +3,8 @@ use super::*;
 use crate::daemon::discovery::types::base::DiscoveryPhase;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
-use crate::server::daemons::r#impl::api::ScannedEntityIds;
+use crate::server::daemons::r#impl::api::{DaemonHealth, ScannedEntityIds};
+use crate::server::live_updates::types::LiveDaemonUpdate;
 use crate::server::shared::events::types::DeletionReason;
 
 /// How long the completion request will wait for neighbour resolution before cutting it short.
@@ -14,6 +15,14 @@ use crate::server::shared::events::types::DeletionReason;
 /// measured -- but a pathological one must degrade to a reported gap, not to a lost scan record.
 const RESOLUTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
+
+/// Whether a check-in changed a daemon's version or its health, the two things its row and its
+/// upgrade modal show. `last_seen` moves on every check-in and changes neither on its own.
+fn check_in_changed(before: &DaemonBase, after: &DaemonBase, policy: &DaemonVersionPolicy) -> bool {
+    let health =
+        |base: &DaemonBase| DaemonHealth::of(base, &policy.evaluate(base.version.as_ref()));
+    before.version != after.version || health(before) != health(after)
+}
 
 impl DaemonService {
     // ========================================================================
@@ -32,10 +41,11 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, status.os)?;
 
-        daemon.base.last_seen = Some(Utc::now());
+        daemon.base.last_seen = Some(crate::server::shared::clock::now());
         // NOTE: We intentionally do NOT update URL from status.
         // URL is only set:
         // - ServerPoll: Admin provides URL during provisioning
@@ -61,28 +71,68 @@ impl DaemonService {
         //     honoring them so those daemons still report interfaced subnets, but
         //     existence-filter first — a dangling id can't satisfy the FK (that
         //     referential-integrity gap is exactly what this table fixes).
-        let subnet_ids: Vec<Uuid> = if supports_unified_discovery(daemon.base.version.as_ref()) {
-            let mut resolved_ids = Vec::new();
-            for subnet in status.interfaced_subnets {
-                match self.subnet_service.create(subnet, auth.clone()).await {
-                    Ok(resolved) => resolved_ids.push(resolved.id),
-                    Err(e) => {
-                        tracing::warn!(error = ?e, "Failed to resolve interfaced subnet");
+        //   • A report that carries no list leaves the junction as the last one set it.
+        let carries_interfaced_subnets = status.interfaced_subnets.is_some();
+        let subnet_ids: Option<Vec<Uuid>> = if supports_unified_discovery(
+            daemon.base.version.as_ref(),
+        ) {
+            match status.interfaced_subnets {
+                Some(subnets) => {
+                    let mut resolved_ids = Vec::new();
+                    for subnet in subnets {
+                        match self.subnet_service.create(subnet, auth.clone()).await {
+                            Ok(resolved) => resolved_ids.push(resolved.id),
+                            Err(e) => {
+                                tracing::warn!(error = ?e, "Failed to resolve interfaced subnet");
+                            }
+                        }
                     }
+                    Some(resolved_ids)
                 }
+                None => None,
             }
-            resolved_ids
         } else {
-            self.filter_existing_subnet_ids(&status.capabilities.interfaced_subnet_ids)
-                .await
+            Some(
+                self.filter_existing_subnet_ids(
+                    &status.capabilities.interfaced_subnet_ids,
+                    daemon.base.site_id,
+                )
+                .await,
+            )
         };
 
-        self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
-            .await?;
+        if let Some(subnet_ids) = subnet_ids {
+            self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
+                .await?;
+        }
 
+        let host_id = daemon.base.host_id;
+        let site_id = daemon.base.site_id;
         self.update(&mut daemon, auth, UpdateReason::DaemonStatusReported)
             .await?;
+
+        self.refresh_interfaces_if_changed(
+            daemon_id,
+            site_id,
+            host_id,
+            status.interfaces_fingerprint,
+            carries_interfaced_subnets,
+        )
+        .await;
+        self.announce_check_in(&before, &daemon);
         Ok(())
+    }
+
+    /// Tell the live-update stream when a check-in changed what the daemons list shows for this
+    /// daemon, so an open upgrade modal and Home see the new version without a reload.
+    fn announce_check_in(&self, before: &DaemonBase, after: &Daemon) {
+        if check_in_changed(before, &after.base, &DaemonVersionPolicy::default()) {
+            // No subscriber is not an error: nobody has the app open.
+            let _ = self.live_update_tx.send(LiveDaemonUpdate {
+                id: after.id,
+                site_id: after.base.site_id,
+            });
+        }
     }
 
     /// Hold a handshake to the OS this daemon was created for; see
@@ -134,14 +184,17 @@ impl DaemonService {
         }
     }
 
-    /// Keep only the subnet ids that currently exist as live `subnets` rows, so a
-    /// legacy daemon's stale/dangling id can't violate the junction FK. Goes through
-    /// `SubnetService` (not storage) to respect entity boundaries.
-    async fn filter_existing_subnet_ids(&self, ids: &[Uuid]) -> Vec<Uuid> {
+    /// Keep only the subnet ids that currently exist as live `subnets` rows on the daemon's
+    /// site, so a legacy daemon's stale/dangling id can't violate the junction FK and it can't
+    /// claim another site's subnet. Goes through `SubnetService` (not storage) to respect entity
+    /// boundaries.
+    async fn filter_existing_subnet_ids(&self, ids: &[Uuid], site_id: Uuid) -> Vec<Uuid> {
         if ids.is_empty() {
             return Vec::new();
         }
-        let filter = StorableFilter::<Subnet>::new_from_uuids_column("id", ids).live();
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id])
+            .uuids_column("id", ids)
+            .live();
         match self.subnet_service.get_all(filter).await {
             Ok(subnets) => {
                 let existing: std::collections::HashSet<Uuid> =
@@ -179,13 +232,14 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, reported_os)?;
 
         let was_pre_unified = !supports_unified_discovery(daemon.base.version.as_ref());
 
         daemon.base.version = Some(version.clone());
-        daemon.base.last_seen = Some(Utc::now());
+        daemon.base.last_seen = Some(crate::server::shared::clock::now());
 
         // A daemon that just booted and reached /startup is by definition active
         // again. Clear standby and grant a bounded grace period — the nightly
@@ -194,11 +248,12 @@ impl DaemonService {
         // inactivity is re-evaluated.
         if daemon.base.standby {
             daemon.base.standby = false;
-            daemon.base.standby_cleared_at = Some(Utc::now());
+            daemon.base.standby_cleared_at = Some(crate::server::shared::clock::now());
         }
 
         self.update(&mut daemon, auth, UpdateReason::DaemonStarted)
             .await?;
+        self.announce_check_in(&before, &daemon);
 
         // Migrate legacy discoveries if daemon just upgraded to unified-capable version
         if was_pre_unified
@@ -252,7 +307,7 @@ impl DaemonService {
         // and sends nil; the server derives it from the 1:1 key. For a legacy
         // shared-key daemon the key's site equals request.site_id, so this is
         // a no-op there (and it stops a daemon claiming a site its key can't reach).
-        let effective_site_id = auth.site_ids().first().copied().unwrap_or(request.site_id);
+        let effective_site_id = auth.daemon_site_id().unwrap_or(request.site_id);
 
         // Check if this is a demo organization - block daemon registration
         let site = self
@@ -306,13 +361,18 @@ impl DaemonService {
 
         // Check if daemon already exists (re-registration scenario)
         if let Some(mut existing_daemon) = self.get_by_id(&effective_daemon_id).await? {
+            // A shared key names its daemon by header, so the id proves nothing on its own.
+            if existing_daemon.base.site_id != effective_site_id {
+                return Err(ApiError::daemon_site_mismatch());
+            }
+
             // Update daemon with current info
             // NOTE: We do NOT update URL from registration request.
             // URL is only set via admin provisioning for ServerPoll daemons.
             // (Interfaced subnets are not taken from registration — they flow via the
             // status heartbeat / update-capabilities channels into the junction.)
             self.check_reported_os(&mut existing_daemon, request.os)?;
-            existing_daemon.base.last_seen = Some(Utc::now());
+            existing_daemon.base.last_seen = Some(crate::server::shared::clock::now());
             // For a provisioned daemon the server-side name and mode are authoritative
             // (chosen at provision, bound to the 1:1 key). A silent install defaulting to
             // "scanopy-daemon" must not clobber the provisioned name. A provisioned record
@@ -335,10 +395,9 @@ impl DaemonService {
                 .await?;
 
             // A provisioned daemon's FIRST contact lands here (its record already exists from
-            // provisioning), not in the new-registration branch — so emit the onboarding
-            // milestone here too, or the org never records FirstDaemonRegistered and the UI
-            // keeps showing "install a daemon" while discovery actually runs. Idempotent: the
-            // emit is guarded by record_milestone, so restarts don't re-fire it.
+            // provisioning), not in the new-registration branch — so record InstallDaemon here too,
+            // or Home keeps showing "install a daemon" while discovery actually runs. Idempotent:
+            // `record_setup` publishes only once, so restarts don't re-fire it.
             self.emit_first_daemon_telemetry(updated_daemon.id, updated_daemon.base.site_id)
                 .await?;
 
@@ -469,16 +528,22 @@ impl DaemonService {
         // host here. Every target — daemon-host sockets included — earns its assignment by
         // probing successfully during discovery, at which point it's assigned to the host it
         // worked on.
-        // If user_id is nil (old daemon), fall back to org owner
-        let user_id = if request.user_id.is_nil() {
-            self.user_service
+        // A nil user_id (old daemon) or one outside the org falls back to the org owner: the
+        // maintainer receives this daemon's alert emails.
+        let maintainer = self
+            .user_service
+            .get_by_id(&request.user_id)
+            .await?
+            .filter(|user| user.base.organization_id == org_id);
+        let user_id = match maintainer {
+            Some(user) => user.id,
+            None => self
+                .user_service
                 .get_organization_owners(&org_id)
                 .await?
                 .first()
                 .map(|u| u.id)
-                .unwrap_or(request.user_id)
-        } else {
-            request.user_id
+                .unwrap_or_default(),
         };
 
         let mut daemon = Daemon::new(DaemonBase {
@@ -487,7 +552,7 @@ impl DaemonService {
             // DaemonPoll mode: URL not needed (server never connects to daemon)
             // ServerPoll mode: URL is set during provisioning, not during registration
             url: String::new(),
-            last_seen: Some(Utc::now()),
+            last_seen: Some(crate::server::shared::clock::now()),
             mode: request.mode,
             name: request.name,
             tags: Vec::new(),
@@ -542,12 +607,13 @@ impl DaemonService {
         );
 
         // Confirm the daemon exists (auth already scoped it to the caller's site).
-        if self.get_by_id(&daemon_id).await?.is_none() {
-            return Err(ApiError::entity_not_found::<Daemon>(daemon_id));
-        }
+        let daemon = self
+            .get_by_id(&daemon_id)
+            .await?
+            .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
 
         let subnet_ids = self
-            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids)
+            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids, daemon.base.site_id)
             .await;
         self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
             .await
@@ -568,14 +634,29 @@ impl DaemonService {
     /// deliberate trade: the scan record is written before the daemon is acknowledged, so a failure
     /// here is one the daemon sees and can retry, rather than a session silently lost after a
     /// successful ack.
-    pub async fn process_discovery_progress(&self, mut update: DiscoveryUpdatePayload) {
+    ///
+    /// `daemon_id` and `site_id` say whose report this is, from the caller's key or the daemon it
+    /// polled, never from the report.
+    pub async fn process_discovery_progress(
+        &self,
+        daemon_id: Uuid,
+        site_id: Uuid,
+        mut update: DiscoveryUpdatePayload,
+    ) -> Result<(), ApiError> {
+        self.scope_discovery_report(daemon_id, site_id, &mut update)
+            .await?;
+
+        // An interface refresh scans nothing and leaves no record to report findings on.
+        let records_history = update.discovery_type.records_history();
+
         if update.phase == DiscoveryPhase::Complete
+            && records_history
             && update.discovery_type.rescan_target_host_ids().is_none()
         {
             self.resolve_neighbours_into_session(&mut update).await;
         }
 
-        if update.phase == DiscoveryPhase::Complete {
+        if update.phase == DiscoveryPhase::Complete && records_history {
             self.report_integrations_without_credentials(&mut update)
                 .await;
             self.report_targetless_credentials(&mut update).await;
@@ -593,6 +674,7 @@ impl DaemonService {
         }
 
         self.discovery_service.update_session(update).await;
+        Ok(())
     }
 
     /// Fold the subnets this scan found without the daemon naming them into the terminal payload,
@@ -612,7 +694,9 @@ impl DaemonService {
             .take_touched_subnets(&update.daemon_id)
             .await;
 
-        let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        let scan_time = update
+            .finished_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         let ip_address_ids = update
             .scanned
             .as_ref()
@@ -675,7 +759,9 @@ impl DaemonService {
                 &integration_targets,
                 update.site_id,
                 daemon_host_id,
-                update.started_at.unwrap_or_else(chrono::Utc::now),
+                update
+                    .started_at
+                    .unwrap_or_else(crate::server::shared::clock::now),
             )
             .await
         {
@@ -773,7 +859,9 @@ impl DaemonService {
         // The session's own clock, so a minted host carries the timestamp every other entity of
         // this scan carries. `finished_at` is what closes the digest's window; stamping mint time
         // instead would put the host just outside the window that exists to report it.
-        let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        let scan_time = update
+            .finished_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         // What the daemon reported, so the pass counts only neighbours this scan re-read.
         let run = update.scanned.clone().unwrap_or_default();
 
@@ -1077,34 +1165,6 @@ impl DaemonService {
             }
         }
 
-        // Emit FirstHostDiscovered telemetry if this is the org's first discovered host
-        if !created_hosts.is_empty()
-            && let Some((_, first_host)) = created_hosts.first()
-            && let Ok(Some(site)) = self.site_service.get_by_id(&first_host.site_id).await
-            && let Ok(Some(org)) = self
-                .organization_service
-                .get_by_id(&site.base.organization_id)
-                .await
-            && org.not_onboarded(&OnboardingOperationDiscriminants::FirstHostDiscovered)
-            && let Ok(true) = self
-                .organization_service
-                .record_milestone(
-                    org.id,
-                    OnboardingOperationDiscriminants::FirstHostDiscovered,
-                )
-                .await
-        {
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstHostDiscovered,
-                    AuthenticatedEntity::System,
-                ))
-                .await;
-        }
-
         // Process discovered subnets - continue on failure to avoid blocking entire batch
         for subnet in entities.subnets {
             let pending_id = subnet.id;
@@ -1204,7 +1264,7 @@ impl DaemonService {
     /// ([`Organization::discovery_paused`]). A lookup failure reads as not paused: the daemon
     /// then gets the work it would have got before this check existed, and the billed result
     /// routes still refuse a lapsed or license-locked org.
-    async fn site_organization_discovery_paused(&self, site_id: Uuid) -> bool {
+    pub(crate) async fn site_organization_discovery_paused(&self, site_id: Uuid) -> bool {
         let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await else {
             return false;
         };
@@ -1247,17 +1307,11 @@ impl DaemonService {
         }
     }
 
-    /// Get pending cancellation request for a daemon
+    /// The session this daemon is told to cancel in its work response, if any.
     pub async fn get_pending_cancellation(&self, daemon_id: Uuid) -> Option<Uuid> {
-        let (has_cancellation, session_id) = self
-            .discovery_service
+        self.discovery_service
             .pull_cancellation_for_daemon(&daemon_id)
-            .await;
-        if has_cancellation {
-            Some(session_id)
-        } else {
-            None
-        }
+            .await
     }
 
     /// Create default discovery jobs for a newly contacted daemon
@@ -1423,7 +1477,7 @@ impl DaemonService {
         Ok(())
     }
 
-    /// Emit FirstDaemonRegistered telemetry event if this is the org's first daemon
+    /// Record InstallDaemon when this is the first of the org's daemons to connect.
     pub async fn emit_first_daemon_telemetry(
         &self,
         daemon_id: Uuid,
@@ -1441,34 +1495,18 @@ impl DaemonService {
             .await?
             .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
 
-        if org.not_onboarded(&OnboardingOperationDiscriminants::FirstDaemonRegistered)
-            && self
-                .organization_service
-                .record_milestone(
+        // The unlocked read skips the org lock on every later check-in.
+        if !org.has_setup(SetupItemDiscriminants::InstallDaemon) {
+            self.organization_service
+                .record_setup(
                     org.id,
-                    OnboardingOperationDiscriminants::FirstDaemonRegistered,
-                )
-                .await?
-        {
-            let daemon_name = self
-                .get_by_id(&daemon_id)
-                .await?
-                .map(|d| d.base.name.clone())
-                .unwrap_or_else(|| "your daemon".to_string());
-
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstDaemonRegistered {
-                        daemon_id,
-                        daemon_name: daemon_name.to_string(),
-                        site_name: site.base.name.clone(),
+                    SetupOperation::Completed {
+                        item_type: SetupItemDiscriminants::InstallDaemon,
+                        subject_id: Some(daemon_id),
                     },
                     AuthenticatedEntity::System,
-                ))
-                .await;
+                )
+                .await?;
         }
 
         Ok(())

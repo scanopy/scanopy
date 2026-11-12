@@ -8,6 +8,7 @@ use axum::{
 use axum_client_ip::ClientIpSource;
 use clap::Parser;
 use reqwest::header::{self, HeaderName};
+use scanopy::server::metrics::db::DbTimingLayer;
 use scanopy::server::{
     auth::middleware::{
         demo_mode::demo_mode_middleware, logging::request_logging_middleware,
@@ -33,7 +34,7 @@ use tower_http::{
     set_header::SetResponseHeaderLayer,
     trace::TraceLayer,
 };
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Log target for consistent server logging output
 pub const LOG_TARGET: &str = "server";
@@ -52,17 +53,20 @@ async fn main() -> anyhow::Result<()> {
     let public_url = config.public_url.clone();
     let log_level = config.log_level.clone();
 
-    // Initialize tracing
+    // Initialize tracing. Each layer has its own filter: the log level governs what is
+    // printed, and the DB timing layer reads sqlx's statement and acquire events whatever the
+    // log level.
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(format!(
-            "scanopy={lvl},server={lvl},request_log={lvl},events={lvl}",
-            lvl = config.log_level
-        )))
         .with(
             tracing_subscriber::fmt::layer()
                 .fmt_fields(scanopy::server::logging::format::LabelFields)
-                .with_ansi(scanopy::server::logging::format::supports_ansi()),
+                .with_ansi(scanopy::server::logging::format::supports_ansi())
+                .with_filter(tracing_subscriber::EnvFilter::new(format!(
+                    "scanopy={lvl},server={lvl},request_log={lvl},events={lvl}",
+                    lvl = config.log_level
+                ))),
         )
+        .with(DbTimingLayer.with_filter(DbTimingLayer::filter()))
         .init();
 
     let (web_ui, web_ui_warning) = web_assets::resolve(
@@ -307,10 +311,28 @@ async fn main() -> anyhow::Result<()> {
             loop {
                 interval.tick().await;
                 if let Err(e) = silence_organizations
-                    .report_silent_license_check_ins(chrono::Utc::now())
+                    .report_silent_license_check_ins(scanopy::server::shared::clock::now())
                     .await
                 {
                     tracing::error!(error = %e, "License check-in silence sweep failed");
+                }
+            }
+        });
+    }
+
+    // Setup items left open on a trial (hourly). Cloud trials only; each item is reported once
+    // per org, after 24 hours open.
+    if deployment_type == DeploymentType::Cloud {
+        let trial_setup = state.services.setup_service.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
+            loop {
+                interval.tick().await;
+                if let Err(e) = trial_setup
+                    .sweep_trials(scanopy::server::shared::clock::now())
+                    .await
+                {
+                    tracing::error!(error = %e, "Setup trial sweep failed");
                 }
             }
         });
@@ -654,7 +676,7 @@ async fn main() -> anyhow::Result<()> {
     if deployment_type != DeploymentType::Cloud {
         match &state.license_service {
             None => {
-                tracing::info!(target: LOG_TARGET, "  License:         not required (community)");
+                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY. Steps: https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial");
             }
             Some(license_service) => {
                 let license_status = license_service.current_status().await;
@@ -682,16 +704,16 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     scanopy::server::license::types::LicenseStatus::Expired(_) => {
-                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED — server is in read-only mode");
+                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED, server is in read-only mode");
                     }
                     scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
-                        tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
+                        tracing::error!(target: LOG_TARGET, "  License:         INVALID, server is in read-only mode: {}", reason);
                     }
                     scanopy::server::license::types::LicenseStatus::Pending => {
                         tracing::warn!(
                             target: LOG_TARGET,
-                            "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
-                            scanopy::server::license::service::CLOUD_BASE_URL,
+                            "  License:         PENDING, server is in read-only mode until it reaches {} for its first entitlement",
+                            license_service.base_url(),
                         );
                     }
                 }

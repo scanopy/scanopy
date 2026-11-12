@@ -110,6 +110,16 @@ pub enum DiscoveryType {
         #[serde(default)]
         scan_settings: ScanSettings,
     },
+    /// Classify the daemon's interfaced subnets again and report them, scanning nothing. The
+    /// server starts one when the daemon's interfaces change.
+    ///
+    /// Created by the server only, with no discovery configuration behind it, and kept out of
+    /// the run history, the digest and the active sessions.
+    #[schema(title = "InterfaceRefresh")]
+    InterfaceRefresh {
+        /// ID of the host that the daemon is running on
+        host_id: Uuid,
+    },
 }
 
 impl Default for DiscoveryType {
@@ -142,7 +152,8 @@ impl DiscoveryType {
             DiscoveryType::SelfReport { .. }
             | DiscoveryType::Network { .. }
             | DiscoveryType::Docker { .. }
-            | DiscoveryType::Unified { .. } => None,
+            | DiscoveryType::Unified { .. }
+            | DiscoveryType::InterfaceRefresh { .. } => None,
         }
     }
 
@@ -152,7 +163,8 @@ impl DiscoveryType {
             DiscoveryType::SelfReport { host_id }
             | DiscoveryType::Docker { host_id, .. }
             | DiscoveryType::Rescan { host_id, .. }
-            | DiscoveryType::Unified { host_id, .. } => Some(*host_id),
+            | DiscoveryType::Unified { host_id, .. }
+            | DiscoveryType::InterfaceRefresh { host_id } => Some(*host_id),
             DiscoveryType::Network { .. } => None,
         }
     }
@@ -164,6 +176,35 @@ impl DiscoveryType {
             self,
             DiscoveryType::Unified { .. } | DiscoveryType::Rescan { .. }
         )
+    }
+
+    /// Whether the daemon is sent credential mappings for this type. An interface refresh reads
+    /// the host's container runtimes, so it gets their credentials (see
+    /// [`Self::keeps_credential`]) without running a scan.
+    pub fn carries_credential_mappings(&self) -> bool {
+        self.runs_network_scan() || matches!(self, DiscoveryType::InterfaceRefresh { .. })
+    }
+
+    /// Whether a credential of type `credential` goes to the daemon with this type. An interface
+    /// refresh needs only the container runtimes' API credentials.
+    pub fn keeps_credential(
+        &self,
+        credential: crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants,
+    ) -> bool {
+        use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants as D;
+        match self {
+            DiscoveryType::InterfaceRefresh { .. } => matches!(
+                credential,
+                D::DockerProxy | D::DockerSocket | D::PodmanProxy | D::PodmanSocket
+            ),
+            _ => true,
+        }
+    }
+
+    /// Whether a session of this type is recorded and shown: a historical row, the digest,
+    /// session events, and the live session list. An interface refresh is not.
+    pub fn records_history(&self) -> bool {
+        !matches!(self, DiscoveryType::InterfaceRefresh { .. })
     }
 
     /// Serialize with SNMP credentials exposed as plaintext.
@@ -199,6 +240,7 @@ impl Display for DiscoveryType {
             DiscoveryType::Docker { .. } => write!(f, "Docker Discovery"),
             DiscoveryType::Rescan { .. } => write!(f, "Rescan"),
             DiscoveryType::Unified { .. } => write!(f, "Unified Discovery"),
+            DiscoveryType::InterfaceRefresh { .. } => write!(f, "Interface Refresh"),
         }
     }
 }
@@ -392,6 +434,9 @@ impl TypeMetadataProvider for DiscoveryType {
             DiscoveryType::Rescan { .. } => "Re-check known hosts' addresses and ports",
             DiscoveryType::Unified { .. } => {
                 "Unified discovery combining self-report, network scanning, and integrations"
+            }
+            DiscoveryType::InterfaceRefresh { .. } => {
+                "Re-read which subnets the daemon's host is attached to"
             }
         }
     }

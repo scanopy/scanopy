@@ -5,8 +5,8 @@ import {
 	modalState,
 	navigateToEntity,
 	resolveModalDeepLink
-} from '$lib/shared/stores/modal-registry';
-import type { ModalState } from '$lib/shared/stores/modal-registry';
+} from '#lib/shared/stores/modal-registry.ts';
+import type { ModalState } from '#lib/shared/stores/modal-registry.ts';
 
 interface TestEntity {
 	id: string;

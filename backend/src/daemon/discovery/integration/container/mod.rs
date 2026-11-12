@@ -43,7 +43,7 @@ use crate::server::subnets::r#impl::types::SubnetType;
 
 use super::{
     Checkpoint, CollectionShortfall, Completeness, ProbeContext, ProbeFailure, ProbeSuccess,
-    merge_subnets,
+    ShortfallCause, merge_subnets,
 };
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::server::hosts::r#impl::attributes::HostOsValue;
@@ -187,34 +187,6 @@ impl ContainerRuntime {
             virtualization_service_id,
             source: EntitySource::Discovery,
         }))
-    }
-
-    /// Whether `interface_name` is one a container runtime reserves for its own
-    /// bridges on the host it runs on.
-    ///
-    /// This is a **filter, never a label** — it keeps the daemon from creating
-    /// and scanning its own host's container bridges, which matters most when
-    /// the runtime API is unreachable and no authoritative record will arrive.
-    /// Classification is not allowed to consult it: a false negative here just
-    /// means a bridge shows up as an ordinary subnet, whereas a false positive
-    /// in classification labels an unrelated network "Docker" (#663).
-    pub fn reserves_host_interface_name(interface_name: &str) -> bool {
-        let name = interface_name.to_lowercase();
-
-        // Docker's per-network bridges are `br-` + the first 12 hex chars of the
-        // network id. Anything else after `br-` is someone else's bridge.
-        if let Some(suffix) = name.strip_prefix("br-") {
-            return suffix.len() == 12 && suffix.chars().all(|c| c.is_ascii_hexdigit());
-        }
-
-        // Swarm's ingress bridge, plus the default bridges: docker0, podman0,
-        // cni-podman0.
-        name == "docker_gwbridge"
-            || ["docker", "podman", "cni-podman"].iter().any(|prefix| {
-                name.strip_prefix(prefix).is_some_and(|rest| {
-                    !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit())
-                })
-            })
     }
 
     /// Build the container identity stamped onto a discovered container service.
@@ -506,7 +478,7 @@ pub async fn execute(
         .await?
         .into_iter()
         .partition(Subnet::is_container_bridge_subnet);
-    ctx.ops.report_progress(10).await.ok();
+    ctx.report_progress(10).await;
 
     // The engine reports the machine it runs on. Read before the scan so a slow container pass
     // cannot time it out; a failed read only means no OS from this source.
@@ -518,9 +490,12 @@ pub async fn execute(
         }
     };
 
-    let containers = scanner.get_containers_and_summaries().await?;
+    let scanner::ContainerListing {
+        containers,
+        uninspected,
+    } = scanner.get_containers_and_summaries().await?;
     let container_count = containers.len();
-    ctx.ops.report_progress(20).await.ok();
+    ctx.report_progress(20).await;
 
     // A container with a macvlan/ipvlan endpoint is a host of its own under the runtime. Every
     // other container stays a service on the runtime's host, except the members of a LAN
@@ -556,7 +531,7 @@ pub async fn execute(
             deadline,
         )
         .await?;
-    ctx.ops.report_progress(70).await.ok();
+    ctx.report_progress(70).await;
 
     let container_hosts = if lan_containers.is_empty() {
         hosts::ContainerHostsOutcome::default()
@@ -581,24 +556,25 @@ pub async fn execute(
                     )
                     .await?
             }
+            // Both leave the container hosts unrecorded, which the shortfall below reports.
             Ok(None) => {
-                tracing::warn!(
+                tracing::debug!(
                     runtime = runtime.label(),
-                    "The server returned no runtime service; containers with their own LAN address were not recorded"
+                    "The server returned no runtime service; container hosts not recorded"
                 );
                 hosts::ContainerHostsOutcome::default()
             }
             Err(e) => {
-                tracing::warn!(
+                tracing::debug!(
                     runtime = runtime.label(),
                     error = %e,
-                    "Failed to record the runtime's host; containers with their own LAN address were not recorded"
+                    "Failed to record the runtime's host; container hosts not recorded"
                 );
                 hosts::ContainerHostsOutcome::default()
             }
         }
     };
-    ctx.ops.report_progress(90).await.ok();
+    ctx.report_progress(90).await;
 
     tracing::info!(
         discovered = %scan.results.len(),
@@ -648,13 +624,18 @@ pub async fn execute(
         release_runtime_api_port(host_data, runtime_service_id, api_port);
     }
 
-    // Every container the runtime has, stopped ones included, made it into this submission: a
-    // stored container on this runtime that the run doesn't report was removed. A container that
-    // was reached but yielded nothing (no interfaces, an inspect mismatch) would read as removed,
-    // so it holds the listing back too.
-    if reported == bridge_count
-        && container_hosts.recorded == lan_container_count
-        && stopped_lan_containers == 0
+    let counts = ContainerCounts {
+        listed: container_count + uninspected,
+        uninspected,
+        bridge: bridge_count,
+        reached: scan.reached,
+        reported,
+        lan: lan_container_count,
+        lan_recorded: container_hosts.recorded,
+        lan_timed_out: container_hosts.timed_out,
+        stopped_lan: stopped_lan_containers,
+    };
+    if counts.listed_in_full()
         && let Some(credential_id) = ctx.credential_id
     {
         ctx.ops
@@ -662,23 +643,81 @@ pub async fn execute(
             .await;
     }
 
-    // A scan stopped by the soft deadline has a coherent subset — every container it did reach is
-    // whole — so it is worth keeping, but only if the operator is told it is a subset.
-    Ok(if scan.reached < bridge_count {
-        Completeness::Partial(CollectionShortfall {
-            what: "containers",
-            collected: scan.reached,
-            expected: bridge_count,
-        })
-    } else if container_hosts.recorded < lan_container_count {
-        Completeness::Partial(CollectionShortfall {
-            what: "container hosts",
-            collected: container_hosts.recorded,
-            expected: lan_container_count,
-        })
-    } else {
-        Completeness::Complete
-    })
+    Ok(counts.completeness())
+}
+
+/// What one runtime's container pass got through, for the two decisions made at its end.
+#[derive(Debug, Clone, Copy, Default)]
+struct ContainerCounts {
+    /// Containers the runtime listed, inspected or not.
+    listed: usize,
+    /// Listed containers whose inspect failed, so nothing about them was read.
+    uninspected: usize,
+    /// Inspected containers that stay services on the runtime's host.
+    bridge: usize,
+    /// Of those, how many the scan reached before its soft deadline.
+    reached: usize,
+    /// Of those, how many yielded a result.
+    reported: usize,
+    /// Running containers with their own LAN address, each a host of its own.
+    lan: usize,
+    /// Of those, how many the server recorded.
+    lan_recorded: usize,
+    /// Whether recording them stopped at the soft deadline.
+    lan_timed_out: bool,
+    /// Stopped containers with their own LAN address, which have no address to record them by.
+    stopped_lan: usize,
+}
+
+impl ContainerCounts {
+    /// Whether this submission reports every container the runtime has, stopped ones included, so
+    /// that a stored container on this runtime that the run doesn't report was removed.
+    ///
+    /// Anything that could not be reported holds it back, because it would read as removed: a
+    /// container reached that yielded nothing (no interfaces, an inspect mismatch), one whose
+    /// inspect failed, and a LAN container that was not recorded.
+    fn listed_in_full(&self) -> bool {
+        self.uninspected == 0
+            && self.reported == self.bridge
+            && self.lan_recorded == self.lan
+            && self.stopped_lan == 0
+    }
+
+    /// Whether the pass collected everything, and why not where it did not.
+    ///
+    /// A scan stopped by the soft deadline has a coherent subset (every container it did reach is
+    /// whole), so it is worth keeping, but only if the operator is told it is a subset. The time
+    /// limit leads, since a rescan with a longer window collects the rest.
+    fn completeness(&self) -> Completeness {
+        if self.reached < self.bridge {
+            Completeness::Partial(CollectionShortfall::new(
+                "containers",
+                self.reached,
+                self.bridge,
+                ShortfallCause::TimeLimit,
+            ))
+        } else if self.lan_recorded < self.lan {
+            Completeness::Partial(CollectionShortfall::new(
+                "container hosts",
+                self.lan_recorded,
+                self.lan,
+                if self.lan_timed_out {
+                    ShortfallCause::TimeLimit
+                } else {
+                    ShortfallCause::NotRecorded
+                },
+            ))
+        } else if self.uninspected > 0 {
+            Completeness::Partial(CollectionShortfall::new(
+                "containers",
+                self.listed - self.uninspected,
+                self.listed,
+                ShortfallCause::ReadFailed,
+            ))
+        } else {
+            Completeness::Complete
+        }
+    }
 }
 
 /// Remove the runtime service's binding on `api_port`, which the container fronting its API owns.
@@ -702,6 +741,76 @@ fn release_runtime_api_port(
             .base
             .bindings
             .retain(|b| !b.port_id().is_some_and(|id| api_port_ids.contains(&id)));
+    }
+}
+
+#[cfg(test)]
+mod container_counts_tests {
+    use super::*;
+
+    /// Four containers listed and inspected, all reported, no LAN containers.
+    fn whole() -> ContainerCounts {
+        ContainerCounts {
+            listed: 4,
+            bridge: 4,
+            reached: 4,
+            reported: 4,
+            ..Default::default()
+        }
+    }
+
+    fn cause(counts: ContainerCounts) -> Option<ShortfallCause> {
+        match counts.completeness() {
+            Completeness::Complete => None,
+            Completeness::Partial(shortfall) => Some(shortfall.cause),
+        }
+    }
+
+    #[test]
+    fn a_pass_that_reported_everything_is_complete_and_listed_in_full() {
+        assert!(whole().listed_in_full());
+        assert_eq!(cause(whole()), None);
+    }
+
+    /// A container whose inspect failed still exists. Listing the runtime in full without it
+    /// told the server it had been removed.
+    #[test]
+    fn a_failed_inspect_holds_the_listing_back_and_is_a_read_failure() {
+        let counts = ContainerCounts {
+            listed: 5,
+            uninspected: 1,
+            ..whole()
+        };
+        assert!(!counts.listed_in_full());
+        assert_eq!(cause(counts), Some(ShortfallCause::ReadFailed));
+    }
+
+    #[test]
+    fn a_scan_stopped_at_the_deadline_is_a_time_limit() {
+        let counts = ContainerCounts {
+            reached: 3,
+            reported: 3,
+            ..whole()
+        };
+        assert_eq!(cause(counts), Some(ShortfallCause::TimeLimit));
+    }
+
+    /// A container host the server refused used to read "before the time limit".
+    #[test]
+    fn a_refused_container_host_is_not_recorded_rather_than_a_timeout() {
+        let refused = ContainerCounts {
+            lan: 2,
+            lan_recorded: 1,
+            ..whole()
+        };
+        assert!(!refused.listed_in_full());
+        assert_eq!(cause(refused), Some(ShortfallCause::NotRecorded));
+
+        let out_of_time = ContainerCounts {
+            lan_timed_out: true,
+            ..refused
+        };
+        assert_eq!(cause(out_of_time), Some(ShortfallCause::TimeLimit));
     }
 }
 
@@ -773,43 +882,6 @@ mod tests {
         // Drivers with no routable L3 network of their own.
         assert!(build(ContainerRuntime::Docker, "host").is_none());
         assert!(build(ContainerRuntime::Docker, "none").is_none());
-    }
-
-    /// The filter must catch the bridges a runtime actually creates without
-    /// claiming bridges it doesn't. `br-<12 hex>` is Docker's naming convention;
-    /// a router's `br-guest`/`br-lan` is someone else's bridge, and treating it
-    /// as Docker's is what produced #663.
-    #[test]
-    fn reserved_interface_names_exclude_foreign_bridges() {
-        for reserved in [
-            "docker0",
-            "podman0",
-            "cni-podman0",
-            "docker_gwbridge",
-            "br-1a2b3c4d5e6f",
-            "BR-1A2B3C4D5E6F",
-        ] {
-            assert!(
-                ContainerRuntime::reserves_host_interface_name(reserved),
-                "{reserved} should be recognised as a container bridge"
-            );
-        }
-
-        for foreign in [
-            "br-guest",
-            "br-lan",
-            "br-iot",
-            "br0",
-            "eth0",
-            "wlan0",
-            "lo",
-            "dockerhub",
-        ] {
-            assert!(
-                !ContainerRuntime::reserves_host_interface_name(foreign),
-                "{foreign} must not be claimed as a container bridge"
-            );
-        }
     }
 
     #[test]

@@ -20,7 +20,7 @@ use crate::server::{
         middleware::{
             auth::AuthenticatedEntity,
             features::{RequireFeature, SharingFeature},
-            permissions::{Authorized, Member, RequireVerified},
+            permissions::{Authorized, Can, RequireVerified, Write},
         },
         service::hash_password,
     },
@@ -138,7 +138,7 @@ pub fn create_public_router() -> OpenApiRouter<Arc<AppState>> {
 async fn create_share(
     State(state): State<Arc<AppState>>,
     _feature: RequireFeature<SharingFeature>,
-    auth: Authorized<RequireVerified<Member>>,
+    auth: Authorized<RequireVerified<Can<Share, Write>>>,
     ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
     // Validate allowed_domains for CSP safety
@@ -166,12 +166,7 @@ async fn create_share(
 
     share.base.created_by = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    create_handler::<Share>(
-        State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(share),
-    )
-    .await
+    create_handler::<Share>(State(state), auth, ApiJson(share)).await
 }
 
 /// Update share
@@ -189,7 +184,7 @@ async fn create_share(
 )]
 async fn update_share(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Member>>,
+    auth: Authorized<RequireVerified<Can<Share, Write>>>,
     Path(id): Path<Uuid>,
     ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
@@ -227,18 +222,26 @@ async fn update_share(
     share.base.redact_password();
 
     // Delegate to generic handler
-    update_handler::<Share>(
-        State(state),
-        auth.into_permission::<Member>(),
-        Path(id),
-        ApiJson(share),
-    )
-    .await
+    update_handler::<Share>(State(state), auth, Path(id), ApiJson(share)).await
 }
 
 // ============================================================================
 // Public Routes (No Authentication Required)
 // ============================================================================
+
+/// The topology a share publishes. A share created before its topology was checked against its
+/// site, or whose topology has since moved, serves nothing: the public read renders the
+/// topology's site, whoever that belongs to.
+async fn load_share_topology(state: &AppState, share: &Share) -> Result<Topology, ApiError> {
+    state
+        .services
+        .topology_service
+        .get_by_id(&share.base.topology_id)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .filter(|topology| topology.base.site_id == share.base.site_id)
+        .ok_or_else(|| ApiError::entity_not_found::<Share>(share.id))
+}
 
 /// Helper to get the organization's plan for a share
 async fn get_share_org_plan(state: &AppState, share: &Share) -> Result<BillingPlan, ApiError> {
@@ -292,13 +295,7 @@ async fn get_public_share_metadata(
     }
 
     // Fetch topology to resolve available views based on data
-    let topology = state
-        .services
-        .topology_service
-        .get_by_id(&share.base.topology_id)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .ok_or_else(|| ApiError::entity_not_found::<Topology>(share.base.topology_id))?;
+    let topology = load_share_topology(&state, &share).await?;
 
     // Compute view-support from raw entity tables so availability doesn't
     // flap based on which view the main app last rebuilt under.
@@ -449,13 +446,7 @@ async fn get_share_topology(
     // server-side referer check here cannot enforce what it appears to.
 
     // Get topology data
-    let topology = state
-        .services
-        .topology_service
-        .get_by_id(&share.base.topology_id)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .ok_or_else(|| ApiError::entity_not_found::<Topology>(share.base.topology_id))?;
+    let topology = load_share_topology(&state, &share).await?;
 
     // Resolve available views based on share config + data availability.
     // Support flags come from raw entity tables — independent of whichever

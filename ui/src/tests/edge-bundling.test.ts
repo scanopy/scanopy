@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { bundleEdges } from '$lib/features/topology/layout/edge-bundling';
-import type { components } from '$lib/api/schema';
+import { bundleEdges } from '#lib/features/topology/layout/edge-bundling.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyEdge = components['schemas']['Edge'];
 

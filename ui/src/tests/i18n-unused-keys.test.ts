@@ -61,7 +61,7 @@ function isKeyUsed(key: string, sourceFiles: string[], fileContents: Map<string,
 	// Check for both namespace imports (m.key) and named imports (key directly)
 	const namespacePattern = `m.${key}(`;
 	const namedPattern = `${key}(`;
-	const importPattern = /from\s+['"]\$lib\/paraglide\/messages['"]/;
+	const importPattern = /from\s+['"]#lib\/paraglide\/messages\.js['"]/;
 
 	for (const file of sourceFiles) {
 		const content = fileContents.get(file);

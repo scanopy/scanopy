@@ -5,14 +5,36 @@ import {
 	buildDiagramModel,
 	type DiagramDescriber,
 	type DiagramModel,
+	type DiagramPart,
 	type DiagramSourceEdge,
 	type DiagramSourceNode
-} from '$lib/features/topology/diagram-export/model';
-import { serializeDrawio, toDrawioCells } from '$lib/features/topology/diagram-export/drawio';
-import { fieldKeys } from '$lib/features/topology/diagram-export/xml';
-import { buildVsdxParts, zipVsdx } from '$lib/features/topology/diagram-export/vsdx';
-import { createDescriber } from '$lib/features/topology/diagram-export/describe';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
+} from '#lib/features/topology/diagram-export/model.ts';
+import { serializeDrawio, toDrawioCells } from '#lib/features/topology/diagram-export/drawio.ts';
+import { fieldKeys, hexColor } from '#lib/features/topology/diagram-export/xml.ts';
+import { buildVsdxParts, zipVsdx } from '#lib/features/topology/diagram-export/vsdx.ts';
+import {
+	createDescriber,
+	type DescriberInput
+} from '#lib/features/topology/diagram-export/describe.ts';
+import { base64DataUri, fitInside } from '#lib/features/topology/diagram-export/collect.ts';
+import { iconBadgeFanOffsetPx } from '#lib/features/topology/pipeline/build-flow-nodes.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import { activeView } from '#lib/features/topology/queries.ts';
+import { expandedInlineGroups, inlineGroupKey } from '#lib/features/topology/collapse.ts';
+import { elementMarks } from '#lib/features/topology/element-marks.ts';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { createColorHelper } from '#lib/shared/utils/styling.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
+import { subnetTypes } from '#lib/shared/stores/metadata.ts';
+
+const SUBNET = {
+	id: 'lan',
+	cidr: '10.0.0.0/24',
+	subnet_type: subnetTypes.getItems()[0].id,
+	vlan_ids: ['v10']
+};
 
 /**
  * A subnet holding a host card and a nested subcontainer (holding another card), plus a second
@@ -38,10 +60,40 @@ const EDGES: DiagramSourceEdge[] = [
 
 const plainDescriber = (hiddenEdgeIds: Set<string> = new Set(['e-hidden'])): DiagramDescriber => ({
 	node: (n) => ({
-		title: n.id,
-		lines: n.type === 'Element' ? ['10.0.0.1'] : [],
-		style: { fill: '#ffffff', stroke: '#94a3b8', text: '#1f2937' },
-		iconKey: n.id === 'web' ? 'icon-web' : undefined,
+		box: { outline: 'rect', radius: 8, fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1 },
+		parts:
+			n.id === 'web'
+				? [
+						{
+							role: 'label',
+							outline: 'rect',
+							x: 8,
+							y: 60,
+							width: 100,
+							height: 15,
+							text: { value: n.id, color: '#1f2937', size: 12 }
+						},
+						{ role: 'tile', outline: 'rect', x: 10, y: 10, width: 48, height: 48, fill: '#e5e7eb' },
+						{
+							role: 'glyph',
+							outline: 'rect',
+							x: 20,
+							y: 20,
+							width: 28,
+							height: 28,
+							iconKey: 'icon-web'
+						},
+						{
+							role: 'status',
+							outline: 'ellipse',
+							x: 5,
+							y: 5,
+							width: 10,
+							height: 10,
+							fill: '#22c55e'
+						}
+					]
+				: [],
 		// Two labels that reduce to the same key, and one that collides with a draw.io attribute.
 		data:
 			n.type === 'Element'
@@ -142,12 +194,22 @@ describe('diagram model', () => {
 describe('diagram describer', () => {
 	const topology = {
 		dependencies: [],
-		options: {},
+		options: { request: { element_rules: [] } },
+		hosts: [],
+		ip_addresses: [],
+		services: [],
+		ports: [],
+		bindings: [],
+		entity_tags: [],
+		neighbours: [],
+		nodes: [],
+		edges: [],
 		interfaces: [
 			{ id: 'i1', display_name: 'Gi0/1' },
 			{ id: 'i2', display_name: 'eth0' }
 		],
-		vlans: [{ id: 'v10', vlan_number: 10, name: 'users' }]
+		vlans: [{ id: 'v10', vlan_number: 10, name: 'users' }],
+		subnets: [SUBNET]
 	} as unknown as RenderableTopology;
 	const flowEdge = (id: string, data: Record<string, unknown>): Edge =>
 		({ id, source: 'a', target: 'b', data }) as unknown as Edge;
@@ -164,7 +226,7 @@ describe('diagram describer', () => {
 			edges: new Map(edges.map((e) => [e.id, e])),
 			hiddenEdgeTypes,
 			theme: 'light',
-			iconKeys: new Map()
+			glyph: () => undefined
 		});
 	}
 
@@ -193,6 +255,28 @@ describe('diagram describer', () => {
 			.node({ id: 'vlan', type: 'Container', x: 0, y: 0, width: 10, height: 10 })
 			.data?.map((d) => d.value);
 		expect(boxValues).toEqual(expect.arrayContaining(['10', 'users']));
+	});
+
+	it('exports the values a tooltip draws as tags and entities as their plain text', () => {
+		const subnetBox = {
+			node_type: 'Container',
+			container_type: 'Subnet',
+			entity_id: SUBNET.id,
+			header: SUBNET.cidr
+		} as unknown as TopologyNode;
+		const describer = describerFor([], [], new Map([['lan', subnetBox]]));
+		const shapeValues = describer
+			.node({ id: 'lan', type: 'Container', x: 0, y: 0, width: 10, height: 10 })
+			.data?.map((d) => d.value);
+
+		const content = entityTooltip('Subnet', SUBNET, { lookup: topologyLookup(topology) });
+		const rows = content.sections.flatMap((s) => s.rows ?? []);
+		const chipRow = (type: string) => rows.find((r) => r.chips?.some((c) => c.type === type));
+		expect(chipRow('Tag')?.value).toBe(subnetTypes.getName(SUBNET.subnet_type));
+		expect(chipRow('Entity')?.value).toBeTruthy();
+		expect(shapeValues).toEqual(
+			expect.arrayContaining([chipRow('Tag')?.value, chipRow('Entity')?.value])
+		);
 	});
 
 	it('leaves out edges whose type is hidden and dependency preview edges', () => {
@@ -239,11 +323,463 @@ describe('draw.io cells', () => {
 	});
 
 	it('marks containers as containers so they carry their children', () => {
-		const cells = toDrawioCells(sampleModel());
-		const parents = new Set(cells.filter((c) => c.vertex).map((c) => c.parent));
-		for (const cell of cells.filter((c) => c.vertex && parents.has(c.id))) {
-			expect(cell.style).toContain('container=1');
+		const model = sampleModel();
+		const cells = toDrawioCells(model);
+		const holders = new Set(model.shapes.map((s) => s.parentId).filter(Boolean));
+		expect(holders.size).toBeGreaterThan(0);
+		for (const id of holders) {
+			expect(cells.find((c) => c.id === `n-${id}`)?.style).toContain('container=1');
 		}
+	});
+});
+
+/**
+ * The exports redraw what the canvas draws: the same parts, in both formats, from the render data
+ * the canvas components read.
+ */
+describe('canvas styling in the export', () => {
+	const SITE = { id: 'site', effective_stale_after_hours: 24 } as unknown as Site;
+	const NOW = new Date().toISOString();
+	const LONG_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+	const LONG_HOSTNAME = 'gitlab-runner-production.acme.local';
+	const base = { site_id: SITE.id, tags: [], last_seen_at: NOW, source: { type: 'Discovery' } };
+	const element = (fields: Record<string, unknown>) =>
+		({ node_type: 'Element', ...fields }) as unknown as TopologyNode;
+	const box = (fields: Record<string, unknown>) =>
+		({ node_type: 'Container', ...fields }) as unknown as TopologyNode;
+
+	const nodes = {
+		up: element({
+			element_type: 'Interface',
+			host_id: 'switch',
+			entity_id: 'if-up',
+			header: 'Gi1'
+		}),
+		down: element({
+			element_type: 'Interface',
+			host_id: 'switch',
+			entity_id: 'if-down',
+			header: 'Gi2'
+		}),
+		address: element({
+			element_type: 'IPAddress',
+			host_id: 'guest',
+			entity_id: 'ip',
+			ip_address_id: 'ip',
+			subnet_id: 'lan'
+		}),
+		busy: element({
+			element_type: 'IPAddress',
+			host_id: 'busy',
+			entity_id: 'busy-ip',
+			ip_address_id: 'busy-ip',
+			subnet_id: 'lan'
+		}),
+		guest: element({
+			element_type: 'Host',
+			host_id: 'guest',
+			entity_id: 'guest',
+			inline_groups: [
+				{ entity_id: 'docker', entity_type: 'Service', group_id: 'docker', role: 'Header' },
+				{ entity_id: 'nginx', entity_type: 'Service', group_id: 'docker', role: 'Member' }
+			]
+		}),
+		subnet: box({ container_type: 'Subnet', entity_id: 'lan', header: '10.0.0.0/24' }),
+		oldSwitch: box({ container_type: 'Host', entity_id: 'old-switch', header: 'old-switch' }),
+		vlan: box({ container_type: 'VLAN', entity_id: 'vlan-10', header: 'VLAN 10' }),
+		runtime: box({
+			container_type: 'ContainerRuntime',
+			header: 'Docker',
+			associated_service_definition: 'Docker'
+		})
+	};
+
+	const topology = {
+		id: 'topo',
+		site_id: SITE.id,
+		options: { request: { element_rules: [] } },
+		hosts: [
+			{ ...base, id: 'guest', name: 'guest', display_name: 'guest', os: { family: 'Linux' } },
+			{ ...base, id: 'switch', name: 'switch', display_name: 'switch' },
+			{ ...base, id: 'old-switch', name: 'old-switch', last_seen_at: LONG_AGO },
+			{
+				...base,
+				id: 'busy',
+				name: 'busy',
+				hostname: LONG_HOSTNAME,
+				os: { family: 'Linux' }
+			}
+		],
+		subnets: [{ ...base, id: 'lan', cidr: '10.0.0.0/24', vlan_ids: ['vlan-10'] }],
+		ip_addresses: [
+			{ ...base, id: 'ip', host_id: 'guest', subnet_id: 'lan', ip_address: '10.0.0.5' },
+			{ ...base, id: 'busy-ip', host_id: 'busy', subnet_id: 'lan', ip_address: '10.0.0.9' }
+		],
+		services: [
+			...['Nginx', 'Docker', 'PostgreSQL'].map((definition) => ({
+				...base,
+				id: `busy-${definition}`,
+				host_id: 'busy',
+				name: definition,
+				service_definition: definition,
+				bindings: [{ type: 'Port', port_id: 'p80', ip_address_id: 'busy-ip' }]
+			})),
+			{
+				...base,
+				id: 'web',
+				host_id: 'guest',
+				name: 'web',
+				service_definition: 'Nginx',
+				bindings: [{ type: 'Port', port_id: 'p80', ip_address_id: 'ip' }]
+			},
+			{
+				...base,
+				id: 'docker',
+				host_id: 'guest',
+				name: 'Docker Daemon',
+				service_definition: 'Docker',
+				bindings: []
+			},
+			{
+				...base,
+				id: 'nginx',
+				host_id: 'guest',
+				name: 'nginx',
+				service_definition: 'Nginx',
+				bindings: []
+			}
+		],
+		ports: [{ id: 'p80', number: 80, protocol: 'Tcp' }],
+		bindings: [],
+		interfaces: [
+			{
+				...base,
+				id: 'if-up',
+				host_id: 'switch',
+				display_name: 'Gi1',
+				oper_status: 'Up',
+				filter_values: { LinkState: 'Linked', OperStatus: 'Up' }
+			},
+			{
+				...base,
+				id: 'if-down',
+				host_id: 'switch',
+				display_name: 'Gi2',
+				oper_status: 'Down',
+				last_seen_at: LONG_AGO,
+				filter_values: { LinkState: 'Unlinked', OperStatus: 'Down' }
+			}
+		],
+		dependencies: [],
+		vlans: [{ ...base, id: 'vlan-10', vlan_number: 10, subnet_ids: ['lan'] }],
+		entity_tags: [],
+		neighbours: [],
+		nodes: Object.entries(nodes).map(([id, node]) => ({ ...node, id })),
+		edges: []
+	} as unknown as RenderableTopology;
+
+	// What `cardGlyph` reads off the app's icon components: Docker's logo comes as a light and a
+	// dark file, Nginx's sits on its own background colour, everything else is a glyph in the text
+	// colour.
+	const NGINX_FILL = '#009639';
+	const glyph: DescriberInput['glyph'] = (key) =>
+		key === 'service:Docker'
+			? {
+					type: 'image',
+					key,
+					src: '/logos/docker.svg',
+					darkSrc: '/logos/docker-dark.svg',
+					fill: null,
+					round: false,
+					css: '',
+					darkCss: ''
+				}
+			: key === 'service:Nginx'
+				? {
+						type: 'image',
+						key,
+						src: '/logos/nginx.svg',
+						darkSrc: null,
+						fill: NGINX_FILL,
+						round: false,
+						css: '',
+						darkCss: null
+					}
+				: { type: 'mask', key, svg: '<svg stroke="currentColor"/>', css: '' };
+
+	const CARD = { x: 0, y: 0, width: 120, height: 110 };
+	const BOX = { x: 0, y: 0, width: 400, height: 300 };
+
+	function describerFor(
+		view: 'L2Physical' | 'L3Logical' | 'Workloads',
+		theme: 'light' | 'dark' = 'light',
+		edges: Edge[] = []
+	) {
+		activeView.set(view);
+		queryClient.setQueryData(queryKeys.sites.all, [SITE]);
+		return createDescriber({
+			topology,
+			nodeData: new Map(
+				Object.entries(nodes).map(([id, node]) => [id, { ...node, id } as TopologyNode])
+			),
+			edges: new Map(edges.map((e) => [e.id, e])),
+			hiddenEdgeTypes: [],
+			theme,
+			glyph
+		});
+	}
+	const card = (describer: ReturnType<typeof describerFor>, id: keyof typeof nodes) =>
+		describer.node({ id, type: 'Element', ...CARD });
+	const container = (describer: ReturnType<typeof describerFor>, id: keyof typeof nodes) =>
+		describer.node({ id, type: 'Container', ...BOX });
+	const withRole = (description: { parts: DiagramPart[] }, role: DiagramPart['role']) =>
+		description.parts.filter((p) => p.role === role);
+
+	it('draws an icon card as a centred tile with its label below it', () => {
+		const port = card(describerFor('L2Physical'), 'up');
+		const [tile] = withRole(port, 'tile');
+		expect(tile.x + tile.width / 2).toBe(CARD.width / 2);
+		const [label] = withRole(port, 'label');
+		expect(label.text?.value).toBe('Gi1');
+		expect(label.y).toBeGreaterThanOrEqual(tile.y + tile.height);
+		// The glyph sits inside the tile.
+		expect(encloses(tile, withRole(port, 'glyph')[0])).toBe(true);
+	});
+
+	it('centres the label and the hostname under it, and cuts a hostname that is too long', () => {
+		const address = card(describerFor('L3Logical'), 'busy');
+		const [label, sublabel] = withRole(address, 'label');
+		expect(label.text?.value).toBe('10.0.0.9');
+		for (const part of [label, sublabel]) {
+			expect(part.text?.align).toBe('center');
+			expect(part.x + part.width / 2).toBe(CARD.width / 2);
+			expect(encloses(CARD, part)).toBe(true);
+		}
+		expect(sublabel.y).toBeGreaterThanOrEqual(label.y + label.height);
+		expect(sublabel.text?.value.endsWith('…')).toBe(true);
+		expect(LONG_HOSTNAME.startsWith(sublabel.text!.value.slice(0, -1))).toBe(true);
+	});
+
+	it('fans several service badges into a row where the canvas fans them on hover', () => {
+		const address = card(describerFor('L3Logical'), 'busy');
+		const badges = withRole(address, 'badge').sort((a, b) => a.x - b.x);
+		expect(badges).toHaveLength(3);
+		const offsets = [0, 1, 2].map((i) => CARD.width / 2 + iconBadgeFanOffsetPx(i, 3));
+		expect(badges.map((b) => b.x)).toEqual(offsets);
+		for (const [i, badge] of badges.entries()) {
+			expect(encloses(CARD, badge)).toBe(true);
+			// No badge hides the one before it.
+			if (i > 0) expect(badge.x).toBeGreaterThanOrEqual(badges[i - 1].x + badges[i - 1].width);
+		}
+		// The fan covers the corner the OS badge sits on, so it gives way, as it does on hover.
+		expect(withRole(address, 'os')).toHaveLength(0);
+	});
+
+	it("draws a port's link state as a dot in the colour of the view's Status mark", () => {
+		const describer = describerFor('L2Physical');
+		const dot = (id: 'up' | 'down') =>
+			withRole(card(describer, id), 'status').find((p) => p.fill !== undefined && !p.stroke);
+		const marks = (id: 'up' | 'down') =>
+			elementMarks('L2Physical', { ...nodes[id], id } as TopologyNode, [SITE], topology);
+		expect(dot('up')?.fill).toBe(createColorHelper(marks('up').Status!.color).rgb);
+		expect(dot('down')?.fill).toBe(createColorHelper(marks('down').Status!.color).rgb);
+		expect(dot('up')?.fill).not.toBe(dot('down')?.fill);
+	});
+
+	it('keeps a lone service badge on the tile corner, with the OS badge on the other', () => {
+		const describer = describerFor('L3Logical');
+		const address = card(describer, 'address');
+		const [tile] = withRole(address, 'tile');
+		const badges = withRole(address, 'badge');
+		expect(badges).toHaveLength(1);
+		expect(badges[0].outline).toBe('ellipse');
+		// A logo with a background colour fills its frame with it.
+		expect(badges[0].fill).toBe(NGINX_FILL);
+		// Centred on the tile's bottom-right corner, the OS badge on its bottom-left.
+		expect(badges[0].x + badges[0].width / 2).toBe(tile.x + tile.width);
+		const [os] = withRole(address, 'os');
+		expect(os.x + os.width / 2).toBe(tile.x);
+	});
+
+	it("draws a guest's containers as rows, a device square and software round", () => {
+		expandedInlineGroups.set(new Set([inlineGroupKey('guest', 'docker')]));
+		const guest = describer_workloads();
+		expect(withRole(guest, 'tile')[0].outline).toBe('rect');
+		expect(withRole(guest, 'group')).toHaveLength(1);
+		const rows = withRole(guest, 'row');
+		expect(rows).toHaveLength(1);
+		expect(rows[0].outline).toBe('ellipse');
+		expect(guest.parts.some((p) => p.text?.value === 'nginx')).toBe(true);
+		expandedInlineGroups.set(new Set());
+
+		function describer_workloads() {
+			return describerFor('Workloads').node({ id: 'guest', type: 'Element', ...CARD, height: 180 });
+		}
+	});
+
+	it("titles a root container with its entity's pill above the box, a subcontainer inside it", () => {
+		const describer = describerFor('L2Physical');
+		const subnet = container(describer, 'subnet');
+		const [pill] = withRole(subnet, 'title');
+		expect(pill.text?.value).toBe('10.0.0.0/24');
+		expect(pill.fill).toBeDefined();
+		expect(pill.y + pill.height).toBeLessThanOrEqual(0);
+		expect(subnet.box.dashed).toBeFalsy();
+
+		const vlan = container(describer, 'vlan');
+		const [inline] = withRole(vlan, 'title');
+		expect(inline.text?.value).toBe('VLAN 10');
+		expect(encloses(BOX, inline)).toBe(true);
+		expect(vlan.box.dashed).toBe(true);
+	});
+
+	it('marks a stale card and a stale container with the status badge the canvas draws', () => {
+		const describer = describerFor('L2Physical');
+		expect(withRole(card(describer, 'down'), 'freshness')).toHaveLength(1);
+		expect(withRole(card(describer, 'up'), 'freshness')).toHaveLength(0);
+		expect(withRole(container(describer, 'oldSwitch'), 'freshness')).toHaveLength(1);
+		expect(withRole(container(describer, 'subnet'), 'freshness')).toHaveLength(0);
+	});
+
+	it("gives a container header the logo file for the export's theme", () => {
+		for (const [theme, src] of [
+			['light', '/logos/docker.svg'],
+			['dark', '/logos/docker-dark.svg']
+		] as const) {
+			const describer = describerFor('Workloads', theme);
+			const runtime = container(describer, 'runtime');
+			expect(withRole(runtime, 'glyph').map((p) => p.iconKey)).toEqual([src]);
+			expect([...describer.icons.keys()]).toEqual([src]);
+		}
+	});
+
+	it('leaves a bundle unlabelled, and colours every other edge label for the theme', () => {
+		const data = { edge_type: 'PhysicalLink', view_config: { type: 'active', stroke: 'solid' } };
+		const edges = [
+			{ id: 'link', source: 'up', target: 'down', label: 'Gi1 ↔ Gi2', data },
+			{
+				id: 'bundle',
+				source: 'up',
+				target: 'down',
+				label: 'Gi1 ↔ Gi2',
+				data: { ...data, isBundle: true }
+			}
+		] as unknown as Edge[];
+		const describer = describerFor('L2Physical', 'dark', edges);
+		expect(describer.edge(edges[1])?.label).toBeUndefined();
+
+		const model = buildDiagramModel({
+			name: 'x',
+			nodes: [
+				{ id: 'up', type: 'Element', ...CARD },
+				{ id: 'down', type: 'Element', ...CARD, x: 300 }
+			],
+			edges,
+			describe: describer,
+			background: '#15131e'
+		});
+		const link = toDrawioCells(model).find((c) => c.id === 'e-link')!;
+		const color = describer.edge(edges[0])!.labelStyle!.color;
+		expect(link.value).toBe('Gi1 ↔ Gi2');
+		expect(link.style).toContain(`fontColor=${hexColor(color)}`);
+		expect(hexColor(color)).not.toBe('#000000');
+	});
+
+	it('draws the same parts in both formats', () => {
+		const describer = describerFor('L2Physical');
+		const model = buildDiagramModel({
+			name: 'x',
+			nodes: [
+				{ id: 'subnet', type: 'Container', ...BOX },
+				{
+					id: 'vlan',
+					type: 'Container',
+					parentId: 'subnet',
+					x: 20,
+					y: 60,
+					width: 300,
+					height: 200
+				},
+				{ id: 'up', type: 'Element', parentId: 'vlan', ...CARD, x: 40, y: 100 },
+				{ id: 'down', type: 'Element', parentId: 'vlan', ...CARD, x: 180, y: 100 }
+			],
+			edges: [],
+			describe: describer,
+			background: '#f8fafc'
+		});
+		// The descriptions name their icons as the model is built, so the images come after it.
+		model.icons = new Map(
+			[...describer.icons.keys()].map((key) => [
+				key,
+				{ dataUri: 'data:image/svg+xml;base64,PHN2Zy8+', png: new Uint8Array([137, 80, 78, 71]) }
+			])
+		);
+		const parts = model.shapes.flatMap((s) => s.parts);
+		expect(parts.length).toBeGreaterThan(model.shapes.length);
+
+		const cells = toDrawioCells(model).filter((c) => c.id.startsWith('p-'));
+		expect(cells.map((c) => c.geometry)).toEqual(
+			parts.map(({ x, y, width, height }) => ({ x, y, width, height }))
+		);
+
+		const page = strFromU8(unzipSync(zipVsdx(buildVsdxParts(model)))['visio/pages/page1.xml']);
+		const drawn = (name: string) => [...page.matchAll(new RegExp(`NameU="${name}\\.\\d+"`, 'g'))];
+		for (const role of new Set(parts.filter((p) => !p.iconKey).map((p) => p.role))) {
+			expect(drawn(role)).toHaveLength(parts.filter((p) => !p.iconKey && p.role === role).length);
+		}
+		expect(drawn('Icon')).toHaveLength(parts.filter((p) => p.iconKey).length);
+	});
+
+	it('gives every Visio ellipse the size of its shape, as values a reader can draw from', () => {
+		const describer = describerFor('L2Physical');
+		const model = buildDiagramModel({
+			name: 'x',
+			nodes: [{ id: 'up', type: 'Element', ...CARD }],
+			edges: [],
+			describe: describer,
+			background: '#f8fafc'
+		});
+		const page = strFromU8(unzipSync(zipVsdx(buildVsdxParts(model)))['visio/pages/page1.xml']);
+		const value = (xml: string, name: string) =>
+			Number(xml.match(new RegExp(`<Cell N="${name}" V="([^"]+)"`))?.[1]);
+		const ellipses = [...page.matchAll(/<Shape [^>]*>(.*?)<\/Shape>/g)]
+			.map((m) => m[1])
+			.filter((xml) => xml.includes('T="Ellipse"'));
+		expect(ellipses.length).toBeGreaterThan(0);
+		for (const xml of ellipses) {
+			const row = xml.slice(xml.indexOf('T="Ellipse"'));
+			expect(value(xml, 'Width')).toBeGreaterThan(0);
+			expect(value(row, 'A')).toBeCloseTo(value(xml, 'Width'));
+			expect(value(row, 'D')).toBeCloseTo(value(xml, 'Height'));
+			expect(value(row, 'X')).toBeCloseTo(value(xml, 'Width') / 2);
+		}
+	});
+
+	it("tells draw.io to leave the file's colours alone in its own dark mode", () => {
+		expect(serializeDrawio(sampleModel())).toMatch(/<mxGraphModel [^>]*adaptiveColors="none"/);
+	});
+
+	it('fits a wide or tall icon inside its square bitmap without stretching it', () => {
+		for (const [width, height] of [
+			[200, 50],
+			[50, 200],
+			[64, 64]
+		]) {
+			const box = fitInside(width, height, 128);
+			expect(box.width / box.height).toBeCloseTo(width / height);
+			expect(Math.max(box.width, box.height)).toBe(128);
+			expect(box.x + box.width / 2).toBe(64);
+			expect(box.y + box.height / 2).toBe(64);
+		}
+		// An SVG with no size of its own fills the square.
+		expect(fitInside(0, 0, 128)).toEqual({ x: 0, y: 0, width: 128, height: 128 });
+	});
+
+	it('keeps an image usable in a draw.io style, whatever form its data URI takes', () => {
+		const svg = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0;L1 1"/></svg>';
+		const uri = base64DataUri(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+		expect(uri.replace(';base64,', ',')).not.toContain(';');
+		expect(atob(uri.slice(uri.indexOf(',') + 1))).toBe(svg);
 	});
 });
 

@@ -61,7 +61,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     pub fn new(site_id: Uuid, taken_at: DateTime<Utc>, created_by_user_id: Option<Uuid>) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

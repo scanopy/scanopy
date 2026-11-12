@@ -1,37 +1,36 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import { vlanColumns } from './VlanTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { isUserManagedSubnet, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import {
 		useBulkDeleteVlansMutation,
 		useDeleteVlanMutation,
 		useUpdateVlanMutation,
 		useVlansListQuery
 	} from '../queries';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 	import VlanEditModal from './VlanEditModal.svelte';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import type { CardAction } from '$lib/shared/components/data/types';
-	import type { TabProps } from '$lib/shared/types';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { useInterfacesByIds } from '$lib/features/interfaces/queries';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { useInterfacesByIds } from '#lib/features/interfaces/queries.ts';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
 	import type { Vlan, VlanOrderField } from '../types/base';
-	import type { components } from '$lib/api/schema';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -42,14 +41,14 @@
 		daemons_installPromptVlans,
 		vlans_emptySubtitle,
 		vlans_vlanTitle
-	} from '$lib/paraglide/messages';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	} from '#lib/paraglide/messages.js';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
-	const VLAN_FIELD_VALUES = '/api/v1/vlans/field-values/{field}';
+	const VLAN_FIELD_VALUES = '/api/v1/vlans/field-values';
 
 	let showVlanEditor = $state(false);
 	let editingVlan: Vlan | null = $state(null);
@@ -69,24 +68,17 @@
 		}
 	});
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	// One page of VLANs, paged, filtered and ordered on the server.
 	const page = listPageState(() => isActive);
 	const vlansQuery = useVlansListQuery(() => page.params());
 	// Filter options: the values the caller's VLANs hold, counted by the server.
-	const siteValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		VLAN_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		VLAN_FIELD_VALUES,
-		'source',
+		['site_id', 'source'],
 		undefined,
 		() => isActive
 	);
@@ -121,17 +113,24 @@
 	const bulkDeleteVlansMutation = useBulkDeleteVlansMutation();
 
 	/** Row actions. */
-	function vlanActions(vlan: Vlan): CardAction[] {
-		if (isReadOnly) return [];
+	function vlanActions(vlan: Vlan): RowAction[] {
+		if (!can('Vlan', 'Write')) return [];
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditVlan(vlan) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditVlan(vlan),
+				unavailable: refusedUnless(can('Vlan', 'Write', vlan.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteVlan(vlan)
+				onClick: () => handleDeleteVlan(vlan),
+				unavailable: refusedUnless(can('Vlan', 'Delete', vlan.site_id))
 			}
 		];
 	}
@@ -198,8 +197,8 @@
 			subnets: () => [...subnetsById.values()],
 			tags: () => tagsData,
 			discoveryRuns: () => discoveryRunsData,
-			siteValues: () => siteValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			sourceValues: () => fieldValuesQuery.data?.source
 		})
 	);
 </script>
@@ -209,7 +208,7 @@
 
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptVlans()} />
 	{:else if isLoading}
 		<!-- Loading state -->
@@ -228,7 +227,7 @@
 			storageKey="scanopy-vlans-table-state"
 			defaults={tableDefaults}
 			entityType="Vlan"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getVlanTags}
 			getItemId={(item) => item.id}
 			serverPagination={vlansPagination}

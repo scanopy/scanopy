@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import type { PortBinding, Service } from '$lib/features/services/types/base';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import type { PortBinding, Service } from '#lib/features/services/types/base.ts';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import { ALL_IP_ADDRESSES_ID, IPAddressDisplay } from './IPAddressDisplay.svelte';
 	import { PortDisplay } from './PortDisplay.svelte';
 	import {
@@ -23,7 +23,7 @@
 		hosts_bindings_portBinding,
 		hosts_bindings_serviceNotFound,
 		hosts_ports_noAvailableOnInterface
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
 	const servicesQuery = useServicesCacheQuery();

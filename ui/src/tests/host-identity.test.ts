@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { discoveredName, nameToSubmit, overrideOf } from '$lib/features/hosts/host-identity';
-import type { HostNameLadderEntry } from '$lib/features/hosts/types/base';
+import { discoveredName, nameToSubmit, overrideOf } from '#lib/features/hosts/host-identity.ts';
+import type { HostNameLadderEntry } from '#lib/features/hosts/types/base.ts';
 
 /**
  * The host editor's split of a stored name into a discovered name and a person's override.

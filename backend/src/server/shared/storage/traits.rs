@@ -14,9 +14,10 @@ use crate::server::dependencies::r#impl::base::Dependency;
 use crate::server::lldp::{LldpChassisId, LldpPortId};
 use crate::server::services::r#impl::base::Service;
 use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::setup::types::SetupItemDiscriminants;
 use crate::server::shared::attribution::{AttributeSource, AttributeSourceDiscriminants};
 use crate::server::shared::entities::EntityDiscriminants;
-use crate::server::shared::events::types::{BillingOperation, OnboardingOperationDiscriminants};
+use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::product_area::ProductArea;
 use crate::server::shares::r#impl::base::ShareOptions;
 use crate::server::subnets::r#impl::base::Subnet;
@@ -345,10 +346,20 @@ pub trait Entity: Storable + crate::server::shared::events::log::EntityLog {
         // Default: no-op
     }
 
-    /// Preserve entity-specific immutable fields from the existing entity.
-    /// Override for entities that have additional read-only fields beyond id/created_at.
-    fn preserve_immutable_fields(&mut self, _existing: &Self) {
-        // Default: no-op
+    /// Settle an incoming entity against the stored one, by each field's
+    /// [`FieldWrite`](crate::server::shared::types::entity_field::FieldWrite) in the registry.
+    /// Runs on API updates and on discovery's merges, so it reads typed fields, not JSON.
+    fn preserve_immutable_fields(&mut self, existing: &Self)
+    where
+        Self: 'static,
+    {
+        let fields = Self::entity_type().fields();
+        for rule in fields.iter().filter_map(|f| f.write.settled_rule()) {
+            rule.apply(self, existing);
+        }
+        for rule in fields.iter().filter_map(|f| f.write.merged_rule()) {
+            rule.apply(self, existing);
+        }
     }
 }
 
@@ -405,7 +416,7 @@ pub enum SqlValue {
     Services(Vec<Service>),
     Bindings(Vec<Binding>),
     Dependencies(Vec<Dependency>),
-    OnboardingOperation(Vec<OnboardingOperationDiscriminants>),
+    SetupItems(Vec<SetupItemDiscriminants>),
     StringArray(Vec<String>),
     OptionalStringArray(Option<Vec<String>>),
     OptionalLldpChassisId(Option<LldpChassisId>),
@@ -625,7 +636,6 @@ impl_db_enum_contributor_empty!(
     EmailSettings,
     TopologyOptions,
     ShareOptions,
-    OrgNotifications,
     Port,
     IPAddress,
     Host,
@@ -679,7 +689,6 @@ impl_db_enum_contributor_via_variant_names!(
     crate::server::billing::types::base::LimitType,
     crate::server::billing::types::base::LimitSource,
     AuthenticatedEntity,
-    OnboardingOperationDiscriminants,
 );
 
 // IntegrationTarget is a tagged sum with struct variants (confuses strum::VariantNames on the
@@ -694,6 +703,36 @@ impl DbEnumContributor for IntegrationTarget {
                 .map(|s| s.to_string())
                 .collect(),
         );
+    }
+}
+
+/// `OrgNotifications` holds the trial sweep's `SetupItemKey`s, whose `type` tag nothing else
+/// stores. Its item types and warning codes are catalogued through their own columns.
+impl DbEnumContributor for OrgNotifications {
+    fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
+        use crate::server::setup::types::{SetupItemKey, SetupItemKeyDiscriminants};
+        out.insert(
+            db_enum_key_for::<SetupItemKey>(),
+            <SetupItemKeyDiscriminants as ::strum::VariantNames>::VARIANTS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+    }
+}
+
+// The stored names are the serde names. Its `strum` names are snake_case ids for the metadata, so
+// `VariantNames` would list the wrong strings.
+impl DbEnumContributor for SetupItemDiscriminants {
+    fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
+        use strum::IntoEnumIterator;
+        let variants = SetupItemDiscriminants::iter()
+            .filter_map(|v| match serde_json::to_value(v) {
+                Ok(serde_json::Value::String(name)) => Some(name),
+                _ => None,
+            })
+            .collect();
+        out.insert(db_enum_key_for::<SetupItemDiscriminants>(), variants);
     }
 }
 
@@ -826,9 +865,7 @@ impl SqlValue {
             SqlValueDiscriminants::Services => Service::contribute(out),
             SqlValueDiscriminants::Bindings => Binding::contribute(out),
             SqlValueDiscriminants::Dependencies => Dependency::contribute(out),
-            SqlValueDiscriminants::OnboardingOperation => {
-                OnboardingOperationDiscriminants::contribute(out)
-            }
+            SqlValueDiscriminants::SetupItems => SetupItemDiscriminants::contribute(out),
             SqlValueDiscriminants::OptionalLldpChassisId => LldpChassisId::contribute(out),
             SqlValueDiscriminants::OptionalLldpPortId => LldpPortId::contribute(out),
             SqlValueDiscriminants::ShareOptions => ShareOptions::contribute(out),

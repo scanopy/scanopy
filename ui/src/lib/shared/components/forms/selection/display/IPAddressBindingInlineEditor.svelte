@@ -1,20 +1,20 @@
 <script lang="ts">
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import { IPAddressDisplay } from './IPAddressDisplay.svelte';
 	import { ipAddressBindingOptions } from './bindingOptions';
-	import { formatIPAddress } from '$lib/features/hosts/address-labels';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import type { IPAddressBinding, Service } from '$lib/features/services/types/base';
+	import { formatIPAddress } from '#lib/features/hosts/address-labels.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import type { IPAddressBinding, Service } from '#lib/features/services/types/base.ts';
 	import {
 		hosts_bindings_hostNotFound,
 		hosts_bindings_ipAddressBinding,
 		hosts_bindings_noIPAddresses,
 		hosts_bindings_serviceNotFound,
 		hosts_bindings_unknownIPAddress
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
 	const ipAddressesQuery = useIPAddressesQuery();

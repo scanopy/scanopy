@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { listIsEmpty } from '$lib/api/list-page';
+import { listIsEmpty } from '#lib/api/list-page.ts';
 
 const page = (rows: number, isPlaceholderData = false) => ({
 	data: { items: Array.from({ length: rows }, (_, i) => i) },

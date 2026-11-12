@@ -3,7 +3,7 @@ import {
 	computeOptimalHandles,
 	ObstacleGrid,
 	type ObstacleRect
-} from '$lib/features/topology/layout/handle-picking';
+} from '#lib/features/topology/layout/handle-picking.ts';
 
 /** Deterministic PRNG so a failure reproduces. */
 function rng(seed: number) {

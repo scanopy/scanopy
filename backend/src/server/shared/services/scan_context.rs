@@ -2,7 +2,7 @@
 //!
 //! `ScanContext` carries the single `scan_time` captured at the top of a
 //! discovery submission so every entity created or refreshed during that
-//! submission shares one timestamp. Without it, each entity's `Utc::now()`
+//! submission shares one timestamp. Without it, each entity's `crate::server::shared::clock::now()`
 //! call drifts by microseconds-to-milliseconds across the host + children
 //! tree, which makes session-window timestamp filters fuzzy at the
 //! boundaries (per-scan diff queries become unreliable when entities from
@@ -34,7 +34,7 @@ pub struct ScanContext {
 impl ScanContext {
     pub fn new(daemon_id: Uuid) -> Self {
         Self {
-            scan_time: Utc::now(),
+            scan_time: crate::server::shared::clock::now(),
             daemon_id,
         }
     }

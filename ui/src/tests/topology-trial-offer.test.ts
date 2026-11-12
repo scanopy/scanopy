@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canTrialTopology, topologyTrialDays } from '$lib/shared/utils/trial';
-import type { Organization } from '$lib/features/organizations/types';
+import { canTrialTopology, topologyTrialDays } from '#lib/shared/utils/trial.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 function org(overrides: Partial<Organization> = {}): Organization {
 	return {
@@ -8,7 +8,8 @@ function org(overrides: Partial<Organization> = {}): Organization {
 		created_at: '2026-01-01T00:00:00Z',
 		updated_at: '2026-01-01T00:00:00Z',
 		name: 'Acme',
-		onboarding: [],
+		setup: [],
+		daemon_connected: false,
 		plan: { type: 'Free' } as Organization['plan'],
 		plan_status: null,
 		...overrides

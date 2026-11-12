@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 
-vi.mock('$app/environment', () => ({ browser: true }));
+vi.mock('$app/env', () => ({ browser: true }));
 
 /**
  * The collapse state of manager boxes and inspector sections lives in localStorage. It must come
@@ -21,17 +21,17 @@ describe('persistedSet', () => {
 	afterEach(() => vi.unstubAllGlobals());
 
 	it('restores what a previous page load saved', async () => {
-		const first = await import('$lib/shared/stores/persisted-set');
+		const first = await import('#lib/shared/stores/persisted-set.ts');
 		const store = first.persistedSet('k');
 		first.toggleInSet(store, 'guest|identities');
 
 		vi.resetModules();
-		const second = await import('$lib/shared/stores/persisted-set');
+		const second = await import('#lib/shared/stores/persisted-set.ts');
 		expect(get(second.persistedSet('k'))).toEqual(new Set(['guest|identities']));
 	});
 
 	it('toggling twice removes the entry', async () => {
-		const { persistedSet, toggleInSet } = await import('$lib/shared/stores/persisted-set');
+		const { persistedSet, toggleInSet } = await import('#lib/shared/stores/persisted-set.ts');
 		const store = persistedSet('k');
 		toggleInSet(store, 'Services');
 		toggleInSet(store, 'Services');
@@ -49,7 +49,7 @@ describe('persistedSet', () => {
 				throw new Error('blocked');
 			}
 		});
-		const { persistedSet, toggleInSet } = await import('$lib/shared/stores/persisted-set');
+		const { persistedSet, toggleInSet } = await import('#lib/shared/stores/persisted-set.ts');
 		const store = persistedSet('k');
 		expect(get(store)).toEqual(new Set());
 
@@ -59,7 +59,7 @@ describe('persistedSet', () => {
 
 	it('ignores a stored value of the wrong shape', async () => {
 		backing.set('k', '{"not":"an array"}');
-		const { persistedSet } = await import('$lib/shared/stores/persisted-set');
+		const { persistedSet } = await import('#lib/shared/stores/persisted-set.ts');
 
 		expect(get(persistedSet('k'))).toEqual(new Set());
 	});

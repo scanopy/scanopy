@@ -17,8 +17,8 @@ use crate::server::{
                 EntityEventFilter, Event, EventFilter, EventScope, ScopeOrganization, Subscriber,
             },
             types::{
-                EntityOperation, EntityOperationDiscriminants, OnboardingOperation,
-                OnboardingOperationDiscriminants,
+                AuthOperation, AuthOperationDiscriminants, EntityOperation,
+                EntityOperationDiscriminants,
             },
         },
         services::traits::CrudService,
@@ -95,18 +95,20 @@ inventory::submit!(SubscriberRegistration::new::<BillingService, EntityOperation
 /// trial from the plan picker. Only cloud runs a `BillingService`. A failure leaves the org on its
 /// license plan with no subscription, which the app shows with the plan picker.
 #[async_trait]
-impl Subscriber<OnboardingOperation> for BillingService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
-        EventFilter::ops(vec![OnboardingOperationDiscriminants::OrgCreated])
+impl Subscriber<AuthOperation> for BillingService {
+    fn filter(&self) -> EventFilter<AuthOperation> {
+        EventFilter::ops(vec![AuthOperationDiscriminants::OrgCreated])
     }
 
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+    async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
         for event in events {
             // Signup names no site only for a license buyer.
-            let OnboardingOperation::OrgCreated { site: None, .. } = &event.operation else {
+            let AuthOperation::OrgCreated { site: None, .. } = &event.operation else {
                 continue;
             };
-            let organization_id = event.scope.organization_id;
+            let Some(organization_id) = event.scope.organization_id else {
+                continue;
+            };
             if let Err(e) = self
                 .start_default_trial(organization_id, event.authentication.clone())
                 .await
@@ -121,7 +123,4 @@ impl Subscriber<OnboardingOperation> for BillingService {
         Ok(())
     }
 }
-inventory::submit!(SubscriberRegistration::new::<
-    BillingService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<BillingService, AuthOperation>());

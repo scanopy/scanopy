@@ -19,8 +19,8 @@
  * this function's inputs will not be visible to the shape key.
  */
 
-import type { components } from '$lib/api/schema';
-import type { Service } from '$lib/features/services/types/base';
+import type { components } from '#lib/api/schema';
+import type { Service } from '#lib/features/services/types/base.ts';
 import type {
 	ElementInlineGroup,
 	ElementRenderData,
@@ -28,69 +28,29 @@ import type {
 	TopologyNode,
 	TopologyOptions
 } from './types/base';
-import {
-	ENTITY_COLLECTIONS,
-	elementEntity,
-	nodeEntity,
-	resolveElementNode,
-	topologyLookup
-} from './resolvers';
+import { elementEntity, nodeEntity, resolveElementNode, topologyLookup } from './resolvers';
 import { entityGlyph, type EntityGlyph } from './entity-glyph';
 import { elementMarks, entityMark, type ElementMarks, type MarkValue } from './element-marks';
-import type { Host, HostVirtualization } from '$lib/features/hosts/types/base';
-import type { ServiceVirtualization } from '$lib/features/services/types/base';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { hostOsLabel, type HostOs } from '$lib/features/hosts/host-os';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import type { HostOs } from '#lib/features/hosts/host-os.ts';
 import { getTopologyIndex } from './entity-index';
+import { entities, serviceDefinitions, views } from '#lib/shared/stores/metadata.ts';
+import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
+import { getConfirmationTag } from '#lib/shared/utils/confirmation.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
 import {
-	containerNetworkTypes,
-	deviceTypes,
-	entities,
-	guestStates,
-	hostVirtualizations,
-	proxmoxGuestTypes,
-	serviceDefinitions,
-	serviceVirtualizations,
-	views
-} from '$lib/shared/stores/metadata';
-import { getFreshnessTag } from '$lib/shared/utils/freshness';
-import { getConfirmationTag } from '$lib/shared/utils/confirmation';
-import { createColorHelper } from '$lib/shared/utils/styling';
-import type {
-	TooltipContent,
-	TooltipItem,
-	TooltipRow,
-	TooltipSection
-} from '$lib/shared/actions/tooltip';
-import { formatPort } from '$lib/shared/utils/formatting';
-import {
-	entityDisplayText,
-	entityFieldLabel,
-	entityFields,
-	fieldText,
-	type EntityType
-} from '$lib/shared/entity-fields';
-import type { Site } from '$lib/features/sites/types';
+	hostTooltip,
+	interfaceTooltip,
+	ipAddressTooltip,
+	serviceTooltip
+} from '#lib/shared/entity-tooltip.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 import { get } from 'svelte/store';
 import { activeView, hiddenEntityTypesIn, topologyOptions } from './queries';
 import { hiddenEntityIds } from './interactions';
 import { expandedInlineGroups, inlineGroupKey } from './collapse';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import {
-	common_containers,
-	common_host,
-	common_ipAddress,
-	common_operatingSystem,
-	common_manager,
-	common_name,
-	common_services,
-	common_status,
-	common_virtualization,
-	hosts_deviceFacts_composeProject,
-	hosts_deviceFacts_guestType,
-	hosts_deviceFacts_networkType,
-	hosts_deviceType
-} from '$lib/paraglide/messages';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { common_containers } from '#lib/paraglide/messages.js';
 
 type InlineGroup = components['schemas']['InlineGroup'];
 
@@ -138,7 +98,7 @@ export interface ElementIconCard {
 	/**
 	 * The services running on what the card stands for, as definitions for a stack of round badges
 	 * on a device glyph: one per definition, the one that decided the device type first, then those
-	 * with a logo. At most `BADGE_STACK_MAX`; the tooltip lists every service.
+	 * with a logo. At most `BADGE_STACK_MAX`; the tooltip lists more.
 	 */
 	badgeDefinitions: string[];
 	label: string;
@@ -276,283 +236,12 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 		...content,
 		marks,
 		glyph,
-		iconCard: glyph ? buildIconCard(inputs, resolved, content.data, glyph, marks) : null
+		iconCard: glyph ? buildIconCard(inputs, resolved, content.data, glyph) : null
 	};
 }
 
 /** The most service badges a device glyph stacks: five fan across the card without overlapping. */
 const BADGE_STACK_MAX = 5;
-/** A tooltip row before empty values are dropped. */
-type MaybeRow = { label: string; value: string | null | undefined; dot?: string };
-
-/** The run state row, its dot in the colour the view's Status mark paints that state. */
-function statusRow(state: string | null | undefined, status: MarkValue | undefined): MaybeRow {
-	return {
-		label: common_status(),
-		value: state ? guestStates.getName(state) : null,
-		dot: status ? createColorHelper(status.color).rgb : undefined
-	};
-}
-
-/**
- * What a guest host's tooltip adds about how it runs: its manager, the modifiers that set it apart
- * from a plain guest (a Proxmox guest's type, a container's macvlan or ipvlan network, its Compose
- * project) and its run state. The same facts the host modal's virtualization section lists.
- */
-function hostGuestRows(
-	virtualization: HostVirtualization | null | undefined,
-	status: MarkValue | undefined
-): MaybeRow[] {
-	if (!virtualization) return [];
-	const manager: MaybeRow = {
-		label: common_manager(),
-		value: hostVirtualizations.getName(virtualization.type)
-	};
-	switch (virtualization.type) {
-		case 'Proxmox': {
-			const { guest_type, state } = virtualization.details;
-			return [
-				manager,
-				{
-					label: hosts_deviceFacts_guestType(),
-					value: guest_type ? proxmoxGuestTypes.getName(guest_type) : null
-				},
-				statusRow(state, status)
-			];
-		}
-		case 'Libvirt':
-			return [manager, statusRow(virtualization.details.state, status)];
-		case 'VCenter':
-		case 'ESXi':
-			return [manager];
-		case 'Docker':
-		case 'Podman': {
-			const { network_type, compose_project, state } = virtualization.details;
-			return [
-				manager,
-				{
-					label: hosts_deviceFacts_networkType(),
-					value: containerNetworkTypes.getName(network_type)
-				},
-				{ label: hosts_deviceFacts_composeProject(), value: compose_project },
-				statusRow(state, status)
-			];
-		}
-		// An identity on its guest's network, not a guest of its own: no manager and no run state.
-		case 'NetworkIdentity':
-			return [
-				{
-					label: common_virtualization(),
-					value: hostVirtualizations.getName(virtualization.type)
-				}
-			];
-	}
-}
-
-/** A containerized service's rows: its runtime, Compose project and run state. */
-function serviceGuestRows(
-	virtualization: ServiceVirtualization | null | undefined,
-	status: MarkValue | undefined
-): MaybeRow[] {
-	if (!virtualization) return [];
-	const { compose_project, state } = virtualization.details;
-	return [
-		{ label: common_manager(), value: serviceVirtualizations.getName(virtualization.type) },
-		{ label: hosts_deviceFacts_composeProject(), value: compose_project },
-		statusRow(state, status)
-	];
-}
-
-/** A titled tooltip: one row per value present, then the services under their own heading. */
-function titledTooltip(
-	title: string,
-	rows: MaybeRow[],
-	services: (string | TooltipItem)[] = []
-): TooltipContent {
-	const present: TooltipRow[] = rows.flatMap(({ label, value, dot }) =>
-		value ? [{ label, value, dot }] : []
-	);
-	const sections: TooltipSection[] = [];
-	if (present.length > 0) sections.push({ rows: present });
-	if (services.length > 0) sections.push({ heading: common_services(), items: services });
-	return { title, sections };
-}
-
-/**
- * A service's hover text: its name as the title, the host it runs on when the card does not
- * already say it, and how it runs when it is containerized. `status` is the view's Status mark on
- * the service, which colours its run state.
- */
-export function serviceTooltip(
-	service: Service,
-	{ host, status }: { host?: Host | null; status?: MarkValue } = {}
-): TooltipContent {
-	return titledTooltip(service.name, [
-		{ label: common_host(), value: host ? hostDisplayName(host) : null },
-		...serviceGuestRows(service.virtualization_metadata, status)
-	]);
-}
-
-/**
- * A host's hover text: its name as the title, then its address and the address's name, device type
- * and how it runs as a guest, then its services. `status` is the view's Status mark on the host;
- * `serviceItem` lists each service (by its name, by default).
- */
-export function hostTooltip(
-	host: Host,
-	{
-		name,
-		address,
-		addressName,
-		deviceType,
-		services,
-		status,
-		serviceItem = (s) => s.name
-	}: {
-		name?: string;
-		address?: string | null;
-		addressName?: string | null;
-		deviceType?: string | null;
-		services: Service[];
-		status?: MarkValue;
-		serviceItem?: (service: Service) => string | TooltipItem;
-	}
-): TooltipContent {
-	return titledTooltip(
-		name ?? hostDisplayName(host),
-		[
-			{ label: common_ipAddress(), value: address },
-			{ label: common_name(), value: addressName },
-			{ label: hosts_deviceType(), value: deviceType ? deviceTypes.getName(deviceType) : null },
-			{ label: common_operatingSystem(), value: host.os ? hostOsLabel(host.os) : null },
-			...hostGuestRows(host.virtualization_metadata, status)
-		],
-		services.map(serviceItem)
-	);
-}
-
-/** The interface fields a port card's tooltip lists, in order: what the card has no room for. */
-const PORT_TOOLTIP_FIELDS = [
-	'oper_status',
-	'speed_bps',
-	'mac_address',
-	'ip_address_id',
-	'native_vlan_id',
-	'vlan_ids'
-];
-
-/**
- * A port's hover text: its name as the title, then its status, with a dot in the colour the view's
- * Status mark paints it, and its speed, MAC, address and VLANs. Labels and formatting are the backend
- * field registry's, as the inspector shows them; the address and VLANs resolve from `topology`.
- */
-export function interfaceTooltip(
-	iface: object,
-	name: string,
-	status: MarkValue | undefined,
-	topology: RenderableTopology
-): TooltipContent {
-	const fields = entityFields('Interface');
-	const lookup = topologyLookup(topology);
-	return titledTooltip(
-		name,
-		PORT_TOOLTIP_FIELDS.flatMap((id) => {
-			const field = fields.find((f) => f.id === id);
-			if (!field) return [];
-			return [
-				{
-					label: entityFieldLabel('Interface', field),
-					value: fieldText(field, iface, lookup),
-					dot: id === 'oper_status' && status ? createColorHelper(status.color).rgb : undefined
-				}
-			];
-		})
-	);
-}
-
-/** A service with the ports it listens on at one address, set apart as the item's detail. */
-function serviceWithPorts(
-	service: Service,
-	ipAddressId: string,
-	topology: RenderableTopology
-): TooltipItem {
-	const portsById = getTopologyIndex(topology).portsById;
-	const ports = service.bindings.flatMap((b) => {
-		if (b.type !== 'Port' || !b.port_id) return [];
-		if (b.ip_address_id != null && b.ip_address_id !== ipAddressId) return [];
-		const port = portsById.get(b.port_id);
-		return port ? [formatPort(port)] : [];
-	});
-	return { text: service.name, detail: ports.length > 0 ? ports.join(', ') : undefined };
-}
-
-/**
- * Any entity's hover text, by its type: a host, service or port the way its card shows it, and
- * any other entity (a subnet, a VLAN) as its summary fields, the ones the inspector shows by
- * default. `name` replaces the entity's own display text as the title. `status` is the view's
- * Status mark on the entity, read here so every caller colours run state the same way.
- */
-export function entityTooltip(
-	entityType: string,
-	entity: object,
-	{
-		topology,
-		view,
-		sites,
-		name
-	}: { topology: RenderableTopology; view: string; sites: Site[]; name?: string }
-): TooltipContent {
-	const status = entityMark(view, 'Status', entityType, entity, sites);
-	const index = getTopologyIndex(topology);
-	switch (entityType) {
-		case 'Host': {
-			const host = entity as Host;
-			const glyph = entityGlyph('Host', host, topology);
-			return hostTooltip(host, {
-				name,
-				deviceType: glyph?.type === 'device' ? glyph.deviceType : null,
-				services: (index.servicesByHostId.get(host.id) ?? []) as Service[],
-				status
-			});
-		}
-		case 'Service': {
-			const service = entity as Service;
-			return serviceTooltip(service, {
-				host: index.hostsById.get(service.host_id) as Host | undefined,
-				status
-			});
-		}
-		case 'Interface':
-			return interfaceTooltip(
-				entity,
-				name ?? entityDisplayText('Interface', entity),
-				status,
-				topology
-			);
-		default: {
-			const type = entityType as EntityType;
-			const title = name ?? entityDisplayText(type, entity);
-			const lookup = topologyLookup(topology);
-			// The entity's own summary fields, then the related entities the topology carries (a
-			// subnet's VLANs, the service managing it). A relation into a collection the topology
-			// does not load would read as empty, so it is left out. A list of related entities is
-			// shown only where the registry marks it a summary (a subnet's VLANs); a long one (a
-			// VLAN's interfaces) is the inspector's.
-			const fields = entityFields(type);
-			const reachable = (f: (typeof fields)[number]) =>
-				f.path.every((hop) => hop.type === 'Embedded' || hop.entity in ENTITY_COLLECTIONS);
-			const rows = fields
-				.filter(
-					(f) =>
-						(f.summary && f.path.length === 0) ||
-						(f.format.type === 'Entity' && (!f.many || f.summary) && reachable(f))
-				)
-				.map((f) => ({ label: entityFieldLabel(type, f), value: fieldText(f, entity, lookup) }))
-				.filter((row) => row.value !== title);
-			return titledTooltip(title, rows);
-		}
-	}
-}
 
 /**
  * The icon card for an element with a glyph, or null for one with nothing resolved, which keeps
@@ -564,8 +253,7 @@ function buildIconCard(
 	inputs: ElementRenderInputs,
 	resolved: ReturnType<typeof resolveElementNode>,
 	data: ElementRenderData | null,
-	glyph: EntityGlyph,
-	marks: ElementMarks
+	glyph: EntityGlyph
 ): ElementIconCard | null {
 	if (!data) return null;
 	const host = resolved.host;
@@ -580,7 +268,7 @@ function buildIconCard(
 			label,
 			sublabel: null,
 			os: null,
-			tooltip: () => interfaceTooltip(iface, label, marks.Status, inputs.topology),
+			tooltip: () => interfaceTooltip(iface, label, topologyLookup(inputs.topology)),
 			groups: []
 		};
 	}
@@ -594,7 +282,7 @@ function buildIconCard(
 			label: service.name,
 			sublabel: null,
 			os: null,
-			tooltip: () => serviceTooltip(service, { host, status: marks.Status }),
+			tooltip: () => serviceTooltip(service, { host, lookup: topologyLookup(inputs.topology) }),
 			groups: []
 		};
 	}
@@ -625,19 +313,12 @@ function buildIconCard(
 		label: address ?? hostName,
 		sublabel: address && host.hostname && host.hostname !== address ? host.hostname : null,
 		os: host.os ?? null,
-		tooltip: () =>
-			hostTooltip(host, {
-				name: hostName,
-				address,
-				addressName: ipAddress?.name,
-				deviceType,
-				services: data.services,
-				status: marks.Status,
-				// On an address card, each service with the ports it listens on there.
-				serviceItem: ipAddress
-					? (s) => serviceWithPorts(s, ipAddress.id, inputs.topology)
-					: undefined
-			}),
+		tooltip: () => {
+			const lookup = topologyLookup(inputs.topology);
+			return ipAddress
+				? ipAddressTooltip(ipAddress, { services: data.services, lookup })
+				: hostTooltip(host, { name: hostName, deviceType, services: data.services, lookup });
+		},
 		groups: data.inlineGroups.map((g) => iconCardGroup(inputs, g))
 	};
 }
@@ -655,7 +336,7 @@ function iconCardGroup(inputs: ElementRenderInputs, group: ElementInlineGroup): 
 			glyph: { type: 'software', definition: service.service_definition },
 			label: service.name,
 			status,
-			tooltip: () => serviceTooltip(service, { status })
+			tooltip: () => serviceTooltip(service, { lookup: topologyLookup(topology) })
 		};
 	});
 	const hosts: IconCardMember[] = group.hosts.map(({ host, services: hostServices }) => {
@@ -673,7 +354,7 @@ function iconCardGroup(inputs: ElementRenderInputs, group: ElementInlineGroup): 
 				hostTooltip(host, {
 					deviceType: glyph.type === 'device' ? glyph.deviceType : null,
 					services: hostServices,
-					status
+					lookup: topologyLookup(topology)
 				})
 		};
 	});

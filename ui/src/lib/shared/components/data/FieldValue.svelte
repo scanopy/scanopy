@@ -3,10 +3,10 @@
 	import EntityTag from './EntityTag.svelte';
 	import { MAX_ITEMS_IN_CELL, type CardFieldItem } from './types';
 	import { getFieldValue } from './controls/fieldValues';
-	import { formatDate, formatRelativeTime } from '$lib/shared/utils/formatting';
-	import { attributeSourceExplanation } from '$lib/shared/utils/attribute-source';
+	import { formatDate, formatRelativeTime } from '#lib/shared/utils/formatting.ts';
+	import { attributeSourceExplanation } from '#lib/shared/utils/attribute-source.ts';
 	import type { EntityColumn } from './table/columns';
-	import { common_moreItems, common_no, common_none, common_yes } from '$lib/paraglide/messages';
+	import { common_moreItems, common_no, common_none, common_yes } from '#lib/paraglide/messages.js';
 
 	let { item, column }: { item: T; column: EntityColumn<T> } = $props();
 

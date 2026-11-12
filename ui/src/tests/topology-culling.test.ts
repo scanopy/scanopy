@@ -28,10 +28,10 @@ import {
 	buildFlowNodes,
 	sortFlowNodes,
 	stripSizeSeed
-} from '$lib/features/topology/pipeline/build-flow-nodes';
-import type { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { XY } from '$lib/features/topology/pipeline/types';
+} from '#lib/features/topology/pipeline/build-flow-nodes.ts';
+import type { LayoutGraph } from '#lib/features/topology/layout/layout-graph.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { XY } from '#lib/features/topology/pipeline/types.ts';
 
 const ELEMENT_WIDTH = 250;
 const ELEMENT_HEIGHT = 120;

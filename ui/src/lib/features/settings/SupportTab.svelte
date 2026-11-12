@@ -9,17 +9,18 @@
 		MessageCircle,
 		FlaskConical
 	} from '@lucide/svelte';
-	import { logoPath } from '$lib/shared/utils/logos';
-	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans, features } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
+	import { logoPath } from '#lib/shared/utils/logos.ts';
+	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans, features } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		BOOK_CALL_URL,
+		BUG_REPORT_URL,
 		betaProgramUrl,
 		supportEmailAddress
-	} from '$lib/features/support/support';
+	} from '#lib/features/support/support.ts';
 	import {
 		common_email,
 		support_betaProgram,
@@ -38,7 +39,7 @@
 		support_requestFeatureDesc,
 		support_userGuide,
 		support_userGuideDesc
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type SupportOption = {
 		title: string;
@@ -92,7 +93,7 @@
 			{
 				title: support_reportBug(),
 				description: support_reportBugDesc(),
-				url: 'https://github.com/scanopy/scanopy/issues/new?template=bug_report.md',
+				url: BUG_REPORT_URL,
 				color: 'Red',
 				icon: Bug
 			},

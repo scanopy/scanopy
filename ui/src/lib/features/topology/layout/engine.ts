@@ -19,6 +19,11 @@ export interface LayoutInput {
 	 * already sorted. Off, the layout arranges them itself to fit each container compactly.
 	 */
 	preserveChildOrder?: boolean;
+	/**
+	 * Awaited between the engine's two passes. Each pass is one long main-thread task, so this is
+	 * the only point inside a layout where the caller can report progress and let a frame paint.
+	 */
+	onFirstPassDone?: () => Promise<void>;
 }
 
 export interface LayoutResult {

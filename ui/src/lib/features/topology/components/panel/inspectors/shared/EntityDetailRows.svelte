@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { Node } from '@xyflow/svelte';
-	import type { components } from '$lib/api/schema';
-	import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-	import { nodeEntity, topologyLookup } from '$lib/features/topology/resolvers';
+	import type { components } from '#lib/api/schema';
+	import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+	import { nodeEntity, topologyLookup } from '#lib/features/topology/resolvers.ts';
 	import {
 		entityDisplayText,
 		entityFieldLabel,
@@ -13,15 +13,15 @@
 		formatFieldValue,
 		resolveField,
 		type EntityField
-	} from '$lib/shared/entity-fields';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities, inspectorSections } from '$lib/shared/stores/metadata';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
-	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
-	import type { HostOs } from '$lib/features/hosts/host-os';
-	import type { AttributeSource } from '$lib/shared/utils/attribute-source';
+	} from '#lib/shared/entity-fields/index.ts';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { entities, inspectorSections } from '#lib/shared/stores/metadata.ts';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import CopyableValue from '#lib/shared/components/data/CopyableValue.svelte';
+	import OsTag from '#lib/features/hosts/components/OsTag.svelte';
+	import type { HostOs } from '#lib/features/hosts/host-os.ts';
+	import type { AttributeSource } from '#lib/shared/utils/attribute-source.ts';
 	import type { InspectorSection } from '../view-config';
 
 	type Entity = components['schemas']['EntityDiscriminants'];

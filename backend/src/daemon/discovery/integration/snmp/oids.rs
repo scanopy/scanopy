@@ -38,6 +38,9 @@ pub fn oid_parts(oid_str: &str) -> Vec<u64> {
         .collect()
 }
 
+/// `enterprises`: the root every vendor's private MIBs sit under, one arc per vendor.
+pub const ENTERPRISES: &str = "1.3.6.1.4.1";
+
 /// System MIB OIDs (RFC 3418)
 pub mod system {
     /// sysDescr.0 - Full textual description of the entity
@@ -498,6 +501,37 @@ pub mod vlan {
 
         /// vtpVlanState - VLAN operational state (1=operational)
         pub const VTP_VLAN_STATE: &str = "1.3.6.1.4.1.9.9.46.1.3.1.1.2";
+    }
+
+    /// TPLINK-DOT1Q-VLAN-MIB - VLAN configuration on TP-Link switches that serve no Q-BRIDGE
+    /// VLAN group (GH #847).
+    ///
+    /// Walk these columns directly. A walk from the enterprise root fails with `genErr` before it
+    /// reaches this subtree, and a GETBULK that starts elsewhere in the TP-Link tree can run into
+    /// per-port utilization values that take seconds to compute (GH #848).
+    pub mod tplink {
+        /// TP-Link's IANA enterprise number. An agent whose sysObjectID sits under it gets these
+        /// walks. No other agent does.
+        pub const ENTERPRISE: u32 = 11863;
+
+        /// The MIB's subtree
+        pub const TPLINK_DOT1Q_VLAN_MIB: &str = "1.3.6.1.4.1.11863.6.14";
+
+        /// vlanPortConfigTable column 1 - port name such as `1/0/1` (indexed by ifIndex)
+        pub const VLAN_PORT_CONFIG_NAME: &str = "1.3.6.1.4.1.11863.6.14.1.1.1.1.1";
+
+        /// vlanPortConfigTable column 2 - PVID, the port's native VLAN (indexed by ifIndex)
+        pub const VLAN_PORT_CONFIG_PVID: &str = "1.3.6.1.4.1.11863.6.14.1.1.1.1.2";
+
+        /// dot1qVlanDescription - VLAN name (indexed by VLAN ID)
+        pub const DOT1Q_VLAN_DESCRIPTION: &str = "1.3.6.1.4.1.11863.6.14.1.2.1.1.2";
+
+        /// vlanTagPortMemberAdd - tagged member ports as a range string such as
+        /// `1/0/4-6,1/0/8` (indexed by VLAN ID)
+        pub const VLAN_TAG_PORT_MEMBER_ADD: &str = "1.3.6.1.4.1.11863.6.14.1.2.1.1.3";
+
+        /// dot1qVlanStatus - row status, 1 = active (indexed by VLAN ID)
+        pub const DOT1Q_VLAN_STATUS: &str = "1.3.6.1.4.1.11863.6.14.1.2.1.1.6";
     }
 }
 

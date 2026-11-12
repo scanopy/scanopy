@@ -22,7 +22,7 @@ impl BillingService {
             payload,
             signature,
             &self.webhook_secret,
-            Utc::now().timestamp(),
+            crate::server::shared::clock::now().timestamp(),
         )?;
         let event = StripeEnvelope::parse(payload)?;
 
@@ -276,7 +276,7 @@ impl BillingService {
                     let authentication: AuthenticatedEntity = owner.clone().into();
                     let planned_period_end =
                         chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0)
-                            .unwrap_or_else(Utc::now);
+                            .unwrap_or_else(crate::server::shared::clock::now);
                     events.push(Event::new(
                         OrgScope {
                             organization_id: organization.id,
@@ -336,24 +336,9 @@ impl BillingService {
             // — nothing to emit.
             return self
                 .organization_service
-                .commit_billing(locked, None, events)
+                .commit_billing(locked, events)
                 .await;
         }
-
-        // First time signing up for a plan. Recorded and published only if the
-        // org has not selected one before.
-        let milestone = owners
-            .first()
-            .filter(|_| prior_plan.is_free() || prior_status.is_none())
-            .map(|owner| {
-                Event::new(
-                    OrgScope {
-                        organization_id: organization.id,
-                    },
-                    OnboardingOperation::PlanSelected { plan },
-                    owner.clone().into(),
-                )
-            });
 
         // Publish billing lifecycle events for email automation
         if let Some(owner) = owners.first() {
@@ -390,11 +375,11 @@ impl BillingService {
                 // Trial started (if subscription is in trialing state).
                 // Applied after `CheckoutCompleted`, so the org ends Trialing.
                 if is_trialing {
-                    let trial_days = plan.config().trial_days;
+                    let trial_days = plan.current_trial_days();
                     let trial_end_dt = sub
                         .trial_end
                         .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0))
-                        .unwrap_or_else(Utc::now);
+                        .unwrap_or_else(crate::server::shared::clock::now);
                     events.push(Event::new(
                         OrgScope {
                             organization_id: organization.id,
@@ -495,7 +480,7 @@ impl BillingService {
             let resumes_at = pause_collection
                 .resumes_at
                 .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0))
-                .unwrap_or_else(Utc::now);
+                .unwrap_or_else(crate::server::shared::clock::now);
             events.push(Event::new(
                 OrgScope {
                     organization_id: org_id,
@@ -578,7 +563,7 @@ impl BillingService {
         }
 
         self.organization_service
-            .commit_billing(locked, milestone, events)
+            .commit_billing(locked, events)
             .await?;
 
         // The rest take the org lock themselves, so they run after it is
@@ -695,6 +680,7 @@ impl BillingService {
                         trial_started_at: current
                             .trial_start
                             .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0)),
+                        can_extend: !organization.base.trial_extended_used,
                         // Either way to pay keeps the subscription alive, so a
                         // buyer paying by invoice is not asked for a card.
                         //
@@ -884,7 +870,9 @@ impl BillingService {
         // producer exists.
         let internal_reason: Option<String> = None;
         let mrr_amount_cents = mrr_from_subscription(&sub);
-        let tenure_days = (Utc::now() - organization.created_at).num_days().max(0) as u32;
+        let tenure_days = (crate::server::shared::clock::now() - organization.created_at)
+            .num_days()
+            .max(0) as u32;
         let license_key_type = organization.base.license_key_type;
 
         let free_plan = get_free_plan();
@@ -907,7 +895,7 @@ impl BillingService {
             sub.ended_at
                 .or(sub.canceled_at)
                 .or(sub.cancel_at)
-                .unwrap_or_else(|| Utc::now().timestamp()),
+                .unwrap_or_else(|| crate::server::shared::clock::now().timestamp()),
             mrr_amount_cents,
             tenure_days,
             license_key_type,
@@ -917,7 +905,7 @@ impl BillingService {
         .await?;
 
         self.organization_service
-            .commit_billing(locked, None, cancelled.into_iter().collect())
+            .commit_billing(locked, cancelled.into_iter().collect())
             .await
     }
 
@@ -994,8 +982,8 @@ impl BillingService {
             );
         }
 
-        let period_end =
-            chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
+        let period_end = chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0)
+            .unwrap_or_else(crate::server::shared::clock::now);
 
         // Write off whatever this customer was billed for and never paid. The
         // resulting `invoice.marked_uncollectible` webhook takes back the
@@ -1113,6 +1101,9 @@ fn resubscribed(
 /// made it: the subscription is still trialing and its trial end is later than
 /// the one on the org row. `None` when the org has no trial end to compare.
 ///
+/// A mid-trial plan change writes the end it moved the trial to as
+/// `scanopy_trial_switch_end`, so a new end equal to it is that switch.
+///
 /// The self-serve extend is the only writer of `scanopy_trial_extended_days`,
 /// and Stripe keeps the key on the subscription afterwards. So the key means a
 /// user extension only until that extension is recorded; one seen after that
@@ -1137,12 +1128,13 @@ fn trial_extension(
     // Whole days, at least one: Stripe takes any timestamp, so a dashboard
     // edit need not be a whole number of days.
     let days_added = (((new_end - stored_end).num_hours() as f64 / 24.0).round() as u32).max(1);
-    let source =
-        if meta.scanopy_trial_extended_days.is_some() && !organization.base.trial_extended_used {
-            TrialExtensionSource::User
-        } else {
-            TrialExtensionSource::Staff
-        };
+    let source = if meta.scanopy_trial_switch_end == Some(new_end.timestamp()) {
+        TrialExtensionSource::PlanSwitch
+    } else if meta.scanopy_trial_extended_days.is_some() && !organization.base.trial_extended_used {
+        TrialExtensionSource::User
+    } else {
+        TrialExtensionSource::Staff
+    };
     Some((days_added, new_end, source))
 }
 
@@ -1247,7 +1239,7 @@ mod tests {
             has_payment_method: false,
             cancellation_scheduled: false,
         }
-        .apply(org, Utc::now());
+        .apply(org, crate::server::shared::clock::now());
         Some(source)
     }
 
@@ -1303,6 +1295,50 @@ mod tests {
         assert_eq!(
             trial_extension(&org, &SubscriptionStatus::Trialing, Some(day(31)), &meta),
             Some((10, day(31), TrialExtensionSource::Staff))
+        );
+    }
+
+    /// A switch to a plan with a longer trial moves the end without using up
+    /// the self-serve extension, even after the user extension key is on the
+    /// subscription.
+    #[test]
+    fn a_plan_switch_moves_the_end_and_leaves_the_self_serve_extension_available() {
+        let mut org = trialing_until(day(14));
+        let switch = StripeSubscriptionMetadata {
+            scanopy_trial_switch_end: Some(day(30).timestamp()),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            receive_update(&mut org, day(30), &switch),
+            Some(TrialExtensionSource::PlanSwitch)
+        );
+        assert!(!org.base.trial_extended_used);
+        assert_eq!(org.base.trial_end_date, Some(day(30)));
+
+        // The self-serve extend afterwards: Stripe keeps the switch key, but
+        // the new end no longer matches it.
+        let extend = StripeSubscriptionMetadata {
+            scanopy_trial_extended_days: Some(7),
+            ..switch.clone()
+        };
+        assert_eq!(
+            receive_update(&mut org, day(37), &extend),
+            Some(TrialExtensionSource::User)
+        );
+        assert!(org.base.trial_extended_used);
+
+        // A switch after the self-serve extension carries both keys.
+        let mut extended = trialing_until(day(21));
+        extended.base.trial_extended_used = true;
+        let both = StripeSubscriptionMetadata {
+            scanopy_trial_extended_days: Some(7),
+            scanopy_trial_switch_end: Some(day(30).timestamp()),
+            ..Default::default()
+        };
+        assert_eq!(
+            receive_update(&mut extended, day(30), &both),
+            Some(TrialExtensionSource::PlanSwitch)
         );
     }
 

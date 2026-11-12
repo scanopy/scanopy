@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Plus } from '@lucide/svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
 	import TagCompletionGhost from './TagCompletionGhost.svelte';
-	import InputGhost from '$lib/shared/components/forms/input/InputGhost.svelte';
-	import { tagCompletion } from '$lib/features/tags/completion';
+	import InputGhost from '#lib/shared/components/forms/input/InputGhost.svelte';
+	import { tagCompletion } from '#lib/features/tags/completion.ts';
 	import {
 		useTagsQuery,
 		useTagGroupsQuery,
@@ -12,14 +12,14 @@
 		useBulkAddTagMutation,
 		useBulkRemoveTagMutation,
 		type EntityDiscriminants
-	} from '$lib/features/tags/queries';
-	import { createDefaultTag } from '$lib/features/tags/types/base';
-	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	} from '#lib/features/tags/queries.ts';
+	import { createDefaultTag } from '#lib/features/tags/types/base.ts';
+	import { AVAILABLE_COLORS, type Color } from '#lib/shared/utils/styling.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { tick, untrack } from 'svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		common_creating,
@@ -29,22 +29,22 @@
 		tags_notAvailableHere,
 		tags_planRequired,
 		billing_lapsedBannerCta
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import CreatableOptionList, {
 		CREATE_ROW
-	} from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
+	} from '#lib/shared/components/forms/selection/CreatableOptionList.svelte';
 	import {
 		applicationGroupId,
 		compareTagsByGroup,
 		groupOf,
 		isApplicationTag,
-		sameGroup,
 		tagAllowedOn,
+		tagsDisplacedBy,
 		tagGroupLabel,
 		tagIcon,
 		tagTooltip,
 		withTagAdded
-	} from '$lib/features/tags/groups';
+	} from '#lib/features/tags/groups.ts';
 
 	/**
 	 * Compact inline tag picker for use in cards and bulk actions.
@@ -74,6 +74,9 @@
 		availableTags: availableTagsProp,
 		// When true, tags created inline go in the Application group
 		createAsApplication = false,
+		// True when the selection is one entity's tags, which hold one tag of a group: adding a tag
+		// drops the held tag of its group. False for a list of a group's members.
+		onePerGroup = true,
 		// When false, hides the inline tag creation option
 		allowCreate = true,
 		// Bindable: mirrors the dropdown's open state. Set to true to open programmatically;
@@ -90,8 +93,9 @@
 		onRemove?: (tagId: string) => void;
 		onChange?: (tagIds: string[]) => void;
 		label?: string;
-		availableTags?: import('$lib/features/tags/types/base').Tag[];
+		availableTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		createAsApplication?: boolean;
+		onePerGroup?: boolean;
 		allowCreate?: boolean;
 		open?: boolean;
 		hideAddButton?: boolean;
@@ -117,19 +121,14 @@
 	let applicationGroup = $derived(applicationGroupId(tagGroups));
 	const createTagMutation = useCreateTagMutation();
 	const organizationQuery = useOrganizationQuery();
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 
 	// Derived state
 	let tags = $derived(availableTagsProp ?? tagsQuery.data ?? []);
 	let isCreating = $derived(createTagMutation.isPending);
 	let organization = $derived(organizationQuery.data);
-	let currentUser = $derived(currentUserQuery.data);
 
 	// Demo orgs are read-only for non-owners (mirrors the credentials tab)
-	let isDemoOrg = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
-	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
 	// Free has no tagging: the picker still opens, says so, and offers a plan. The
 	// server refuses the change either way.
 	let taggingAllowed = $derived(
@@ -137,12 +136,7 @@
 	);
 
 	// Check if user can create tags
-	let canCreateTags = $derived(
-		allowCreate &&
-			!isNonOwnerInDemo &&
-			currentUser &&
-			permissions.getMetadata(currentUser.permissions).manage_org_entities
-	);
+	let canCreateTags = $derived(allowCreate && can('Tag', 'Write'));
 
 	// Check if typed value matches an existing tag name exactly. Names are unique across the org, so
 	// this checks every tag, including any the caller left out of `availableTags`.
@@ -299,11 +293,8 @@
 		} else {
 			// The server replaces a held tag of the same tag group on assignment; in callback
 			// mode the caller holds the list, so drop the displaced tag here to match.
-			const added = getTag(tagId);
-			for (const heldId of shownTagIds) {
-				if (heldId !== tagId && sameGroup(getTag(heldId), added)) {
-					void settle(pendingRemoves, heldId, () => onRemove?.(heldId));
-				}
+			for (const heldId of tagsDisplacedBy(shownTagIds, tagId, tags, onePerGroup)) {
+				void settle(pendingRemoves, heldId, () => onRemove?.(heldId));
 			}
 			await settle(pendingAdds, tagId, () => onAdd?.(tagId));
 		}

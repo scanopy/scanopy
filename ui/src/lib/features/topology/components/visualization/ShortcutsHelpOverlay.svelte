@@ -1,5 +1,5 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import {
 		topology_shortcutsTitle,
 		topology_shortcutSearch,
@@ -11,9 +11,9 @@
 		topology_shortcutToggleSelect,
 		topology_shortcutStepExpand,
 		topology_shortcutStepCollapse
-	} from '$lib/paraglide/messages';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { keyLabel } from '$lib/shared/utils/shortcuts';
+	} from '#lib/paraglide/messages.js';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { keyLabel } from '#lib/shared/utils/shortcuts.ts';
 
 	let { isOpen = $bindable(false), readonly = false }: { isOpen: boolean; readonly?: boolean } =
 		$props();

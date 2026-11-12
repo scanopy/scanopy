@@ -1,4 +1,4 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	common_entityName,
 	common_internalIt,
@@ -27,7 +27,7 @@ import {
 	onboarding_otherDescription,
 	onboarding_otherSitePlaceholder,
 	onboarding_otherOrgPlaceholder
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 // Re-export generated types
 export type LoginRequest = components['schemas']['LoginRequest'];

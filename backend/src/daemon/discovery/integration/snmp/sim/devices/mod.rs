@@ -19,6 +19,8 @@ pub mod secure_switch_01;
 pub mod secure_switch_02;
 pub mod secure_switch_03;
 pub mod secure_switch_04;
+pub mod secure_switch_05;
+pub mod secure_switch_06;
 pub mod switch_access_01;
 pub mod switch_aruba_01;
 pub mod switch_bulkdrop_01;
@@ -40,6 +42,8 @@ pub mod switch_netgear_01;
 pub mod switch_ocnos_01;
 pub mod switch_offsite_01;
 pub mod switch_omada_01;
+pub mod switch_omada_02;
+pub mod switch_omada_03;
 pub mod switch_quietcol_01;
 pub mod switch_segment_gw_01;
 pub mod switch_shortports_01;
@@ -49,6 +53,7 @@ pub mod switch_stuck_01;
 pub mod switch_tplink_01;
 pub mod switch_unsorted_01;
 pub mod switch_voss_01;
+pub mod switch_vtp_01;
 
 /// A seeded secret. The lab's credentials are published in `SNMP-TEST-ENV.md` and exist only to
 /// be answered by a simulator, so they are inline rather than read from a file.
@@ -114,5 +119,15 @@ pub fn all() -> Vec<SimDevice> {
         switch_silent_01::device(),
         switch_generr_01::device(),
         switch_bulkdrop_01::device(),
+        // GH #846: AES-256 with the Reeder key extension, as Cisco IOS `aes 256` derives it.
+        secure_switch_05::device(),
+        // GH #846: DES privacy.
+        secure_switch_06::device(),
+        // GH #848: a bulk page past the missing CDP subtree takes longer than the timeout.
+        switch_omada_02::device(),
+        // GH #847: VLANs in TPLINK-DOT1Q-VLAN-MIB, no Q-BRIDGE VLAN group.
+        switch_omada_03::device(),
+        // VLAN names from CISCO-VTP-MIB, none from Q-BRIDGE.
+        switch_vtp_01::device(),
     ]
 }

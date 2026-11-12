@@ -772,7 +772,8 @@ export interface paths {
          * Request work from server
          * @description Internal endpoint for daemons to poll for pending discovery sessions.
          *     Also updates heartbeat and returns any pending cancellation requests.
-         *     Returns tuple of (next_session, should_cancel).
+         *     Returns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it
+         *     (see [`DaemonWorkResponse`]).
          */
         post: operations["receive_work_request"];
         delete?: never;
@@ -1182,7 +1183,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/daemon-api-keys/field-values/{field}": {
+    "/api/v1/daemon-api-keys/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1191,7 +1192,7 @@ export interface paths {
         };
         /**
          * List daemon API key field values
-         * @description Every distinct value of one Daemon API Key field across the Daemon API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Daemon API Key field across the Daemon API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_daemon_api_key_field_values"];
         put?: never;
@@ -1349,7 +1350,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/daemons/field-values/{field}": {
+    "/api/v1/daemons/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1358,7 +1359,7 @@ export interface paths {
         };
         /**
          * List daemon field values
-         * @description Every distinct value of one Daemon field across the Daemons the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Daemon field across the Daemons the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_daemon_field_values"];
         put?: never;
@@ -1542,6 +1543,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List dashboard Issues
+         * @description One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
+         *     summary.
+         */
+        get: operations["get_dashboard_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -1551,8 +1573,7 @@ export interface paths {
         };
         /**
          * Get dashboard summary
-         * @description Returns aggregated dashboard data including site metrics, daemon health,
-         *     recent discoveries, and plan usage.
+         * @description Returns site metrics, plan usage and the organization's Setup list as the caller sees it.
          */
         get: operations["get_dashboard_summary"];
         put?: never;
@@ -1787,7 +1808,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/discoveries/field-values/{field}": {
+    "/api/v1/discoveries/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1796,7 +1817,7 @@ export interface paths {
         };
         /**
          * List discovery field values
-         * @description Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_discovery_field_values"];
         put?: never;
@@ -2029,7 +2050,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hosts/field-values/{field}": {
+    "/api/v1/hosts/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -2038,7 +2059,7 @@ export interface paths {
         };
         /**
          * List host field values
-         * @description Every distinct value of one Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_host_field_values"];
         put?: never;
@@ -2598,29 +2619,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/daemon-prompt-response": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record daemon-install prompt response
-         * @description Records the response so the prompt is not shown again.
-         *     Each CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.
-         *     Every response is published; the PostHog subscriber turns these into funnel events, so
-         *     no client-side telemetry is needed.
-         */
-        post: operations["daemon_prompt_response"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations/profile": {
         parameters: {
             query?: never;
@@ -2649,6 +2647,28 @@ export interface paths {
         put?: never;
         /** Submit referral source (how did you hear about us) */
         post: operations["submit_referral_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Setup item
+         * @description Marks done a Setup item that is finished in the app with no other request to record it on: the
+         *     dependency tutorial, or a question dismissed unanswered. Recording an item already done changes
+         *     nothing.
+         */
+        post: operations["record_setup_item"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2952,7 +2972,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/services/field-values/{field}": {
+    "/api/v1/services/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -2961,7 +2981,7 @@ export interface paths {
         };
         /**
          * List service field values
-         * @description Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_service_field_values"];
         put?: never;
@@ -3193,7 +3213,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/sites/field-values/{field}": {
+    "/api/v1/sites/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3202,7 +3222,7 @@ export interface paths {
         };
         /**
          * List site field values
-         * @description Every distinct value of one Site field across the Sites the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Site field across the Sites the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_site_field_values"];
         put?: never;
@@ -3336,7 +3356,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/subnets/field-values/{field}": {
+    "/api/v1/subnets/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3345,7 +3365,7 @@ export interface paths {
         };
         /**
          * List subnet field values
-         * @description Every distinct value of one Subnet field across the Subnets the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Subnet field across the Subnets the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_subnet_field_values"];
         put?: never;
@@ -3631,7 +3651,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tags/field-values/{field}": {
+    "/api/v1/tags/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3640,7 +3660,7 @@ export interface paths {
         };
         /**
          * List tag field values
-         * @description Every distinct value of one Tag field across the Tags the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Tag field across the Tags the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_tag_field_values"];
         put?: never;
@@ -3851,7 +3871,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/user-api-keys/field-values/{field}": {
+    "/api/v1/user-api-keys/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3860,7 +3880,7 @@ export interface paths {
         };
         /**
          * List user API key field values
-         * @description Every distinct value of one User API Key field across the User API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named User API Key field across the User API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_user_api_key_field_values"];
         put?: never;
@@ -4104,7 +4124,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/vlans/field-values/{field}": {
+    "/api/v1/vlans/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -4113,7 +4133,7 @@ export interface paths {
         };
         /**
          * List VLAN field values
-         * @description Every distinct value of one VLAN field across the VLANs the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named VLAN field across the VLANs the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_vlan_field_values"];
         put?: never;
@@ -4168,6 +4188,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description What a principal can do: organization grants for org-keyed resources, and per-site grants for
+         *     site-keyed ones.
+         */
+        AccessGrants: {
+            /** @description Grants held on every site, including sites created since this was read. */
+            all_sites: components["schemas"]["Grant"][];
+            /** @description Grants that answer for org-keyed resources. */
+            organization: components["schemas"]["Grant"][];
+            /** @description Grants on each site the principal reaches. Empty for a principal on no site. */
+            sites: components["schemas"]["SiteGrants"][];
+        };
+        /**
+         * @description What a role may do to a resource. `Write` is create and update, plus operations such as
+         *     starting a scan or merging hosts.
+         * @enum {string}
+         */
+        Action: "Read" | "Write" | "Delete";
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -4187,7 +4225,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.7"
          *     }
          */
         ApiMeta: {
@@ -4198,7 +4236,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.7
              */
             server_version: string;
         };
@@ -4227,19 +4265,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-30T13:27:50.781197Z",
+             *       "created_at": "2026-11-12T15:27:57.615877Z",
              *       "first_discovery_id": null,
-             *       "id": "1197e35a-b113-4b09-af4b-58ac52b5a228",
+             *       "id": "e6219cfd-d25e-43e5-885a-2206d82a94a5",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-30T13:27:50.781197Z",
+             *       "last_seen_at": "2026-11-12T15:27:57.615877Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-30T13:27:50.781197Z",
-             *       "valid_from": "2026-10-30T13:27:50.781197Z",
+             *       "updated_at": "2026-11-12T15:27:57.615877Z",
+             *       "valid_from": "2026-11-12T15:27:57.615877Z",
              *       "valid_to": null
              *     }
              */
@@ -4468,6 +4506,26 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
+        ApiResponse_CurrentUser: {
+            /** @description The signed-in user, with what they can do. */
+            data?: components["schemas"]["User"] & {
+                /** @description The user's organization and per-site grants. */
+                access: components["schemas"]["AccessGrants"];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Daemon: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["DaemonBase"] & {
@@ -4631,29 +4689,22 @@ export interface components {
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
-                /** @description Daemons the caller can see, with their current status. */
-                daemons: components["schemas"]["DaemonResponse"][];
+                /**
+                 * Format: int64
+                 * @description The Issues the caller sees, on every site.
+                 */
+                issue_count: number;
+                /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+                issue_site_ids: string[];
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
-                /** @description The most recent discovery runs, newest first. */
-                recent_discoveries: components["schemas"]["RecentDiscovery"][];
-                /** @description Per-site counts for every site the caller can see. */
+                /**
+                 * @description The organization's Setup steps as the caller sees them. Issues are paged from
+                 *     `/dashboard/issues`.
+                 */
+                setup_items: components["schemas"]["SetupListEntry"][];
+                /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
                 sites: components["schemas"]["SiteSummary"][];
-                /** @description Credentials no scan will send to a daemon, by name. */
-                targetless_credentials: components["schemas"]["TargetlessCredential"][];
-                /**
-                 * Format: int64
-                 * @description Hosts known only from another device's report, waiting to be confirmed, merged or
-                 *     dismissed.
-                 */
-                unconfirmed_host_count: number;
-                /**
-                 * Format: int64
-                 * @description Subnets whose range was assumed, waiting to be confirmed or corrected.
-                 */
-                unconfirmed_subnet_count: number;
-                /** @description Integrations found on hosts with no credential of them, most hosts first. */
-                uncovered_integrations: components["schemas"]["UncoveredIntegration"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -4870,7 +4921,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -4892,6 +4943,12 @@ export interface components {
                  * @description Hosts found so far.
                  */
                 hosts_discovered?: number | null;
+                /**
+                 * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
                 /**
                  * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
@@ -5136,19 +5193,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-30T13:27:50.744219Z",
+             *               "created_at": "2026-11-12T15:27:57.575049Z",
              *               "first_discovery_id": null,
-             *               "id": "2830c253-68ae-4585-a7f4-855fd3e68996",
+             *               "id": "149ca749-8b5a-44a4-9a1d-8f35d78f2b18",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-30T13:27:50.744219Z",
+             *               "last_seen_at": "2026-11-12T15:27:57.575049Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-30T13:27:50.744219Z",
-             *               "valid_from": "2026-10-30T13:27:50.744219Z",
+             *               "updated_at": "2026-11-12T15:27:57.575049Z",
+             *               "valid_from": "2026-11-12T15:27:57.575049Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5805,24 +5862,14 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Organization: {
-            /** @description The result payload. Omitted on failure. */
-            data?: components["schemas"]["OrganizationBase"] & {
+        ApiResponse_OrganizationResponse: {
+            /** @description The signed-in user's organization, with what the server derives about it. */
+            data?: components["schemas"]["Organization"] & {
                 /**
-                 * Format: date-time
-                 * @description When this record was first created.
+                 * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+                 *     yet started doesn't count.
                  */
-                readonly created_at: string;
-                /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
-                 */
-                readonly id: string;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
+                readonly daemon_connected: boolean;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5954,7 +6001,11 @@ export interface components {
          *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ProvisionEligibility: {
-            /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+            /**
+             * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+             *     flags can be set at once, so the wizard can name every step that stands between the user and
+             *     a second daemon.
+             */
             data?: {
                 /**
                  * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -5966,6 +6017,11 @@ export interface components {
                  *     is refused until it chooses a plan.
                  */
                 plan_required: boolean;
+                /**
+                 * @description The daemons on the caller's sites that have never connected. Filled only while a new
+                 *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+                 */
+                unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6044,6 +6100,7 @@ export interface components {
                  */
                 license_key_grace_days: number;
                 license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+                license_problem?: components["schemas"]["LicenseProblem"] | null;
                 /**
                  * @description Whether this deployment can sign license keys. False on any server
                  *     without a signing key, where the Settings License tab and the
@@ -6193,19 +6250,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-30T13:27:50.775587Z",
+             *           "created_at": "2026-11-12T15:27:57.609636Z",
              *           "first_discovery_id": null,
-             *           "id": "db7344bf-c182-47c0-b9ac-9df2e7cc7f49",
+             *           "id": "113fcc87-462c-46d4-97ec-d1a95cabdccc",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-30T13:27:50.775587Z",
+             *           "last_seen_at": "2026-11-12T15:27:57.609636Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-30T13:27:50.775587Z",
-             *           "valid_from": "2026-10-30T13:27:50.775587Z",
+             *           "updated_at": "2026-11-12T15:27:57.609636Z",
+             *           "valid_from": "2026-11-12T15:27:57.609636Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6689,6 +6746,9 @@ export interface components {
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
              *       "position": 1,
+             *       "source": {
+             *         "type": "Manual"
+             *       },
              *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
@@ -6898,6 +6958,11 @@ export interface components {
                         [key: string]: number;
                     };
                 };
+                /**
+                 * @description Whether a person added an interface-reporting credential to the organization: the L2
+                 *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+                 */
+                has_interface_credential: boolean;
                 /**
                  * @description Per view, how many entities of each type a Visibility tag left out that the view would
                  *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -7290,7 +7355,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -7312,6 +7377,12 @@ export interface components {
                  * @description Hosts found so far.
                  */
                 hosts_discovered?: number | null;
+                /**
+                 * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
                 /**
                  * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
@@ -7366,19 +7437,241 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Vec_GroupCount: {
+        ApiResponse_Vec_FieldValues_DaemonApiKeyOrderField: {
             /** @description The result payload. Omitted on failure. */
             data?: {
                 /**
-                 * Format: int64
-                 * @description How many rows fall in this group in total, not just on this page.
+                 * @description Fields the daemon API key list can be ordered and grouped by.
+                 * @enum {string}
                  */
-                count: number;
+                field: "created_at" | "name" | "updated_at" | "site_id" | "is_enabled" | "last_used" | "expires_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_DaemonOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
                 /**
-                 * @description The group's value, rendered as text. `null` for rows whose group key is
-                 *     NULL (the "ungrouped" bucket).
+                 * @description Fields that daemons can be ordered/grouped by.
+                 * @enum {string}
                  */
-                value?: string | null;
+                field: "created_at" | "name" | "last_seen" | "updated_at" | "site_id" | "os" | "mode" | "maintainer" | "version" | "status";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_DiscoveryOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that discoveries can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "daemon_id" | "site_id" | "discovery_type" | "phase" | "started_at" | "finished_at" | "duration" | "warnings" | "run_type" | "last_run" | "scan_count" | "force_full_scan" | "legacy";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_HostOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that hosts can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_ServiceOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that services can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "host" | "site_id" | "position" | "service_definition" | "last_seen_at" | "containerized_by" | "match_confidence" | "source";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_SiteOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields the sites list can be ordered and grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "effective_stale_after_hours";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_SubnetOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that subnets can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at" | "source" | "managed_by" | "utilization";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_TagOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that tags can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "color" | "updated_at" | "tag_group" | "icon";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_UserApiKeyOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields the user API key list can be ordered and grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "permissions" | "is_enabled" | "last_used" | "expires_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_VlanOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that VLANs can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "vlan_number" | "updated_at" | "site_id" | "source" | "last_seen_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
             }[];
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -7682,19 +7975,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-30T13:27:50.744872Z",
+         *       "created_at": "2026-11-12T15:27:57.575854Z",
          *       "first_discovery_id": null,
-         *       "id": "3603dc76-ffb6-47f1-ba9d-a903cb048663",
+         *       "id": "a587d1c9-ccc4-40f9-8d4c-85469831b23f",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-30T13:27:50.744872Z",
+         *       "last_seen_at": "2026-11-12T15:27:57.575854Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-30T13:27:50.744872Z",
-         *       "valid_from": "2026-10-30T13:27:50.744872Z",
+         *       "updated_at": "2026-11-12T15:27:57.575854Z",
+         *       "valid_from": "2026-11-12T15:27:57.575854Z",
          *       "valid_to": null
          *     }
          */
@@ -7965,7 +8258,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "Libvirt" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "Smux" | "Rpcbind" | "Llmnr" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
@@ -8280,6 +8573,12 @@ export interface components {
              *     Hydrated from the `host_credentials` junction table.
              */
             host_assignments: components["schemas"]["CredentialHostAssignment"][];
+            /**
+             * Format: uuid
+             * @description The SSH login this credential runs over, for a type that needs one (`SshScript`): another
+             *     credential of the organization whose role is `Login`. `None` for every other type.
+             */
+            login_credential_id: string | null;
             /** @description Human-facing name for this credential. */
             name: string;
             /**
@@ -8287,8 +8586,18 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            /**
+             * @description `System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.
+             *     Set by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * @description For a login: the credentials that run over it. Hydrated from their `login_credential_id`;
+             *     empty for any other type. A value sent in a request is ignored.
+             */
+            used_by: string[];
         };
         /**
          * @description Host-keyed mirror of [`CredentialAssignment`]: a host this credential is
@@ -8316,9 +8625,9 @@ export interface components {
          *     messages.
          * @enum {string}
          */
-        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox";
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt";
         /** @enum {string} */
-        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "beta" | "unofficial_api" | "daemon_os";
+        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "category" | "beta" | "unofficial_api" | "daemon_os";
         /**
          * @description Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the
          *     form places the Daemon OS picker without its own rule: with the one field that depends on it, or
@@ -8334,7 +8643,13 @@ export interface components {
             daemon: string[];
         };
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt" | "Unknown";
+        /**
+         * @description What a credential is for: run against hosts by an integration, or a login other credentials
+         *     use to reach a host.
+         * @enum {string}
+         */
+        CredentialRole: "Dispatched" | "Login";
         CredentialRunOutcome: {
             /**
              * Format: int32
@@ -8492,17 +8807,6 @@ export interface components {
              * @description Port `sshd` listens on (default 22).
              */
             port?: number;
-            script: components["schemas"]["ScriptSource"];
-            /**
-             * @description The scanned host's OS: decides how a host-file path is validated and the shell the
-             *     script runs in.
-             */
-            target_os?: components["schemas"]["OsFamily"];
-            /**
-             * Format: int32
-             * @description How long the script may run before the daemon closes the channel, in seconds (default 60).
-             */
-            timeout_seconds?: number;
             /** @enum {string} */
             type: "SshPassword";
             /** @description User the daemon logs in as. */
@@ -8517,6 +8821,11 @@ export interface components {
              */
             port?: number;
             private_key: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "SshKey";
+            /** @description User the daemon logs in as. */
+            username: string;
+        } | {
             script: components["schemas"]["ScriptSource"];
             /**
              * @description The scanned host's OS: decides how a host-file path is validated and the shell the
@@ -8529,9 +8838,12 @@ export interface components {
              */
             timeout_seconds?: number;
             /** @enum {string} */
-            type: "SshKey";
-            /** @description User the daemon logs in as. */
-            username: string;
+            type: "SshScript";
+        } | {
+            /** @description The connection URI `virsh` opens on the host (default `qemu:///system`). */
+            connection_uri?: string;
+            /** @enum {string} */
+            type: "Libvirt";
         } | {
             /**
              * @description Send here instead of the target subnet's directed broadcast (router relay address, WoL
@@ -8566,7 +8878,12 @@ export interface components {
             type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
+        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "Libvirt" | "WakeOnLan" | "ProxmoxApiToken";
+        /** @description The signed-in user, with what they can do. */
+        CurrentUser: components["schemas"]["User"] & {
+            /** @description The user's organization and per-site grants. */
+            access: components["schemas"]["AccessGrants"];
+        };
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -8653,7 +8970,7 @@ export interface components {
              * @description Foreign key to API key used for ServerPoll authentication.
              *     NULL for DaemonPoll daemons or those not yet linked to a key.
              */
-            api_key_id?: string | null;
+            readonly api_key_id?: string | null;
             /**
              * Format: uuid
              * @description The host this entity belongs to.
@@ -8758,16 +9075,6 @@ export interface components {
         DaemonOs: "linux" | "macos" | "windows" | "freebsd";
         /** @description A file on the daemon's own machine, read by the daemon at scan time. */
         DaemonPath: string;
-        /**
-         * @description Which daemon-prompt CTA the user chose.
-         * @enum {string}
-         */
-        DaemonPromptAction: "dismissed" | "accepted";
-        /** @description Request recording the user's response to the "Start Discovering Your Network" prompt. */
-        DaemonPromptResponseRequest: {
-            /** @description What the user chose to do about the daemon prompt. */
-            action: components["schemas"]["DaemonPromptAction"];
-        };
         /** @description Daemon registration request from daemon to server */
         DaemonRegistrationRequest: {
             /**
@@ -8870,11 +9177,18 @@ export interface components {
             /** @description Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets. */
             capabilities?: components["schemas"]["LegacyCapabilities"];
             /**
-             * @description Subnets detected from daemon's network ip_addresses. Server resolves these
-             *     via SubnetService::create (create-or-match by CIDR) to get real IDs.
-             *     v0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty.
+             * @description The subnets the daemon's host is attached to, as its last session classified them. The
+             *     server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
+             *     the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
+             *     them once after each session; older daemons send them on every report.
              */
-            interfaced_subnets?: components["schemas"]["Subnet"][];
+            interfaced_subnets?: components["schemas"]["Subnet"][] | null;
+            /**
+             * @description A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were
+             *     classified from; without, the interfaces as they are now. The server starts an interface
+             *     refresh when it differs from the last classified one. Absent from older daemons.
+             */
+            interfaces_fingerprint?: string | null;
             /** @description How the daemon connects: it polls the server, or the server polls it. */
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
@@ -8927,29 +9241,22 @@ export interface components {
         };
         /** @description Dashboard summary response */
         DashboardSummary: {
-            /** @description Daemons the caller can see, with their current status. */
-            daemons: components["schemas"]["DaemonResponse"][];
+            /**
+             * Format: int64
+             * @description The Issues the caller sees, on every site.
+             */
+            issue_count: number;
+            /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+            issue_site_ids: string[];
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
-            /** @description The most recent discovery runs, newest first. */
-            recent_discoveries: components["schemas"]["RecentDiscovery"][];
-            /** @description Per-site counts for every site the caller can see. */
+            /**
+             * @description The organization's Setup steps as the caller sees them. Issues are paged from
+             *     `/dashboard/issues`.
+             */
+            setup_items: components["schemas"]["SetupListEntry"][];
+            /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
             sites: components["schemas"]["SiteSummary"][];
-            /** @description Credentials no scan will send to a daemon, by name. */
-            targetless_credentials: components["schemas"]["TargetlessCredential"][];
-            /**
-             * Format: int64
-             * @description Hosts known only from another device's report, waiting to be confirmed, merged or
-             *     dismissed.
-             */
-            unconfirmed_host_count: number;
-            /**
-             * Format: int64
-             * @description Subnets whose range was assumed, waiting to be confirmed or corrected.
-             */
-            unconfirmed_subnet_count: number;
-            /** @description Integrations found on hosts with no credential of them, most hosts first. */
-            uncovered_integrations: components["schemas"]["UncoveredIntegration"][];
         };
         /** @enum {string} */
         DateOrder: "browser_default" | "iso" | "day_first" | "month_first";
@@ -9121,6 +9428,14 @@ export interface components {
             sunset_date?: string | null;
         };
         /**
+         * @description The desktop container VM a daemon was found running inside.
+         *
+         *     Each one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so
+         *     ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
+         * @enum {string}
+         */
+        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima";
+        /**
          * @description What a host is, as a device: the class its icon stands for on the map.
          *
          *     Declaration order is precedence, highest first. A host whose services claim several device types takes
@@ -9269,7 +9584,7 @@ export interface components {
          *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
          * @enum {string}
          */
-        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession";
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession" | "SessionStoppedAdvancing";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -9338,6 +9653,14 @@ export interface components {
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Unified";
+        } | {
+            /**
+             * Format: uuid
+             * @description ID of the host that the daemon is running on
+             */
+            host_id: string;
+            /** @enum {string} */
+            type: "InterfaceRefresh";
         };
         /** @description Progress update from daemon to server during discovery */
         DiscoveryUpdatePayload: {
@@ -9362,7 +9685,7 @@ export interface components {
             /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
-             *     Always enriched server-side; daemons do not send this field.
+             *     Always set server-side. A value a daemon sends is discarded.
              */
             discovery_id?: string | null;
             /** @description What type of discovery is running. */
@@ -9384,6 +9707,12 @@ export interface components {
              * @description Hosts found so far.
              */
             hosts_discovered?: number | null;
+            /**
+             * Format: date-time
+             * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+             *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+             */
+            last_activity_at?: string | null;
             /**
              * Format: date-time
              * @description When the server last heard about this run. Stamped by the server at terminal.
@@ -9735,6 +10064,23 @@ export interface components {
             /** @enum {string} */
             code: "VlanRecordingFailed";
         } | {
+            /** @description The device that reported the VLANs. */
+            address: string;
+            /** @enum {string} */
+            code: "VlanPortsUnresolved";
+            /**
+             * Format: uuid
+             * @description The stored credential the device was read with.
+             */
+            credential_id: string | null;
+            snmp_version: components["schemas"]["SnmpVersion"] | null;
+            /**
+             * Format: int32
+             * @description Member names that matched no interface: link aggregation groups, and port names the
+             *     device's port table does not list.
+             */
+            unresolved: number;
+        } | {
             /** @description The device both integrations read. */
             address: string;
             /** @enum {string} */
@@ -9810,6 +10156,15 @@ export interface components {
             credential_id: string | null;
             integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
+            /** @enum {string} */
+            code: "CredentialLoginUnavailable";
+            /**
+             * Format: uuid
+             * @description The stored credential. `None` once it is deleted.
+             */
+            credential_id: string | null;
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+        } | {
             /** @description The address the credential is bound to. */
             address: string;
             /** @enum {string} */
@@ -9860,29 +10215,35 @@ export interface components {
             /** @description The guest's first address. */
             address: string;
             /** @enum {string} */
-            code: "ProxmoxGuestOutsideScan";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestOutsideScan";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestBehindNode";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestBehindHypervisor";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
-            /** @description The node it runs on. */
-            node: string;
+            /** @description The hypervisor host it runs on: a Proxmox VE node, a libvirt host. */
+            hypervisor: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestIsolated";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestIsolated";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The subnet the addresses are in. */
             cidr: string;
@@ -9950,6 +10311,120 @@ export interface components {
              * @description How many lookups went unanswered.
              */
             count: number;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses the sweep covered.
+             */
+            addresses_swept: number;
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "ArpSweepTruncated";
+            /**
+             * Format: int32
+             * @description The ARP Scan Cutoff in force, as a prefix length.
+             */
+            cutoff: number;
+            /**
+             * Format: int64
+             * @description Addresses the subnet holds.
+             */
+            subnet_addresses: number;
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses the sweep pinged.
+             */
+            addresses_pinged: number;
+            /** @description The subnets the sweep cut short or never reached, in CIDR notation. */
+            cidrs_left_out: string[];
+            /** @enum {string} */
+            code: "IcmpSweepTruncated";
+            /**
+             * Format: int32
+             * @description The ARP Scan Cutoff in force, as a prefix length.
+             */
+            cutoff: number;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses probed in it that held nothing.
+             */
+            addresses: number;
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "SubnetProbedWithoutInterface";
+            /**
+             * Format: int32
+             * @description The share of the run those probes took, in minutes.
+             */
+            minutes: number;
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "ContainerSubnetScanned";
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /** @enum {string} */
+            code: "DeepScanConcurrencyReduced";
+            /**
+             * Format: int32
+             * @description Hosts deep-scanned at once under that limit.
+             */
+            concurrency: number;
+            /**
+             * Format: int32
+             * @description Hosts it deep-scans at once when the limit is not the constraint.
+             */
+            expected_concurrency: number;
+            /**
+             * Format: int64
+             * @description The daemon process's file-descriptor limit.
+             */
+            fd_limit: number;
+        } | {
+            /** @enum {string} */
+            code: "PortScanDescriptorsExhausted";
+            /**
+             * Format: int32
+             * @description The smallest port batch it fell back to.
+             */
+            lowest_batch_size: number;
+            /**
+             * Format: int32
+             * @description Times the scan shrank its batch after running out.
+             */
+            reductions: number;
+        } | {
+            /** @enum {string} */
+            code: "InterfaceFilterMatchedNothing";
+            /** @description The filter values configured on the daemon. */
+            filters: string[];
+            /** @description The interfaces the host has. */
+            interfaces: string[];
+        } | {
+            /** @enum {string} */
+            code: "ArpSweepUnavailable";
+        } | {
+            /** @enum {string} */
+            code: "IcmpSweepUnavailable";
         } | (components["schemas"]["UnmatchedNeighbour"] & {
             /** @enum {string} */
             code: "LldpNeighbourNotFound";
@@ -10009,6 +10484,11 @@ export interface components {
             daemon_version?: string | null;
         } | {
             /** @enum {string} */
+            code: "DaemonInDesktopVm";
+            /** @description The VM the daemon runs in. */
+            vm: components["schemas"]["DesktopVm"];
+        } | {
+            /** @enum {string} */
             code: "WarningsTruncated";
             /**
              * Format: int32
@@ -10021,6 +10501,22 @@ export interface components {
             /** @description The original warning text, rendered as-is. */
             detail: string;
         };
+        /**
+         * @description The stable identity of a warning: what crosses the wire as the tag, what labels the metric,
+         *     and what the UI resolves its sentence from.
+         *
+         *     Hand-declared rather than generated by `EnumDiscriminants` because it has to carry its own
+         *     derives to satisfy `Operation`, and a generated enum cannot.
+         *     [`DiscoveryWarning::code`] is an exhaustive match, so the two cannot drift.
+         * @enum {string}
+         */
+        DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "VlanPortsUnresolved" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "ArpSweepTruncated" | "IcmpSweepTruncated" | "SubnetProbedWithoutInterface" | "ContainerSubnetScanned" | "DeepScanConcurrencyReduced" | "PortScanDescriptorsExhausted" | "InterfaceFilterMatchedNothing" | "ArpSweepUnavailable" | "IcmpSweepUnavailable" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
+        /**
+         * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
+         *     Create on a resource where it adds rows.
+         * @enum {string}
+         */
+        DisplayAction: "View" | "Create" | "Edit" | "Delete";
         /**
          * @description Per-user display preferences for dates and times in the UI.
          *
@@ -10434,7 +10930,10 @@ export interface components {
         };
         /** @enum {string} */
         EntityDiscriminants: "Topology" | "Snapshot" | "Share" | "Dependency" | "Site" | "Vlan" | "Subnet" | "Host" | "Service" | "IPAddress" | "Interface" | "Port" | "Binding" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "TagGroup" | "User" | "UserApiKey" | "Organization" | "Invite";
-        /** @description One fact that describes an entity, possibly read from a related entity. */
+        /**
+         * @description One fact that describes an entity, possibly read from a related entity. Every serialized key an
+         *     entity carries has one: the flags say which surfaces show it, and `write` says who sets it.
+         */
         EntityField: {
             /**
              * @description Dotted path to the value on the last object, or `None` for the object itself (an
@@ -10445,6 +10944,8 @@ export interface components {
             group: components["schemas"]["FieldGroup"];
             /** @description Stable key: the CSV header, the list-table column id and the diagram Shape Data name. */
             id: string;
+            /** @description Shown by the topology inspector and diagram Shape Data, and read by the topology search. */
+            inspector: boolean;
             /** @description English label; the UI translates it through a generated `meta_*` key. */
             label: string;
             /**
@@ -10461,8 +10962,12 @@ export interface components {
             searchable: boolean;
             /** @description Sibling field holding the value's attribution, for attributed host facts. */
             source_field?: string | null;
-            /** @description Shown by default in tables and in the inspector's details. Every field is exported. */
+            /** @description Shown by default in tables and in the inspector's details. */
             summary: boolean;
+            /** @description Offered as a list-table column. */
+            table: boolean;
+            /** @description Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column. */
+            tooltip: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.
@@ -10727,6 +11232,13 @@ export interface components {
         GlobalSearchResponse: {
             /** @description One group per entity type with at least one match. */
             groups: components["schemas"]["GlobalSearchGroup"][];
+        };
+        /** @description One action held on one resource. */
+        Grant: {
+            /** @description The action held on it. */
+            action: components["schemas"]["Action"];
+            /** @description The resource the action applies to. */
+            resource: components["schemas"]["Resource"];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -11208,19 +11720,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-30T13:27:50.743430Z",
+         *               "created_at": "2026-11-12T15:27:57.574045Z",
          *               "first_discovery_id": null,
-         *               "id": "eab774be-1fd3-433a-97d4-2c3a4e9513f5",
+         *               "id": "0f1a22f7-d820-401d-ba48-751d64023dc8",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-30T13:27:50.743430Z",
+         *               "last_seen_at": "2026-11-12T15:27:57.574045Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-30T13:27:50.743430Z",
-         *               "valid_from": "2026-10-30T13:27:50.743430Z",
+         *               "updated_at": "2026-11-12T15:27:57.574045Z",
+         *               "valid_from": "2026-11-12T15:27:57.574045Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -12388,6 +12900,16 @@ export interface components {
              */
             number?: string | null;
         };
+        /**
+         * @description What an Issue's fix is about, which groups the Issues list, in display order.
+         * @enum {string}
+         */
+        IssueCategory: "Daemons" | "Credentials" | "Devices" | "Scans" | "Review";
+        /**
+         * @description What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.
+         * @enum {string}
+         */
+        IssueOrderField: "category" | "type";
         Ixy: {
             /** @description Horizontal position, which may be negative. */
             x: number;
@@ -12524,10 +13046,30 @@ export interface components {
          */
         LicenseKeyType: "Online" | "Offline";
         /**
+         * @description Why this server has no working entitlement, as the public config endpoint
+         *     reports it. `/api/config` needs no login, so it carries this type alone:
+         *     addresses, URLs and raw error text stay in the server log.
+         * @enum {string}
+         */
+        LicenseProblem: "dns" | "connect" | "timeout" | "untrusted_certificate" | "certificate_dates" | "proxy" | "server_error" | "rate_limited" | "key_malformed" | "key_regenerated" | "organization_missing" | "plan_has_no_key" | "instance_limit" | "key_refused";
+        /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
         LicenseStatusDiscriminants: "valid" | "expired" | "invalid" | "pending";
+        /** @description A daemon whose version or health changed when it checked in. */
+        LiveDaemonUpdate: {
+            /**
+             * Format: uuid
+             * @description The daemon that checked in.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The daemon's site, which decides who receives the update.
+             */
+            site_id: string;
+        };
         /** @description A site whose live topology changed. */
         LiveTopologyUpdate: {
             /**
@@ -12547,6 +13089,11 @@ export interface components {
             data: components["schemas"]["LiveTopologyUpdate"];
             /** @enum {string} */
             type: "Topology";
+        } | {
+            /** @description A daemon checked in with a new version or health, so the daemons list and Home need refetching. */
+            data: components["schemas"]["LiveDaemonUpdate"];
+            /** @enum {string} */
+            type: "Daemon";
         };
         /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
@@ -12933,8 +13480,6 @@ export interface components {
             /** @description URL-safe identifier used in the provider's login and link endpoints. */
             slug: string;
         };
-        /** @enum {string} */
-        OnboardingOperationDiscriminants: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "DaemonPromptDismissed" | "DaemonPromptAccepted" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondSiteCreated" | "FirstTagCreated" | "FirstDependencyCreated" | "FirstUserApiKeyCreated" | "FirstInterfaceCredentialCreated" | "FirstApplicationTagCreated" | "FirstCredentialCreated" | "FirstSnapshotCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
         /** @description Site data in onboarding state response */
         OnboardingSiteState: {
             /**
@@ -13068,11 +13613,11 @@ export interface components {
              *     stale or meaningless).
              */
             readonly next_renewal_at?: string | null;
-            /** @description Progress through first-run setup. */
-            onboarding: components["schemas"]["OnboardingOperationDiscriminants"][];
             /** @description The plan this organization is on. */
             readonly plan: components["schemas"]["BillingPlan"];
             readonly plan_status: components["schemas"]["PlanStatus"] | null;
+            /** @description The Setup item types the org has finished or dismissed. */
+            setup: components["schemas"]["SetupItemDiscriminants"][];
             /**
              * Format: date-time
              * @description When the free trial ends, if one is running.
@@ -13082,6 +13627,14 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+        };
+        /** @description The signed-in user's organization, with what the server derives about it. */
+        OrganizationResponse: components["schemas"]["Organization"] & {
+            /**
+             * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+             *     yet started doesn't count.
+             */
+            readonly daemon_connected: boolean;
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -13099,7 +13652,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.7"
          *     }
          */
         PaginatedApiMeta: {
@@ -13112,7 +13665,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.7
              */
             server_version: string;
         };
@@ -13584,6 +14137,34 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             })[];
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata, plus pagination counters. */
+            meta: components["schemas"]["PaginatedApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        /** @description Response type for paginated list endpoints (pagination is always present in meta) */
+        PaginatedApiResponse_SetupListEntry: {
+            /** @description The page of results. Empty when nothing matched the query. */
+            data: {
+                /**
+                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+                 *     step still Open.
+                 */
+                alerts_when_stuck: boolean;
+                item: components["schemas"]["SetupItem"];
+                /** @description The item's identity: the same item on the next load has the same key. */
+                key: components["schemas"]["SetupItemKey"];
+                /**
+                 * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+                 *     the whole org, which shows whatever sites are picked.
+                 */
+                site_ids: string[];
+                state: components["schemas"]["SetupItemState"];
+                /** @description The group of the list the item sits in. */
+                tier: components["schemas"]["SetupItemTier"];
+            }[];
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
             /** @description API and server version metadata, plus pagination counters. */
@@ -14218,7 +14799,11 @@ export interface components {
              */
             readonly daemon_api_key: string;
         };
-        /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+        /**
+         * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+         *     flags can be set at once, so the wizard can name every step that stands between the user and
+         *     a second daemon.
+         */
         ProvisionEligibility: {
             /**
              * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -14230,6 +14815,11 @@ export interface components {
              *     is refused until it chooses a plan.
              */
             plan_required: boolean;
+            /**
+             * @description The daemons on the caller's sites that have never connected. Filled only while a new
+             *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+             */
+            unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
         };
         /**
          * @description A range inferred from where unplaceable far ends say they live.
@@ -14337,6 +14927,7 @@ export interface components {
              */
             license_key_grace_days: number;
             license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+            license_problem?: components["schemas"]["LicenseProblem"] | null;
             /**
              * @description Whether this deployment can sign license keys. False on any server
              *     without a signing key, where the Settings License tab and the
@@ -14441,12 +15032,13 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
-        /** @description A recent discovery run with its warnings counted by remedy. */
-        RecentDiscovery: {
-            /** @description The historical run. */
-            discovery: components["schemas"]["Discovery"];
-            /** @description The run's warnings counted by remedy. Empty for a run that recorded none. */
-            warning_summary: components["schemas"]["RunWarningSummary"];
+        /** @description The Setup item a client finished. */
+        RecordSetupRequest: {
+            /**
+             * @description The item, which must be one the app records itself: the dependency tutorial, or a question
+             *     dismissed unanswered.
+             */
+            item: components["schemas"]["SetupItemDiscriminants"];
         };
         /**
          * @description How a user first heard about Scanopy, as offered by the onboarding prompt.
@@ -14479,6 +15071,8 @@ export interface components {
         };
         /** @description One release's notes. */
         ReleaseNoteResponse: {
+            /** @description Whether the modal tells the user to upgrade their daemons to this release. */
+            daemon_upgrade_notice: boolean;
             /**
              * Format: date
              * @description The day the release was prepared.
@@ -14495,16 +15089,6 @@ export interface components {
              * @example 0.18.0
              */
             version: string;
-        };
-        /** @description The number of a run's warnings on one [`WarningRemedy`] rung. */
-        RemedyCount: {
-            /**
-             * Format: int32
-             * @description Warnings on that rung.
-             */
-            count: number;
-            /** @description The rung these warnings sit on. */
-            remedy: components["schemas"]["WarningRemedy"];
         };
         RequestEmailChangeRequest: {
             /**
@@ -14574,6 +15158,11 @@ export interface components {
             /** @description Single-use token from the password-reset email. */
             token: string;
         };
+        /**
+         * @description What a role grants access to. Child entities share their parent's resource.
+         * @enum {string}
+         */
+        Resource: "Site" | "Host" | "Service" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Share" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "Member" | "UserApiKey" | "Organization" | "Billing" | "License" | "NewSite";
         RunType: {
             /** @description Cron expression deciding when the scan runs. */
             cron_schedule: string;
@@ -14601,24 +15190,6 @@ export interface components {
             readonly last_run?: string | null;
             /** @enum {string} */
             type: "AdHoc";
-        };
-        /** @description One run's warnings, counted by remedy. */
-        RunWarningSummary: {
-            /**
-             * Format: int32
-             * @description Warnings whose remedy asks the reader to act ([`WarningRemedy::is_actionable`]).
-             */
-            actionable: number;
-            /**
-             * @description Counts per remedy in [`WarningRemedy`] declaration order. Rungs with no warnings are left
-             *     out.
-             */
-            by_remedy: components["schemas"]["RemedyCount"][];
-            /**
-             * Format: int32
-             * @description Every warning the run recorded.
-             */
-            total: number;
         };
         /**
          * @description Save-offer choices presented during in-app cancellation (Phase 5).
@@ -14886,19 +15457,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-30T13:27:50.744652Z",
+         *           "created_at": "2026-11-12T15:27:57.575588Z",
          *           "first_discovery_id": null,
-         *           "id": "588dd7f3-3564-4a9d-9647-5d568b3cda9a",
+         *           "id": "d0693bfd-760a-49ed-ab32-4c676d5f8889",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-30T13:27:50.744652Z",
+         *           "last_seen_at": "2026-11-12T15:27:57.575588Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-30T13:27:50.744652Z",
-         *           "valid_from": "2026-10-30T13:27:50.744652Z",
+         *           "updated_at": "2026-11-12T15:27:57.575588Z",
+         *           "valid_from": "2026-11-12T15:27:57.575588Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15076,6 +15647,231 @@ export interface components {
             /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
             client_secret: string;
         };
+        /**
+         * @description One thing on the org's Setup list: a problem to fix (Issue), or a step of setting up Scanopy
+         *     (Setup).
+         */
+        SetupItem: {
+            /**
+             * Format: uuid
+             * @description The daemon.
+             */
+            daemon_id: string;
+            /** @description The daemon's status, the most severe that applies. */
+            health: components["schemas"]["DaemonHealth"];
+            /** @description The daemon's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "DaemonHealth";
+        } | {
+            /**
+             * @description The hosts running its service, which the create flow pre-assigns when the
+             *     integration's credentials can only be pinned to hosts.
+             */
+            host_ids: string[];
+            /** @description The integration a credential would add. */
+            integration: components["schemas"]["CredentialIntegration"];
+            /**
+             * @description The sites those hosts are on, pre-assigned instead when its credentials can apply to
+             *     a whole site.
+             */
+            site_ids: string[];
+            /** @enum {string} */
+            type: "UncoveredIntegration";
+        } | {
+            /**
+             * Format: uuid
+             * @description The credential.
+             */
+            credential_id: string;
+            /** @description The integration it authenticates. */
+            integration: components["schemas"]["CredentialIntegration"];
+            /** @description The credential's name. */
+            name: string;
+            /** @enum {string} */
+            type: "TargetlessCredential";
+        } | {
+            /** @description The site's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The site.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "SiteWithoutDaemon";
+        } | {
+            /** @description The warning code. */
+            code: components["schemas"]["DiscoveryWarningCode"];
+            /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            /** @description The daemon's name. */
+            daemon_name: string;
+            /**
+             * Format: uuid
+             * @description The newest run that raised the code.
+             */
+            discovery_id: string;
+            /**
+             * Format: uuid
+             * @description The scan that run belongs to, whose settings answer some codes. `None` for a run
+             *     recorded before runs carried it.
+             */
+            scan_id?: string | null;
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "RunWarnings";
+            /** @description Every warning of the code from the daemon's latest runs. */
+            warnings: components["schemas"]["DiscoveryWarning"][];
+        } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed hosts on the site.
+             */
+            count: number;
+            /**
+             * Format: uuid
+             * @description The site the hosts are on.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "UnconfirmedHosts";
+        } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed subnets on the site.
+             */
+            count: number;
+            /**
+             * Format: uuid
+             * @description The site the subnets are on.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "UnconfirmedSubnets";
+        } | {
+            /** @enum {string} */
+            type: "InstallDaemon";
+        } | {
+            /**
+             * Format: uuid
+             * @description The first daemon to connect, which runs the first scan and whose progress the item
+             *     shows. `None` while no daemon has connected, or once that daemon is deleted.
+             */
+            daemon_id?: string | null;
+            /** @enum {string} */
+            type: "RunFirstScan";
+        } | {
+            /** @enum {string} */
+            type: "OpenTopology";
+        } | {
+            /** @enum {string} */
+            type: "AnswerReferralSource";
+        } | {
+            /** @enum {string} */
+            type: "AnswerProfile";
+        } | {
+            /** @enum {string} */
+            type: "ExploreViews";
+        } | {
+            /** @enum {string} */
+            type: "ApplicationTags";
+        } | {
+            /** @enum {string} */
+            type: "DependencyTutorial";
+        } | {
+            /** @enum {string} */
+            type: "Dependencies";
+        } | {
+            /** @enum {string} */
+            type: "InterfaceCredential";
+        } | {
+            /** @enum {string} */
+            type: "Tags";
+        } | {
+            /** @enum {string} */
+            type: "InviteTeam";
+        } | {
+            /** @enum {string} */
+            type: "MultiSite";
+        } | {
+            /** @enum {string} */
+            type: "ApiKeys";
+        } | {
+            /** @enum {string} */
+            type: "Share";
+        };
+        /** @enum {string} */
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        /** @description One item's identity across sweeps and page loads. */
+        SetupItemKey: {
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Org";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon, credential or site the item concerns. For an uncovered integration, its
+             *     first host.
+             */
+            entity_id: string;
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Entity";
+        } | {
+            code: components["schemas"]["DiscoveryWarningCode"];
+            /**
+             * Format: uuid
+             * @description The daemon whose latest runs raised the warning.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "RunWarning";
+        };
+        /**
+         * @description Where a Setup item stands. Issues are always Open.
+         * @enum {string}
+         */
+        SetupItemState: "Open" | "Locked" | "Done";
+        /**
+         * @description Which group of the Setup list an item sits in, in display order.
+         * @enum {string}
+         */
+        SetupItemTier: "Issue" | "Setup";
+        /**
+         * @description One Setup list row as the dashboard serves it: the item, with its identity, its tier and its
+         *     state.
+         */
+        SetupListEntry: {
+            /**
+             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+             *     step still Open.
+             */
+            alerts_when_stuck: boolean;
+            item: components["schemas"]["SetupItem"];
+            /** @description The item's identity: the same item on the next load has the same key. */
+            key: components["schemas"]["SetupItemKey"];
+            /**
+             * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+             *     the whole org, which shows whatever sites are picked.
+             */
+            site_ids: string[];
+            state: components["schemas"]["SetupItemState"];
+            /** @description The group of the list the item sits in. */
+            tier: components["schemas"]["SetupItemTier"];
+        };
         /** @description Setup request for pre-registration org/site configuration */
         SetupRequest: {
             /** @description Name for the organization created during setup. */
@@ -15129,7 +15925,7 @@ export interface components {
              * Format: uuid
              * @description User who created the share.
              */
-            created_by: string;
+            readonly created_by: string;
             /**
              * @description Which topology views are enabled for this share.
              *     None = all views (subject to data availability). Some(list) = only these views in order.
@@ -15253,9 +16049,9 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The organization that owns this record.
+             * @description The organization that owns this record. Set from the caller on create.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /**
              * Format: int64
              * @description How long a discovery-managed entity on this site may go unobserved
@@ -15268,6 +16064,16 @@ export interface components {
             stale_after_hours: number | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+        };
+        /** @description The grants held on one site. */
+        SiteGrants: {
+            /** @description What the principal can do on that site. */
+            grants: components["schemas"]["Grant"][];
+            /**
+             * Format: uuid
+             * @description The site these grants hold on.
+             */
+            site_id: string;
         };
         /**
          * @description Fields the sites list can be ordered and grouped by.
@@ -15363,15 +16169,16 @@ export interface components {
          * @description SNMPv3 USM privacy (encryption) protocol.
          * @enum {string}
          */
-        SnmpV3PrivProtocol: "Aes128" | "Aes256";
+        SnmpV3PrivProtocol: "Aes128" | "Aes256" | "Des";
         /**
-         * @description One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only).
+         * @description One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only). The levels
+         *     and MD5 need a daemon newer than 0.18.0, DES one newer than 0.19.6.
          * @enum {string}
          */
-        SnmpV3SecurityOption: "NoAuthNoPriv" | "AuthNoPriv" | "Md5Auth";
-        /** @description The SNMPv3 options a credential uses that daemons before 0.18.1 cannot parse. */
+        SnmpV3SecurityOption: "NoAuthNoPriv" | "AuthNoPriv" | "Md5Auth" | "DesPrivacy";
+        /** @description The SNMPv3 options a credential uses that the daemon is too old to parse. */
         SnmpV3SecurityOptionsGap: {
-            /** @description The options the credential uses, each one a reason older daemons reject it. */
+            /** @description The options the credential uses that this daemon rejects. */
             options: components["schemas"]["SnmpV3SecurityOption"][];
         };
         /**
@@ -15663,17 +16470,6 @@ export interface components {
             subnet_type: components["schemas"]["SubnetType"];
             subnet_type_source?: components["schemas"]["AttributeSource"];
         };
-        /**
-         * @description A list-table column that is not a registry field: a value the table computes, reads from
-         *     another endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so
-         *     the column menu files it under a group the backend chose. CSV, diagram Shape Data and the
-         *     inspector read only fields, never these.
-         */
-        TableColumn: {
-            group: components["schemas"]["FieldGroup"];
-            /** @description The column's key in the list table, and so in saved column preferences. */
-            id: string;
-        };
         /** @enum {string} */
         TableDensity: "comfortable" | "compact";
         /**
@@ -15687,6 +16483,9 @@ export interface components {
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
          *       "position": 1,
+         *       "source": {
+         *         "type": "Manual"
+         *       },
          *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
@@ -15744,6 +16543,11 @@ export interface components {
              *     the server: a tag joins the end of its group, and the group's tag order endpoint reorders.
              */
             readonly position: number | null;
+            /**
+             * @description `System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set
+             *     by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /**
              * Format: uuid
              * @description The tag group this tag belongs to, if any. An entity holds at most one tag of a group.
@@ -15850,18 +16654,6 @@ export interface components {
         };
         /** @enum {string} */
         Target: "DaemonHost" | "Site" | "Hosts";
-        /** @description A credential with no site or host assignment that no discovery targets, so no daemon receives it. */
-        TargetlessCredential: {
-            /**
-             * Format: uuid
-             * @description The credential.
-             */
-            id: string;
-            /** @description The integration it authenticates. */
-            integration: components["schemas"]["CredentialIntegration"];
-            /** @description Its name. */
-            name: string;
-        };
         /** @description Request to test reachability of a daemon URL. */
         TestReachabilityRequest: {
             /** @description If true, also perform an HTTP GET to {url}/health after the TCP check */
@@ -15957,6 +16749,11 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            /**
+             * @description Whether a person added an interface-reporting credential to the organization: the L2
+             *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+             */
+            has_interface_credential: boolean;
             /**
              * @description Per view, how many entities of each type a Visibility tag left out that the view would
              *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -16124,7 +16921,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "8359cdc9-f787-4e3a-be29-36c093779516",
+             *           "id": "0090024c-060e-405e-a1a3-612b44de4dd1",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16134,23 +16931,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "043869dd-efe5-40a6-a4db-2c504bc08dd2",
+             *           "id": "32f70dd7-d122-4244-a49b-ec78410135ec",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "10d6e863-9d9a-43b8-8720-d3adb900d8e6",
+             *           "id": "4e7f2742-496d-45b7-b7fc-5e1e12c0e182",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16164,19 +16961,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "e687f3af-643e-4166-9372-480c613b2c59",
+             *         "id": "2a42eb3d-a650-43d4-8bfc-638630246381",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "59bae1af-48ae-4a9d-8901-742a5962237e",
+             *         "id": "fe033ceb-773a-4ae4-9940-1185da932095",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "7d098cb5-a1f3-4b44-b2ad-eb84c9f3abce",
+             *         "id": "e7d9cebb-0cbf-4f8a-902e-9b2d2004be1d",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fa92d20c-4c99-4385-b7e5-554e2f705091",
+             *         "id": "7cf54692-90c3-43b1-b045-6cc7fd038287",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16197,7 +16994,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dd6508db-c3f5-47a8-b22d-96a381b5cf75",
+             *         "id": "7893f01d-e36f-41a7-b156-084f5f08f988",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16206,19 +17003,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "8768cc4d-f427-41ea-9276-2bd74162d7e0",
+             *         "id": "11f82579-53b9-4f4f-9cdb-df3b235f38a1",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "599c0eca-c956-4de2-b72a-6c1208350cbe",
+             *         "id": "a45c7bb8-2ffb-48c2-86f9-ddfe9ba8e575",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ab9ef755-540c-41f2-80ee-b0b30bcb57be",
+             *         "id": "1cf8f35e-5d99-4cc7-8ca4-7b3827769167",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "81c086c7-f636-4ef8-bc20-cba88bf034f1",
+             *         "id": "c2711e95-628d-4d5f-9b31-6f8b151eb0b8",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16341,20 +17138,25 @@ export interface components {
             /** @description What reported it. */
             via: components["schemas"]["InferredVia"];
         };
-        /** @description An integration the latest scans found on hosts with no credential of it, still uncovered now. */
-        UncoveredIntegration: {
+        /** @description A daemon that has never checked in, as the create wizard lists it. */
+        UnconnectedDaemon: {
             /**
-             * @description The hosts running its service, which the create flow pre-assigns when the integration's
-             *     credentials can only be pinned to hosts.
+             * Format: date-time
+             * @description When the daemon was created.
              */
-            host_ids: string[];
-            /** @description The integration a credential would add. */
-            integration: components["schemas"]["CredentialIntegration"];
+            created_at: string;
             /**
-             * @description The sites those hosts are on, which the create flow pre-assigns instead when its
-             *     credentials can apply to a whole site.
+             * Format: uuid
+             * @description The daemon's id.
              */
-            site_ids: string[];
+            id: string;
+            /** @description The daemon's name, as set when it was created. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The site the daemon was created on.
+             */
+            site_id: string;
         };
         /** @description A neighbour advertised by a local interface whose far end could not be placed on a host. */
         UnmatchedNeighbour: {
@@ -16620,18 +17422,23 @@ export interface components {
              * Format: uuid
              * @description The organization that owns this record.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
-            /** @description Site IDs this key has access to (hydrated from junction table) */
-            site_ids?: string[];
+            /**
+             * @description The sites this key reaches, read from its site assignments. `null` reaches every site in
+             *     the organization, including sites created later, and only a caller who holds All sites can
+             *     set it. A list must name at least one site. A key from before site assignments, with none,
+             *     reads as an empty list and reaches no site.
+             */
+            site_ids: string[] | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
             /**
              * Format: uuid
              * @description User the key acts on behalf of.
              */
-            user_id: string;
+            readonly user_id: string;
         };
         /**
          * @description Fields the user API key list can be ordered and grouped by.
@@ -16668,16 +17475,16 @@ export interface components {
              */
             readonly email_verification_required?: boolean;
             /** @description Whether the user has verified their email address */
-            email_verified?: boolean;
+            readonly email_verified?: boolean;
             /** @description Whether the user has a password set — computed from password_hash, never stored in DB */
             readonly has_password?: boolean;
             /**
              * Format: date-time
              * @description When the account was linked to the identity provider.
              */
-            oidc_linked_at?: string | null;
+            readonly oidc_linked_at?: string | null;
             /** @description Slug of the identity provider this account signs in through, when linked. */
-            oidc_provider?: string | null;
+            readonly oidc_provider?: string | null;
             /**
              * Format: uuid
              * @description The organization that owns this record.
@@ -16997,7 +17804,10 @@ export interface components {
             name: string;
             name_source?: components["schemas"]["AttributeSource"];
         };
-        /** @enum {string} */
+        /**
+         * @description Fields that VLANs can be ordered/grouped by.
+         * @enum {string}
+         */
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at" | "site_id" | "source" | "last_seen_at";
         /** @description Whether one address woke: whether the scan found it after the magic packets went out. */
         WakeOnLanResult: {
@@ -17006,19 +17816,6 @@ export interface components {
             /** @description Whether the scan found the address after the packets went out. */
             woke: boolean;
         };
-        /**
-         * @description What a warning asks of the person reading it.
-         *
-         *     The rung a code sits on *is* its instruction, which is why the warning list is grouped by this
-         *     and not by [`Severity`]: a reader scanning a completed run needs to know whether they are being
-         *     asked for something before they need to know how much data was lost. It reaches the UI as each
-         *     code's `category`, with this enum's own registry supplying the heading — the same shape
-         *     `service-definitions.json` and `service-categories.json` use.
-         *
-         *     Declaration order is the order the sections render in, most demanding first.
-         * @enum {string}
-         */
-        WarningRemedy: "FixInScanopy" | "CheckTheDevice" | "ClearsOnTheNextScan" | "NothingToDo";
         /** @enum {string} */
         WeekStart: "monday" | "sunday";
     };
@@ -17187,13 +17984,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current user */
+            /** @description Current user and what they can do */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_User"];
+                    "application/json": components["schemas"]["ApiResponse_CurrentUser"];
                 };
             };
             /** @description Not authenticated */
@@ -18346,7 +19143,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Work request processed - returns (Option<Value>, bool) */
+            /** @description Work request processed - returns [Option<Value>, bool, Option<Uuid>] */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -19407,7 +20204,9 @@ export interface operations {
     };
     get_daemon_api_key_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DaemonApiKeyOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -19450,10 +20249,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DaemonApiKeyOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -19464,7 +20260,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DaemonApiKeyOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -19880,7 +20676,9 @@ export interface operations {
     };
     get_daemon_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DaemonOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Only daemons in one of these statuses. Repeat for several. */
@@ -19923,10 +20721,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DaemonOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -19937,7 +20732,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DaemonOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -20302,6 +21097,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_dashboard_issues: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
                 };
             };
         };
@@ -20979,7 +21814,9 @@ export interface operations {
     };
     get_discovery_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DiscoveryOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
@@ -21044,10 +21881,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DiscoveryOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -21058,7 +21892,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DiscoveryOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -21763,7 +22597,9 @@ export interface operations {
     };
     get_host_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["HostOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -21857,10 +22693,7 @@ export interface operations {
                 include_children?: boolean | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["HostOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -21871,7 +22704,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_HostOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -23129,7 +23962,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Organization not found */
@@ -23139,30 +23972,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    daemon_prompt_response: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DaemonPromptResponseRequest"];
-            };
-        };
-        responses: {
-            /** @description Response recorded */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
         };
@@ -23215,6 +24024,39 @@ export interface operations {
             };
         };
     };
+    record_setup_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Setup item recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description The item is not recorded by the app */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     update_organization: {
         parameters: {
             query?: never;
@@ -23237,7 +24079,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Only owners can update organization */
@@ -24017,7 +24859,9 @@ export interface operations {
     };
     get_service_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["ServiceOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by host ID. Repeat the parameter to pass several. */
@@ -24097,10 +24941,7 @@ export interface operations {
                 stale?: boolean | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["ServiceOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -24111,7 +24952,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_ServiceOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -24865,7 +25706,9 @@ export interface operations {
     };
     get_site_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["SiteOrderField"][];
                 /** @description Only sites with one of these credentials assigned. Repeat for several. */
                 credential_ids?: string[] | null;
                 /**
@@ -24904,10 +25747,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["SiteOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -24918,7 +25758,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_SiteOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -25416,7 +26256,9 @@ export interface operations {
     };
     get_subnet_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["SubnetOrderField"][];
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
@@ -25479,10 +26321,7 @@ export interface operations {
                 search?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["SubnetOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -25493,7 +26332,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_SubnetOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -26215,7 +27054,9 @@ export interface operations {
     };
     get_tag_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["TagOrderField"][];
                 /** @description Only tags of one of these colours. Repeat for several. */
                 colors?: string[] | null;
                 /** @description Only tags in one of these groups. Repeat for several. */
@@ -26241,10 +27082,7 @@ export interface operations {
                 at?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["TagOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -26255,7 +27093,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_TagOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -26409,10 +27247,10 @@ export interface operations {
                  */
                 snapshot_id?: string | null;
                 /**
-                 * @description When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has
-                 *     viewed their topology). Only the frontend's explicit on-tab view sets this — the
-                 *     background topology-data query never does — so the milestone never fires from other
-                 *     tabs. One-time per org (guarded below + subscriber dedup).
+                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology),
+                 *     and `ExploreViews` when `view` is not the default view.
+                 *     Only the frontend's explicit on-tab view sets this — the background topology-data query
+                 *     never does — so it is never recorded from other tabs. Once per org.
                  */
                 mark_viewed?: boolean | null;
                 /**
@@ -26867,7 +27705,9 @@ export interface operations {
     };
     get_user_api_key_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["UserApiKeyOrderField"][];
                 /** @description Only keys limited to one of these roles. Repeat for several. */
                 permissions?: components["schemas"]["UserOrgPermissions"][] | null;
                 /** @description Only keys with access to one of these sites. Repeat for several. */
@@ -26905,10 +27745,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["UserApiKeyOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -26919,7 +27756,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_UserApiKeyOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -27628,7 +28465,9 @@ export interface operations {
     };
     get_vlan_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["VlanOrderField"][];
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: components["schemas"]["VlanOrderField"] | null;
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -27671,10 +28510,7 @@ export interface operations {
                 search?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["VlanOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -27685,7 +28521,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_VlanOrderField"];
                 };
             };
             /** @description Unknown field */

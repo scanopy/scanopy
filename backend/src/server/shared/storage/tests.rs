@@ -18,6 +18,7 @@ use crate::server::{
     services::r#impl::base::Service,
     shared::storage::traits::Storable,
     shares::r#impl::base::Share,
+    site_assignments::r#impl::base::SiteAssignment,
     sites::r#impl::Site,
     snapshots::types::base::Snapshot,
     subnets::r#impl::base::Subnet,
@@ -35,13 +36,18 @@ use std::collections::HashMap;
 #[allow(dead_code)]
 type DeserializeFn = Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>;
 
-#[allow(dead_code)]
-const TABLES_WITHOUT_ENTITIES: [&str; 2] = ["user_site_access", "user_api_key_site_access"];
-
 // Mapping from table name to deserialization function
 #[allow(dead_code)]
 fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
     let mut map: HashMap<&'static str, DeserializeFn> = HashMap::new();
+
+    map.insert(
+        SiteAssignment::table_name(),
+        Box::new(|row| {
+            SiteAssignment::from_row(row)?;
+            Ok(())
+        }),
+    );
 
     map.insert(
         DaemonApiKey::table_name(),
@@ -349,9 +355,7 @@ pub async fn test_all_tables_have_entity_mapping() {
 
     let mut missing_mappings = Vec::new();
     for table in &tables {
-        if !deserializers.contains_key(table.as_str())
-            && !TABLES_WITHOUT_ENTITIES.contains(&table.as_str())
-        {
+        if !deserializers.contains_key(table.as_str()) {
             missing_mappings.push(table.clone());
         }
     }

@@ -9,8 +9,8 @@
  */
 
 import type { Component } from 'svelte';
-import type { components } from '$lib/api/schema';
-import { views } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { views } from '#lib/shared/stores/metadata.ts';
 
 import SectionIdentity from './sections/SectionIdentity.svelte';
 import SectionServices from './sections/SectionServices.svelte';

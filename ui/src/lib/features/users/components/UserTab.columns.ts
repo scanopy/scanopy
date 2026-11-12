@@ -1,35 +1,27 @@
-import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
-import { siteItems } from '$lib/features/sites/columns';
-import { permissions, entities } from '$lib/shared/stores/metadata';
-import type { components, operations } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import type { OrganizationInvite } from '$lib/features/organizations/types';
+import type { LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { permissions, entities } from '#lib/shared/stores/metadata.ts';
+import type { components, operations } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { OrganizationInvite } from '#lib/features/organizations/types.ts';
 import { isInvite, isUser, type UserOrInvite } from '../types';
 import {
 	common_all,
-	common_sites,
 	common_email,
 	common_emailAndPassword,
 	common_none,
-	common_expires,
-	common_joined,
 	common_role,
-	common_status,
 	common_unknownEntity,
-	common_updated,
-	common_url,
 	common_user,
 	common_you,
-	invites_createdBy,
 	invites_pendingInvite,
 	users_authMethod,
 	users_authMethodOidcAndPassword,
-	users_emailVerified,
-	users_providerLinked
-} from '$lib/paraglide/messages';
+	users_emailVerified
+} from '#lib/paraglide/messages.js';
 
 type MemberOrderField = components['schemas']['MemberOrderField'];
 type MemberStatus = components['schemas']['MemberStatus'];
@@ -88,7 +80,7 @@ function userSiteItems(ctx: UserColumnsContext, item: UserOrInvite): LabelledCar
 	if (!isUser(item)) return [];
 	const user = item.data;
 
-	if (user.permissions === 'Admin' || user.permissions === 'Owner') {
+	if (permissions.getMetadata(user.permissions).reaches_all_sites) {
 		return [{ id: NO_VALUE, label: common_all(), color: entities.getColorHelper('Site').color }];
 	}
 
@@ -129,7 +121,6 @@ export function userColumns(ctx: UserColumnsContext) {
 				display: { primary: true, width: 220 }
 			},
 			invite_status: {
-				label: common_status(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -189,13 +180,11 @@ export function userColumns(ctx: UserColumnsContext) {
 				filterLabel: authMethodLabel
 			},
 			created_at: {
-				label: common_joined(),
 				type: 'date',
 				groupable: false,
 				getValue: (item) => item.data.created_at
 			},
 			invited_by: {
-				label: invites_createdBy(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -208,14 +197,12 @@ export function userColumns(ctx: UserColumnsContext) {
 				display: { hiddenByDefault: true }
 			},
 			expires_at: {
-				label: common_expires(),
 				type: 'date',
 				groupable: false,
 				getValue: (item) => (isUser(item) ? null : item.data.expires_at),
 				display: { hiddenByDefault: true }
 			},
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				getValue: (item) => item.data.updated_at,
@@ -232,7 +219,6 @@ export function userColumns(ctx: UserColumnsContext) {
 				display: { hiddenByDefault: true }
 			},
 			oidc_linked_at: {
-				label: users_providerLinked(),
 				type: 'date',
 				groupable: false,
 				getValue: (item) => (isUser(item) ? (item.data.oidc_linked_at ?? null) : null),
@@ -242,7 +228,6 @@ export function userColumns(ctx: UserColumnsContext) {
 		[
 			{
 				key: 'site_ids',
-				label: common_sites(),
 				type: 'array',
 				// Users share sites, so this filters; as an array it neither sorts nor groups.
 				filterable: true,
@@ -257,7 +242,6 @@ export function userColumns(ctx: UserColumnsContext) {
 			},
 			{
 				key: 'invite_url',
-				label: common_url(),
 				type: 'string',
 				getValue: (item) => (isUser(item) ? '' : ctx.inviteUrl(item.data)),
 				display: { hiddenByDefault: true }

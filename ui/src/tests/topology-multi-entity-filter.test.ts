@@ -6,10 +6,14 @@ import {
 	matchesHoveredMetadata,
 	tagHiddenNodeIds,
 	updateTagFilter
-} from '$lib/features/topology/interactions';
-import { filterFor, hiddenValuesFor, withFilterValues } from '$lib/features/topology/view-filters';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import type { Site } from '$lib/features/sites/types';
+} from '#lib/features/topology/interactions.ts';
+import {
+	filterFor,
+	hiddenValuesFor,
+	withFilterValues
+} from '#lib/features/topology/view-filters.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 
 /**
  * Workloads' virtualization filter covers hosts and services: a macvlan container is drawn as a
@@ -117,6 +121,21 @@ describe('a filter covering hosts and services', () => {
 		expect(nodes.has('bridge-container')).toBe(true);
 		expect(nodes.has('macvlan-card')).toBe(true);
 		expect(nodes.has('sshd')).toBe(false);
+	});
+
+	it('starts no pipeline run when a filter pass hides the same nodes again', () => {
+		const hidden = withFilterValues(filter(), undefined, ['Containerized']);
+		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], site);
+
+		// The viewer runs the pipeline on every emission of this store.
+		let emissions = 0;
+		const unsubscribe = tagHiddenNodeIds.subscribe(() => emissions++);
+		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], site);
+		expect(emissions).toBe(1);
+
+		updateTagFilter(buildTopology(), undefined, 'Workloads', undefined, [], site);
+		expect(emissions).toBe(2);
+		unsubscribe();
 	});
 
 	it('reads as hidden when any covered entity hides the value', () => {

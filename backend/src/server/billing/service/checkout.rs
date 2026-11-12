@@ -40,10 +40,10 @@ impl BillingService {
             .ok_or_else(|| anyhow!("Could not find base price for selected plan"))?;
 
         // Only apply trial if plan has trial days AND customer is new (not returning)
-        let trial_days = if is_returning_customer || plan.config().trial_days == 0 {
+        let trial_days = if is_returning_customer || plan.current_trial_days() == 0 {
             None
         } else {
-            Some(plan.config().trial_days)
+            Some(plan.current_trial_days())
         };
 
         // Allow trial or $0 plans without requiring credit card
@@ -103,7 +103,7 @@ impl BillingService {
                 OrgScope { organization_id },
                 BillingOperation::CheckoutStarted {
                     plan,
-                    has_trial: plan.config().trial_days > 0,
+                    has_trial: plan.current_trial_days() > 0,
                     auto_started: false,
                     stripe_id: session.id.to_string(),
                     subscription_status: None,
@@ -199,7 +199,7 @@ impl BillingService {
                 quantity: Some(1),
                 ..Default::default()
             }])
-            .trial_period_days(plan.config().trial_days)
+            .trial_period_days(plan.current_trial_days())
             .trial_settings(CreateSubscriptionTrialSettings::new(
                 CreateSubscriptionTrialSettingsEndBehavior::new(
                     CreateSubscriptionTrialSettingsEndBehaviorMissingPaymentMethod::Cancel,
@@ -239,7 +239,11 @@ impl BillingService {
         // already trialing and announces nothing twice. If this fails, the
         // webhook still lands the plan.
         if let Err(e) = self
-            .handle_subscription_update(subscription, false, Utc::now().timestamp())
+            .handle_subscription_update(
+                subscription,
+                false,
+                crate::server::shared::clock::now().timestamp(),
+            )
             .await
         {
             tracing::warn!(

@@ -3,7 +3,7 @@ use crate::server::license::instances::service::LicenseInstanceService;
 use crate::server::license::service::LicenseService;
 use crate::server::release_notes::service::ReleaseNotesService;
 use crate::server::{
-    auth::{oidc::OidcService, service::AuthService},
+    auth::{access_service::AccessService, oidc::OidcService, service::AuthService},
     billing::service::{BillingService, BillingServiceParams},
     bindings::service::BindingService,
     config::ServerConfig,
@@ -33,6 +33,7 @@ use crate::server::{
     ports::service::PortService,
     posthog::PosthogService,
     services::service::ServiceService,
+    setup::service::SetupService,
     shared::{
         events::{
             bus::EventBus,
@@ -42,6 +43,7 @@ use crate::server::{
         trusted_ca::TrustedCaBundle,
     },
     shares::service::ShareService,
+    site_assignments::service::SiteAssignmentService,
     sites::service::SiteService,
     snapshots::service::SnapshotService,
     subnets::service::SubnetService,
@@ -61,6 +63,8 @@ static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
 pub struct ServiceFactory {
     pub user_service: Arc<UserService>,
     pub auth_service: Arc<AuthService>,
+    pub access_service: Arc<AccessService>,
+    pub site_assignment_service: Arc<SiteAssignmentService>,
     pub site_service: Arc<SiteService>,
     pub host_service: Arc<HostService>,
     pub ip_address_service: Arc<IPAddressService>,
@@ -99,6 +103,7 @@ pub struct ServiceFactory {
     pub vlan_service: Arc<VlanService>,
     pub discovery_digest_service: Arc<DiscoveryDigestService>,
     pub release_notes_service: Arc<ReleaseNotesService>,
+    pub setup_service: Arc<SetupService>,
     /// Present only when a license key applies (self-hosted commercial). A
     /// keyless deployment (community or cloud) has no license service —
     /// licensing is "not required".
@@ -144,7 +149,8 @@ impl ServiceFactory {
                 handle
             })
             .clone();
-        let metrics_service = Arc::new(MetricsService::new(prometheus_handle));
+        let metrics_service =
+            Arc::new(MetricsService::new(prometheus_handle, storage.pool_stats()));
 
         let tag_group_service = Arc::new(TagGroupService::new(
             storage.tag_groups.clone(),
@@ -168,9 +174,12 @@ impl ServiceFactory {
             entity_tag_service.clone(),
         ));
 
+        let site_assignment_service =
+            Arc::new(SiteAssignmentService::new(storage.site_assignments.clone()));
+
         let user_api_key_service = Arc::new(UserApiKeyService::new(
             storage.user_api_keys.clone(),
-            storage.user_api_key_site_access.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
         ));
@@ -207,6 +216,7 @@ impl ServiceFactory {
 
         let invite_service = Arc::new(InviteService::new(
             storage.invites.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
         ));
 
@@ -284,8 +294,16 @@ impl ServiceFactory {
 
         let user_service = Arc::new(UserService::new(
             storage.users.clone(),
-            storage.user_site_access.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
+        ));
+
+        let access_service = Arc::new(AccessService::new(
+            site_assignment_service.clone(),
+            user_service.clone(),
+            user_api_key_service.clone(),
+            invite_service.clone(),
+            site_service.clone(),
         ));
 
         let service_service = Arc::new(ServiceService::new(
@@ -514,6 +532,23 @@ impl ServiceFactory {
             ))
         });
 
+        let setup_service = Arc::new(SetupService {
+            site_service: site_service.clone(),
+            daemon_service: daemon_service.clone(),
+            discovery_service: discovery_service.clone(),
+            credential_service: credential_service.clone(),
+            host_service: host_service.clone(),
+            subnet_service: subnet_service.clone(),
+            dependency_service: dependency_service.clone(),
+            share_service: share_service.clone(),
+            user_api_key_service: user_api_key_service.clone(),
+            user_service: user_service.clone(),
+            invite_service: invite_service.clone(),
+            tag_service: tag_service.clone(),
+            organization_service: organization_service.clone(),
+            deployment_type,
+        });
+
         let release_notes_service = Arc::new(ReleaseNotesService::new(
             storage.release_announcements.clone(),
             user_service.clone(),
@@ -563,6 +598,7 @@ impl ServiceFactory {
 
         let auth_service = Arc::new(AuthService::new(
             user_service.clone(),
+            access_service.clone(),
             organization_service.clone(),
             has_email_service,
             event_bus.clone(),
@@ -607,6 +643,8 @@ impl ServiceFactory {
         let factory = Self {
             user_service,
             auth_service,
+            access_service,
+            site_assignment_service,
             site_service,
             host_service,
             ip_address_service,
@@ -643,6 +681,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             release_notes_service,
+            setup_service,
             license_service,
             license_instance_service,
             trusted_ca,
@@ -669,6 +708,8 @@ impl ServiceFactory {
         let Self {
             user_service,
             auth_service,
+            access_service: _, // not a Subscriber: called by handlers and auth
+            site_assignment_service: _, // not a Subscriber: read by the services above
             site_service,
             host_service,
             ip_address_service,
@@ -705,6 +746,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             release_notes_service: _, // not a Subscriber: run at boot and by its handlers
+            setup_service: _,         // not a Subscriber: read by the dashboard
             license_service: _,       // not a Subscriber: bespoke service, no EventBusService impl
             license_instance_service: _, // not a Subscriber: called by the license handlers
             trusted_ca: _,            // not a service; shared TLS roots

@@ -4,18 +4,16 @@ use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::config::AppState;
 use crate::server::dependencies::r#impl::base::{Dependency, DependencyMembers};
-use crate::server::shared::events::traits::{Event, OrgScope};
-use crate::server::shared::events::types::{OnboardingOperation, OnboardingOperationDiscriminants};
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::ordering::OrderField;
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams,
 };
 use crate::server::shared::handlers::traits::{create_handler, update_handler};
-use crate::server::shared::services::traits::{CrudService, EventBusService};
+use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::{
@@ -162,7 +160,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_dependencies(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Dependency, Read>>,
     Query(query): Query<DependencyFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Dependency>>> {
     let site_ids = auth.site_ids();
@@ -214,45 +212,14 @@ async fn get_all_dependencies(
 )]
 async fn create_dependency(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Dependency, Write>>,
     ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {
-    let organization_id = auth
-        .organization_id()
-        .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
-    let entity = auth.entity.clone();
-
     // Validate members based on variant
     validate_dependency_members(&state, &dependency).await?;
 
     // Delegate to generic handler (handles validation, auth checks, creation)
-    let response =
-        create_handler::<Dependency>(State(state.clone()), auth, ApiJson(dependency)).await?;
-
-    // Emit FirstDependencyCreated telemetry event if this is the first dependency
-    if response.data().is_some()
-        && state
-            .services
-            .organization_service
-            .record_milestone(
-                organization_id,
-                OnboardingOperationDiscriminants::FirstDependencyCreated,
-            )
-            .await?
-    {
-        state
-            .services
-            .dependency_service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstDependencyCreated,
-                entity,
-            ))
-            .await;
-    }
-
-    Ok(response)
+    create_handler::<Dependency>(State(state), auth, ApiJson(dependency)).await
 }
 
 /// Update dependency
@@ -271,7 +238,7 @@ async fn create_dependency(
 )]
 async fn update_dependency(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Dependency, Write>>,
     path: Path<Uuid>,
     ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {

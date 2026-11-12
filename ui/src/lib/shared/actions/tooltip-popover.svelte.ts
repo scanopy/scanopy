@@ -1,10 +1,12 @@
-import { createRawSnippet, mount } from 'svelte';
-import Popover from '$lib/shared/components/data/Popover.svelte';
-import type { TooltipContent } from './tooltip';
+import { createRawSnippet, mount, unmount, untrack } from 'svelte';
+import Popover from '#lib/shared/components/data/Popover.svelte';
+import TooltipChipView from '#lib/shared/components/data/TooltipChip.svelte';
+import type { MountTooltipChip, TooltipContent } from './tooltip';
 
 /**
  * The app's one tooltip: a single `Popover`, mounted at the first hover and kept. Showing it on
- * another element moves it there and swaps its content; it is never mounted twice.
+ * another element moves it there and swaps its content; it is never mounted twice. It is read-only:
+ * its chips stay static, and the pointer passes through it to whatever is underneath.
  */
 
 interface Shown {
@@ -18,7 +20,7 @@ let mounted = false;
 export function showTooltipPopover(
 	anchor: HTMLElement,
 	content: string | TooltipContent,
-	render: (content: string | TooltipContent) => HTMLElement
+	render: (content: string | TooltipContent, mountChip: MountTooltipChip) => HTMLElement
 ) {
 	state.shown = { anchor, content };
 	if (mounted) return;
@@ -29,7 +31,22 @@ export function showTooltipPopover(
 		setup(el: Element) {
 			// Redrawn in place whenever the tooltip moves to another element.
 			$effect(() => {
-				if (state.shown) el.replaceChildren(render(state.shown.content));
+				const shown = state.shown;
+				if (!shown) return;
+				const chips: ReturnType<typeof mount>[] = [];
+				// A mount context, read once by each chip; nothing tracks it.
+				// eslint-disable-next-line svelte/prefer-svelte-reactivity
+				const context = new Map([['staticTags', true]]);
+				untrack(() => {
+					el.replaceChildren(
+						render(shown.content, (target, chip) => {
+							chips.push(mount(TooltipChipView, { target, props: { chip }, context }));
+						})
+					);
+				});
+				return () => {
+					for (const chip of chips) unmount(chip);
+				};
 			});
 		}
 	}));
@@ -49,8 +66,9 @@ export function showTooltipPopover(
 				return typeof state.shown?.content === 'string' ? '250px' : '300px';
 			},
 			role: 'tooltip',
-			prefer: 'above',
+			align: 'start',
 			minWidth: '0',
+			passthrough: true,
 			onClose: hideTooltipPopover,
 			children: body
 		}

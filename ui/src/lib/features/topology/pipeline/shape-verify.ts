@@ -15,7 +15,7 @@
  * expensive full measurement it exists to justify replacing.
  */
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import type { RenderableTopology, TopologyNode } from '../types/base';
 import type { XY } from './types';
 import {

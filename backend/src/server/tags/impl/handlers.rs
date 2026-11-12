@@ -2,7 +2,7 @@ use crate::server::{
     config::AppState,
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
         },
@@ -52,9 +52,10 @@ impl CrudHandlers for Tag {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Tag {
+impl ListRows for Tag {
     type Item = Tag;
+    type Field = TagOrderField;
+    type Query = TagFilterQuery;
 
     fn ordering(query: &TagFilterQuery) -> ListOrdering<TagOrderField> {
         ListOrdering {
@@ -64,7 +65,10 @@ impl PaginatedList for Tag {
             tag_group: Default::default(),
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Tag {
     async fn items(
         _state: &AppState,
         rows: Vec<Tag>,

@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import type { EntityTypeMetadata, TypedTypeMetadata } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import type { EntityTypeMetadata, TypedTypeMetadata } from '#lib/shared/stores/metadata.ts';
 
 	export type EntityTypeOption = TypedTypeMetadata<EntityTypeMetadata>;
 

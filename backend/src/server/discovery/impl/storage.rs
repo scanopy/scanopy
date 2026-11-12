@@ -35,7 +35,7 @@ impl Storable for Discovery {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -171,11 +171,6 @@ impl Entity for Discovery {
 
     fn product_area() -> ProductArea {
         ProductArea::Discovery
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // scan_count is server-managed — never overwritten by API updates
-        self.scan_count = existing.scan_count;
     }
 
     fn site_id(&self) -> Option<Uuid> {

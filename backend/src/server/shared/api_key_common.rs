@@ -100,7 +100,7 @@ pub trait ApiKeyCommon {
     /// Check if the key has expired
     fn is_expired(&self) -> bool {
         self.expires_at()
-            .map(|exp| Utc::now() > exp)
+            .map(|exp| crate::server::shared::clock::now() > exp)
             .unwrap_or(false)
     }
 

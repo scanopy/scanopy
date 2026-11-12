@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { supportEmailAddress } from '$lib/features/support/support';
-import billingPlans from '$lib/data/billing-plans-all.json';
+import { supportEmailAddress } from '#lib/features/support/support.ts';
+import billingPlans from '#lib/data/billing-plans-all.json';
 
 describe('supportEmailAddress', () => {
 	it('gives every plan an address matching its support flags', () => {

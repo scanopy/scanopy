@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import attributeMethodsJson from '$lib/data/attribute-methods.json';
-import { attributeSourceLabel, type AttributeSource } from '$lib/shared/utils/attribute-source';
-import { clientProbes } from '$lib/shared/stores/metadata';
+import attributeMethodsJson from '#lib/data/attribute-methods.json';
+import { attributeSourceLabel, type AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+import { clientProbes } from '#lib/shared/stores/metadata.ts';
 
 /**
  * Every source the backend can produce renders as a readable label.

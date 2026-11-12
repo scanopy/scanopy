@@ -5,18 +5,18 @@ import {
 	shownActions,
 	DELETE_KEY,
 	RESERVED_ACTION_KEYS
-} from '$lib/shared/components/data/controls/actionShortcuts';
-import type { CardAction } from '$lib/shared/components/data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
+} from '#lib/shared/components/data/controls/actionShortcuts.ts';
+import type { RowAction } from '#lib/shared/components/data/types.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
-const action = (label: string, extra: Partial<CardAction> = {}): CardAction => ({
+const action = (label: string, extra: Partial<RowAction> = {}): RowAction => ({
 	label,
 	icon: null as unknown as IconComponent,
 	onClick: () => {},
 	...extra
 });
 
-const keys = (actions: CardAction[]) => assignActionKeys(actions).map((a) => a.key);
+const keys = (actions: RowAction[]) => assignActionKeys(actions).map((a) => a.key);
 
 describe('assignActionKeys', () => {
 	it('takes each label’s first free letter, skipping the list’s own keys', () => {
@@ -72,20 +72,20 @@ describe('assignActionKeys with a preferred shortcut', () => {
 
 describe('selectionActions', () => {
 	const bulk = () => {};
-	const del = (extra: Partial<CardAction> = {}) =>
+	const del = (extra: Partial<RowAction> = {}) =>
 		action('Delete', { tone: 'danger', isDelete: true, onBulk: bulk, ...extra });
-	const rescan = (extra: Partial<CardAction> = {}) => action('Rescan', { onBulk: bulk, ...extra });
-	const busy: CardAction['unavailable'] = {
+	const rescan = (extra: Partial<RowAction> = {}) => action('Rescan', { onBulk: bulk, ...extra });
+	const busy: RowAction['unavailable'] = {
 		state: 'disabled',
 		reason: 'This one is busy',
 		bulkReason: 'A selected one is busy'
 	};
-	const settled: CardAction['unavailable'] = { state: 'hidden', reason: 'Already settled' };
+	const settled: RowAction['unavailable'] = { state: 'hidden', reason: 'Already settled' };
 	const ran: string[] = [];
-	const runBulk = (a: CardAction) => () => void ran.push(a.label);
+	const runBulk = (a: RowAction) => () => void ran.push(a.label);
 	const reasons = { missing: 'missing', oneRowAtATime: 'one at a time' };
-	const run = (perRow: CardAction[][]) => selectionActions(perRow, runBulk, reasons);
-	const labels = (actions: CardAction[]) => actions.map((a) => a.label);
+	const run = (perRow: RowAction[][]) => selectionActions(perRow, runBulk, reasons);
+	const labels = (actions: RowAction[]) => actions.map((a) => a.label);
 
 	it('shows one row’s actions as the row does, bulk ones running on the selection', () => {
 		const [edit, remove] = run([

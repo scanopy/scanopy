@@ -20,21 +20,20 @@
 //! same host by address.
 //!
 //! Layering: [`types`] holds the wire structs, [`client`] the HTTP transport and auth, and
-//! [`mapping`] the wire → entity translation.
+//! [`mapping`] the wire → entity translation. What any hypervisor's guests share (address
+//! selection, network identities, recording, reach) is [`super::hypervisor`].
 
 pub mod client;
-pub mod identities;
 pub mod mapping;
 pub mod reach;
 pub mod types;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use anyhow::{Error, Result};
 use async_trait::async_trait;
-use futures::stream::{self, StreamExt};
 use uuid::Uuid;
 
 use crate::server::credentials::r#impl::mapping::{
@@ -44,26 +43,25 @@ use crate::server::hosts::r#impl::attributes::{HostHostnameValue, HostOsValue};
 use crate::server::hosts::r#impl::virtualization::{
     HostVirtualizationDiscriminants, ProxmoxGuestType,
 };
-use crate::server::interfaces::r#impl::base::{Interface, InterfaceDataComplete};
 use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::base::ServiceMatchBaselineParams;
-use crate::server::services::r#impl::definitions::{ServiceDefinitionExt, VirtualizationRole};
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::Attributed;
 use crate::server::shared::types::guest_state::GuestState;
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::subnets::r#impl::inference::placeable_subnet;
 
+use super::hypervisor::host::{HypervisorHost, create_hypervisor_host};
+use super::hypervisor::identities;
+use super::hypervisor::reach::{self as guest_reach, HypervisorBridge};
+use super::hypervisor::sync::{self, GuestOutcome, GuestSync, sync_guests};
 use super::{
     Checkpoint, CollectionShortfall, Completeness, DiscoveryIntegration, IntegrationContext,
-    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, merge_subnets,
+    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, ShortfallCause, merge_subnets,
 };
 use crate::daemon::discovery::service::ops::HostData;
-use crate::daemon::discovery::service::warnings::{AttemptOutcome, UnreachedProxmoxGuest};
+use crate::daemon::discovery::service::warnings::{AttemptOutcome, UnreachedHypervisorGuest};
 use client::ProxmoxClient;
-use identities::NetworkIdentity;
-use mapping::{GuestReading, GuestRecord, GuestSummary, NodeReading, NodeSpec, REPORTED};
-use reach::NodeBridge;
+use mapping::{GuestReading, GuestSummary, NodeReading, NodeSpec, REPORTED};
 use types::{
     AgentHostName, AgentInterfaces, AgentOsInfo, ClusterResource, ClusterStatusEntry, GuestConfig,
     LxcInterface, NodeNetworkEntry, NodeStatus,
@@ -72,7 +70,6 @@ use types::{
 /// Connected client carried from `probe` to `execute`.
 struct ProxmoxProbeHandle {
     client: ProxmoxClient,
-    port: u16,
 }
 
 pub struct ProxmoxIntegration;
@@ -91,13 +88,6 @@ impl DiscoveryIntegration for ProxmoxIntegration {
     /// guest (the agent's interfaces, OS and hostname), each bounded at 30s.
     fn timeout(&self) -> Duration {
         Duration::from_secs(300)
-    }
-
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::Proxmox(c) => vec![PortType::new_tcp(c.port)],
-            _ => vec![],
-        }
     }
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
@@ -121,10 +111,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         Ok(ProbeSuccess {
             client_probe: Some(ClientProbe::Proxmox),
             ports: vec![PortType::new_tcp(credential.port)],
-            handle: Some(Box::new(ProxmoxProbeHandle {
-                client,
-                port: credential.port,
-            })),
+            handle: Some(Box::new(ProxmoxProbeHandle { client })),
         })
     }
 
@@ -140,7 +127,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             .ok_or_else(|| Error::msg("Proxmox execute ran without a probe handle"))?;
         let client = &handle.client;
 
-        ctx.ops.report_progress(5).await.ok();
+        ctx.report_progress(5).await;
 
         let resources: Vec<ClusterResource> =
             client.get("/cluster/resources").await?.ok_or_else(|| {
@@ -161,7 +148,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             guests = guests.len(),
             "Fetched Proxmox VE cluster inventory"
         );
-        ctx.ops.report_progress(15).await.ok();
+        ctx.report_progress(15).await;
 
         let subnets = merge_subnets(ctx.known_subnets, ctx.scanning_subnet, &host_data.subnets);
 
@@ -173,7 +160,9 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         // Nodes first, so each guest can carry its node's stored service id.
         let mut owners: HashMap<String, Uuid> = HashMap::new();
         let mut node_hosts: HashMap<String, Uuid> = HashMap::new();
-        let mut bridges: HashMap<String, Vec<NodeBridge>> = HashMap::new();
+        let mut bridges: HashMap<String, Vec<HypervisorBridge>> = HashMap::new();
+        // Nodes with no address on a known subnet, and nodes whose record the server refused.
+        let (mut unplaced_nodes, mut unrecorded_nodes) = (0usize, 0usize);
         for node in &nodes {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
@@ -189,18 +178,20 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 host_data.offer_os(Attributed::new(HostOsValue(os.clone()), REPORTED));
             }
             bridges.insert(node.name.clone(), reading.bridges.clone());
-            match create_node_host(ctx, &subnets, node, &reading, handle.port).await {
+            match create_node_host(ctx, &subnets, node, &reading).await {
                 Ok(Some((host_id, service_id))) => {
                     owners.insert(node.name.clone(), service_id);
                     node_hosts.insert(node.name.clone(), host_id);
                 }
-                Ok(None) => {}
+                Ok(None) => unplaced_nodes += 1,
                 Err(e) => {
-                    tracing::warn!(node = %node.name, error = %e, "Failed to record Proxmox VE node")
+                    // Reported on the run as a collection failure. This keeps the error.
+                    tracing::debug!(node = %node.name, error = %e, "Failed to record Proxmox VE node");
+                    unrecorded_nodes += 1;
                 }
             }
         }
-        ctx.ops.report_progress(30).await.ok();
+        ctx.report_progress(30).await;
 
         let site_id = ctx.ops.site_id().await?;
         let total = guests.len();
@@ -218,7 +209,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         let GuestSync {
             created,
             unidentifiable,
-            short_nodes,
+            short_owners: short_nodes,
             identities_listed,
         } = sync_guests(syncs).await;
         if ctx.cancel.is_cancelled() {
@@ -256,77 +247,42 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             }
         }
 
-        // A guest whose node has no address cannot be linked to it. That is a shortfall the
-        // operator can fix (grant Sys.Audit), so it is reported as one.
-        let unplaced_nodes = nodes
-            .iter()
-            .filter(|n| !owners.contains_key(&n.name))
-            .count();
-        if unplaced_nodes > 0 {
-            return Ok(Completeness::Partial(CollectionShortfall {
-                what: "Proxmox VE nodes",
-                collected: nodes.len() - unplaced_nodes,
-                expected: nodes.len(),
-            }));
-        }
-        Ok(Completeness::Complete)
+        Ok(node_completeness(
+            nodes.len(),
+            unplaced_nodes,
+            unrecorded_nodes,
+        ))
     }
 }
 
-/// Guests read and recorded at once. In ServerPoll mode each record waits for the server's next
-/// collection, every 30s, so recorded one at a time a dozen guests outlast the 300s budget and
-/// the whole collection is thrown away.
-const CONCURRENT_GUEST_SYNCS: usize = 8;
-
-/// What became of one guest.
-enum GuestOutcome {
-    /// No address and no NIC, so nothing was recorded.
-    Unidentifiable(String),
-    Recorded {
-        host_id: Uuid,
-        /// Every network identity was read and recorded.
-        identities_listed: bool,
-    },
-    /// Its record failed, or the run was cancelled before it.
-    Failed { node: String },
-}
-
-/// Every guest's outcome, gathered.
-#[derive(Default)]
-struct GuestSync {
-    created: usize,
-    unidentifiable: Vec<String>,
-    /// Nodes with a guest that failed to record: their guests are not listed in full.
-    short_nodes: HashSet<String>,
-    /// Guests whose network identities were all read and recorded.
-    identities_listed: Vec<Uuid>,
-}
-
-/// Run every guest's sync, [`CONCURRENT_GUEST_SYNCS`] at a time, and gather the outcomes.
-async fn sync_guests(syncs: Vec<impl Future<Output = GuestOutcome>>) -> GuestSync {
-    let outcomes: Vec<GuestOutcome> = stream::iter(syncs)
-        .buffer_unordered(CONCURRENT_GUEST_SYNCS)
-        .collect()
-        .await;
-    let mut gathered = GuestSync::default();
-    for outcome in outcomes {
-        match outcome {
-            GuestOutcome::Unidentifiable(label) => gathered.unidentifiable.push(label),
-            GuestOutcome::Recorded {
-                host_id,
-                identities_listed,
-            } => {
-                gathered.created += 1;
-                if identities_listed {
-                    gathered.identities_listed.push(host_id);
-                }
-            }
-            GuestOutcome::Failed { node } => {
-                gathered.short_nodes.insert(node);
-            }
-        }
+/// Whether every node was recorded, and why not where some were not.
+///
+/// A guest whose node has no address cannot be linked to it, and that is a shortfall the operator
+/// can fix, so it leads. A refused record names no fix the operator owns, and is reported only
+/// when every node had an address.
+fn node_completeness(total: usize, unplaced: usize, unrecorded: usize) -> Completeness {
+    if unplaced > 0 {
+        let mut shortfall = CollectionShortfall::new(
+            "Proxmox VE nodes",
+            total - unplaced,
+            total,
+            ShortfallCause::NoKnownAddress,
+        );
+        shortfall.remedy = Some(
+            "Grant the API token Sys.Audit on / so their addresses can be read, or add their \
+             subnet to the site",
+        );
+        Completeness::Partial(shortfall)
+    } else if unrecorded > 0 {
+        Completeness::Partial(CollectionShortfall::new(
+            "Proxmox VE nodes",
+            total - unrecorded,
+            total,
+            ShortfallCause::NotRecorded,
+        ))
+    } else {
+        Completeness::Complete
     }
-    gathered
 }
 
 /// Sync one guest unless the run was cancelled, then report progress over all `total`.
@@ -336,7 +292,7 @@ async fn sync_and_report(
     client: &ProxmoxClient,
     guest: &GuestSummary,
     owners: &HashMap<String, Uuid>,
-    bridges: &HashMap<String, Vec<NodeBridge>>,
+    bridges: &HashMap<String, Vec<HypervisorBridge>>,
     subnets: &[Subnet],
     site_id: Uuid,
     done: &AtomicUsize,
@@ -344,16 +300,13 @@ async fn sync_and_report(
 ) -> GuestOutcome {
     let outcome = if ctx.cancel.is_cancelled() {
         GuestOutcome::Failed {
-            node: guest.node.clone(),
+            owner: guest.node.clone(),
         }
     } else {
         sync_guest(ctx, client, guest, owners, bridges, subnets, site_id).await
     };
     let synced = done.fetch_add(1, Ordering::Relaxed) + 1;
-    ctx.ops
-        .report_progress(30 + (60 * synced / total) as u8)
-        .await
-        .ok();
+    ctx.report_progress(30 + (60 * synced / total) as u8).await;
     outcome
 }
 
@@ -364,7 +317,7 @@ async fn sync_guest(
     client: &ProxmoxClient,
     guest: &GuestSummary,
     owners: &HashMap<String, Uuid>,
-    bridges: &HashMap<String, Vec<NodeBridge>>,
+    bridges: &HashMap<String, Vec<HypervisorBridge>>,
     subnets: &[Subnet],
     site_id: Uuid,
 ) -> GuestOutcome {
@@ -378,11 +331,13 @@ async fn sync_guest(
     ) else {
         return GuestOutcome::Unidentifiable(guest_label(guest));
     };
-    let identities = identities::network_identities(&reading.nics, &reading.reported, subnets);
-    match create_guest_host(ctx, subnets, guest, record, &identities, site_id).await {
+    let identities =
+        identities::network_identities(&reading.nics, &reading.reported, subnets, REPORTED);
+    let label = guest_label(guest);
+    match sync::record_guest(ctx, subnets, &label, record, &identities, site_id).await {
         Ok((host_id, all_identities_recorded)) => {
             if guest.state == GuestState::Running
-                && let Some(unreached) = reach::unreached(
+                && let Some(unreached) = guest_reach::unreached(
                     &reading.nics,
                     &reading.addresses,
                     bridges.get(&guest.node).map_or(&[][..], Vec::as_slice),
@@ -391,9 +346,10 @@ async fn sync_guest(
                 )
             {
                 ctx.ops
-                    .record_unreached_proxmox_guest(UnreachedProxmoxGuest {
+                    .record_unreached_guest(UnreachedHypervisorGuest {
                         ip: unreached.address,
                         guest: guest.name.clone().unwrap_or_else(|| guest.vmid.to_string()),
+                        integration: CredentialQueryPayloadDiscriminants::Proxmox,
                         reason: unreached.reason,
                     })
                     .await;
@@ -404,146 +360,12 @@ async fn sync_guest(
             }
         }
         Err(e) => {
-            tracing::warn!(guest = %guest_label(guest), error = %e, "Failed to record Proxmox VE guest");
+            tracing::warn!(guest = %label, error = %e, "Failed to record Proxmox VE guest");
             GuestOutcome::Failed {
-                node: guest.node.clone(),
+                owner: guest.node.clone(),
             }
         }
     }
-}
-
-/// Record a guest's host, then each of its network identities as a host of its own.
-///
-/// A guest with identities carries the Network Identities service, and each identity links to
-/// that service's stored id, read back from the guest's response the way a node's Proxmox VE
-/// service id is. So the guest goes first. An identity that fails to record is logged and the
-/// rest go on: the guest itself is recorded.
-///
-/// Returns the guest host's stored id, and whether every identity was recorded.
-async fn create_guest_host(
-    ctx: &IntegrationContext<'_>,
-    subnets: &[Subnet],
-    guest: &GuestSummary,
-    record: GuestRecord,
-    identities: &[NetworkIdentity],
-    site_id: Uuid,
-) -> Result<(Uuid, bool), Error> {
-    let services = identities::guest_services(&record.host, identities);
-    // The interfaces its identities sit on, so each identity can name its interface by stored id.
-    let mut interfaces = record.interfaces;
-    interfaces.extend(
-        identities
-            .iter()
-            .map(|i| identities::identity_interface(i, site_id)),
-    );
-    let response = ctx
-        .ops
-        .create_integration_host(
-            ctx.integration,
-            record.host,
-            record.ip_addresses,
-            vec![],
-            services,
-            interfaces,
-            vec![],
-            // The API reports addresses and NIC MACs, never the guest's interface table.
-            false,
-            InterfaceDataComplete::none(),
-            ctx.cancel,
-        )
-        .await?;
-    if identities.is_empty() {
-        return Ok((response.id, true));
-    }
-
-    let Some(owner) = response
-        .services
-        .iter()
-        .find(|s| {
-            matches!(
-                s.base.service_definition.virtualization_role(),
-                Some(VirtualizationRole::IdentityHost { .. })
-            )
-        })
-        .map(|s| s.id)
-    else {
-        tracing::warn!(
-            guest = %guest_label(guest),
-            "Proxmox VE guest was recorded without its Network Identities service; its network \
-             identities were not recorded"
-        );
-        return Ok((response.id, false));
-    };
-    // Recorded together: in ServerPoll mode each waits for the server's next collection.
-    let records: Vec<_> = identities
-        .iter()
-        .map(|identity| {
-            record_identity(
-                ctx,
-                guest,
-                identity,
-                owner,
-                &response.interfaces,
-                subnets,
-                site_id,
-            )
-        })
-        .collect();
-    let all_recorded = futures::future::join_all(records)
-        .await
-        .into_iter()
-        .all(|recorded| recorded);
-    Ok((response.id, all_recorded))
-}
-
-/// Record one of a guest's network identities as a host of its own, linked to `owner`, the
-/// guest's Network Identities service. Returns whether it was recorded.
-async fn record_identity(
-    ctx: &IntegrationContext<'_>,
-    guest: &GuestSummary,
-    identity: &NetworkIdentity,
-    owner: Uuid,
-    guest_interfaces: &[Interface],
-    subnets: &[Subnet],
-    site_id: Uuid,
-) -> bool {
-    let presenting = identities::presenting_interface_id(identity, guest_interfaces);
-    if presenting.is_none() {
-        tracing::warn!(
-            guest = %guest_label(guest),
-            interface = identity.interface.as_deref().unwrap_or("-"),
-            "The guest's interface for a network identity was not stored; recording the \
-             identity without it"
-        );
-    }
-    let (host, ip_addresses) =
-        identities::identity_host(identity, owner, presenting, subnets, site_id);
-    if let Err(e) = ctx
-        .ops
-        .create_integration_host(
-            ctx.integration,
-            host,
-            ip_addresses,
-            vec![],
-            vec![],
-            vec![],
-            vec![],
-            // One interface of the guest's, seen from the guest; never an interface table.
-            false,
-            InterfaceDataComplete::none(),
-            ctx.cancel,
-        )
-        .await
-    {
-        tracing::warn!(
-            guest = %guest_label(guest),
-            interface = identity.interface.as_deref().unwrap_or("-"),
-            error = %e,
-            "Failed to record a Proxmox VE guest's network identity"
-        );
-        return false;
-    }
-    true
 }
 
 /// `pve/110 (gitlab)`, for log lines.
@@ -657,139 +479,73 @@ async fn read_node(client: &ProxmoxClient, node: &NodeSpec) -> NodeReading {
     }
 }
 
-/// Record a node's host with its Proxmox VE service, returning the host's and that service's stored
-/// ids.
-///
-/// `None` when the node has no known address, or the address sits in no subnet this site
-/// holds (the matcher needs one to evaluate against). Stricter than the submission rule
-/// ([`IPAddress::discovered`]) for that reason; the node's other addresses follow the rule.
+/// Record a node's host with its Proxmox VE service ([`create_hypervisor_host`]), returning the
+/// host's and that service's stored ids. `None` when the node has no known address.
 async fn create_node_host(
     ctx: &IntegrationContext<'_>,
     subnets: &[Subnet],
     node: &NodeSpec,
     reading: &NodeReading,
-    port: u16,
 ) -> Result<Option<(Uuid, Uuid)>, Error> {
     let Some(ip) = node.ip else {
         return Ok(None);
     };
-    let Some(subnet) = placeable_subnet(subnets, ip) else {
+    if placeable_subnet(subnets, ip).is_none() {
         tracing::warn!(node = %node.name, %ip, "Proxmox VE node address is in no known subnet");
         return Ok(None);
-    };
-
+    }
     let site_id = ctx.ops.site_id().await?;
+    // The address it is reached at comes first, which `create_hypervisor_host` matches on.
     let (host, ip_addresses) = mapping::node_host(node, ip, reading, subnets, site_id);
-    // The address it is reached at, which `node_host` puts first.
-    let ip_address = &ip_addresses[0];
-
-    // The real matcher, fed the probe's answer: the node answered the API, which is what the
-    // Proxmox VE definition's `ClientResponse` arm matches.
-    let all_ports = vec![PortType::new_tcp(port)];
-    let client_responses = HashMap::from([(ClientProbe::Proxmox, all_ports.clone())]);
-    let daemon_id = ctx.ops.daemon_id().await?;
-    let (services, ports) = ctx.ops.match_services(
-        &host,
-        &ServiceMatchBaselineParams {
-            subnet,
-            ip_address,
-            all_ports: &all_ports,
-            endpoint_responses: &vec![],
-            virtualization_metadata: &None,
-            virtualization_service_id: None,
-            client_responses: &client_responses,
-            managed_device: &None,
-            dns_sd: &None,
-            certificates: &[],
-            fingerprints: &[],
-        },
-        &[],
-        &daemon_id,
-        &host.base.site_id,
-        mapping::REPORTED,
-    )?;
-
-    let response = ctx
-        .ops
-        .create_integration_host(
-            ctx.integration,
+    create_hypervisor_host(
+        ctx,
+        subnets,
+        HypervisorHost {
             host,
             ip_addresses,
-            ports,
-            services,
-            vec![],
-            vec![],
-            // The API never reports the node's interface table.
-            false,
-            InterfaceDataComplete::none(),
-            ctx.cancel,
-        )
-        .await?;
-
-    Ok(response
-        .services
-        .iter()
-        .find(|s| is_proxmox_ve(s.base.service_definition.virtualization_role()))
-        .map(|s| (response.id, s.id)))
-}
-
-fn is_proxmox_ve(role: Option<VirtualizationRole>) -> bool {
-    role == Some(VirtualizationRole::Hypervisor {
-        hosts: HostVirtualizationDiscriminants::Proxmox,
-    })
+            // The node answered the API, which is what the Proxmox VE definition's
+            // `ClientResponse` arm matches.
+            client_probe: ClientProbe::Proxmox,
+            source: REPORTED,
+            guests: HostVirtualizationDiscriminants::Proxmox,
+        },
+    )
+    .await
 }
 
 #[cfg(test)]
-mod guest_sync_tests {
+mod node_completeness_tests {
     use super::*;
 
-    /// In ServerPoll mode every record waits for the server's next collection, 30s apart, so
-    /// thirteen guests recorded one at a time take 390s and outlast the 300s collection budget.
-    /// Recorded together they take a couple of collections. `poll` stands in for the 30s.
-    #[tokio::test]
-    async fn guests_waiting_on_the_server_are_recorded_together() {
-        let poll = Duration::from_millis(100);
-        let started = std::time::Instant::now();
-        let syncs = (0..13)
-            .map(|_| async move {
-                tokio::time::sleep(poll).await;
-                GuestOutcome::Recorded {
-                    host_id: Uuid::new_v4(),
-                    identities_listed: true,
-                }
-            })
-            .collect();
-
-        let sync = sync_guests(syncs).await;
-
-        assert_eq!(sync.created, 13);
-        assert!(started.elapsed() < poll * 5, "took {:?}", started.elapsed());
+    fn cause(completeness: Completeness) -> Option<(ShortfallCause, usize, bool)> {
+        match completeness {
+            Completeness::Complete => None,
+            Completeness::Partial(s) => Some((s.cause, s.collected, s.remedy.is_some())),
+        }
     }
 
-    /// A guest that failed to record keeps its node from being listed in full, and only its node.
-    #[tokio::test]
-    async fn a_failed_guest_holds_back_only_its_own_node() {
-        let recorded = |identities_listed| async move {
-            GuestOutcome::Recorded {
-                host_id: Uuid::new_v4(),
-                identities_listed,
-            }
-        };
-        let failed = |node: &str| {
-            let node = node.to_string();
-            async move { GuestOutcome::Failed { node } }
-        };
+    /// A node with no address the site can place is the operator's to fix, so it leads, with
+    /// its fix, even when another node's record also failed.
+    #[test]
+    fn an_unplaced_node_is_reported_with_its_fix() {
+        assert_eq!(
+            cause(node_completeness(3, 1, 1)),
+            Some((ShortfallCause::NoKnownAddress, 2, true))
+        );
+    }
 
-        let sync = sync_guests(vec![
-            futures::future::Either::Left(recorded(true)),
-            futures::future::Either::Left(recorded(false)),
-            futures::future::Either::Right(failed("pve2")),
-        ])
-        .await;
+    /// A refused record is a collection failure, not a timeout, and has no fix to offer.
+    #[test]
+    fn a_refused_node_record_is_not_recorded() {
+        assert_eq!(
+            cause(node_completeness(3, 0, 1)),
+            Some((ShortfallCause::NotRecorded, 2, false))
+        );
+    }
 
-        assert_eq!(sync.created, 2);
-        assert_eq!(sync.short_nodes, HashSet::from(["pve2".to_string()]));
-        assert_eq!(sync.identities_listed.len(), 1);
+    #[test]
+    fn every_node_recorded_is_complete() {
+        assert_eq!(cause(node_completeness(3, 0, 0)), None);
     }
 }
 
@@ -923,8 +679,12 @@ mod lab_tests {
                         .collect::<Vec<_>>()
                 })
             );
-            let identities =
-                identities::network_identities(&reading.nics, &reading.reported, &subnets);
+            let identities = identities::network_identities(
+                &reading.nics,
+                &reading.reported,
+                &subnets,
+                REPORTED,
+            );
             if !identities.is_empty() {
                 println!("  network identities {identities:?}");
             }

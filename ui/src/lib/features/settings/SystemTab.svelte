@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { Monitor, Sun, Moon, ChevronRight } from '@lucide/svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { themeStore } from '$lib/shared/stores/theme.svelte';
-	import { VERSION } from '$lib/version';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
+	import { VERSION } from '#lib/version.ts';
 	import {
 		browserTimeZone,
 		DEFAULT_DISPLAY_SETTINGS,
 		displaySettings,
 		timeZoneOptions
-	} from '$lib/shared/stores/display-settings.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useUpdateSelfMutation } from '$lib/features/users/queries';
-	import { formatDate, formatRelativeTime, formatTimestamp } from '$lib/shared/utils/formatting';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import logoCredits from '$lib/data/logo-credits.json';
+	} from '#lib/shared/stores/display-settings.svelte.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useUpdateSelfMutation } from '#lib/features/users/queries.ts';
+	import { formatDate, formatRelativeTime, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import logoCredits from '#lib/data/logo-credits.json';
 	import type { Snippet } from 'svelte';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	import {
 		common_browserDefault,
 		common_system,
@@ -58,7 +58,7 @@
 		settings_system_timestampsRelative,
 		settings_system_version,
 		settings_system_weekStart
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type DisplaySettings = components['schemas']['DisplaySettings'];
 	type DateOrder = components['schemas']['DateOrder'];

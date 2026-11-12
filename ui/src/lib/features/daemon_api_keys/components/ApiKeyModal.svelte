@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import { createApiKeyForm } from '../form';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import { entities } from '$lib/shared/stores/metadata';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import type { ApiKey } from '../types/base';
 	import {
 		createEmptyApiKeyFormData,
 		useCreateApiKeyMutation,
 		useRotateApiKeyMutation
 	} from '../queries';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import ApiKeyFormFields from './ApiKeyFormFields.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_close,
 		common_delete,
@@ -24,7 +24,7 @@
 		common_saving,
 		daemonApiKeys_createApiKey,
 		daemonApiKeys_noSiteAvailable
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

@@ -1,26 +1,26 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import EntityTagSelect, {
 		type EntityTagOption
-	} from '$lib/shared/components/forms/selection/EntityTagSelect.svelte';
+	} from '#lib/shared/components/forms/selection/EntityTagSelect.svelte';
 	import {
 		BindingDisplay,
 		type BindingDisplayContext
-	} from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
+	} from '#lib/shared/components/forms/selection/display/BindingDisplay.svelte';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
 	import {
 		dependencies_selectPort,
 		dependencies_noOpenPortsError,
 		topology_multiSelectNoBindings
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import type { RenderableTopology } from '../../../../types/base';
-	import type { Binding } from '$lib/features/services/types/base';
-	import type { IPAddress } from '$lib/features/hosts/types/base';
+	import type { Binding } from '#lib/features/services/types/base.ts';
+	import type { IPAddress } from '#lib/features/hosts/types/base.ts';
 
 	let {
 		form,
@@ -173,9 +173,7 @@
 			</span>
 		{:else if ipCandidates.length === 1}
 			<EntityTag
-				entityRef={entityRef('IPAddress', ipCandidates[0].ipAddress.id, ipCandidates[0].ipAddress, {
-					subnets: subnetsData
-				})}
+				entityRef={entityRef('IPAddress', ipCandidates[0].ipAddress.id, ipCandidates[0].ipAddress)}
 				label={ipLabel(ipCandidates[0].ipAddress)}
 				icon={entities.getIconComponent('IPAddress')}
 				color={entities.getColorHelper('IPAddress').color}
@@ -185,7 +183,7 @@
 		{:else}
 			{@const ipOptions: EntityTagOption[] = ipCandidates.map((c) => ({
 				id: c.bindingId,
-				entityRef: entityRef('IPAddress', c.ipAddress.id, c.ipAddress, { subnets: subnetsData }),
+				entityRef: entityRef('IPAddress', c.ipAddress.id, c.ipAddress),
 				label: ipLabel(c.ipAddress),
 				icon: entities.getIconComponent('IPAddress'),
 				color: entities.getColorHelper('IPAddress').color
@@ -218,12 +216,7 @@
 		{/if}
 	{:else if bindingCandidates.length === 1}
 		<EntityTag
-			entityRef={entityRef(
-				'Binding',
-				bindingCandidates[0].id,
-				bindingCandidates[0],
-				bindingContext
-			)}
+			entityRef={entityRef('Binding', bindingCandidates[0].id, bindingCandidates[0])}
 			label={BindingDisplay.getLabel?.(bindingCandidates[0], bindingContext) ?? ''}
 			icon={entities.getIconComponent('Port')}
 			color={entities.getColorHelper('Port').color}
@@ -233,7 +226,7 @@
 	{:else}
 		{@const bindingOptions: EntityTagOption[] = bindingCandidates.map((b) => ({
 			id: b.id,
-			entityRef: entityRef('Binding', b.id, b, bindingContext),
+			entityRef: entityRef('Binding', b.id, b),
 			label: BindingDisplay.getLabel?.(b, bindingContext) ?? '',
 			icon: entities.getIconComponent('Port'),
 			color: entities.getColorHelper('Port').color

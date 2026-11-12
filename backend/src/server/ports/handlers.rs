@@ -5,7 +5,7 @@ use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Write};
 use crate::server::config::AppState;
 use crate::server::hosts::r#impl::base::Host;
 use crate::server::ports::{r#impl::base::Port, service::PortService};
@@ -75,7 +75,7 @@ async fn validate_port_site_consistency(state: &AppState, port: &Port) -> Result
 )]
 async fn create_port(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Port, Write>>,
     ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {
     validate_port_site_consistency(&state, &port).await?;
@@ -98,7 +98,7 @@ async fn create_port(
 )]
 async fn update_port(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Port, Write>>,
     path: Path<Uuid>,
     ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {

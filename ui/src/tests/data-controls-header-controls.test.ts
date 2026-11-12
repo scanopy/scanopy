@@ -5,18 +5,18 @@ import {
 	dropHiddenColumnState,
 	renderedFields,
 	type ColumnBoundState
-} from '$lib/shared/components/data/controls/headerControls';
+} from '#lib/shared/components/data/controls/headerControls.ts';
 import {
 	blankFilterState,
 	toggleBoolean,
 	toggleValue,
 	type FilterState
-} from '$lib/shared/components/data/controls/filtering';
+} from '#lib/shared/components/data/controls/filtering.ts';
 import {
 	createFilterActions,
 	type FilterActionsContext
-} from '$lib/shared/components/data/controls/filterActions';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/controls/filterActions.ts';
+import type { FieldConfig } from '#lib/shared/components/data/types.ts';
 
 type Row = Record<string, unknown>;
 

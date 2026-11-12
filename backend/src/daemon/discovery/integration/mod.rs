@@ -15,7 +15,9 @@ pub mod docker;
 pub mod failure;
 pub mod flex;
 pub mod gnmi;
+pub mod hypervisor;
 pub mod instant_on;
+pub mod libvirt;
 pub mod podman;
 pub mod proxmox;
 pub mod snmp;
@@ -95,6 +97,41 @@ pub struct CollectionShortfall {
     pub what: &'static str,
     pub collected: usize,
     pub expected: usize,
+    /// Why the rest are missing, which decides whether the warning is a timeout or a failure.
+    pub cause: ShortfallCause,
+    /// What the operator changes to collect the rest, where the integration knows it.
+    pub remedy: Option<&'static str>,
+}
+
+/// Why a collection recorded fewer than it set out to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShortfallCause {
+    /// The integration stopped at its time limit, so the rest were never read.
+    TimeLimit,
+    /// The rest were read, and the server did not accept them.
+    NotRecorded,
+    /// The source returned an error for the rest.
+    ReadFailed,
+    /// The rest have no address on a subnet this site holds, so they could not be placed.
+    NoKnownAddress,
+}
+
+impl CollectionShortfall {
+    /// A shortfall with no remedy of its own to add.
+    pub fn new(
+        what: &'static str,
+        collected: usize,
+        expected: usize,
+        cause: ShortfallCause,
+    ) -> Self {
+        Self {
+            what,
+            collected,
+            expected,
+            cause,
+            remedy: None,
+        }
+    }
 }
 
 /// A commit point for an integration that deliberately persists mid-flight.
@@ -231,10 +268,11 @@ pub trait DiscoveryIntegration: Send + Sync {
         Duration::from_secs(120)
     }
 
-    /// TCP ports that must be detected open before `probe()` is attempted.
-    /// Returns empty to always attempt (e.g., SNMP does its own UDP probing).
-    fn probe_gate_ports(&self, _credential: &CredentialQueryPayload) -> Vec<PortType> {
-        vec![]
+    /// TCP ports that must be detected open before `probe()` is attempted: the ports the
+    /// credential reaches the host through ([`CredentialReach`](crate::server::credentials::r#impl::mapping::CredentialReach)).
+    /// Empty when it reaches the host without a port, or only over UDP, which SNMP probes itself.
+    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
+        credential.reach().gate_ports()
     }
 
     /// Probe the target host: check if this integration's service responds
@@ -443,6 +481,23 @@ pub struct IntegrationContext<'a> {
     pub trusted_ca: Option<&'a TrustedCaBundle>,
     /// The subnet currently being scanned (needed by SNMP for remote subnet discovery).
     pub scanning_subnet: Option<&'a Subnet>,
+    /// Whether this integration's progress is the session's progress: true in the daemon-host
+    /// phase, which runs the integrations as its whole work. In a deep scan the scan's own cost
+    /// accounting moves the bar, and an integration's percentage of its own work says nothing
+    /// about the session's. See [`IntegrationContext::report_progress`].
+    pub owns_progress: bool,
+}
+
+impl IntegrationContext<'_> {
+    /// Report progress within this integration's work, 0-100. Forwarded to the session only
+    /// where the integration owns the phase's progress ([`Self::owns_progress`]). Inside a deep
+    /// scan it is dropped: the session reports overall progress that never falls, so an
+    /// integration's 90 there became 90% for the whole scan and held the bar until it ended.
+    pub async fn report_progress(&self, percent: u8) {
+        if self.owns_progress {
+            let _ = self.ops.report_progress(percent).await;
+        }
+    }
 }
 
 // ============================================================================
@@ -481,6 +536,7 @@ impl IntegrationRegistry {
                 Box::new(wake_on_lan::WakeOnLanIntegration)
             }
             CredentialQueryPayloadDiscriminants::Proxmox => Box::new(proxmox::ProxmoxIntegration),
+            CredentialQueryPayloadDiscriminants::Libvirt => Box::new(libvirt::LibvirtIntegration),
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }
@@ -493,10 +549,9 @@ impl IntegrationRegistry {
 /// Wraps `execute()` with periodic progress re-reporting to prevent the server's
 /// 5-minute stall detector from killing the session.
 ///
-/// Before calling this, the pipeline sets `session.set_progress_range(start, end)`
-/// to the integration's share of overall progress. The integration calls
-/// `ctx.ops.report_progress(percent)` (0-100 within its scope) which maps to
-/// the correct overall percentage.
+/// The integration calls [`IntegrationContext::report_progress`] (0-100 within its own work).
+/// In the daemon-host phase that maps into the phase's range; inside a deep scan it is dropped,
+/// because no range is set per integration there.
 ///
 /// The `progress_fn` re-reports the current progress as a heartbeat every 30 seconds
 /// if the integration hasn't reported recently.
@@ -632,24 +687,56 @@ fn surviving_collection(
 /// reverse.
 ///
 /// Says **recorded**, not "read": a shortfall means the collection stopped at a coherent boundary
-/// and what it got was kept. The hard-cap message is the one that reports nothing landing. Both
-/// share [`AttemptOutcome::CollectionTimedOut`]'s advice, so the advice stays silent on what was
-/// persisted and each message states its own outcome — otherwise a partial scan reads
-/// "this host's data was not recorded (read 27 of 32 containers)", which contradicts itself.
+/// and what it got was kept. The hard-cap message is the one that reports nothing landing. The
+/// sentence each outcome renders into stays silent on what was persisted and the detail states
+/// it — otherwise a partial scan reads "this host's data was not recorded (read 27 of 32
+/// containers)", which contradicts itself.
 async fn report_shortfall(ctx: &IntegrationContext<'_>, shortfall: &CollectionShortfall) {
+    let (outcome, detail) = shortfall_attempt(shortfall);
     ctx.ops
         .record_attempt_failure(
             ctx.credential.into(),
             ctx.ip,
-            AttemptOutcome::CollectionTimedOut,
-            format!(
-                "recorded {} of {} {} before the time limit; the rest were not read",
-                shortfall.collected, shortfall.expected, shortfall.what
-            ),
+            outcome,
+            detail,
             true,
             ctx.credential_id,
         )
         .await;
+}
+
+/// The attempt outcome and detail a shortfall is reported as. Only running out of time is a
+/// timeout; a server that refused what was read, a source that errored, and an address the site
+/// cannot place are collection failures, with advice that a time limit does not explain.
+fn shortfall_attempt(shortfall: &CollectionShortfall) -> (AttemptOutcome, String) {
+    let recorded = format!(
+        "recorded {} of {} {}",
+        shortfall.collected, shortfall.expected, shortfall.what
+    );
+    let (outcome, rest) = match shortfall.cause {
+        ShortfallCause::TimeLimit => (
+            AttemptOutcome::CollectionTimedOut,
+            "before the time limit; the rest were not read",
+        ),
+        ShortfallCause::NotRecorded => (
+            AttemptOutcome::CollectionFailed,
+            "; the server did not accept the rest",
+        ),
+        ShortfallCause::ReadFailed => (
+            AttemptOutcome::CollectionFailed,
+            "; the rest could not be read",
+        ),
+        ShortfallCause::NoKnownAddress => (
+            AttemptOutcome::CollectionFailed,
+            "; the rest have no address on a subnet this site holds",
+        ),
+    };
+    let separator = if rest.starts_with(';') { "" } else { " " };
+    let detail = match shortfall.remedy {
+        Some(remedy) => format!("{recorded}{separator}{rest}. {remedy}"),
+        None => format!("{recorded}{separator}{rest}"),
+    };
+    (outcome, detail)
 }
 
 /// GH #650. What an integration leaves behind when it does not finish.
@@ -785,11 +872,12 @@ mod partial_result_tests {
         scratch.add_subnet(bridge_subnet());
 
         let surviving = surviving_collection(
-            ExecuteOutcome::Finished(Completeness::Partial(CollectionShortfall {
-                what: "containers",
-                collected: 250,
-                expected: 300,
-            })),
+            ExecuteOutcome::Finished(Completeness::Partial(CollectionShortfall::new(
+                "containers",
+                250,
+                300,
+                ShortfallCause::TimeLimit,
+            ))),
             scratch,
             None,
         );
@@ -816,6 +904,45 @@ mod partial_result_tests {
 
         let failure = surviving.result.expect_err("a timeout is a failure");
         assert_eq!(failure.outcome(), AttemptOutcome::CollectionTimedOut);
+    }
+
+    /// Only a shortfall the time limit caused reads as a timeout. A server that refused what was
+    /// read, or a source that errored, used to say "before the time limit" too.
+    #[test]
+    fn only_a_time_limit_shortfall_is_reported_as_a_timeout() {
+        let outcome = |cause| shortfall_attempt(&CollectionShortfall::new("items", 2, 3, cause)).0;
+
+        assert_eq!(
+            outcome(ShortfallCause::TimeLimit),
+            AttemptOutcome::CollectionTimedOut
+        );
+        for cause in [
+            ShortfallCause::NotRecorded,
+            ShortfallCause::ReadFailed,
+            ShortfallCause::NoKnownAddress,
+        ] {
+            assert_eq!(
+                outcome(cause),
+                AttemptOutcome::CollectionFailed,
+                "{cause:?}"
+            );
+        }
+    }
+
+    /// The detail carries the integration's own remedy when it has one, so the reader of a
+    /// generic collection failure learns the specific fix.
+    #[test]
+    fn a_shortfall_remedy_reaches_the_detail() {
+        let mut shortfall = CollectionShortfall::new("nodes", 1, 2, ShortfallCause::NoKnownAddress);
+        shortfall.remedy = Some("Grant the token Sys.Audit");
+
+        assert!(
+            shortfall_attempt(&shortfall)
+                .1
+                .ends_with("Grant the token Sys.Audit")
+        );
+        shortfall.remedy = None;
+        assert!(!shortfall_attempt(&shortfall).1.contains("Sys.Audit"));
     }
 }
 
@@ -916,5 +1043,80 @@ mod classification_tests {
             IntegrationFailure::with_outcome(AttemptOutcome::TimedOut, "slow").outcome(),
             AttemptOutcome::TimedOut
         );
+    }
+}
+
+#[cfg(test)]
+mod progress_tests {
+    use super::*;
+    use crate::daemon::discovery::service::base::DaemonDiscoveryService;
+    use crate::daemon::utils::base::create_system_utils;
+    use crate::server::credentials::r#impl::mapping::{
+        CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
+    };
+    use crate::server::credentials::r#impl::types::wake_on_lan::WakeOnLanQueryCredential;
+    use crate::server::discovery::r#impl::types::{DiscoveryType, HostNamingFallback};
+    use std::sync::atomic::Ordering;
+
+    /// The progress an integration reports at 90% of its own work, from a context that owns the
+    /// session's progress or not, in the given phase range. Returns the session's progress after.
+    async fn progress_after_integration_reports_90(owns_progress: bool, range: (u8, u8)) -> u8 {
+        let service = DaemonDiscoveryService::running_for_test(Uuid::new_v4()).await;
+        let ops = DiscoveryOps::new(&service, DiscoveryType::default());
+        let session = ops.get_session().await.unwrap();
+        session.set_progress_range(range.0, range.1);
+
+        let credential = CredentialQueryPayload::WakeOnLan(WakeOnLanQueryCredential {
+            port: 9,
+            wait_seconds: 0,
+            broadcast_address: None,
+            secure_on_password: None,
+        });
+        let utils = create_system_utils();
+        let cancel = CancellationToken::new();
+        let ctx = IntegrationContext {
+            ip: IpAddr::from([10, 0, 0, 5]),
+            credential: &credential,
+            credential_id: None,
+            interface_source: InterfaceSource {
+                credential: CredentialQueryPayloadDiscriminants::WakeOnLan,
+                scope: CredentialIntegration::WakeOnLan.interface_view_scope(),
+            },
+            integration: CredentialIntegration::WakeOnLan,
+            cancel: &cancel,
+            ops: &ops,
+            utils: &utils,
+            probe_handle: None,
+            matched_services: &[],
+            open_ports: &[],
+            endpoint_responses: &[],
+            host_id: Uuid::new_v4(),
+            host_naming_fallback: HostNamingFallback::default(),
+            known_subnets: &[],
+            scanned_subnets: &[],
+            accept_invalid_certs: false,
+            trusted_ca: None,
+            scanning_subnet: None,
+            owns_progress,
+        };
+
+        ctx.report_progress(90).await;
+        session.last_progress.load(Ordering::Relaxed)
+    }
+
+    /// Inside a deep scan the network phase spans 5-100%, and an integration's 90 used to map to
+    /// 90% overall. The session's progress never falls, so the bar sat there until the scan ended.
+    #[tokio::test]
+    async fn an_integration_inside_a_deep_scan_leaves_the_sessions_progress_alone() {
+        assert_eq!(
+            progress_after_integration_reports_90(false, (5, 100)).await,
+            0
+        );
+    }
+
+    /// The daemon-host phase is its integrations' work, so their progress moves its share.
+    #[tokio::test]
+    async fn an_integration_in_the_daemon_host_phase_moves_the_phases_share() {
+        assert_eq!(progress_after_integration_reports_90(true, (0, 5)).await, 4);
     }
 }

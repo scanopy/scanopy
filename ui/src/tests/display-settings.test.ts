@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { components } from '$lib/api/schema';
-import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+import type { components } from '#lib/api/schema';
+import { displaySettings } from '#lib/shared/stores/display-settings.svelte.ts';
 
 type DisplaySettings = components['schemas']['DisplaySettings'];
 

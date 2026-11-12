@@ -1,11 +1,11 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import {
 	billingPlans,
 	credentialTypes,
 	entities,
 	type FeatureId
-} from '$lib/shared/stores/metadata';
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+} from '#lib/shared/stores/metadata.ts';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 export type Credential = components['schemas']['Credential'];
 export type CredentialBase = components['schemas']['CredentialBase'];
@@ -23,8 +23,8 @@ export type Interface = components['schemas']['Interface'];
 export type IfAdminStatus = components['schemas']['IfAdminStatus'];
 export type IfOperStatus = components['schemas']['IfOperStatus'];
 
-import type { Color } from '$lib/shared/utils/styling';
-import type { TagProps } from '$lib/shared/components/data/types';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
 import {
 	common_testing,
 	common_unknown,
@@ -33,6 +33,7 @@ import {
 	credentials_targetSiteTooltip,
 	credentials_targetDaemonHostTooltip,
 	credentials_targetHostTooltip,
+	credentials_targetLoginTooltip,
 	snmp_adminStatusDown,
 	snmp_adminStatusUp,
 	snmp_operStatusDormant,
@@ -40,7 +41,7 @@ import {
 	snmp_operStatusLowerLayerDown,
 	snmp_operStatusNotPresent,
 	snmp_operStatusUp
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /**
  * Create a default credential with the given organization ID.
@@ -55,11 +56,15 @@ export function createDefaultCredential(organization_id: string): Credential {
 			community: { mode: 'Inline' as const, value: '' }
 		},
 		daemon_os: null,
+		login_credential_id: null,
 		organization_id,
 		tags: [],
 		assigned_site_ids: [],
 		host_assignments: [],
+		used_by: [],
 		is_default: false,
+		// Read-only: the server sets it to Manual on create.
+		source: { type: 'Manual' },
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
 		updated_at: utcTimeZoneSentinel
@@ -165,6 +170,24 @@ export function getTargetTagProps(target: string): TagProps {
 }
 
 /**
+ * The scope chips for a credential type: one per target, or for an SSH login, which has no
+ * targets of its own, one chip saying it signs in for the credentials that use it.
+ */
+export function getScopeTagProps(typeId: string): TagProps[] {
+	const metadata = credentialTypes.getMetadata(typeId);
+	if (metadata?.role === 'Login') {
+		return [
+			{
+				color: 'Gray',
+				icon: credentialTypes.getIconComponent(typeId),
+				title: credentials_targetLoginTooltip()
+			}
+		];
+	}
+	return (metadata?.targets ?? []).map((target: string) => getTargetTagProps(target));
+}
+
+/**
  * Tag marking a credential type that talks to an API its vendor does not publish, or `null` for
  * vendor-supported ones.
  *
@@ -207,6 +230,16 @@ export function credentialTypeUpgradeFeature(
  */
 export function isDaemonHostOnly(targets: string[] | undefined): boolean {
 	return targets?.length === 1 && targets[0] === 'DaemonHost';
+}
+
+/** An SSH login: other credentials run over it, and it is never assigned to sites or hosts. */
+export function isLoginType(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.role === 'Login';
+}
+
+/** A type whose credentials name the SSH login they run over. */
+export function requiresLogin(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.requires_login === true;
 }
 
 /**

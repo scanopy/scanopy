@@ -5,7 +5,7 @@ use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -36,7 +36,12 @@ pub struct SiteBase {
     /// Human-facing name for this site.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
-    /// The organization that owns this record.
+    /// The organization that owns this record. Set from the caller on create.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
+    #[schema(read_only, required)]
     pub organization_id: Uuid,
     /// Tags assigned to this entity.
     #[serde(default)]
@@ -193,9 +198,10 @@ impl CrudHandlers for Site {
     }
 }
 
-#[async_trait::async_trait]
-impl PaginatedList for Site {
+impl ListRows for Site {
     type Item = Site;
+    type Field = SiteOrderField;
+    type Query = SiteListQuery;
 
     fn ordering(query: &SiteListQuery) -> ListOrdering<SiteOrderField> {
         ListOrdering {
@@ -208,7 +214,10 @@ impl PaginatedList for Site {
             },
         }
     }
+}
 
+#[async_trait::async_trait]
+impl PaginatedList for Site {
     /// Each site with the credentials assigned to it.
     async fn items(
         state: &AppState,
@@ -256,7 +265,7 @@ impl Storable for Site {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -356,8 +365,14 @@ impl Entity for Site {
         ProductArea::Inventory
     }
 
+    /// A site is its own scope, so reaching a site by id takes access to that site.
     fn site_id(&self) -> Option<Uuid> {
-        None
+        Some(self.id)
+    }
+
+    /// A site is scoped to itself, not to a site column: its rows belong to the organization.
+    fn is_site_keyed() -> bool {
+        false
     }
 
     fn organization_id(&self) -> Option<Uuid> {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
+	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
 	import { dependencyColors } from '../../utils';
 	import type { Dependency, EdgeStyle } from '../../types/base';
 	import { Edit } from '@lucide/svelte';
@@ -15,7 +15,7 @@
 		dependencies_edgeStyleLabel,
 		dependencies_editEdgeStyle,
 		dependencies_smoothStep
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		formData = $bindable(),

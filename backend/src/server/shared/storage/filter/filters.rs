@@ -535,8 +535,10 @@ impl<T: Storable> StorableFilter<T> {
         // discovery type marks it as transient.
         self.conditions
             .push("run_type->>'type' != 'Historical'".to_string());
+        // An interface refresh has no row at all; the API refuses one, and this keeps one that
+        // got written some other way out of the user's list.
         self.conditions
-            .push("discovery_type->>'type' != 'Rescan'".to_string());
+            .push("discovery_type->>'type' NOT IN ('Rescan', 'InterfaceRefresh')".to_string());
         self
     }
 

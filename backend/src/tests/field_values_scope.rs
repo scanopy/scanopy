@@ -2,7 +2,6 @@
 //! `site_ids` contributes no values, whether or not the request names it, and a list that
 //! always carries a scope (the run history's `historical`) counts only rows inside it.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
@@ -17,10 +16,11 @@ use crate::server::services::handlers::{ServiceFilterQuery, ServiceOrderField};
 use crate::server::services::r#impl::base::Service;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::handlers::ordering::OrderField;
-use crate::server::shared::handlers::traits::field_values_filter;
+use crate::server::shared::handlers::traits::{field_values, field_values_filter};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Storage;
+use crate::server::shared::types::api::GroupCount;
 
 use super::{daemon, host, organization, service, site, test_services, user};
 
@@ -154,7 +154,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
     storage.daemons.create(&d).await.unwrap();
 
     let discovery = |name: &str, run_type: RunType| {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Discovery {
             id: Uuid::new_v4(),
             created_at: now,
@@ -199,8 +199,8 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                     error: None,
                     warnings: Vec::new(),
                     credential_results: Vec::new(),
-                    started_at: Some(Utc::now()),
-                    finished_at: Some(Utc::now()),
+                    started_at: Some(crate::server::shared::clock::now()),
+                    finished_at: Some(crate::server::shared::clock::now()),
                     hosts_discovered: None,
                     estimated_remaining_secs: None,
                     discovery_id: None,
@@ -208,6 +208,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                     reason: None,
                     last_update_at: None,
                     daemon_version: None,
+                    last_activity_at: None,
                 }),
             },
         ))
@@ -253,6 +254,96 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
             .len(),
         2,
         "without the history scope both rows count, so the scope is what excludes the schedule"
+    );
+}
+
+/// One request for several fields returns, for each, the counts a request for that field alone
+/// returns: `VirtualizedBy` reads through a JOIN, `Manufacturer` and `SiteId` do not, and the JOIN
+/// must not reach the other fields' counts.
+#[tokio::test]
+async fn batched_field_values_match_each_field_counted_alone() {
+    let (storage, services, _container) = test_services().await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
+    let hidden = site(&org.id);
+    storage.sites.create(&hidden).await.unwrap();
+
+    let hypervisor = host(&net.id);
+    storage.hosts.create(&hypervisor).await.unwrap();
+    let mut runtime = service(&net.id, &hypervisor.id);
+    runtime.base.name = "Proxmox VE".to_string();
+    storage.services.create(&runtime).await.unwrap();
+
+    for (site_id, manufacturer, virtualized) in [
+        (net.id, "Cisco", true),
+        (net.id, "Cisco", true),
+        (net.id, "Juniper", false),
+        (hidden.id, "Aruba", false),
+    ] {
+        let mut h = host(&site_id);
+        h.base.manufacturer = Some(Attributed::new(
+            HostManufacturerValue(manufacturer.to_string()),
+            AttributeSource::ReverseDns,
+        ));
+        h.base.virtualization_service_id = virtualized.then_some(runtime.id);
+        storage.hosts.create(&h).await.unwrap();
+    }
+
+    let scope = crate::tests::list_scope(&[net.id], org.id);
+    let query = HostFilterQuery::default();
+    let fields = [
+        HostOrderField::VirtualizedBy,
+        HostOrderField::Manufacturer,
+        HostOrderField::SiteId,
+    ];
+    let pairs = |counts: Vec<GroupCount>| {
+        counts
+            .into_iter()
+            .map(|g| (g.value, g.count))
+            .collect::<Vec<_>>()
+    };
+
+    // The same field named twice is counted once.
+    let mut requested = fields.to_vec();
+    requested.push(HostOrderField::Manufacturer);
+    let batched = field_values::<Host>(&services.host_service, &scope, &query, requested)
+        .await
+        .unwrap();
+    assert_eq!(batched.len(), fields.len());
+
+    for (field, batch) in fields.into_iter().zip(batched) {
+        let alone = services
+            .host_service
+            .count_by_group(
+                field_values_filter::<Host>(&scope, &query, field),
+                field.to_sql(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(field.to_sql(), batch.field.to_sql());
+        assert_eq!(pairs(batch.values), pairs(alone), "{field:?}");
+    }
+
+    let manufacturers = field_values::<Host>(
+        &services.host_service,
+        &scope,
+        &query,
+        vec![HostOrderField::Manufacturer],
+    )
+    .await
+    .unwrap();
+    let mut counted = pairs(manufacturers.into_iter().next().unwrap().values);
+    counted.retain(|(value, _)| value.is_some());
+    assert_eq!(
+        counted,
+        vec![
+            (Some("Cisco".to_string()), 2),
+            (Some("Juniper".to_string()), 1)
+        ],
+        "the hidden site's Aruba host is not counted"
     );
 }
 

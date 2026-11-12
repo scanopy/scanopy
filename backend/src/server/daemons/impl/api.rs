@@ -17,7 +17,13 @@ use crate::{
             },
         },
         discovery::r#impl::types::DiscoveryType,
-        shared::events::traits::{DiscoveryScope, Event},
+        shared::{
+            events::traits::{DiscoveryScope, Event},
+            types::{
+                Color, Icon,
+                metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+            },
+        },
         subnets::r#impl::base::Subnet,
     },
 };
@@ -97,6 +103,73 @@ pub struct DaemonRegistrationResponse {
     /// Server capabilities (returned if daemon sends version info)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_capabilities: Option<ServerCapabilities>,
+}
+
+/// What a DaemonPoll work request returns, on the wire a JSON array:
+/// `[next_session, cancel]`, or `[next_session, cancel, cancel_session_id]` for a daemon that
+/// reads the session id. A daemon from before the id reads exactly two elements and fails on a
+/// third, so the server sends the id only to daemons past
+/// [`crate::server::daemons::r#impl::version::last_without_cancel_session_id`]. A daemon reads
+/// either shape.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DaemonWorkResponse<T> {
+    pub next_session: Option<T>,
+    /// Whether the daemon should cancel a session.
+    pub cancel: bool,
+    /// The session to cancel. `None` from a server that predates it.
+    pub cancel_session_id: Option<Uuid>,
+    /// Whether the third element goes on the wire. Not itself sent.
+    pub sends_cancel_session_id: bool,
+}
+
+impl<T: Serialize> Serialize for DaemonWorkResponse<T> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeTuple;
+        let len = if self.sends_cancel_session_id { 3 } else { 2 };
+        let mut tuple = serializer.serialize_tuple(len)?;
+        tuple.serialize_element(&self.next_session)?;
+        tuple.serialize_element(&self.cancel)?;
+        if self.sends_cancel_session_id {
+            tuple.serialize_element(&self.cancel_session_id)?;
+        }
+        tuple.end()
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for DaemonWorkResponse<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct WorkVisitor<T>(std::marker::PhantomData<T>);
+
+        impl<'de, T: Deserialize<'de>> serde::de::Visitor<'de> for WorkVisitor<T> {
+            type Value = DaemonWorkResponse<T>;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("an array of the next session, the cancel flag and optionally the session to cancel")
+            }
+
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> Result<Self::Value, A::Error> {
+                use serde::de::Error;
+                let next_session = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(0, &self))?;
+                let cancel = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(1, &self))?;
+                let third: Option<Option<Uuid>> = seq.next_element()?;
+                Ok(DaemonWorkResponse {
+                    next_session,
+                    cancel,
+                    cancel_session_id: third.flatten(),
+                    sends_cancel_session_id: third.is_some(),
+                })
+            }
+        }
+
+        deserializer.deserialize_seq(WorkVisitor(std::marker::PhantomData))
+    }
 }
 
 /// Daemon discovery request from server to daemon
@@ -299,7 +372,7 @@ pub struct DiscoveryUpdatePayload {
     #[serde(default)]
     pub estimated_remaining_secs: Option<u32>,
     /// The discovery configuration this session belongs to.
-    /// Always enriched server-side; daemons do not send this field.
+    /// Always set server-side. A value a daemon sends is discarded.
     #[serde(default)]
     pub discovery_id: Option<Uuid>,
     /// Canonical IDs of entities scanned in this session, populated daemon-
@@ -331,6 +404,10 @@ pub struct DiscoveryUpdatePayload {
     /// survives the daemon being deleted or upgraded.
     #[serde(default)]
     pub daemon_version: Option<String>,
+    /// When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+    /// an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_activity_at: Option<DateTime<Utc>>,
 }
 
 impl DiscoveryUpdatePayload {
@@ -385,6 +462,7 @@ impl DiscoveryUpdatePayload {
             reason: None,
             last_update_at: None,
             daemon_version: None,
+            last_activity_at: None,
         }
     }
 
@@ -414,6 +492,7 @@ impl DiscoveryUpdatePayload {
             reason: update.reason,
             last_update_at: None,
             daemon_version: None,
+            last_activity_at: None,
         }
     }
 
@@ -639,6 +718,77 @@ impl DaemonHealth {
     }
 }
 
+impl HasId for DaemonHealth {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DaemonHealth {
+    fn color(&self) -> Color {
+        match self {
+            Self::Unsupported | Self::Unreachable => Color::Red,
+            Self::Standby => Color::Purple,
+            Self::AwaitingConnection => Color::Blue,
+            Self::Deprecated => Color::Orange,
+            Self::Outdated => Color::Yellow,
+            Self::Unknown => Color::Gray,
+            Self::Healthy => Color::Green,
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            Self::Unsupported => Icon::Ban,
+            Self::Unreachable => Icon::WifiOff,
+            Self::Standby => Icon::Moon,
+            Self::AwaitingConnection => Icon::Hourglass,
+            Self::Deprecated => Icon::TriangleAlert,
+            Self::Outdated => Icon::CircleArrowUp,
+            Self::Unknown => Icon::CircleHelp,
+            Self::Healthy => Icon::CircleCheck,
+        }
+    }
+}
+
+impl TypeMetadataProvider for DaemonHealth {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Unsupported => "Unsupported",
+            Self::Unreachable => "Unreachable",
+            Self::Standby => "Standby",
+            Self::AwaitingConnection => "Awaiting connection",
+            Self::Deprecated => "Deprecated",
+            Self::Outdated => "Outdated",
+            Self::Unknown => "Unknown",
+            Self::Healthy => "Healthy",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Unsupported => {
+                "The daemon's version is past its sunset date, so the server rejects it. Upgrade the daemon."
+            }
+            Self::Unreachable => {
+                "The server stopped polling the daemon after repeated failed connections."
+            }
+            Self::Standby => {
+                "The daemon has run no discovery in 30 days, so the server sends it no work."
+            }
+            Self::AwaitingConnection => "The daemon has not connected to the server yet.",
+            Self::Deprecated => {
+                "The daemon's version has a sunset date. Upgrade before then to keep it running."
+            }
+            Self::Outdated => "A newer daemon version is available.",
+            Self::Unknown => {
+                "The daemon hasn't reported its version. Upgrade it to the current release."
+            }
+            Self::Healthy => "The daemon is connected and on the current version.",
+        }
+    }
+}
+
 /// Request to pre-provision a daemon (either mode) before it is installed.
 /// This creates the daemon record + its 1:1 API key on the server so the install
 /// command shrinks to two flags.
@@ -709,7 +859,9 @@ pub struct TestReachabilityRequest {
     pub check_health: bool,
 }
 
-/// Whether provisioning another daemon would be refused for the caller's organization.
+/// Whether provisioning another daemon would be refused for the caller's organization. Both
+/// flags can be set at once, so the wizard can name every step that stands between the user and
+/// a second daemon.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ProvisionEligibility {
     /// The organization already has a daemon and no owner has verified their email, so a new
@@ -718,6 +870,22 @@ pub struct ProvisionEligibility {
     /// The organization already has a daemon and is on Free, which runs one, so a new daemon
     /// is refused until it chooses a plan.
     pub plan_required: bool,
+    /// The daemons on the caller's sites that have never connected. Filled only while a new
+    /// daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+    pub unconnected_daemons: Vec<UnconnectedDaemon>,
+}
+
+/// A daemon that has never checked in, as the create wizard lists it.
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct UnconnectedDaemon {
+    /// The daemon's id.
+    pub id: Uuid,
+    /// The daemon's name, as set when it was created.
+    pub name: String,
+    /// The site the daemon was created on.
+    pub site_id: Uuid,
+    /// When the daemon was created.
+    pub created_at: DateTime<Utc>,
 }
 
 /// Response from a reachability test.
@@ -1009,7 +1177,7 @@ mod health_tests {
         let mut base = DaemonBase {
             version: Some("0.1.0".parse().unwrap()),
             is_unreachable: true,
-            last_seen: Some(Utc::now()),
+            last_seen: Some(crate::server::shared::clock::now()),
             ..Default::default()
         };
         let status = policy.evaluate(base.version.as_ref());
@@ -1024,5 +1192,85 @@ mod health_tests {
             DaemonHealth::of(&base, &status),
             DaemonHealth::AwaitingConnection
         );
+    }
+
+    /// Every combination of daemon state and version status lands on one health value, and only a
+    /// daemon that has connected, is reachable, is not on standby and runs a Current version is
+    /// Healthy.
+    #[test]
+    fn only_a_connected_current_daemon_is_healthy() {
+        use strum::IntoEnumIterator;
+
+        let mut status = DaemonVersionPolicy::default().evaluate(None);
+        let mut reached = std::collections::HashSet::new();
+        for version in VersionHealthStatus::iter() {
+            status.status = version;
+            for (is_unreachable, standby, connected) in
+                itertools::iproduct!([false, true], [false, true], [false, true])
+            {
+                let base = DaemonBase {
+                    is_unreachable,
+                    standby,
+                    last_seen: connected.then(crate::server::shared::clock::now),
+                    ..Default::default()
+                };
+                let health = DaemonHealth::of(&base, &status);
+                reached.insert(<&str>::from(health));
+                let expect_healthy = version == VersionHealthStatus::Current
+                    && connected
+                    && !is_unreachable
+                    && !standby;
+                assert_eq!(
+                    health == DaemonHealth::Healthy,
+                    expect_healthy,
+                    "{version:?}, unreachable={is_unreachable}, standby={standby}, connected={connected} gave {health:?}"
+                );
+            }
+        }
+        assert_eq!(reached.len(), DaemonHealth::iter().count());
+    }
+}
+
+#[cfg(test)]
+mod work_response_tests {
+    use super::*;
+
+    fn response(sends_cancel_session_id: bool) -> DaemonWorkResponse<u8> {
+        DaemonWorkResponse {
+            next_session: Some(7),
+            cancel: true,
+            cancel_session_id: Some(Uuid::new_v4()),
+            sends_cancel_session_id,
+        }
+    }
+
+    /// A daemon from before the session id reads the response as a two-element tuple and fails
+    /// on a third element, so what it is sent must still read that way.
+    #[test]
+    fn a_daemon_that_predates_the_session_id_still_reads_its_response() {
+        let wire = serde_json::to_string(&response(false)).unwrap();
+
+        let old: (Option<u8>, bool) = serde_json::from_str(&wire).unwrap();
+        assert_eq!(old, (Some(7), true));
+        assert!(
+            serde_json::from_str::<(Option<u8>, bool)>(
+                &serde_json::to_string(&response(true)).unwrap()
+            )
+            .is_err()
+        );
+    }
+
+    /// A current daemon reads the session id when it is sent and none from an older server.
+    #[test]
+    fn a_current_daemon_reads_either_shape() {
+        let sent = response(true);
+        let read: DaemonWorkResponse<u8> =
+            serde_json::from_str(&serde_json::to_string(&sent).unwrap()).unwrap();
+        assert_eq!(read.cancel_session_id, sent.cancel_session_id);
+
+        let legacy: DaemonWorkResponse<u8> = serde_json::from_str("[null, true]").unwrap();
+        assert_eq!(legacy.next_session, None);
+        assert!(legacy.cancel);
+        assert_eq!(legacy.cancel_session_id, None);
     }
 }

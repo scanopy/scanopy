@@ -1,9 +1,11 @@
+import adapter from '@sveltejs/adapter-static';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync } from 'node:fs';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import license, { type Dependency } from 'rollup-plugin-license';
 import { defineConfig } from 'vitest/config';
-import pkg from './package.json';
+import pkg from './package.json' with { type: 'json' };
 
 // The licences the UI bundle accepts from its npm packages. A package under any other licence
 // (GPL, LGPL, AGPL...) fails `npm run build`, and so ui-ci. backend/about.toml holds the same
@@ -55,11 +57,14 @@ export default defineConfig({
 		include: ['src/tests/**/*.test.ts']
 	},
 	plugins: [
-		sveltekit(),
-		paraglideVitePlugin({
-			project: './project.inlang',
-			outdir: './src/lib/paraglide'
+		sveltekit({
+			preprocess: vitePreprocess(),
+			adapter: adapter({ fallback: 'index.html' }),
+			// SvelteKit 3 polls for a new build every hour by default. Nothing reads `updated`,
+			// so keep polling off, as it was on SvelteKit 2.
+			version: { pollInterval: 0 }
 		}),
+		paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' }),
 		{
 			...license({
 				thirdParty: {
@@ -102,6 +107,12 @@ export default defineConfig({
 				changeOrigin: true
 			}
 		}
+	},
+
+	// The server build externalizes bare package imports, which leaves `@import 'tailwindcss'` in
+	// app.css unresolved. Bundling it lets the CSS resolver find the package's stylesheet.
+	ssr: {
+		noExternal: ['tailwindcss']
 	},
 
 	build: {

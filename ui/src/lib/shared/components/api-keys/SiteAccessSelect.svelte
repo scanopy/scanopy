@@ -6,13 +6,23 @@
 	 * Filters available sites based on the current user's site access
 	 * (users can only grant access to sites they have access to)
 	 */
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { permissions } from '$lib/shared/stores/metadata';
-	import type { Site } from '$lib/features/sites/types';
-	import type { UserOrgPermissions } from '$lib/features/users/types';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { holdsOnAllSites } from '#lib/features/auth/access.ts';
+	import { permissions } from '#lib/shared/stores/metadata.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import type { UserOrgPermissions } from '#lib/features/users/types.ts';
+	import {
+		common_allSites,
+		common_sites,
+		userApiKeys_allSitesHelp,
+		userApiKeys_specificSites,
+		users_hasAllSites
+	} from '#lib/paraglide/messages.js';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
 
 	interface Props {
 		/** Currently selected site IDs */
@@ -29,16 +39,22 @@
 		required?: boolean;
 		/** Always show site selection regardless of permission level (for API keys) */
 		alwaysShowSelection?: boolean;
+		/** Whether All sites is chosen instead of a list (for API keys) */
+		allSites?: boolean;
+		/** Offers All sites as a choice when set, to a user who holds All sites (for API keys) */
+		onAllSitesChange?: (allSites: boolean) => void;
 	}
 
 	let {
 		selectedSiteIds,
 		onChange,
 		permissionLevel = 'Viewer',
-		label = 'Sites',
-		helpText = 'Select sites this entity will have access to',
+		label = common_sites(),
+		helpText = '',
 		required = false,
-		alwaysShowSelection = false
+		alwaysShowSelection = false,
+		allSites = false,
+		onAllSitesChange
 	}: Props = $props();
 
 	// Get current user and sites
@@ -48,11 +64,18 @@
 	const sitesQuery = useSitesQuery();
 	let sitesData = $derived(sitesQuery.data ?? []);
 
+	// Only a user who holds All sites can grant it. A key already on All sites shows the choice so
+	// its owner can move it to a list.
+	let offersAllSites = $derived(
+		onAllSitesChange !== undefined &&
+			(allSites || holdsOnAllSites(currentUser?.access, 'Site', 'Read'))
+	);
+
 	// Permissions that have access to all sites (don't need explicit selection)
 	let sitesNotNeeded = $derived(
 		permissions
 			.getItems()
-			.filter((p) => p.metadata.manage_org_entities)
+			.filter((p) => p.metadata.reaches_all_sites)
 			.map((p) => p.id)
 	);
 
@@ -95,26 +118,39 @@
 </script>
 
 {#if needsSiteSelection}
-	<ListManager
-		{label}
-		{helpText}
-		{required}
-		allowReorder={false}
-		allowAddFromOptions={true}
-		allowCreateNew={false}
-		allowItemEdit={false}
-		disableCreateNewButton={false}
-		onAdd={handleAddSite}
-		onRemove={handleRemoveSite}
-		options={siteOptions}
-		optionDisplayComponent={SiteDisplay}
-		items={selectedSites}
-		itemDisplayComponent={SiteDisplay}
-	/>
-{:else}
-	<div class="card-static card">
-		<p class="text-sm text-secondary">
-			Users with {permissionLevel} permissions have access to all sites.
-		</p>
+	<div class="space-y-3">
+		{#if offersAllSites}
+			<SegmentedControl
+				options={[
+					{ value: 'all', label: common_allSites() },
+					{ value: 'specific', label: userApiKeys_specificSites() }
+				]}
+				selected={allSites ? 'all' : 'specific'}
+				onchange={(value) => onAllSitesChange?.(value === 'all')}
+				size="md"
+			/>
+		{/if}
+		{#if offersAllSites && allSites}
+			<InlineInfo body={userApiKeys_allSitesHelp()} />
+		{:else}
+			<ListManager
+				{label}
+				{helpText}
+				{required}
+				allowReorder={false}
+				allowAddFromOptions={true}
+				allowCreateNew={false}
+				allowItemEdit={false}
+				disableCreateNewButton={false}
+				onAdd={handleAddSite}
+				onRemove={handleRemoveSite}
+				options={siteOptions}
+				optionDisplayComponent={SiteDisplay}
+				items={selectedSites}
+				itemDisplayComponent={SiteDisplay}
+			/>
+		{/if}
 	</div>
+{:else}
+	<InlineInfo body={users_hasAllSites({ permissions: permissionLevel })} />
 {/if}

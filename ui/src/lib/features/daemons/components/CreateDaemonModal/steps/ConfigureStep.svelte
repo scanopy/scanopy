@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import type { FormValue } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
+	import type { FormValue } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
 
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
-	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
+	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
+	import RadioGroup from '#lib/shared/components/forms/input/RadioGroup.svelte';
 	import OsSelector from '../../OsSelector.svelte';
 	import type { DaemonOS } from '../../../utils';
 	import { fieldDefs } from '../../../config';
@@ -30,7 +30,7 @@
 		daemons_portReachable,
 		daemons_osHelp,
 		daemons_osLocked
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

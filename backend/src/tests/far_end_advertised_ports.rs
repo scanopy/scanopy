@@ -6,7 +6,6 @@
 
 use std::collections::{HashMap, HashSet};
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::server::{
@@ -47,7 +46,7 @@ struct Lab {
     neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: StorageFactory,
     site_id: Uuid,
-    _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
+    _container: super::TestDb,
 }
 
 impl Lab {
@@ -122,7 +121,11 @@ impl Lab {
 
     async fn resolve(&self) {
         self.host_service
-            .resolve_lldp_links(self.site_id, Utc::now(), &Default::default())
+            .resolve_lldp_links(
+                self.site_id,
+                crate::server::shared::clock::now(),
+                &Default::default(),
+            )
             .await
             .unwrap();
     }
@@ -234,10 +237,7 @@ async fn re_advertised_far_end(lab: &Lab) -> (Host, Interface) {
     switch.base.source = EntitySource::Inferred {
         via: InferredVia::Neighbour,
     };
-    // Microseconds, the precision Postgres keeps, so a test can compare the stored value to this
-    // one. Linux clocks carry nanoseconds, which the round trip drops.
-    switch.last_seen_at =
-        chrono::SubsecRound::trunc_subsecs(Utc::now() - chrono::Duration::days(3), 6);
+    switch.last_seen_at = crate::server::shared::clock::now() - chrono::Duration::days(3);
     lab.storage.hosts.update(&mut switch).await.unwrap();
     let neighbour = lab.neighbour("access-1", MUTE_SWITCH, "ge-0/0/1").await;
     (switch, neighbour)
@@ -247,8 +247,7 @@ async fn re_advertised_far_end(lab: &Lab) -> (Host, Interface) {
 async fn a_far_end_a_scan_re_reads_is_seen_by_that_scan() {
     let lab = Lab::new().await;
     let (switch, neighbour) = re_advertised_far_end(&lab).await;
-    // Microseconds, the precision Postgres keeps, so the stored value compares equal.
-    let scan_time = chrono::SubsecRound::trunc_subsecs(Utc::now(), 6);
+    let scan_time = crate::server::shared::clock::now();
     let run = ScannedEntityIds {
         interface_ids: vec![neighbour.id],
         ..Default::default()
@@ -277,7 +276,11 @@ async fn a_neighbour_this_scan_did_not_walk_is_no_evidence() {
 
     let outcome = lab
         .host_service
-        .resolve_lldp_links(lab.site_id, Utc::now(), &ScannedEntityIds::default())
+        .resolve_lldp_links(
+            lab.site_id,
+            crate::server::shared::clock::now(),
+            &ScannedEntityIds::default(),
+        )
         .await
         .unwrap();
 

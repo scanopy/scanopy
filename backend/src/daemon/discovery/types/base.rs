@@ -219,6 +219,9 @@ pub enum DiscoveryTerminalReason {
     /// A DaemonPoll daemon came back idle while the server still had the session running, without
     /// a restart and without the session's final report.
     DaemonDroppedSession,
+    /// The daemon's watchdog ended a session that kept running without advancing: no progress, no
+    /// host created and no deep scan or integration finished for the activity limit.
+    SessionStoppedAdvancing,
 }
 
 impl DiscoveryTerminalReason {
@@ -227,7 +230,9 @@ impl DiscoveryTerminalReason {
     pub fn daemon_assigned(self) -> bool {
         matches!(
             self,
-            DiscoveryTerminalReason::DaemonBusy | DiscoveryTerminalReason::WatchdogTimeout
+            DiscoveryTerminalReason::DaemonBusy
+                | DiscoveryTerminalReason::WatchdogTimeout
+                | DiscoveryTerminalReason::SessionStoppedAdvancing
         )
     }
 
@@ -239,6 +244,7 @@ impl DiscoveryTerminalReason {
                 | DiscoveryTerminalReason::WatchdogTimeout
                 | DiscoveryTerminalReason::DaemonOffline
                 | DiscoveryTerminalReason::SessionSilent
+                | DiscoveryTerminalReason::SessionStoppedAdvancing
         )
     }
 
@@ -255,6 +261,7 @@ impl DiscoveryTerminalReason {
                 | DiscoveryTerminalReason::SessionSilent
                 | DiscoveryTerminalReason::DaemonDroppedSession
                 | DiscoveryTerminalReason::StalledNoUpdates
+                | DiscoveryTerminalReason::SessionStoppedAdvancing
         )
     }
 }
@@ -273,6 +280,7 @@ impl HasId for DiscoveryTerminalReason {
             DiscoveryTerminalReason::DaemonOffline => "DaemonOffline",
             DiscoveryTerminalReason::SessionSilent => "SessionSilent",
             DiscoveryTerminalReason::DaemonDroppedSession => "DaemonDroppedSession",
+            DiscoveryTerminalReason::SessionStoppedAdvancing => "SessionStoppedAdvancing",
         }
     }
 }
@@ -291,6 +299,7 @@ impl EntityMetadataProvider for DiscoveryTerminalReason {
             DiscoveryTerminalReason::DaemonOffline => Color::Red,
             DiscoveryTerminalReason::SessionSilent => Color::Amber,
             DiscoveryTerminalReason::DaemonDroppedSession => Color::Orange,
+            DiscoveryTerminalReason::SessionStoppedAdvancing => Color::Amber,
         }
     }
 
@@ -307,6 +316,7 @@ impl EntityMetadataProvider for DiscoveryTerminalReason {
             DiscoveryTerminalReason::DaemonOffline => Icon::WifiOff,
             DiscoveryTerminalReason::SessionSilent => Icon::MessageCircleOff,
             DiscoveryTerminalReason::DaemonDroppedSession => Icon::CircleQuestionMark,
+            DiscoveryTerminalReason::SessionStoppedAdvancing => Icon::CirclePause,
         }
     }
 }
@@ -325,6 +335,7 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
             DiscoveryTerminalReason::DaemonOffline => "Daemon offline",
             DiscoveryTerminalReason::SessionSilent => "Scan went silent",
             DiscoveryTerminalReason::DaemonDroppedSession => "Daemon dropped scan",
+            DiscoveryTerminalReason::SessionStoppedAdvancing => "Scan stopped advancing",
         }
     }
 
@@ -360,6 +371,9 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
             }
             DiscoveryTerminalReason::DaemonDroppedSession => {
                 "The daemon is running and idle but no longer had this scan, and its final report never reached the server. The daemon's logs show how the scan ended."
+            }
+            DiscoveryTerminalReason::SessionStoppedAdvancing => {
+                "The scan kept running for 20 minutes without finding a host or finishing a step, so the daemon stopped it. The error names the hosts the scan was still working on."
             }
         }
     }
@@ -466,7 +480,7 @@ impl Display for DiscoveryCriticalError {
             DiscoveryCriticalError::ResourceExhaustion => {
                 write!(
                     f,
-                    "Resource exhaustion during scan: too many open files - CONCURRENT_SCANS is likely too high for this system. Check readme for troubleshooting."
+                    "The scan ran out of file descriptors (too many open files). Raise the daemon's hard file-descriptor limit and restart it: https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error"
                 )
             }
         }

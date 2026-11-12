@@ -17,7 +17,7 @@ use crate::server::organizations::r#impl::base::Organization;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{Event, OrgScope};
-use crate::server::shared::events::types::{BillingOperation, OnboardingOperation};
+use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::types::metadata::TypeMetadataProvider;

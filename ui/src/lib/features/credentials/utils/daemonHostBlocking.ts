@@ -1,5 +1,5 @@
-import { credentialTypes } from '$lib/shared/stores/metadata';
-import { daemons_credentialWizardDaemonHostUnavailable } from '$lib/paraglide/messages';
+import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+import { daemons_credentialWizardDaemonHostUnavailable } from '#lib/paraglide/messages.js';
 import { getCredentialTypeId, type Credential } from '../types/base';
 
 /**

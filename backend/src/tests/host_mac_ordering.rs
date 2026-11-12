@@ -4,7 +4,7 @@
 //! interfaces, and a host with none sorts last in both directions. The list is paginated, so the
 //! order is only right if it holds across page boundaries, which is why every case walks pages.
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use crate::server::hosts::handlers::HostOrderField;
@@ -58,7 +58,7 @@ impl Fixture {
     /// A superseded SCD2 row: the host held this MAC once and no longer does.
     async fn closed_ip(&self, host_id: Uuid, m: &str) {
         let mut ip = self.ip_address(host_id, Some(m));
-        ip.valid_to = Some(Utc::now() - Duration::hours(1));
+        ip.valid_to = Some(crate::server::shared::clock::now() - Duration::hours(1));
         self.storage.ip_addresses.create(&ip).await.unwrap();
     }
 

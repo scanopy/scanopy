@@ -7,9 +7,11 @@
  */
 
 import type { TopologyNode } from '../types/base';
-import { containerTypes } from '$lib/shared/stores/metadata';
+import { containerTypes } from '#lib/shared/stores/metadata.ts';
 
 const CHILD_SPACING = 30;
+/** The grid root containers are snapped to (`mapElkResults`, SvelteFlow's `snapGrid`). */
+const ROOT_GRID = 25;
 
 export class LayoutElement {
 	id: string;
@@ -483,6 +485,105 @@ export class LayoutGraph {
 
 		this.invalidateAbsoluteCache();
 		return affected;
+	}
+
+	/**
+	 * Mark a container expanded and change nothing else.
+	 *
+	 * `expand` also restacks the container's children and its parent's, which is right when no
+	 * layout follows. A local expand lays the inside out itself and then calls `makeRoomFor`, and
+	 * both need the positions and sizes as the last layout left them.
+	 */
+	openInPlace(containerId: string): void {
+		const container = this.containers.get(containerId);
+		if (container) container.collapsed = false;
+	}
+
+	/** Every container and element inside `containerId`, at any depth, hidden ones included. */
+	descendantIds(containerId: string): Set<string> {
+		const ids = new Set<string>();
+		const visit = (container: LayoutContainer) => {
+			for (const element of container.childElements) ids.add(element.id);
+			for (const child of container.childContainers) {
+				ids.add(child.id);
+				visit(child);
+			}
+		};
+		const container = this.containers.get(containerId);
+		if (container) visit(container);
+		return ids;
+	}
+
+	/**
+	 * Make room for a container that grew where it stands, moving nothing relative to anything
+	 * else.
+	 *
+	 * `previous` is the size the container had in the layout on screen; its current size is the
+	 * one to make room for. Every sibling whose left edge is at or past the container's old right
+	 * edge moves right by the growth in width, and every sibling whose top is at or past its old
+	 * bottom edge moves down by the growth in height. Inside a parent, the parent then grows to
+	 * hold its children and the same rule runs one level up, ending with the root containers.
+	 *
+	 * Two boxes that did not overlap before do not overlap after: space is only ever inserted, in
+	 * one vertical and one horizontal band across the whole level. The price is that band, which
+	 * stays empty until a full layout runs.
+	 */
+	makeRoomFor(containerId: string, previous: { width: number; height: number }): void {
+		let container = this.containers.get(containerId);
+		let before = previous;
+		while (container) {
+			const after = container.size;
+			const parent: LayoutContainer | null = container.parent;
+			// Root containers sit on the 25px grid the viewer snaps to; a shift keeps them on it.
+			const step = (growth: number) =>
+				growth <= 0 ? 0 : parent ? growth : Math.ceil(growth / ROOT_GRID) * ROOT_GRID;
+			const shiftX = step(after.width - before.width);
+			const shiftY = step(after.height - before.height);
+			if (shiftX === 0 && shiftY === 0) break;
+
+			const oldRight = container.position.x + before.width;
+			const oldBottom = container.position.y + before.height;
+			const siblings: (LayoutContainer | LayoutElement)[] = parent
+				? parent.allChildren
+				: this.rootNodes();
+			for (const sibling of siblings) {
+				if (sibling === container) continue;
+				const { x, y } = sibling.position;
+				sibling.position = {
+					x: x >= oldRight ? x + shiftX : x,
+					y: y >= oldBottom ? y + shiftY : y
+				};
+			}
+
+			if (!parent) break;
+			const parentBefore = { ...parent.expandedSize };
+			const padding = containerTypes.getMetadata(parent.containerType).padding;
+			let right = 0;
+			let bottom = 0;
+			for (const child of parent.allChildren) {
+				const size =
+					child instanceof LayoutContainer
+						? child.size
+						: { width: child.width, height: child.height };
+				right = Math.max(right, child.position.x + size.width);
+				bottom = Math.max(bottom, child.position.y + size.height);
+			}
+			parent.expandedSize = {
+				width: Math.max(parentBefore.width, right + padding.right),
+				height: Math.max(parentBefore.height, bottom + padding.bottom)
+			};
+			before = parentBefore;
+			container = parent;
+		}
+		this.invalidateAbsoluteCache();
+	}
+
+	/** Containers with no parent and elements with no container: what the root level places. */
+	private rootNodes(): (LayoutContainer | LayoutElement)[] {
+		const roots: (LayoutContainer | LayoutElement)[] = [];
+		for (const container of this.containers.values()) if (!container.parent) roots.push(container);
+		for (const element of this.elements.values()) if (!element.container) roots.push(element);
+		return roots;
 	}
 
 	/**

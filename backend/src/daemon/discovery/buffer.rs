@@ -625,13 +625,13 @@ mod tests {
     #[tokio::test]
     async fn test_entity_buffer_lifecycle() {
         use crate::server::subnets::r#impl::{base::SubnetBase, types::SubnetType};
-        use chrono::Utc;
+
         use cidr::{IpCidr, Ipv4Cidr};
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
         let site_id = Uuid::new_v4();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // Push a subnet
         let subnet = Subnet {
@@ -683,13 +683,13 @@ mod tests {
     #[tokio::test]
     async fn test_get_pending_only_returns_pending() {
         use crate::server::subnets::r#impl::{base::SubnetBase, types::SubnetType};
-        use chrono::Utc;
+
         use cidr::{IpCidr, Ipv4Cidr};
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
         let site_id = Uuid::new_v4();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // Push two subnets
         let subnet1 = Subnet {
@@ -768,13 +768,13 @@ mod tests {
     #[tokio::test]
     async fn test_clear_all_removes_pending_and_created() {
         use crate::server::subnets::r#impl::{base::SubnetBase, types::SubnetType};
-        use chrono::Utc;
+
         use cidr::{IpCidr, Ipv4Cidr};
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
         let site_id = Uuid::new_v4();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // Push two subnets
         let subnet1 = Subnet {
@@ -864,14 +864,14 @@ mod tests {
         // 6. clear_created() removes confirmed entities
 
         use crate::server::subnets::r#impl::{base::SubnetBase, types::SubnetType};
-        use chrono::Utc;
+
         use cidr::{IpCidr, Ipv4Cidr};
         use std::net::Ipv4Addr;
         use std::time::Duration;
 
         let buffer = EntityBuffer::new();
         let site_id = Uuid::new_v4();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // Step 1: Discovery pushes subnet
         let pending_id = Uuid::new_v4();
@@ -958,14 +958,14 @@ mod tests {
         // share the daemon's host_id - without merging, only the last container survives.
         use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
         use crate::server::services::r#impl::base::{Service, ServiceBase};
-        use chrono::Utc;
+
         use std::net::{IpAddr, Ipv4Addr};
 
         let buffer = EntityBuffer::new();
         let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4(); // Same host_id for all pushes
         let subnet_id = Uuid::new_v4();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // First push: host with 2 ip_addresses
         let host1 = DiscoveryHostRequest {
@@ -1195,12 +1195,12 @@ mod tests {
     #[tokio::test]
     async fn get_scanned_ids_excludes_pending_only_includes_created() {
         use crate::server::subnets::r#impl::{base::SubnetBase, types::SubnetType};
-        use chrono::Utc;
+
         use cidr::{IpCidr, Ipv4Cidr};
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let site_id = Uuid::new_v4();
 
         // One Pending subnet, one Created subnet — only Created should be reported.
@@ -1278,11 +1278,11 @@ mod tests {
     async fn get_scanned_ids_collects_host_children_recursively() {
         use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
         use crate::server::services::r#impl::base::{Service, ServiceBase};
-        use chrono::Utc;
+
         use std::net::{IpAddr, Ipv4Addr};
 
         let buffer = EntityBuffer::new();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
         let subnet_id = Uuid::new_v4();

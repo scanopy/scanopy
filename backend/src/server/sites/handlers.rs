@@ -8,7 +8,7 @@ use crate::server::shared::handlers::traits::{
     BulkDeleteResponse, CrudHandlers, ListScope, bulk_delete_handler, create_handler,
     delete_handler, update_handler,
 };
-use crate::server::shared::services::traits::{CrudService, EventBusService};
+use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::ApiJson;
@@ -16,15 +16,9 @@ use crate::server::shared::types::api::PaginatedApiResponse;
 use crate::server::{
     auth::middleware::{
         features::{CreateSiteFeature, RequireFeature},
-        permissions::{Admin, Authorized, Member, Viewer},
+        permissions::{Authorized, Can, Delete, NewSite, Read, Write},
     },
-    shared::{
-        events::{
-            traits::{Event, OrgScope},
-            types::{OnboardingOperation, OnboardingOperationDiscriminants},
-        },
-        types::api::{ApiError, ApiErrorResponse, EmptyApiResponse},
-    },
+    shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse},
 };
 use crate::server::{
     config::AppState,
@@ -167,11 +161,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_sites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Site, Read>>,
     Query(query): Query<SiteListQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Site>>> {
     // Sites are scoped to the caller's own sites by `StorableFilter::new_for_access`.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Site>(&state, &scope, &query).await?))
 }
 
@@ -190,7 +184,7 @@ async fn get_all_sites(
 )]
 async fn get_by_id_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Site, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
     let mut response = crate::server::shared::handlers::traits::get_by_id_handler::<Site>(
@@ -228,19 +222,21 @@ async fn get_by_id_site(
 )]
 async fn create_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<NewSite, Write>>,
     RequireFeature { .. }: RequireFeature<CreateSiteFeature>,
-    ApiJson(site): ApiJson<Site>,
+    ApiJson(mut site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
     let entity = auth.entity.clone();
-    let organization_id = auth.organization_id();
 
     // Validate referenced credentials belong to the caller's org before any
     // writes — the credential_ids are caller-supplied and the site service syncs
     // them to the site→credential junction (which is later read to hand
     // credential secrets to daemons), so an unchecked foreign id would leak
     // another tenant's secret. Omitted, the service assigns the site-wide defaults.
-    let org_id = organization_id.ok_or_else(ApiError::organization_required)?;
+    let org_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
+    site.base.organization_id = org_id;
     if let Some(credential_ids) = &site.base.credential_ids {
         state
             .services
@@ -249,47 +245,16 @@ async fn create_site(
             .await?;
     }
 
-    let response = create_handler::<Site>(
-        State(state.clone()),
-        auth.into_permission::<Member>(),
-        ApiJson(site),
-    )
-    .await?;
+    let response = create_handler::<Site>(State(state.clone()), auth, ApiJson(site)).await?;
 
     if let Some(site) = response.data() {
-        let service = Site::get_service(&state);
-
-        // Emit SecondSiteCreated telemetry event
-        if let Some(organization_id) = organization_id {
-            // Count sites to confirm this is actually the second+
-            let site_filter = StorableFilter::<Site>::new_from_org_id(&organization_id);
-            let sites = service.get_all(site_filter).await.unwrap_or_default();
-            let site_count = sites.len();
-
-            if site_count >= 2
-                && state
-                    .services
-                    .organization_service
-                    .record_milestone(
-                        organization_id,
-                        OnboardingOperationDiscriminants::SecondSiteCreated,
-                    )
-                    .await?
-            {
-                service
-                    .event_bus()
-                    .publish(Event::new(
-                        OrgScope { organization_id },
-                        OnboardingOperation::SecondSiteCreated {
-                            site_id: site.id,
-                            site_name: site.base.name.clone(),
-                            total_sites: site_count as u32,
-                        },
-                        entity,
-                    ))
-                    .await;
-            }
-        }
+        // Without this, a creator limited to listed sites could not reach the site it created.
+        state
+            .services
+            .access_service
+            .keep_creator_access(&entity, org_id, site.id)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
     Ok(response)
@@ -311,7 +276,7 @@ async fn create_site(
 )]
 async fn update_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
@@ -331,13 +296,8 @@ async fn update_site(
             .await?;
     }
 
-    let mut response = update_handler::<Site>(
-        State(state.clone()),
-        auth.into_permission::<Member>(),
-        Path(id),
-        ApiJson(site),
-    )
-    .await?;
+    let mut response =
+        update_handler::<Site>(State(state.clone()), auth, Path(id), ApiJson(site)).await?;
 
     let credential_ids = match credential_ids {
         Some(credential_ids) => {
@@ -380,7 +340,7 @@ async fn update_site(
 )]
 async fn delete_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Delete>>,
     path: Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
@@ -397,7 +357,7 @@ async fn delete_site(
         )));
     }
 
-    delete_handler::<Site>(State(state), auth.into_permission::<Member>(), path).await
+    delete_handler::<Site>(State(state), auth, path).await
 }
 
 /// Bulk delete sites
@@ -414,7 +374,7 @@ async fn delete_site(
 )]
 async fn bulk_delete_sites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Delete>>,
     json: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let organization_id = auth
@@ -431,5 +391,5 @@ async fn bulk_delete_sites(
         )));
     }
 
-    bulk_delete_handler::<Site>(State(state), auth.into_permission::<Member>(), json).await
+    bulk_delete_handler::<Site>(State(state), auth, json).await
 }

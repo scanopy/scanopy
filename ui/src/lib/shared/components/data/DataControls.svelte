@@ -7,7 +7,7 @@
 		groupPageSlice,
 		type GroupSlice,
 		type PageSizeOption,
-		type CardAction,
+		type RowAction,
 		type TableDefaults,
 		type TagProps
 	} from './types';
@@ -66,22 +66,23 @@
 		PAGE_PARAM,
 		type ServerQuery
 	} from './controls/listQuery';
-	import { registerUrlOwner, syncUrl, takeInitialParams } from '$lib/shared/stores/url-state';
+	import { registerUrlOwner, syncUrl, takeInitialParams } from '#lib/shared/stores/url-state.ts';
 	import ControlsBar from './controls/ControlsBar.svelte';
 	import ColumnControlsMenu from './table/ColumnControlsMenu.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import PaginationBar from './controls/PaginationBar.svelte';
 	import SelectionMenus from './controls/SelectionMenus.svelte';
 	import EntityTable from './table/EntityTable.svelte';
 	import ColumnVisibilityMenu from './table/ColumnVisibilityMenu.svelte';
 	import TagCell from './TagCell.svelte';
-	import { tagItems } from '$lib/features/tags/columns';
-	import { tagGroupFields, tagGroupIdOf } from '$lib/features/tags/groupFields';
+	import { tagItems } from '#lib/features/tags/columns.ts';
+	import { tagGroupFields, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
 	import {
 		fieldsToColumns,
 		reconcileColumnState,
 		toggledColumnVisibility,
 		visibleColumns,
+		columnsWhileGrouped,
 		buildTagColumn,
 		withTagColumn,
 		type EntityColumn
@@ -105,8 +106,8 @@
 		common_items,
 		common_no,
 		common_yes
-	} from '$lib/paraglide/messages';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	} from '#lib/paraglide/messages.js';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import { SearchX } from '@lucide/svelte';
 	import {
 		useTagsQuery,
@@ -114,14 +115,14 @@
 		useBulkAddTagMutation,
 		useBulkRemoveTagMutation,
 		type EntityDiscriminants
-	} from '$lib/features/tags/queries';
-	import { computeCommonTags } from '$lib/shared/utils/tags';
+	} from '#lib/features/tags/queries.ts';
+	import { computeCommonTags } from '#lib/shared/utils/tags.ts';
 	import { MediaQuery, SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import throttle from 'just-throttle';
-	import { isOnVisiblePage, registerEntityList } from '$lib/shared/stores/modal-registry';
-	import { isShiftShortcut, keyLabel, shiftShortcutLabel } from '$lib/shared/utils/shortcuts';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { isOnVisiblePage, registerEntityList } from '#lib/shared/stores/modal-registry.ts';
+	import { isShiftShortcut, keyLabel, shiftShortcutLabel } from '#lib/shared/utils/shortcuts.ts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		isFreeKeydown,
 		isPlainKey,
@@ -136,7 +137,7 @@
 		toolbarButtonClass,
 		type KeyedAction
 	} from './controls/actionShortcuts';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 
 	type PaginationMeta = components['schemas']['PaginationMeta'];
 
@@ -203,7 +204,7 @@
 		// Export button click override: if provided, replaces onCsvExport entirely
 		onExportClick?: (() => void | Promise<void>) | null;
 		// Row actions.
-		getActions?: ((item: T) => CardAction[]) | null;
+		getActions?: ((item: T) => RowAction[]) | null;
 		/** Icon-only status badges ahead of each row's name, whatever columns are shown. */
 		getRowBadges?: ((item: T) => TagProps[]) | null;
 		// Accessible name for the table, e.g. "Hosts".
@@ -239,7 +240,7 @@
 	]);
 
 	/** What the server applies from the query. */
-	let server = $derived<ServerQuery>({ tags: true, stale: true, ...serverQuery });
+	let server = $derived<ServerQuery>({ tags: true, stale: true, search: true, ...serverQuery });
 
 	// Bulk tag mutations
 	const bulkAddTagMutation = useBulkAddTagMutation();
@@ -510,6 +511,14 @@
 			: { field: null, direction: sortState.direction }
 	);
 
+	// The table leaves out the column it groups by, which still counts as rendered, so its filter,
+	// sort and group stand. Ungrouping brings it back.
+	let tableColumns = $derived(columnsWhileGrouped(renderedColumns, activeGroupField));
+	/** The label of the column the list groups by, which the ungroup button names. */
+	let activeGroupLabel = $derived(
+		activeGroupField ? (allColumns.find((c) => c.id === activeGroupField)?.label ?? null) : null
+	);
+
 	// Per-group totals across every page, when the server supplied them.
 	let serverGroupCounts = $derived(serverPagination?.group_counts ?? null);
 
@@ -686,7 +695,7 @@
 	}
 
 	/** Runs a row action's `onBulk` on the selection. */
-	function runOnSelection(action: CardAction) {
+	function runOnSelection(action: RowAction) {
 		return async () => {
 			const done = await runBulkAction(action.label, selectedIds, Boolean(action.onBulk), (ids) =>
 				Promise.resolve(action.onBulk!(ids))
@@ -1182,6 +1191,7 @@
 	>
 		<ControlsBar
 			bind:searchQuery
+			search={server.search}
 			onSearchFocusChange={(focused) => (searchFocused = focused)}
 			onClearSearch={clearSearch}
 			{entityLabel}
@@ -1204,6 +1214,7 @@
 				canGoPrev={page.canGoPrev}
 				canGoNext={page.canGoNext}
 				groupCount={hasActiveGrouping ? groupedItems.size : null}
+				groupLabel={activeGroupLabel}
 				filterCount={activeFilterCount}
 				onClearFilters={filters.clearAll}
 				onClearGrouping={() => (ordering = { ...ordering, group: null })}
@@ -1223,6 +1234,7 @@
 						order={columnState.order}
 						groupOrder={columnState.groupOrder}
 						visibility={columnState.visibility}
+						groupedColumnId={activeGroupField}
 						onToggle={toggleColumn}
 						onReorder={reorderColumns}
 						onReorderGroups={reorderColumnGroups}
@@ -1359,7 +1371,7 @@
 		groups={rows ? null : groupList}
 		collapsed={collapsedSections}
 		onToggleCollapse={toggleSection}
-		columns={renderedColumns}
+		columns={tableColumns}
 		columnSizing={columnState.sizing}
 		onColumnSizingChange={resizeColumns}
 		sortState={activeSort}

@@ -2,6 +2,9 @@ use super::arp::{self, ArpScanResult};
 use super::dcp;
 use super::icmp;
 use super::mdns;
+use super::performance_warnings::{
+    SubnetProbeTimes, arp_targets, container_subnet_warnings, icmp_targets,
+};
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, CredentialIssue, CredentialIssueReason,
@@ -10,7 +13,10 @@ use crate::daemon::discovery::types::base::DiscoveryCriticalError;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::utils::app_probe::tls::scan_certificates;
 use crate::daemon::utils::app_probe::{ProbeContext, scan_app_probes, spotify_connect};
-use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils, filtered_own_nics};
+use crate::daemon::utils::base::{
+    DaemonUtils, PlatformDaemonUtils, TARGET_FD_LIMIT, deep_scan_concurrency_warning,
+    filtered_own_nics,
+};
 use crate::daemon::utils::scanner::{
     ScanConcurrencyController, can_arp_scan, scan_endpoints, scan_tcp_ports,
 };
@@ -55,7 +61,7 @@ use super::{
     CONNECT_ONLY_PORTS, DeepScanParams, DiscoveredHostData, DispatchedAddresses, FULL_SCAN_COST_CS,
     LATE_ARRIVAL_GRACE_PERIOD, LIGHT_SCAN_COST_CS, LivenessEvidence, MAX_PROGRESS_REPORT_INTERVAL,
     NetworkScan, PROGRESS_ARP_PHASE, PROGRESS_DEEP_SCAN_PHASE, PROGRESS_GRACE_PHASE,
-    RESPONSIVENESS_COST_CS, enumerated_host_has_evidence, integration_cost_for_ip, is_host_address,
+    RESPONSIVENESS_COST_CS, enumerated_host_has_evidence, integration_cost_for_ip,
     liveness_probe_ports,
 };
 
@@ -81,6 +87,8 @@ impl NetworkScan {
             .into_iter()
             .filter(|s| !s.base.subnet_type().is_loopback())
             .collect();
+
+        session.push_warnings(container_subnet_warnings(&subnets));
 
         // Credentials resolve per-IP during the scan of that IP, and the enumeration above is
         // the only source of addresses — `target_ips` narrows it and never adds to it. So a
@@ -117,6 +125,9 @@ impl NetworkScan {
 
         // Check ARP capability once before partitioning
         let arp_available = can_arp_scan(use_npcap);
+        if !arp_available {
+            session.push_warning(DiscoveryWarning::ArpSweepUnavailable);
+        }
 
         // Scan scope, kept for the post-scan credential-reachability check: a credential
         // targeting an address outside these was never contacted, and saying so is the point.
@@ -190,8 +201,14 @@ impl NetworkScan {
         let effective_batch_size = port_scan_batch_size;
 
         // Calculate deep scan concurrency based on FDs available after ARP
+        let fd_limit = PlatformDaemonUtils::get_fd_limit()?;
         let mut deep_scan_concurrency =
-            utils.get_optimal_deep_scan_concurrency(effective_batch_size, arp_subnet_count)?;
+            utils.deep_scan_concurrency_at(fd_limit, effective_batch_size, arp_subnet_count);
+        session.push_warnings(deep_scan_concurrency_warning(
+            fd_limit,
+            deep_scan_concurrency,
+            utils.deep_scan_concurrency_at(TARGET_FD_LIMIT, effective_batch_size, arp_subnet_count),
+        ));
 
         // Create shared concurrency controller for graceful degradation
         let scan_controller = ScanConcurrencyController::new(effective_batch_size);
@@ -263,10 +280,10 @@ impl NetworkScan {
         // own threads, for the low-fd reason DCP gives above, and stopped when the last deep scan
         // holding it finishes.
         let tcp_stack = Arc::new(super::tcp_stack::TcpStackCapture::start(
-            filtered_own_nics(&interface_filter)
-                .into_iter()
-                .filter(|nic| !nic.is_loopback())
-                .collect(),
+            super::tcp_stack::capture_interfaces(
+                filtered_own_nics(&interface_filter),
+                &scanned_subnets,
+            ),
         ));
         let dcp_capable_interfaces: Vec<_> = filtered_own_nics(&interface_filter)
             .into_iter()
@@ -307,33 +324,16 @@ impl NetworkScan {
             // covers interfaced and non-interfaced subnets alike. Capped by the same cutoff ARP
             // uses — this list is materialised, and an uncapped /8 would exhaust memory the way
             // the streaming enumeration below is careful not to.
-            let mut targets: Vec<std::net::Ipv4Addr> = Vec::new();
-            for subnet in &swept_subnets(&scanned_subnets, target_ips.as_ref()) {
-                for addr in scan_addresses(&subnet.base.cidr, target_ips.as_ref()) {
-                    // The network and broadcast addresses are skipped here and nowhere else: ARP
-                    // enumerates them harmlessly because nothing owns them and nothing replies,
-                    // while an echo request to the same address is answered by every responder on
-                    // the segment at once. See `is_host_address`.
-                    if !is_host_address(&subnet.base.cidr, addr) {
-                        continue;
-                    }
-                    if let IpAddr::V4(ipv4) = addr {
-                        targets.push(ipv4);
-                        if targets.len() >= max_arp_targets {
-                            break;
-                        }
-                    }
-                }
-                if targets.len() >= max_arp_targets {
-                    tracing::warn!(
-                        cutoff = format!("/{}", arp_cutoff),
-                        max_ips = max_arp_targets,
-                        "ICMP target list truncated to /{} cutoff",
-                        arp_cutoff
-                    );
-                    break;
-                }
-            }
+            //
+            // The network and broadcast addresses are skipped here and nowhere else: ARP
+            // enumerates them harmlessly because nothing owns them and nothing replies.
+            let (targets, truncated) = icmp_targets(
+                &swept_subnets(&scanned_subnets, target_ips.as_ref()),
+                target_ips.as_ref(),
+                max_arp_targets,
+                arp_cutoff,
+            );
+            session.push_warnings(truncated);
             discovery_packets_total += targets.len() as u64 * arp_total_rounds;
             spawn_icmp_sweep(
                 targets,
@@ -344,6 +344,7 @@ impl NetworkScan {
                 cancel.clone(),
             )
         } else {
+            session.push_warning(DiscoveryWarning::IcmpSweepUnavailable);
             // Resolves immediately with nothing, so every consumer below takes the same path
             // whether or not ICMP is available.
             IcmpSweep::unavailable()
@@ -358,24 +359,13 @@ impl NetworkScan {
             let mut subnet_to_ips: HashMap<IpCidr, (Subnet, Vec<std::net::Ipv4Addr>)> =
                 HashMap::new();
             for subnet in &arp_swept_subnets {
-                let entry = subnet_to_ips
-                    .entry(*subnet.base.cidr)
-                    .or_insert_with(|| (subnet.clone(), Vec::new()));
-                for addr in scan_addresses(&subnet.base.cidr, target_ips.as_ref()) {
-                    if let IpAddr::V4(ipv4) = addr {
-                        entry.1.push(ipv4);
-                        if entry.1.len() >= max_arp_targets {
-                            tracing::warn!(
-                                cidr = %subnet.base.cidr,
-                                cutoff = format!("/{}", arp_cutoff),
-                                max_ips = max_arp_targets,
-                                "ARP target list truncated to /{} cutoff",
-                                arp_cutoff
-                            );
-                            break;
-                        }
-                    }
+                if subnet_to_ips.contains_key(&*subnet.base.cidr) {
+                    continue;
                 }
+                let (targets, truncated) =
+                    arp_targets(subnet, target_ips.as_ref(), max_arp_targets, arp_cutoff);
+                session.push_warnings(truncated);
+                subnet_to_ips.insert(*subnet.base.cidr, (subnet.clone(), targets));
             }
 
             let actual_arp_targets: usize = subnet_to_ips.values().map(|(_, ips)| ips.len()).sum();
@@ -748,6 +738,13 @@ impl NetworkScan {
         // address, so nothing needed one.
         let mut dispatched = DispatchedAddresses::default();
 
+        // Scan time spent on addresses that hold nothing, per subnet the daemon has no interface
+        // on. Without ARP every subnet is probed this way, the daemon's own included, and
+        // `ArpSweepUnavailable` already says so.
+        let probe_times = Arc::new(std::sync::Mutex::new(SubnetProbeTimes::default()));
+        let times_probes =
+            |subnet: &Subnet| arp_available && non_interfaced_subnet_ids.contains(&subnet.id);
+
         // Use interval instead of sleep - interval persists across select iterations
         // whereas sleep creates a new future each time and gets dropped when other branches fire
         let mut progress_ticker = tokio::time::interval(Duration::from_secs(1));
@@ -968,7 +965,12 @@ impl NetworkScan {
                                 let mdns_hosts_ref = mdns_hosts.clone();
                                 let tcp_stack_ref = tcp_stack.clone();
                                 let early_host_handle = early_reported_hosts.remove(&ip);
+                                let probe_times = probe_times.clone();
+                                let times_probe =
+                                    times_probes(&subnet) && !evidence.is_confirmed_live();
                                 pending_scans.push(Box::pin(async move {
+                                    // Named in the error if the session stops advancing; its drop stamps activity.
+                                    let _in_flight = ops.track_deep_scan(ip).await;
                                     let early_host_id = match early_host_handle {
                                         Some(handle) => match handle.await {
                                             Ok(Ok(id)) => id,
@@ -977,6 +979,7 @@ impl NetworkScan {
                                         None => Uuid::new_v4(),
                                     };
 
+                                    let scan_started = Instant::now();
                                     let result = self
                                         .deep_scan_host(DeepScanParams {
                                             ip,
@@ -1004,6 +1007,13 @@ impl NetworkScan {
                                             scanned_subnets: scanned_subnets_ref,
                                         }, ops, utils)
                                         .await;
+
+                                    if times_probe
+                                        && matches!(result, Ok(None))
+                                        && let Ok(mut times) = probe_times.lock()
+                                    {
+                                        times.record(&subnet, scan_started.elapsed());
+                                    }
 
                                     hosts_scanned.fetch_add(1, Ordering::Relaxed);
                                     *last_activity.lock().unwrap() = Instant::now();
@@ -1087,8 +1097,12 @@ impl NetworkScan {
                         let mdns_hosts_ref = mdns_hosts.clone();
                         let tcp_stack_ref = tcp_stack.clone();
                         let early_host_handle = early_reported_hosts.remove(&ip);
+                        let probe_times = probe_times.clone();
+                        let times_probe = times_probes(&subnet) && !evidence.is_confirmed_live();
 
                         pending_scans.push(Box::pin(async move {
+                            // Named in the error if the session stops advancing; its drop stamps activity.
+                            let _in_flight = ops.track_deep_scan(ip).await;
                             let early_host_id = match early_host_handle {
                                 Some(handle) => match handle.await {
                                     Ok(Ok(id)) => id,
@@ -1097,6 +1111,7 @@ impl NetworkScan {
                                 None => Uuid::new_v4(),
                             };
 
+                            let scan_started = Instant::now();
                             let result = self
                                 .deep_scan_host(DeepScanParams {
                                     ip,
@@ -1124,6 +1139,13 @@ impl NetworkScan {
                                     scanned_subnets: scanned_subnets_ref,
                                 }, ops, utils)
                                 .await;
+
+                            if times_probe
+                                && matches!(result, Ok(None))
+                                && let Ok(mut times) = probe_times.lock()
+                            {
+                                times.record(&subnet, scan_started.elapsed());
+                            }
 
                             hosts_scanned.fetch_add(1, Ordering::Relaxed);
                             *last_activity.lock().unwrap() = Instant::now();
@@ -1268,15 +1290,6 @@ impl NetworkScan {
                     .len()
                     .saturating_add(pending_hosts.len())
                     .max(discovered.saturating_sub(scanned));
-                tracing::error!(
-                    elapsed_secs = pipeline_start.elapsed().as_secs(),
-                    hosts_discovered = discovered,
-                    hosts_scanned = scanned,
-                    pending_scans = pending_scans.len(),
-                    pending_hosts = pending_hosts.len(),
-                    channel_closed,
-                    "Discovery hit global timeout, forcing completion"
-                );
                 if not_scanned > 0 {
                     // Reuse the estimate already computed this tick to say how much
                     // work was left, without any new estimation plumbing.
@@ -1304,11 +1317,12 @@ impl NetworkScan {
                             hosts_not_scanned,
                         },
                     };
-                    if let Ok(session) = ops.get_session().await
-                        && let Ok(mut warnings) = session.warnings.lock()
-                    {
-                        warnings.push(warning);
-                    }
+                    session.push_warning(warning);
+                } else {
+                    tracing::info!(
+                        elapsed_secs = pipeline_start.elapsed().as_secs(),
+                        "Discovery reached its time limit with no host left to scan"
+                    );
                 }
                 break;
             }
@@ -1360,12 +1374,13 @@ impl NetworkScan {
         // responders, and hostnames from reverse DNS.
         end_of_run.extend(icmp_responders.timeout_warning());
         end_of_run.extend(self.reverse_dns_warning());
-        if !end_of_run.is_empty()
-            && let Ok(session_state) = ops.get_session().await
-            && let Ok(mut warnings) = session_state.warnings.lock()
-        {
-            warnings.extend(end_of_run);
+        // What the run spent on subnets it has no interface on, and whether the port scan ran
+        // out of file descriptors along the way.
+        if let Ok(times) = probe_times.lock() {
+            end_of_run.extend(times.warnings(deep_scan_concurrency));
         }
+        end_of_run.extend(scan_controller.fd_exhaustion_warning());
+        session.push_warnings(end_of_run);
 
         // Collect and submit whatever the DCP sweep found. By now its listen window (a few
         // seconds per interface) has almost always already elapsed against the rest of this
@@ -1384,18 +1399,9 @@ impl NetworkScan {
                 }
             }
             Ok(Err(e)) => tracing::warn!(error = %e, "DCP sweep thread failed to report back"),
-            Err(_) => {
-                tracing::warn!(
-                    session_id = %session.info.session_id,
-                    budget_secs = dcp_budget.as_secs(),
-                    "DCP sweep did not report back in time; finishing without it"
-                );
-                if let Ok(mut warnings) = session.warnings.lock() {
-                    warnings.push(DiscoveryWarning::DcpSweepTimedOut {
-                        seconds: u32::try_from(dcp_budget.as_secs()).unwrap_or(u32::MAX),
-                    });
-                }
-            }
+            Err(_) => session.push_warning(DiscoveryWarning::DcpSweepTimedOut {
+                seconds: u32::try_from(dcp_budget.as_secs()).unwrap_or(u32::MAX),
+            }),
         }
 
         // Only now: 100% promises the server the session is about to finish, and DCP submission
@@ -1730,6 +1736,7 @@ impl NetworkScan {
         )
         .await?;
         open_ports.extend(probe_results.additional_ports.iter());
+        ops.stamp_activity().await;
         // Hand any IP-targeted credential that produced nothing to the session, which renders
         // them as one line at the end. `probe_integrations` has no session handle of its own.
         ops.record_credential_issues(&probe_results.credential_issues)
@@ -1748,11 +1755,14 @@ impl NetworkScan {
         // fill, so `Pattern::ClientResponse` needs no second channel.
         for result in &app_probe_results {
             if let Some(client_probe) = result.client_probe {
-                probe_results
+                // An SSH login's credit and the SSH banner probe both name port 22.
+                let answered = probe_results
                     .client_responses
                     .entry(client_probe)
-                    .or_default()
-                    .push(result.port);
+                    .or_default();
+                if !answered.contains(&result.port) {
+                    answered.push(result.port);
+                }
             }
         }
         let client_responses = &probe_results.client_responses;
@@ -1979,6 +1989,8 @@ impl NetworkScan {
                 scanned_subnets: &scanned_subnets,
                 scanning_subnet: Some(subnet),
                 ip_address_id: Some(ip_address.id),
+                // The deep scan's cost accounting owns the bar.
+                owns_progress: false,
             };
             dispatch::execute_integrations(
                 credential_mappings,
@@ -2304,12 +2316,7 @@ impl IcmpSweep {
             // The same degradation, but one the run reports: hosts that answer only to ping were
             // not scanned.
             Err(_) => {
-                if !self.timed_out.swap(true, Ordering::Relaxed) {
-                    tracing::warn!(
-                        budget_secs = self.budget.as_secs(),
-                        "ICMP sweep did not report back in time; continuing without it"
-                    );
-                }
+                self.timed_out.store(true, Ordering::Relaxed);
                 Arc::new(HashSet::new())
             }
         }

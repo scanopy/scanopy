@@ -10,9 +10,9 @@
 		X
 	} from '@lucide/svelte';
 	import { PAGE_SIZE_OPTIONS, type PageSizeOption } from '../types';
-	import { isShiftShortcut, shiftShortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { isShiftShortcut, shiftShortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import { isFreeKeydown, useListShortcuts } from './listShortcuts';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
 	import {
 		common_noItems,
 		common_showingRange,
@@ -24,13 +24,13 @@
 		common_perPage,
 		common_clearFilter,
 		common_clearFilters,
-		common_clearGroup,
+		common_ungroupColumn,
 		common_clearSelection,
 		common_itemsSelected,
 		common_shortcutsPausedInSearch,
 		common_export,
 		common_exporting
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		totalCount,
@@ -41,6 +41,7 @@
 		canGoPrev,
 		canGoNext,
 		groupCount,
+		groupLabel = null,
 		onPrevPage,
 		onNextPage,
 		onPageSizeChange,
@@ -63,6 +64,8 @@
 		canGoPrev: boolean;
 		canGoNext: boolean;
 		groupCount: number | null;
+		/** The column the list groups by, which the ungroup button names. */
+		groupLabel?: string | null;
 		onPrevPage: () => void;
 		onNextPage: () => void;
 		onPageSizeChange: (size: PageSizeOption) => void;
@@ -240,7 +243,7 @@
 		{#if groupCount !== null && onClearGrouping}
 			{@render clearButton(
 				onClearGrouping,
-				common_clearGroup(),
+				common_ungroupColumn({ column: groupLabel ?? '' }),
 				clearShortcuts.grouping,
 				groupIcon
 			)}

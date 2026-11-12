@@ -59,7 +59,7 @@ export interface ReloadInputs {
 }
 
 /** Order-independent set equality. */
-function sameGroup(a: Set<string>, b: Set<string>): boolean {
+export function sameGroup(a: Set<string>, b: Set<string>): boolean {
 	if (a === b) return true;
 	if (a.size !== b.size) return false;
 	for (const value of a) {

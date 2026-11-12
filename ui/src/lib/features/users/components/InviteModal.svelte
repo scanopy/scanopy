@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import { UserPlus, Copy, Check, Calendar, RotateCcw, Send } from '@lucide/svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { pushSuccess, pushError } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import type { OrganizationInvite } from '$lib/features/organizations/types';
-	import { formatInviteUrl, useCreateInviteMutation } from '$lib/features/organizations/queries';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import { pushSuccess, pushError } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import type { OrganizationInvite } from '#lib/features/organizations/types.ts';
+	import { formatInviteUrl, useCreateInviteMutation } from '#lib/features/organizations/queries.ts';
 	import type { UserOrgPermissions } from '../types';
-	import { email } from '$lib/shared/components/forms/validators';
-	import { metadata, entities } from '$lib/shared/stores/metadata';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import { email } from '#lib/shared/components/forms/validators.ts';
+	import { metadata, entities } from '#lib/shared/stores/metadata.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_access,
 		common_close,
@@ -42,12 +42,13 @@
 		users_sensitiveLink,
 		users_sensitiveLinkWarning,
 		users_verifyEmailToInvite
-	} from '$lib/paraglide/messages';
-	import EmailVerificationNotice from '$lib/features/auth/components/EmailVerificationNotice.svelte';
+	} from '#lib/paraglide/messages.js';
+	import EmailVerificationNotice from '#lib/features/auth/components/EmailVerificationNotice.svelte';
 
 	// Shared components
-	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
+	import PermissionSelect from '#lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '#lib/shared/components/api-keys/RoleAccessSummary.svelte';
+	import SiteAccessSelect from '#lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -225,6 +226,8 @@
 						permissionLevel={permissionsValue}
 						helpText={users_siteAccessHelp()}
 					/>
+
+					<RoleAccessSummary role={permissionsValue} />
 
 					{#if enableEmail}
 						<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>

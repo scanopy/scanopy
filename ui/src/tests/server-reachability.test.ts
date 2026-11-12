@@ -1,17 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
-vi.mock('$lib/shared/stores/feedback', () => ({ pushError: vi.fn() }));
+vi.mock('#lib/shared/stores/feedback.ts', () => ({ pushError: vi.fn() }));
 const invalidateQueries = vi.fn();
-vi.mock('$lib/api/query-client', () => ({ queryClient: { invalidateQueries } }));
+vi.mock('#lib/api/query-client.ts', () => ({ queryClient: { invalidateQueries } }));
 
-const { apiClient } = await import('$lib/api/client');
-const { pushError } = await import('$lib/shared/stores/feedback');
+const { apiClient } = await import('#lib/api/client.ts');
+const { pushError } = await import('#lib/shared/stores/feedback.ts');
 const { PROBE_INTERVAL_MS, isServerUnreachable, isUnreachableResponse, serverUnreachable } =
-	await import('$lib/api/server-reachability');
+	await import('#lib/api/server-reachability.ts');
 
 function json(status: number, body: unknown): Response {
 	return new Response(JSON.stringify(body), {

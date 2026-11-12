@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { isGroupableField, isSortableField } from '$lib/shared/components/data/controls/sorting';
-import { serverFilterViolations } from '$lib/shared/components/data/controls/filtering';
-import { columnControls } from '$lib/shared/components/data/controls/headerControls';
-import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
+import { isGroupableField, isSortableField } from '#lib/shared/components/data/controls/sorting.ts';
+import { serverFilterViolations } from '#lib/shared/components/data/controls/filtering.ts';
+import { columnControls } from '#lib/shared/components/data/controls/headerControls.ts';
+import { getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
 import {
 	FEATURES,
 	OPENAPI,
@@ -314,6 +314,14 @@ const DECISIONS: Record<string, TabDecisions> = {
 			email_verified: server('email_verified')
 		}
 	},
+	'home/components/IssuesTable.svelte': {
+		listPath: '/api/v1/dashboard/issues',
+		columns: {
+			type: server('types'),
+			category: server('categories'),
+			site_ids: { ...SHARED_ARRAY, filter: { param: 'site_ids' } }
+		}
+	},
 	'user_api_keys/components/UserApiKeyTab.svelte': {
 		listPath: '/api/v1/user-api-keys',
 		columns: {
@@ -365,11 +373,11 @@ const DECISIONS: Record<string, TabDecisions> = {
 			daemon_os: server('daemon_os'),
 			credential_type: server('type'),
 			integration: server('integrations'),
+			category: { sort: true, group: true, filter: 'The integration filter narrows it' },
 			beta: server('beta'),
 			unofficial_api: server('unofficial_api'),
 			description: TEXT,
-			assigned_sites: { ...SHARED_ARRAY, filter: { param: 'site_ids' } },
-			assigned_hosts: ownedArray(SEARCH),
+			assignments: { ...SHARED_ARRAY, filter: { param: 'site_ids' } },
 			target: { ...SHARED_ARRAY, filter: { param: 'targets' } },
 			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } }
 		}

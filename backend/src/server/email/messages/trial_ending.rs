@@ -1,4 +1,6 @@
-use super::{BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, links};
+use super::{
+    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, links, trial_extension_offer,
+};
 
 /// Sent 3 days before a trial ends: recaps trial value and prompts the user to
 /// add a payment method (or confirms upcoming billing if one is on file).
@@ -11,6 +13,8 @@ pub struct TrialEnding<'a> {
     pub daemons_count: u64,
     pub services_count: u64,
     pub days_into_trial: i64,
+    /// The org has not used its one self-serve extension, so the email offers it.
+    pub can_extend: bool,
 }
 
 impl Email for TrialEnding<'_> {
@@ -50,6 +54,11 @@ impl Email for TrialEnding<'_> {
                 ))
                 .paragraph("If no payment method is added, your organization moves to Free when the trial ends.")
                 .paragraph(BILLING_DETAILS_TAGLINE)
+        };
+        let main = if self.can_extend {
+            main.paragraph(&trial_extension_offer())
+        } else {
+            main
         };
 
         let recap_table = format!(

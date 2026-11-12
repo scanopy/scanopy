@@ -1,33 +1,33 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import type {
 		Host,
 		CreateHostWithServicesRequest,
 		UpdateHostWithServicesRequest
 	} from '../types/base';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import OsTag from './OsTag.svelte';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
 	import HostMergeModal from './HostMergeModal.svelte';
 	import UnconfirmedHostModal from './UnconfirmedHostModal.svelte';
 	import { unconfirmedEvidence } from '../unconfirmed-evidence';
-	import { isUnconfirmed } from '$lib/shared/utils/confirmation';
+	import { isUnconfirmed } from '#lib/shared/utils/confirmation.ts';
 	import HostExportModal from './HostExportModal.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
 	import { hostColumns } from './HostTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Trash2, RefreshCw, Replace, Edit, CircleDashedCheck } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_confirmDeleteName,
 		common_confirmDeleteNameWithGuests,
@@ -47,9 +47,12 @@
 		hosts_rescanNoAddresses,
 		hosts_rescanNoAddressesBulk,
 		hosts_resolveUnconfirmed
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 	import { missingRootIds } from '../virtualization-tree';
 	import {
 		useHostsQuery,
@@ -64,27 +67,22 @@
 		useSettleUnconfirmedHostMutation,
 		type HostQueryOptions
 	} from '../queries';
-	import { useServicesByIds, useServicesCacheQuery } from '$lib/features/services/queries';
-	import { virtualizedSummaryOnHosts } from '$lib/features/services/virtualized-count';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { useInterfacesByIds, useInterfacesQuery } from '$lib/features/interfaces/queries';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import type { components } from '$lib/api/schema';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
+	import { useServicesByIds, useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { virtualizedSummaryOnHosts } from '#lib/features/services/virtualized-count.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { useInterfacesByIds, useInterfacesQuery } from '#lib/features/interfaces/queries.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import type { components } from '#lib/api/schema';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type HostOrderField = components['schemas']['HostOrderField'];
-
-	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
-	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
 
 	// Pagination state
 	let pageSize = $state(20);
@@ -110,7 +108,7 @@
 	let canBuyMoreHosts = $derived(
 		org?.plan?.host_cents !== undefined && org?.plan?.host_cents !== null
 	);
-	let onboarding = $derived((org?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(org?.daemon_connected ?? false);
 
 	const tagsQuery = useTagsQuery();
 	// Paginated hosts with server-side pagination, ordering, and tag filtering.
@@ -138,52 +136,16 @@
 	// loaded page would only offer the values on it, and the fixtures and caches would offer values
 	// no host holds. None of these takes the tab's active filters, so the options do not shrink as
 	// the user filters.
-	const siteValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const virtualizedByValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'virtualized_by',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'source',
-		undefined,
-		() => isActive
-	);
-	const osFamilyValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'os_family',
-		undefined,
-		() => isActive
-	);
-	const manufacturerValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'manufacturer',
-		undefined,
-		() => isActive
-	);
-	const modelValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'model',
-		undefined,
-		() => isActive
-	);
-	const sysLocationValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'sys_location',
+	const hostValuesQuery = useFieldValuesQuery(
+		'/api/v1/hosts/field-values',
+		['site_id', 'virtualized_by', 'source', 'os_family', 'manufacturer', 'model', 'sys_location'],
 		undefined,
 		() => isActive
 	);
 	// Every service belongs to a host, so the services' names are the names some host runs.
-	const serviceNameValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'name',
+	const serviceValuesQuery = useFieldValuesQuery(
+		'/api/v1/services/field-values',
+		['name'],
 		undefined,
 		() => isActive
 	);
@@ -355,14 +317,14 @@
 			discoveryRuns: () => discoveryRunsData,
 			virtualizationRoots: () => virtualizationRoots,
 			hostIPAddresses,
-			siteValues: () => siteValuesQuery.data,
-			virtualizedByValues: () => virtualizedByValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
-			osFamilyValues: () => osFamilyValuesQuery.data,
-			manufacturerValues: () => manufacturerValuesQuery.data,
-			modelValues: () => modelValuesQuery.data,
-			sysLocationValues: () => sysLocationValuesQuery.data,
-			serviceNameValues: () => serviceNameValuesQuery.data,
+			siteValues: () => hostValuesQuery.data?.site_id,
+			virtualizedByValues: () => hostValuesQuery.data?.virtualized_by,
+			sourceValues: () => hostValuesQuery.data?.source,
+			osFamilyValues: () => hostValuesQuery.data?.os_family,
+			manufacturerValues: () => hostValuesQuery.data?.manufacturer,
+			modelValues: () => hostValuesQuery.data?.model,
+			sysLocationValues: () => hostValuesQuery.data?.sys_location,
+			serviceNameValues: () => serviceValuesQuery.data?.name,
 			osCell
 		})
 	);
@@ -373,15 +335,14 @@
 	}
 
 	/** Row actions. */
-	function hostActions(host: Host): CardAction[] {
-		if (isReadOnly) return [];
+	function hostActions(host: Host): RowAction[] {
+		if (!can('Host', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Host', 'Write', host.site_id));
 		// An unconfirmed host is settled first, through Resolve: confirm, merge or dismiss it.
-		const unresolved = disabledWhen(
-			isUnconfirmed(host),
-			hosts_resolveFirst(),
-			hosts_resolveFirstBulk()
-		);
+		const unresolved =
+			writeRefusal ??
+			disabledWhen(isUnconfirmed(host), hosts_resolveFirst(), hosts_resolveFirstBulk());
 
 		return [
 			// Only where there is something to resolve, as on the Subnets tab.
@@ -389,7 +350,7 @@
 				label: hosts_resolveUnconfirmed(),
 				icon: CircleDashedCheck,
 				onClick: () => handleResolveHost(host),
-				unavailable: hiddenWhen(!isUnconfirmed(host), hosts_alreadyConfirmed())
+				unavailable: hiddenWhen(!isUnconfirmed(host), hosts_alreadyConfirmed()) ?? writeRefusal
 			},
 			{
 				label: common_edit(),
@@ -426,7 +387,7 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteHost(host),
-				unavailable: unresolved
+				unavailable: refusedUnless(can('Host', 'Delete', host.site_id)) ?? unresolved
 			}
 		];
 	}
@@ -563,7 +524,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding)}
+	{#if daemonConnected}
 		<div class="flex items-center gap-3">
 			{#if hostLimit !== null && !canBuyMoreHosts}
 				<span
@@ -576,7 +537,7 @@
 					{totalHostCount} / {hostLimit}
 				</span>
 			{/if}
-			{#if !isReadOnly}
+			{#if can('Host', 'Write')}
 				<CreateButton
 					onclick={handleCreateHost}
 					upgrade={isAtHostLimit
@@ -591,8 +552,8 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptHosts()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptHosts()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />
@@ -601,8 +562,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_hosts() })}
 			subtitle=""
-			onClick={handleCreateHost}
-			cta={common_create()}
+			onClick={can('Host', 'Write') ? handleCreateHost : undefined}
+			cta={can('Host', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -613,7 +574,7 @@
 			storageKey="scanopy-hosts-table-state"
 			defaults={tableDefaults}
 			entityType="Host"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getHostTags}
 			getItemId={(item) => item.id}
 			serverPagination={hostsPagination}

@@ -6,8 +6,8 @@ import {
 	invalidateLiveTopology,
 	refreshHeldTopology,
 	setTopologyHeld
-} from '$lib/features/topology/queries';
-import { queryClient, queryKeys } from '$lib/api/query-client';
+} from '#lib/features/topology/queries.ts';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
 
 /**
  * While a scan runs on a large site, the layout is held: the change stream must not refetch that

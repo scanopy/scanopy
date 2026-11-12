@@ -76,7 +76,7 @@ impl HostService {
         let mut updated_host = Host {
             id,
             created_at: existing.created_at,
-            updated_at: Utc::now(),
+            updated_at: crate::server::shared::clock::now(),
             valid_from: existing.valid_from,
             valid_to: existing.valid_to,
             lineage_id: existing.lineage_id,
@@ -555,7 +555,7 @@ impl HostService {
         authentication: AuthenticatedEntity,
     ) -> Result<HostResponse> {
         self.settle_unconfirmed(id, authentication, |host| {
-            host.dismissed_at = Some(Utc::now());
+            host.dismissed_at = Some(crate::server::shared::clock::now());
         })
         .await
     }
@@ -574,7 +574,7 @@ impl HostService {
             return Err(ValidationError::new("This host is already confirmed.").into());
         }
         settle(&mut host);
-        host.updated_at = Utc::now();
+        host.updated_at = crate::server::shared::clock::now();
         self.update(&mut host, authentication, UpdateReason::EntityRequested)
             .await?;
         self.get_host_response(&id)

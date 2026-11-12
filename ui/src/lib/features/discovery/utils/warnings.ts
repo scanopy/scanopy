@@ -13,22 +13,29 @@
  * without a renderer for it.
  */
 
-import type { components } from '$lib/api/schema';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import claimSources from '$lib/data/claim-sources.json';
-import discoveryIntegrations from '$lib/data/discovery-integrations.json';
-import malformedNeighbourConsequences from '$lib/data/malformed-neighbour-consequences.json';
-import osFamilies from '$lib/data/os-families.json';
-import snmpWalkCauses from '$lib/data/snmp-walk-causes.json';
-import snmpWalkGroups from '$lib/data/snmp-walk-groups.json';
-import warningCodes from '$lib/data/warning-codes.json';
-import warningRemedies from '$lib/data/warning-remedies.json';
-import { metaDescription, metaDescriptionWith, metaName, metaNameWith } from '$lib/i18n/metadata';
-import { joinList } from '$lib/i18n/list';
+import type { components } from '#lib/api/schema';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import claimSources from '#lib/data/claim-sources.json';
+import desktopVms from '#lib/data/desktop-vms.json';
+import discoveryIntegrations from '#lib/data/discovery-integrations.json';
+import malformedNeighbourConsequences from '#lib/data/malformed-neighbour-consequences.json';
+import osFamilies from '#lib/data/os-families.json';
+import snmpWalkCauses from '#lib/data/snmp-walk-causes.json';
+import snmpWalkGroups from '#lib/data/snmp-walk-groups.json';
+import warningCodes from '#lib/data/warning-codes.json';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
+import warningRemedies from '#lib/data/warning-remedies.json';
+import {
+	metaDescription,
+	metaDescriptionWith,
+	metaName,
+	metaNameWith
+} from '#lib/i18n/metadata.ts';
+import { joinList } from '#lib/i18n/list.ts';
 import { snmpCheckOf, type CredentialLookup, type SnmpCheckOutcome } from './snmpCheck';
-import { toColor, type Color } from '$lib/shared/utils/styling';
-import { osLabel } from '$lib/features/daemons/utils';
-import { credentialIntegrations } from '$lib/shared/stores/metadata';
+import { toColor, type Color } from '#lib/shared/utils/styling.ts';
+import { osLabel, type DaemonOS } from '#lib/features/daemons/utils.ts';
+import { credentialIntegrations } from '#lib/shared/stores/metadata.ts';
 import {
 	common_host,
 	common_unknown,
@@ -40,15 +47,17 @@ import {
 	discovery_warningGapCredentialType,
 	discovery_warningGapSnmpV3Options,
 	discovery_warningSnmpV3OptionAuthNoPriv,
+	discovery_warningSnmpV3OptionDesPrivacy,
 	discovery_warningSnmpV3OptionMd5Auth,
 	discovery_warningSnmpV3OptionNoAuthNoPriv,
 	discovery_warningInferredFrom,
+	discovery_warningFromNewerDaemon,
 	discovery_warningSeenBy,
 	discovery_warningNoPortId,
 	discovery_warningNoWalkFailed,
 	discovery_warningWalkFailures,
 	discovery_warningWalkFailuresUnrecorded
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export type DiscoveryWarning = components['schemas']['DiscoveryWarning'];
 export type DiscoveryWarningCode = DiscoveryWarning['code'];
@@ -175,8 +184,15 @@ type WarningOf<C extends DiscoveryWarningCode> = Extract<DiscoveryWarning, { cod
  */
 export type HostNameLookup = (hostId: string) => string | null | undefined;
 
-/** What a sentence needs beyond its warnings: the run's daemon, named by the mismatch warning. */
-type ParamContext = { daemonName: string };
+/** The daemon that ran a scan, as its warnings name it. */
+export interface WarningDaemon {
+	name: string;
+	/** The OS it reported, which names what it runs where a warning carries only the family. */
+	os?: DaemonOS | null;
+}
+
+/** What a sentence needs beyond its warnings: the run's daemon, named by several warnings. */
+type ParamContext = { daemonName: string; daemonOs: DaemonOS | null };
 
 /**
  * Resolve any entity a warning names to its display name, or `undefined` when it cannot be.
@@ -244,6 +260,7 @@ function failuresOf(failures: components['schemas']['SnmpWalkFailure'][] | null)
 		.join(' ');
 }
 const claimSource = (id: string) => nameOf(claimSources, 'claim_sources', id);
+const desktopVm = (id: string) => nameOf(desktopVms, 'desktop_vms', id);
 const consequence = (id: string) =>
 	nameOf(malformedNeighbourConsequences, 'malformed_neighbour_consequences', id);
 
@@ -258,7 +275,7 @@ const consequence = (id: string) =>
 export const integration = (id: string) =>
 	nameOf(discoveryIntegrations, 'discovery_integrations', id);
 
-/** An `OsFamily`'s display name ("Linux, macOS, BSD", "Windows"). */
+/** An `OsFamily`'s display name ("Linux, macOS or BSD", "Windows"). */
 const osFamily = (id: string) => nameOf(osFamilies, 'os_families', id);
 
 const addressesOf = (group_: { address: string }[]) =>
@@ -267,7 +284,7 @@ const addressesOf = (group_: { address: string }[]) =>
 		'conjunction'
 	);
 
-/** Each guest by its Proxmox VE name and address: an address on an internal bridge names nothing. */
+/** Each guest by its hypervisor's name for it and address: an address on an internal bridge names nothing. */
 const guestsOf = (group_: { address: string; guest: string }[]) =>
 	joinList(
 		group_.map((w) => `${w.guest} (${w.address})`),
@@ -280,7 +297,8 @@ type SnmpV3SecurityOption = components['schemas']['SnmpV3SecurityOption'];
 const SNMP_V3_OPTION_LABELS: Record<SnmpV3SecurityOption, () => string> = {
 	NoAuthNoPriv: () => discovery_warningSnmpV3OptionNoAuthNoPriv(),
 	AuthNoPriv: () => discovery_warningSnmpV3OptionAuthNoPriv(),
-	Md5Auth: () => discovery_warningSnmpV3OptionMd5Auth()
+	Md5Auth: () => discovery_warningSnmpV3OptionMd5Auth(),
+	DesPrivacy: () => discovery_warningSnmpV3OptionDesPrivacy()
 };
 
 /**
@@ -312,6 +330,28 @@ const groupsOf = (group_: { group: string }[]) =>
 	);
 
 const sum = (values: number[]) => values.reduce((total, n) => total + n, 0);
+
+/**
+ * What an unrecognised warning says. A sentence written before warnings were coded reads as it
+ * was written. A code from a daemon newer than the server arrives as that warning's JSON, which
+ * the server can read once it is upgraded.
+ */
+function unknownDetail(detail: string): string {
+	try {
+		const parsed: unknown = JSON.parse(detail);
+		if (
+			parsed &&
+			typeof parsed === 'object' &&
+			'code' in parsed &&
+			typeof parsed.code === 'string'
+		) {
+			return discovery_warningFromNewerDaemon({ code: parsed.code });
+		}
+	} catch {
+		// Not JSON: a legacy sentence.
+	}
+	return detail;
+}
 
 /**
  * Every code's slot values, built from the warnings sharing that code.
@@ -388,6 +428,10 @@ const WARNING_PARAMS = {
 		failures: failuresOf(w[0].failures)
 	}),
 	VlanRecordingFailed: (w) => ({ addresses: addressesOf(w) }),
+	VlanPortsUnresolved: (w) => ({
+		addresses: addressesOf(w),
+		unresolved: sum(w.map((x) => x.unresolved))
+	}),
 	// One per host, like the credential codes. The two integrations identify the statement, so hosts
 	// read by the same pair in the same order share a sentence and a different pair stays apart.
 	EqualReachIntegrationsMerged: (w) => ({
@@ -405,7 +449,8 @@ const WARNING_PARAMS = {
 	}),
 	CredentialRejected: attemptParams,
 	CredentialMalformed: attemptParams,
-	CredentialTlsFailed: attemptParams,
+	// The daemon names whose configuration accepts a self-signed certificate.
+	CredentialTlsFailed: (w, { daemonName }) => ({ ...attemptParams(w), daemon: daemonName }),
 	CredentialNotThisService: attemptParams,
 	CredentialCollectionFailed: attemptParams,
 	CredentialCollectionTimedOut: attemptParams,
@@ -413,13 +458,17 @@ const WARNING_PARAMS = {
 	CredentialTimedOut: attemptParams,
 	// The two OS slots identify the statement: a credential declared for Windows and skipped by a
 	// Unix daemon is a different sentence from the reverse.
-	CredentialDaemonOsMismatch: (w, { daemonName }) => ({
-		credential: integration(w[0].integration),
-		declared: osFamily(w[0].declared),
-		daemon: daemonName,
-		// The daemon's own OS where it sent one; runs recorded before that name its family.
-		actual: w[0].actual_os ? osLabel(w[0].actual_os) : osFamily(w[0].actual)
-	}),
+	CredentialDaemonOsMismatch: (w, { daemonName, daemonOs }) => {
+		// The OS the warning recorded, else the one the daemon reports now; only a run recorded
+		// before daemons sent it, from a daemon that never reported one, falls back to the family.
+		const actualOs = w[0].actual_os ?? daemonOs;
+		return {
+			credential: integration(w[0].integration),
+			declared: osFamily(w[0].declared),
+			daemon: daemonName,
+			actual: actualOs ? osLabel(actualOs) : osFamily(w[0].actual)
+		};
+	},
 	// Server-raised, for the one daemon that ran the scan, so its name is the session's. A daemon that
 	// never reported a version still has to read as a sentence.
 	// The gap identifies the statement: a credential withheld whole and one that lost only its
@@ -433,21 +482,31 @@ const WARNING_PARAMS = {
 	}),
 	// Server-raised, one per credential. The run's Credentials tab names each one.
 	CredentialWithoutTarget: (w) => ({ credential: integration(w[0].integration) }),
+	// Server-raised, one per credential whose SSH login is gone. The run's Credentials tab names it.
+	CredentialLoginUnavailable: (w) => ({ credential: integration(w[0].integration) }),
 
 	// One per host. The integration identifies the statement, so every host running one
 	// integration shares a sentence, and `discovers` is that integration's own description.
 	IntegrationWithoutCredential: (w) =>
 		integrationWithoutCredentialParams(w[0].integration, w.length),
 
-	// One per guest. The bridge and node identify the statement, so guests on one bridge share a
-	// sentence.
-	ProxmoxGuestOutsideScan: (w) => ({ addresses: guestsOf(w) }),
-	ProxmoxGuestBehindNode: (w) => ({
+	// One per guest. The hypervisor integration, bridge and hypervisor host identify the statement,
+	// so guests on one bridge share a sentence.
+	GuestOutsideScan: (w) => ({
 		addresses: guestsOf(w),
-		bridge: w[0].bridge,
-		node: w[0].node
+		integration: integration(w[0].integration)
 	}),
-	ProxmoxGuestIsolated: (w) => ({ addresses: guestsOf(w), bridge: w[0].bridge }),
+	GuestBehindHypervisor: (w) => ({
+		addresses: guestsOf(w),
+		integration: integration(w[0].integration),
+		bridge: w[0].bridge,
+		hypervisor: w[0].hypervisor
+	}),
+	GuestIsolated: (w) => ({
+		addresses: guestsOf(w),
+		integration: integration(w[0].integration),
+		bridge: w[0].bridge
+	}),
 
 	// One warning per subnet, so the first is the only one — unlike the address-scoped codes above,
 	// which the daemon raises per host and the UI folds together here.
@@ -468,6 +527,43 @@ const WARNING_PARAMS = {
 	DcpSweepTimedOut: (w) => ({ seconds: w[0].seconds }),
 	IcmpSweepTimedOut: (w) => ({ seconds: w[0].seconds }),
 	ReverseDnsTimedOut: (w) => ({ count: w[0].count }),
+
+	// One statement per subnet: `cidr` separates them, so each reads its own occurrence.
+	ArpSweepTruncated: (w) => ({
+		cidr: w[0].cidr,
+		addresses_swept: w[0].addresses_swept,
+		subnet_addresses: w[0].subnet_addresses,
+		cutoff: w[0].cutoff
+	}),
+	IcmpSweepTruncated: (w) => ({
+		addresses_pinged: w[0].addresses_pinged,
+		cutoff: w[0].cutoff,
+		cidrs: joinList(w[0].cidrs_left_out, 'conjunction')
+	}),
+	SubnetProbedWithoutInterface: (w) => ({
+		cidr: w[0].cidr,
+		addresses: w[0].addresses,
+		minutes: w[0].minutes
+	}),
+	ContainerSubnetScanned: (w) => ({ cidr: w[0].cidr }),
+	// The next five are raised once per run by the daemon that ran it, so its name is the session's.
+	DeepScanConcurrencyReduced: (w, { daemonName }) => ({
+		daemon: daemonName,
+		fd_limit: w[0].fd_limit,
+		concurrency: w[0].concurrency,
+		expected_concurrency: w[0].expected_concurrency
+	}),
+	PortScanDescriptorsExhausted: (w) => ({
+		reductions: w[0].reductions,
+		lowest_batch_size: w[0].lowest_batch_size
+	}),
+	InterfaceFilterMatchedNothing: (w, { daemonName }) => ({
+		daemon: daemonName,
+		filters: joinList(w[0].filters, 'conjunction'),
+		interfaces: joinList(w[0].interfaces, 'conjunction')
+	}),
+	ArpSweepUnavailable: (_w, { daemonName }) => ({ daemon: daemonName }),
+	IcmpSweepUnavailable: (_w, { daemonName }) => ({ daemon: daemonName }),
 
 	LldpNeighbourNotFound: neighbourParams,
 	LldpNeighbourAmbiguous: neighbourParams,
@@ -497,11 +593,13 @@ const WARNING_PARAMS = {
 	OutdatedDaemonFormat: (w) => ({
 		daemon_version: w[0].daemon_version ?? common_unknown()
 	}),
+	// One per session, raised by the daemon that ran the scan, so its name is the session's.
+	DaemonInDesktopVm: (w, { daemonName }) => ({ daemon: daemonName, vm: desktopVm(w[0].vm) }),
 
 	WarningsTruncated: (w) => ({ elided: sum(w.map((x) => x.elided)) }),
 	// The whole sentence *is* the detail: a warning from another version, or one written before
 	// warnings were coded at all. Rendered one per occurrence, so this only ever sees one.
-	Unknown: (w) => ({ detail: w[0].detail })
+	Unknown: (w) => ({ detail: unknownDetail(w[0].detail) })
 } satisfies {
 	[C in DiscoveryWarningCode]: (warnings: WarningOf<C>[], context: ParamContext) => Params;
 };
@@ -549,6 +647,12 @@ type CredentialIntegration = components['schemas']['CredentialIntegration'];
  * The slots of `IntegrationWithoutCredential`'s sentence. Exported because the home nudge says the
  * same thing in the same words, from the latest scans rather than one run.
  */
+/** A sentence as a clause to end another: first letter lower-cased, final period dropped. */
+function asClause(sentence: string): string {
+	const trimmed = sentence.trim().replace(/\.$/, '');
+	return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+}
+
 export function integrationWithoutCredentialParams(
 	id: CredentialIntegration,
 	hosts: number
@@ -556,7 +660,9 @@ export function integrationWithoutCredentialParams(
 	return {
 		integration: credentialIntegrations.getName(id),
 		count: hosts,
-		discovers: credentialIntegrations.getDescription(id)
+		// The integration's description ("Discover Docker containers…") as the end of the
+		// sentence's "to …" clause: lower-cased at its first letter, without its final period.
+		discovers: asClause(credentialIntegrations.getDescription(id))
 	};
 }
 
@@ -810,6 +916,21 @@ function examplesOf(group_: DiscoveryWarning[], hostName: HostNameLookup): Warni
 				const host = hostSubject(w.host_id, hostName);
 				return host ? [{ near: host, nearText: '', far: null, farText: '' }] : [];
 			}
+			// The subnet the sentence is about, linking to it. One deleted since the scan lost its
+			// id, and the sentence already names its range.
+			case 'ArpSweepTruncated':
+			case 'SubnetProbedWithoutInterface':
+			case 'ContainerSubnetScanned':
+				return w.subnet_id
+					? [
+							{
+								near: { label: w.cidr, entity: { type: 'Subnet', id: w.subnet_id } },
+								nearText: '',
+								far: null,
+								farText: ''
+							}
+						]
+					: [];
 			default:
 				return [];
 		}
@@ -903,8 +1024,17 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 	return { type, count: labels.size, only: labels.size === 1 ? only : null };
 }
 
+/**
+ * The docs page for the setting a code's sentence names, or `null` for a code that names none.
+ * The backend publishes the path with the code.
+ */
+export function settingsDocsUrlOf(code: DiscoveryWarningCode): string | null {
+	const path = warningCodes.find((c) => c.id === code)?.metadata?.settings_docs_path;
+	return path ? docsUrl(path) : null;
+}
+
 /** The rung a code sits on, as the backend filed it. */
-function remedyOf(code: DiscoveryWarningCode): string | null {
+export function remedyOf(code: DiscoveryWarningCode): string | null {
 	return warningCodes.find((c) => c.id === code)?.category ?? null;
 }
 
@@ -939,6 +1069,13 @@ const NEEDS_ATTENTION_REMEDY = 'FixInScanopy';
  */
 export function credentialIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
 	return [...new Set(entry.warnings.flatMap(credentialIdOf))];
+}
+
+/** Every host the warnings behind a row name, once each. */
+export function hostIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
+	return [
+		...new Set(entry.warnings.flatMap((w) => ('host_id' in w && w.host_id ? [w.host_id] : [])))
+	];
 }
 
 /** The stored credential one warning names, as a zero- or one-element list. */
@@ -1010,10 +1147,13 @@ function byTitle(
 export function buildWarningReport(
 	warnings: DiscoveryWarning[],
 	nameOfEntity: EntityNameLookup = NO_ENTITY_NAMES,
-	daemonName: string | null = null,
+	daemon: WarningDaemon | null = null,
 	credentialOf: CredentialLookup = () => undefined
 ): WarningSection[] {
-	const context: ParamContext = { daemonName: daemonName ?? discovery_warningUnknownDaemon() };
+	const context: ParamContext = {
+		daemonName: daemon?.name ?? discovery_warningUnknownDaemon(),
+		daemonOs: daemon?.os ?? null
+	};
 	// The example and sentence builders below only ever name hosts, so they keep taking the
 	// narrower lookup rather than every one of them growing an entity-type argument it would
 	// always pass the same value for.

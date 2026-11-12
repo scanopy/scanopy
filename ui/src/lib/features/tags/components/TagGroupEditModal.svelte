@@ -1,27 +1,27 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { TagDisplay } from '$lib/shared/components/forms/selection/display/TagDisplay.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import RadioGroup from '#lib/shared/components/forms/input/RadioGroup.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { TagDisplay } from '#lib/shared/components/forms/selection/display/TagDisplay.svelte';
 	import {
 		EntityTypeDisplay,
 		type EntityTypeOption
-	} from '$lib/shared/components/forms/selection/display/EntityTypeDisplay.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/shared/components/forms/selection/display/EntityTypeDisplay.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import type { components } from '#lib/api/schema';
 	import { createDefaultTagGroup, type Tag as TagType, type TagGroup } from '../types/base';
 	import { compareTagOrder, isSystemGroup } from '../groups';
 	import { useTagsQuery } from '../queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_cancel,
 		common_couldNotLoadOrganization,
@@ -53,7 +53,7 @@
 		tags_orderSetHelp,
 		tags_systemGroupFixed,
 		tags_tagOrder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type EntityDiscriminants = components['schemas']['EntityDiscriminants'];
 	type Scope = 'every' | 'some';

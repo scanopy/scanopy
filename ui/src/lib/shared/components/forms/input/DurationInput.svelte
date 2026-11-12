@@ -1,8 +1,8 @@
 <script lang="ts">
 	import FormField from './FormField.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { combineToHours, splitHours } from '$lib/shared/utils/duration';
-	import { common_days, common_hours } from '$lib/paraglide/messages';
+	import { combineToHours, splitHours } from '#lib/shared/utils/duration.ts';
+	import { common_days, common_hours } from '#lib/paraglide/messages.js';
 
 	interface Props {
 		label: string;

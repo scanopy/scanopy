@@ -1,30 +1,30 @@
 <script lang="ts">
-	import { required, max } from '$lib/shared/components/forms/validators';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
 	import type { Share } from '../types/base';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	type TopologyView = components['schemas']['TopologyView'];
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import DateInput from '$lib/shared/components/forms/input/DateInput.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import DateInput from '#lib/shared/components/forms/input/DateInput.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { upgradeTagProps } from '#lib/features/billing/upgrade-tag.ts';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
 	import { generateShareUrl, generateEmbedCode } from '../queries';
 	import { Sun, Moon, Monitor } from '@lucide/svelte';
-	import { views } from '$lib/shared/stores/metadata';
-	import viewsJson from '$lib/data/views.json';
+	import { views } from '#lib/shared/stores/metadata.ts';
+	import viewsJson from '#lib/data/views.json';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
 		common_height,
@@ -65,7 +65,7 @@
 		topology_showMinimap,
 		common_details,
 		shares_enableShare
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		share: Share;

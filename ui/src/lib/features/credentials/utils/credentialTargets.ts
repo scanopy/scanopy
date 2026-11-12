@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import type { Credential, IntegrationTarget } from '../types/base';
-import type { Host } from '$lib/features/hosts/types/base';
+import type { Host } from '#lib/features/hosts/types/base.ts';
 import { isDaemonHostOnly } from '../types/base';
 
 /**

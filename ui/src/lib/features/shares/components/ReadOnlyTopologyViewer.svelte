@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { SvelteFlowProvider, type Node, type Edge } from '@xyflow/svelte';
-	import BaseTopologyViewer from '$lib/features/topology/components/visualization/BaseTopologyViewer.svelte';
-	import SearchOverlay from '$lib/features/topology/components/visualization/SearchOverlay.svelte';
-	import ShortcutsHelpOverlay from '$lib/features/topology/components/visualization/ShortcutsHelpOverlay.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
+	import BaseTopologyViewer from '#lib/features/topology/components/visualization/BaseTopologyViewer.svelte';
+	import SearchOverlay from '#lib/features/topology/components/visualization/SearchOverlay.svelte';
+	import ShortcutsHelpOverlay from '#lib/features/topology/components/visualization/ShortcutsHelpOverlay.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import { setContext, onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import ReadOnlyInspectorPanel from './ReadOnlyInspectorPanel.svelte';
-	import ExportButton from '$lib/features/topology/components/ExportButton.svelte';
-	import ExportModal from '$lib/features/topology/components/ExportModal.svelte';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
+	import ExportButton from '#lib/features/topology/components/ExportButton.svelte';
+	import ExportModal from '#lib/features/topology/components/ExportModal.svelte';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
 	import { Share2, ExternalLink } from '@lucide/svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { shares_openInFullView } from '$lib/paraglide/messages';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { shares_openInFullView } from '#lib/paraglide/messages.js';
 	import { resolve } from '$app/paths';
 	import type { ExportFeatures } from '../types/base';
 	import {
@@ -23,10 +23,10 @@
 		MINIMAP_WIDTH_PX,
 		MINIMAP_OFFSET_PX,
 		type TopologyView
-	} from '$lib/features/topology/queries';
-	import { searchOpen } from '$lib/features/topology/interactions';
-	import { createTopologyKeydownHandler } from '$lib/features/topology/keyboard';
-	import { views } from '$lib/shared/stores/metadata';
+	} from '#lib/features/topology/queries.ts';
+	import { searchOpen } from '#lib/features/topology/interactions.ts';
+	import { createTopologyKeydownHandler } from '#lib/features/topology/keyboard.ts';
+	import { views } from '#lib/shared/stores/metadata.ts';
 
 	export let shareId: string | undefined = undefined;
 	export let topology: RenderableTopology;

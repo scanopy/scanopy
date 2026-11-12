@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useUpdateSelfMutation } from '$lib/features/users/queries';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
-	import type { components } from '$lib/api/schema';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isSelfHostedPlanLocked } from '$lib/features/organizations/types';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { emailCategories } from '$lib/shared/stores/metadata';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useUpdateSelfMutation } from '#lib/features/users/queries.ts';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import type { components } from '#lib/api/schema';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isSelfHostedPlanLocked } from '#lib/features/organizations/types.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { emailCategories } from '#lib/shared/stores/metadata.ts';
 	import {
 		settings_email_digestLabel,
 		settings_email_digestDescription,
@@ -24,7 +24,7 @@
 		settings_email_requiredLabel,
 		settings_email_requiredDescription,
 		settings_email_updated
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type EmailSettings = components['schemas']['EmailSettings'];
 

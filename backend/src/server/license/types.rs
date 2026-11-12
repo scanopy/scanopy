@@ -160,7 +160,7 @@ impl LicenseStatus {
     /// `intended_exp < now <= exp`. The server still accepts the key
     /// but the UI should warn the user to rotate it.
     pub fn in_grace_period(&self) -> bool {
-        self.in_grace_period_at(chrono::Utc::now().timestamp())
+        self.in_grace_period_at(crate::server::shared::clock::now().timestamp())
     }
 
     /// Grace-period check against a caller-supplied `now`, for tests.

@@ -3,8 +3,8 @@
  * Proxmox, running on pve-01."
  */
 
-import type { HostVirtualization } from '$lib/features/hosts/types/base';
-import { hostVirtualizations } from '$lib/shared/stores/metadata';
+import type { HostVirtualization } from '#lib/features/hosts/types/base.ts';
+import { hostVirtualizations } from '#lib/shared/stores/metadata.ts';
 import {
 	hosts_virtualizationSummary_container,
 	hosts_virtualizationSummary_lxc,
@@ -12,7 +12,7 @@ import {
 	hosts_virtualizationSummary_networkIdentityNoInterface,
 	hosts_virtualizationSummary_unknownOwner,
 	hosts_virtualizationSummary_vm
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /**
  * `ownerName` is the display name of the host doing the virtualizing, `null` until it is known.

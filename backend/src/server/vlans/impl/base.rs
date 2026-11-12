@@ -68,13 +68,19 @@ pub struct VlanBase {
     /// native-VLAN data via the `subnet_vlans` junction. Hydrated by
     /// `VlanService` on read; it is not a column on `vlans`, so anything sent
     /// here on create/update is ignored by `to_params`.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub subnet_ids: Vec<Uuid>,
     /// Interfaces that serve this VLAN, as their native VLAN or one of their
     /// member VLANs (`Interface::native_vlan_id` / `Interface::vlan_ids`).
     /// Hydrated by `VlanService` on read; not a column on `vlans`.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub interface_ids: Vec<Uuid>,
     /// Tags assigned to this entity.

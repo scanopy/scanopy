@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
 	import type { Edge } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
-	import { topologyReadOnly } from '$lib/features/topology/queries';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { common_host, common_ipAddresses } from '$lib/paraglide/messages';
-	import { entities } from '$lib/shared/stores/metadata';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
+	import { topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { common_host, common_ipAddresses } from '#lib/paraglide/messages.js';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	type TopologyView = components['schemas']['TopologyView'];
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

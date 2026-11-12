@@ -14,16 +14,16 @@
 
 import { CircleDashedCheck } from '@lucide/svelte';
 
-import type { components } from '$lib/api/schema';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { entitySources } from '$lib/shared/stores/metadata';
-import { toColor } from '$lib/shared/utils/styling';
+import type { components } from '#lib/api/schema';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { entitySources } from '#lib/shared/stores/metadata.ts';
+import { toColor } from '#lib/shared/utils/styling.ts';
 import {
 	common_unconfirmed,
 	hosts_unconfirmedViaForwardingTable,
 	hosts_unconfirmedViaNeighbour,
 	subnets_rangeAssumedDetail
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type EntitySource = components['schemas']['EntitySource'];
 type InferredVia = components['schemas']['InferredVia'];
@@ -66,6 +66,7 @@ export function getConfirmationTag(entity: ConfirmationSubject): TagProps | null
 		label: common_unconfirmed(),
 		color: toColor('violet'),
 		icon: CircleDashedCheck,
+		pill: true,
 		title: unconfirmedReason(via)
 	};
 }

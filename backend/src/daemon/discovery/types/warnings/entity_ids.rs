@@ -28,6 +28,7 @@ impl DiscoveryWarning {
             | Self::CredentialGateClosed { credential_id, .. }
             | Self::CredentialDaemonOsMismatch { credential_id, .. }
             | Self::CredentialNeedsNewerDaemon { credential_id, .. }
+            | Self::CredentialLoginUnavailable { credential_id, .. }
             | Self::CredentialWithoutTarget { credential_id, .. } => {
                 slots.credential_id = Some(credential_id);
             }
@@ -58,6 +59,10 @@ impl DiscoveryWarning {
             Self::ProvisionalSubnetInferred(p) => slots.subnet_id = Some(&mut p.subnet_id),
             Self::UnconfirmedHostInferred(p) => slots.host_id = Some(&mut p.host_id),
 
+            Self::ArpSweepTruncated { subnet_id, .. }
+            | Self::SubnetProbedWithoutInterface { subnet_id, .. }
+            | Self::ContainerSubnetScanned { subnet_id, .. } => slots.subnet_id = Some(subnet_id),
+
             Self::SnmpWalkBridgeMibAbsent { credential_id, .. }
             | Self::SnmpWalkFailed { credential_id, .. }
             | Self::SnmpCollectedNothing { credential_id, .. }
@@ -75,7 +80,8 @@ impl DiscoveryWarning {
             | Self::ClaimedCapabilityEmpty { credential_id, .. }
             | Self::LldpLocalPortDropped { credential_id, .. }
             | Self::LldpLocalPortDroppedReadCutShort { credential_id, .. }
-            | Self::LldpLocalPortMisplaced { credential_id, .. } => {
+            | Self::LldpLocalPortMisplaced { credential_id, .. }
+            | Self::VlanPortsUnresolved { credential_id, .. } => {
                 slots.credential_id = Some(credential_id);
             }
 
@@ -89,18 +95,25 @@ impl DiscoveryWarning {
 
             Self::VlanRecordingFailed { .. }
             | Self::EqualReachIntegrationsMerged { .. }
-            | Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. }
+            | Self::GuestOutsideScan { .. }
+            | Self::GuestBehindHypervisor { .. }
+            | Self::GuestIsolated { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }
             | Self::DcpSweepTimedOut { .. }
             | Self::IcmpSweepTimedOut { .. }
             | Self::ReverseDnsTimedOut { .. }
+            | Self::IcmpSweepTruncated { .. }
+            | Self::DeepScanConcurrencyReduced { .. }
+            | Self::PortScanDescriptorsExhausted { .. }
+            | Self::InterfaceFilterMatchedNothing { .. }
+            | Self::ArpSweepUnavailable
+            | Self::IcmpSweepUnavailable
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => {}
         }

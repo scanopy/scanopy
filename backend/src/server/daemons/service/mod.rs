@@ -33,7 +33,7 @@ use crate::server::daemon_api_keys::service::DaemonApiKeyService;
 use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
     DiscoveryUpdatePayload, FirstContactRequest, LegacyCapabilities, ProvisionDaemonRequest,
-    ServerCapabilities,
+    ProvisionEligibility, ServerCapabilities, UnconnectedDaemon,
 };
 use crate::server::daemons::r#impl::base::{
     Daemon, DaemonBase, DaemonMode, DaemonOs, ReportedOsOutcome,
@@ -53,13 +53,12 @@ use crate::server::hosts::r#impl::name::HostName;
 use crate::server::hosts::r#impl::name::HostNameSources;
 use crate::server::hosts::service::{HostLimitContext, HostService};
 use crate::server::organizations::service::OrganizationService;
+use crate::server::setup::types::{SetupItemDiscriminants, SetupOperation};
 use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_storage};
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event, OrgScope};
-use crate::server::shared::events::types::{
-    BillingOperation, EntityOperation, OnboardingOperation, OnboardingOperationDiscriminants,
-};
+use crate::server::shared::events::types::{BillingOperation, EntityOperation};
 use crate::server::shared::legacy::rewrite_response_for_legacy_daemon;
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::child::{GenericChildStorage, ParentRef};
@@ -115,6 +114,20 @@ pub enum DaemonLimit {
     EmailVerification,
 }
 
+/// Every [`DaemonLimit`] that applies to an organization at once.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DaemonLimits {
+    pub plan_required: bool,
+    pub email_verification_required: bool,
+}
+
+impl DaemonLimits {
+    /// A new daemon is refused.
+    pub fn refused(&self) -> bool {
+        self.plan_required || self.email_verification_required
+    }
+}
+
 pub struct DaemonService {
     // Storage and core dependencies
     daemon_storage: Arc<GenericPostgresStorage<Daemon>>,
@@ -145,6 +158,13 @@ pub struct DaemonService {
 
     // Whether the server can send email; lifts the unverified-org daemon limit when it can't.
     has_email_service: bool,
+
+    /// Per daemon, the interface fingerprint its interfaced subnets were last classified from.
+    /// See `interface_refresh`.
+    classified_interfaces: tokio::sync::RwLock<std::collections::HashMap<Uuid, String>>,
+    // Check-ins that changed a daemon's version or health, for the live-update stream.
+    live_update_tx:
+        tokio::sync::broadcast::Sender<crate::server::live_updates::types::LiveDaemonUpdate>,
 }
 
 impl EventBusService<Daemon> for DaemonService {
@@ -219,12 +239,14 @@ impl CrudService<Daemon> for DaemonService {
 }
 
 mod http;
+mod interface_refresh;
 pub(crate) use http::DaemonHttpError;
 mod lifecycle;
 mod monitoring;
 mod polling;
 mod processing;
 mod provisioning;
+mod report_scope;
 
 #[cfg(test)]
 mod tests {
@@ -232,20 +254,20 @@ mod tests {
 
     #[test]
     fn grace_window_none_is_not_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         assert!(!is_within_standby_grace(None, now));
     }
 
     #[test]
     fn grace_window_recent_clear_is_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let one_hour_ago = now - chrono::Duration::hours(1);
         assert!(is_within_standby_grace(Some(one_hour_ago), now));
     }
 
     #[test]
     fn grace_window_just_inside_boundary_is_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let just_inside =
             now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS) + chrono::Duration::hours(1);
         assert!(is_within_standby_grace(Some(just_inside), now));
@@ -253,7 +275,7 @@ mod tests {
 
     #[test]
     fn grace_window_at_exact_boundary_is_expired() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let exactly_at_boundary = now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS);
         // strict `>`, not `>=`
         assert!(!is_within_standby_grace(Some(exactly_at_boundary), now));
@@ -261,7 +283,7 @@ mod tests {
 
     #[test]
     fn grace_window_past_boundary_is_expired() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let past_boundary = now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS + 1);
         assert!(!is_within_standby_grace(Some(past_boundary), now));
     }

@@ -1,9 +1,9 @@
 <script lang="ts" context="module">
-	import { entities } from '$lib/shared/stores/metadata';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import type { Subnet } from '$lib/features/subnets/types/base';
-	import type { Daemon } from '$lib/features/daemons/types/base';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
 
 	// Context for daemon display - needs access to hosts and subnets for lookups
 	export interface DaemonDisplayContext {

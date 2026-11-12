@@ -8,7 +8,7 @@ import { getViewLayout } from '../layout/view-layout';
 import type { SelectionStores } from '../selection';
 import type { AggregatedEdge } from '../collapse';
 import type { LayoutGraph } from '../layout/layout-graph';
-import { edgeTypes } from '$lib/shared/stores/metadata';
+import { edgeTypes } from '#lib/shared/stores/metadata.ts';
 import { getEdgeDisplayState, searchHiddenNodeIds, tagHiddenNodeIds } from '../interactions';
 import { isDisabledEdge, isOverlayEdge } from '../layout/edge-classification';
 import { bundleEdges } from '../layout/edge-bundling';

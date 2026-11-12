@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { renderTooltip, type TooltipContent } from '$lib/shared/actions/tooltip';
-import { hostTooltip, serviceTooltip } from '$lib/features/topology/element-render-data';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { Service } from '$lib/features/services/types/base';
-import type { MarkValue } from '$lib/features/topology/element-marks';
-import { createColorHelper } from '$lib/shared/utils/styling';
+import {
+	renderTooltip,
+	type TooltipChip,
+	type TooltipContent
+} from '#lib/shared/actions/tooltip.ts';
+import { hostTooltip, serviceTooltip } from '#lib/shared/entity-tooltip.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
 
 /**
  * The renderer builds the tooltip from strings that come from scanned devices and users. It must
@@ -45,9 +47,22 @@ const fakeDocument = {
 	createElement: (tag: string) => new FakeElement(tag)
 } as unknown as Pick<Document, 'createElement'>;
 
-function render(content: string | TooltipContent): FakeElement {
-	return renderTooltip(fakeDocument, content) as unknown as FakeElement;
+function render(
+	content: string | TooltipContent,
+	mounted: { target: unknown; chip: TooltipChip }[] = []
+): FakeElement {
+	return renderTooltip(fakeDocument, content, (target, chip) =>
+		mounted.push({ target, chip })
+	) as unknown as FakeElement;
 }
+
+const tagChip: TooltipChip = { type: 'Tag', label: 'Running', color: 'Green' };
+const entityChip: TooltipChip = {
+	type: 'Entity',
+	label: 'db',
+	color: 'Blue',
+	ref: { entityType: 'Host', entityId: 'h', data: { id: 'h' } }
+};
 
 describe('renderTooltip', () => {
 	it('renders a plain string as one text block that keeps its line breaks', () => {
@@ -78,12 +93,40 @@ describe('renderTooltip', () => {
 		expect(tip.all().filter((e) => e.tagName === 'li')).toHaveLength(2);
 	});
 
-	it('draws a dot in the row colour before the value', () => {
-		const tip = render({
-			sections: [{ rows: [{ label: 'Status', value: 'Running', dot: 'rgb(34, 197, 94)' }] }]
-		});
-		const dots = tip.all().filter((e) => e.style.background === 'rgb(34, 197, 94)');
-		expect(dots).toHaveLength(1);
+	it('hands a row chip to a slot of its own in place of the row text', () => {
+		const mounted: { target: unknown; chip: TooltipChip }[] = [];
+		const tip = render(
+			{ sections: [{ rows: [{ label: 'Status', value: 'Running', chips: [tagChip] }] }] },
+			mounted
+		);
+		expect(mounted.map((m) => m.chip)).toEqual([tagChip]);
+		expect(tip.all()).toContain(mounted[0].target);
+		expect(tip.texts()).toEqual(['Status']);
+	});
+
+	it('hands every chip of a row to its own slot', () => {
+		const mounted: { target: unknown; chip: TooltipChip }[] = [];
+		render(
+			{ sections: [{ rows: [{ label: 'VLANs', value: 'a, b', chips: [tagChip, entityChip] }] }] },
+			mounted
+		);
+		expect(new Set(mounted.map((m) => m.target)).size).toBe(2);
+	});
+
+	it('hands a list chip to a slot, keeping the detail beside it', () => {
+		const mounted: { target: unknown; chip: TooltipChip }[] = [];
+		const tip = render(
+			{
+				sections: [
+					{
+						items: [{ text: 'db', detail: '5432/tcp', chip: entityChip }, { text: 'web' }]
+					}
+				]
+			},
+			mounted
+		);
+		expect(mounted.map((m) => m.chip)).toEqual([entityChip]);
+		expect(tip.texts()).toEqual(['5432/tcp', 'web']);
 	});
 
 	it('renders markup in a value as text', () => {
@@ -102,8 +145,6 @@ describe('renderTooltip', () => {
 });
 
 describe('icon card tooltip content', () => {
-	const running: MarkValue = { id: 'Running', label: 'Running', color: 'Green' } as MarkValue;
-
 	const guest = {
 		id: 'h1',
 		name: 'uptime-kuma',
@@ -115,25 +156,18 @@ describe('icon card tooltip content', () => {
 	} as unknown as Host;
 	const service = { id: 's1', name: 'Uptime Kuma' } as unknown as Service;
 
-	it('titles a guest by its name, colours its run state, and lists its services apart', () => {
-		const content = hostTooltip(guest, {
-			deviceType: 'Server',
-			services: [service],
-			status: running
-		});
+	it('titles a guest by its name and lists its services apart', () => {
+		const content = hostTooltip(guest, { deviceType: 'Server', services: [service] });
 		expect(content.title).toBe('uptime-kuma');
-		const [facts, services] = content.sections;
-		const status = facts.rows?.find((r) => r.value === 'Running');
-		expect(status?.dot).toBe(createColorHelper('Green').rgb);
+		const [, services] = content.sections;
 		expect(services.heading).toBeTruthy();
-		expect(services.items).toEqual(['Uptime Kuma']);
+		expect(services.items).toEqual([expect.objectContaining({ text: 'Uptime Kuma' })]);
 	});
 
-	it('drops facts with no value, and the status dot when the view paints no state', () => {
-		const content = hostTooltip(guest, { address: null, services: [] });
+	it('drops facts with no value', () => {
+		const content = hostTooltip(guest, { services: [] });
 		const rows = content.sections.flatMap((s) => s.rows ?? []);
 		expect(rows.every((r) => r.value)).toBe(true);
-		expect(rows.some((r) => r.dot)).toBe(false);
 		// No services: no empty list under a heading.
 		expect(content.sections.some((s) => s.items)).toBe(false);
 	});

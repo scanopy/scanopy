@@ -17,7 +17,7 @@ use crate::server::{
     shared::entities::EntityDiscriminants,
     topology::types::{
         edges::{DiscoveryProtocol, Edge, EdgeHandle, EdgeType, EdgeViewConfig},
-        grouping::{GroupingConfig, PlacementDecision},
+        grouping::{GroupingConfig, InlineGroup, InlineGroupRole, PlacementDecision},
         nodes::{ContainerType, ElementEntityType, Node, NodeType},
     },
 };
@@ -317,27 +317,46 @@ impl ViewBuilder for WorkloadsBuilder {
             .filter(|(_, d)| matches!(d, PlacementDecision::InlineOn { .. }))
             .map(|(id, _)| *id)
             .collect();
+        // `placements` is a HashMap, so walking it directly gives each card's groups a different
+        // order on every request. Order them: a group's header first, then members in node
+        // order. A manager service has no node of its own, so the entity id breaks ties.
+        let inlined_position: HashMap<Uuid, usize> =
+            nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
+        let mut inlined_in_node_order: Vec<(Uuid, InlineGroup)> = placements
+            .values()
+            .filter_map(|decision| match decision {
+                PlacementDecision::InlineOn {
+                    node_id,
+                    inline_group: Some(group),
+                } => Some((*node_id, group.clone())),
+                _ => None,
+            })
+            .collect();
+        inlined_in_node_order.sort_by_key(|(_, group)| {
+            (
+                group.role != InlineGroupRole::Header,
+                inlined_position
+                    .get(&group.entity_id)
+                    .copied()
+                    .unwrap_or(usize::MAX),
+                group.entity_id,
+            )
+        });
         nodes.retain(|n| !inlined_ids.contains(&n.id));
 
         // Attach InlineGroup metadata to target element nodes
-        for decision in placements.values() {
-            if let PlacementDecision::InlineOn {
-                node_id,
-                inline_group: Some(group),
-            } = decision
+        let node_position: HashMap<Uuid, usize> =
+            nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
+        for (target_id, group) in inlined_in_node_order {
+            let Some(&position) = node_position.get(&target_id) else {
+                continue;
+            };
+            if let NodeType::Element {
+                ref mut inline_groups,
+                ..
+            } = nodes[position].node_type
             {
-                for node in nodes.iter_mut() {
-                    if node.id == *node_id {
-                        if let NodeType::Element {
-                            ref mut inline_groups,
-                            ..
-                        } = node.node_type
-                        {
-                            inline_groups.push(group.clone());
-                        }
-                        break;
-                    }
-                }
+                inline_groups.push(group);
             }
         }
 
@@ -656,7 +675,6 @@ mod tests {
             },
         },
     };
-    use chrono::Utc;
 
     // --- Test service definitions ---
 
@@ -752,8 +770,8 @@ mod tests {
     fn make_host(name: &str) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 ..Default::default()
@@ -765,8 +783,8 @@ mod tests {
     fn make_proxmox_vm(name: &str, proxmox_service_id: Uuid) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
@@ -785,8 +803,8 @@ mod tests {
     fn make_proxmox_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(ProxmoxDef),
@@ -800,8 +818,8 @@ mod tests {
     fn make_docker_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(DockerDef),
@@ -815,8 +833,8 @@ mod tests {
     fn make_docker_container(name: &str, host_id: Uuid, docker_service_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -859,8 +877,8 @@ mod tests {
     fn make_open_ports_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(OpenPortsDef),
@@ -874,8 +892,8 @@ mod tests {
     fn make_regular_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -889,8 +907,8 @@ mod tests {
     fn make_generic_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(GenericDef),
@@ -1468,6 +1486,36 @@ mod tests {
         );
     }
 
+    /// A card's inline groups come back in the same order on every build.
+    #[test]
+    fn inline_groups_keep_one_order_across_builds() {
+        let node = make_host("pve-01");
+        let proxmox_svc = make_proxmox_service(node.id);
+        let vm = make_proxmox_vm("docker-vm", proxmox_svc.id);
+        let docker_svc = make_docker_service(vm.id);
+        let containers: Vec<Service> = (0..6)
+            .map(|i| make_docker_container(&format!("app-{i}"), vm.id, docker_svc.id))
+            .collect();
+        let vm_id = vm.id;
+        let hosts = [node, vm];
+        let mut services = vec![proxmox_svc, docker_svc];
+        services.extend(containers);
+
+        let order = || -> Vec<Uuid> {
+            let (nodes, _edges) = build(&hosts, &services);
+            let vm_node = nodes.iter().find(|n| n.id == vm_id).unwrap();
+            let NodeType::Element { inline_groups, .. } = &vm_node.node_type else {
+                unreachable!()
+            };
+            inline_groups.iter().map(|g| g.entity_id).collect()
+        };
+        let first = order();
+        assert_eq!(first.len(), 7, "the runtime header and six containers");
+        for _ in 0..10 {
+            assert_eq!(order(), first);
+        }
+    }
+
     /// Proxmox VMs and LXC containers group under their hypervisor as before; container hosts
     /// take nothing from the hypervisor rule.
     #[test]
@@ -1494,12 +1542,44 @@ mod tests {
         assert_eq!(container_of(&nodes, lxc_id), Some(hypervisor_boxes[0].id));
     }
 
+    /// Every hypervisor's guests group under its service in a hypervisor box, never a runtime's.
+    #[test]
+    fn every_hypervisors_guests_group_under_its_service() {
+        use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+        for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+            let node = make_host("hv-01");
+            let mut manager = make_proxmox_service(node.id);
+            manager.base.service_definition =
+                ServiceDefinitionRegistry::find_by_id(kind.manager_definition())
+                    .expect("registered");
+            let mut vm = make_host("vm-web");
+            vm.base.virtualization_metadata = Some(kind.guest("vm-web", "100"));
+            vm.base.virtualization_service_id = Some(manager.id);
+            let vm_id = vm.id;
+
+            let (nodes, _edges) = build(&[node, vm], &[manager]);
+
+            assert!(
+                containers_of_type(&nodes, ContainerType::ContainerRuntime).is_empty(),
+                "{kind:?}"
+            );
+            let hypervisor_boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+            assert_eq!(hypervisor_boxes.len(), 1, "{kind:?}");
+            assert_eq!(
+                container_of(&nodes, vm_id),
+                Some(hypervisor_boxes[0].id),
+                "{kind:?}"
+            );
+        }
+    }
+
     fn make_identities_service(host_id: Uuid) -> Service {
         use crate::server::services::definitions::network_identities::NetworkIdentities;
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(NetworkIdentities),

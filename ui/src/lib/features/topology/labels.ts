@@ -1,9 +1,9 @@
 import type { Node } from '@xyflow/svelte';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import type { RenderableTopology, TopologyNode } from './types/base';
-import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
-import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
-import { tags_entityTags, tags_noCommonTagsHint } from '$lib/paraglide/messages';
+import { entities, serviceDefinitions, views } from '#lib/shared/stores/metadata.ts';
+import { lowercasePreservingAcronyms } from '#lib/shared/utils/formatting.ts';
+import { tags_entityTags, tags_noCommonTagsHint } from '#lib/paraglide/messages.js';
 import { resolveInlineServiceIds } from './resolvers';
 import { getTopologyIndex } from './entity-index';
 

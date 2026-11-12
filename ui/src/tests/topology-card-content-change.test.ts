@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { changedCardIds } from '$lib/features/topology/pipeline/execute-layout';
-import { inlineGroupKey } from '$lib/features/topology/collapse';
+import { changedCardIds } from '#lib/features/topology/pipeline/execute-layout.ts';
+import { inlineGroupKey } from '#lib/features/topology/collapse.ts';
 
 /**
  * Opening or closing a manager box changes its card's height. The layout finds the cards whose

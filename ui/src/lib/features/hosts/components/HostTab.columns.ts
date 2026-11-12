@@ -1,27 +1,20 @@
 import type { Snippet } from 'svelte';
 import type { Host, IPAddress, Port } from '../types/base';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { hostOsFamilyIds, hostOsFamilyName } from '$lib/features/hosts/host-os';
-import { entityRef } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { credentialItems } from '$lib/features/credentials/columns';
-import { deviceTypes, entities, entitySources, concepts } from '$lib/shared/stores/metadata';
-import { deviceTypeSourceTag } from '$lib/features/hosts/device-type-source';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { hostOsFamilyIds, hostOsFamilyName } from '#lib/features/hosts/host-os.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { credentialItems } from '#lib/features/credentials/columns.ts';
+import { deviceTypes, entities, entitySources, concepts } from '#lib/shared/stores/metadata.ts';
+import { deviceTypeSourceTag } from '#lib/features/hosts/device-type-source.ts';
 import {
-	hosts_deviceType,
-	common_created,
 	common_description,
 	common_hostname,
-	common_credentials,
 	common_interfaces,
 	common_ports,
-	common_firstFoundBy,
-	common_lastFoundBy,
 	common_ipAddresses,
-	common_lastSeen,
-	common_macAddress,
 	common_manufacturer,
 	common_model,
 	common_name,
@@ -38,7 +31,6 @@ import {
 	common_tags,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
 	common_contact,
 	common_location,
 	hosts_fields_presentedBy,
@@ -49,31 +41,31 @@ import {
 	hosts_snmp_sysDescr,
 	hosts_snmp_sysName,
 	hosts_snmp_sysObjectId
-} from '$lib/paraglide/messages';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
+} from '#lib/paraglide/messages.js';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
 import {
 	virtualizationGroupKey,
 	virtualizationGroupLabel,
 	virtualizationTree
 } from '../virtualization-tree';
-import { formatPort } from '$lib/shared/utils/formatting';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import { isContainerSubnet } from '$lib/features/subnets/queries';
-import type { Credential } from '$lib/features/credentials/types/base';
-import type { Interface } from '$lib/features/credentials/types/base';
+import { formatPort } from '#lib/shared/utils/formatting.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import { isContainerSubnet } from '#lib/features/subnets/queries.ts';
+import type { Credential } from '#lib/features/credentials/types/base.ts';
+import type { Interface } from '#lib/features/credentials/types/base.ts';
 import { formatIPAddress } from '../address-labels';
-import type { components, operations } from '$lib/api/schema';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
+import type { components, operations } from '#lib/api/schema';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
 import {
 	fieldValueOptions,
 	hasEmptyFieldValue,
 	type FieldValueCount
-} from '$lib/shared/api/field-values';
-import type { Service } from '$lib/features/services/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
+} from '#lib/shared/api/field-values.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
 
 type HostOrderField = components['schemas']['HostOrderField'];
 /** The host list endpoint's query params, which the filters are sent and linked as. */
@@ -246,12 +238,11 @@ export function hostColumns(ctx: HostColumnsContext) {
 								id: i.id,
 								label: formatIPAddress(i, isContainerSubnetFn),
 								color: entities.getColorHelper('IPAddress').color,
-								entityRef: entityRef('IPAddress', i.id, i, { subnets: ctx.subnets() })
+								entityRef: entityRef('IPAddress', i.id, i)
 							}))
 				}
 			},
 			mac_address: {
-				label: common_macAddress(),
 				type: 'string',
 				searchable: true,
 				groupable: false,
@@ -285,10 +276,9 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			// Audit dates stay available but off by default: 12 columns at once
 			// is unreadable, and these are rarely what someone is scanning for.
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				staleFilter: true,
 				display: { recency: true, order: 1 }
@@ -356,7 +346,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			// Computed by the server, so it can be shown but not sorted or filtered.
 			{
 				key: 'device_type',
-				label: hosts_deviceType(),
 				type: 'string',
 				getValue: (host: Host) => deviceTypes.getName(host.device_type ?? 'Unidentified'),
 				// A tag, as the subnets table shows a subnet's type. Its hover text says where the type
@@ -424,7 +413,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -433,7 +421,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -452,7 +439,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'credentials',
-				label: common_credentials(),
 				type: 'array',
 				searchable: true,
 				filterable: true,
@@ -494,11 +480,7 @@ export function hostColumns(ctx: HostColumnsContext) {
 							label: formatPort(port),
 							color: entities.getColorHelper('Port').color,
 							// What the popover needs to name the service on the port and its addresses.
-							entityRef: entityRef('Port', port.id, port, {
-								currentServices: ctx.allServices().filter((s) => s.host_id === host.id),
-								ip_addresses: ctx.hostIPAddresses(host),
-								isContainerSubnet: isContainerSubnetFn
-							})
+							entityRef: entityRef('Port', port.id, port)
 						}))
 				}
 			},

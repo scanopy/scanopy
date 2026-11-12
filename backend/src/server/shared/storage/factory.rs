@@ -15,10 +15,9 @@ use crate::server::interface_neighbors::r#impl::base::{
 };
 use crate::server::license::instances::{LicenseInstance, ServerInstance};
 use crate::server::release_notes::storage::ReleaseAnnouncement;
+use crate::server::site_assignments::r#impl::base::SiteAssignment;
 use crate::server::tags::entity_tags::EntityTag;
 use crate::server::tags::groups::base::TagGroup;
-use crate::server::user_api_keys::r#impl::site_access::UserApiKeySiteAccess;
-use crate::server::users::r#impl::site_access::UserSiteAccess;
 use crate::server::vlans::r#impl::subnet_vlans::SubnetVlanRecord;
 use crate::server::{
     bindings::r#impl::base::Binding,
@@ -80,8 +79,7 @@ pub struct StorageFactory {
     pub vlans: Arc<GenericPostgresStorage<Vlan>>,
     // Rows stored under a parent: junction tables, and the non-entity tables a parent owns
     pub entity_tags: Arc<GenericChildStorage<EntityTag>>,
-    pub user_api_key_site_access: Arc<GenericChildStorage<UserApiKeySiteAccess>>,
-    pub user_site_access: Arc<GenericChildStorage<UserSiteAccess>>,
+    pub site_assignments: Arc<GenericChildStorage<SiteAssignment>>,
     pub dependency_members: Arc<GenericChildStorage<DependencyMemberRecord>>,
     pub subnet_vlan: Arc<GenericChildStorage<SubnetVlanRecord>>,
     pub site_credentials: Arc<GenericChildStorage<SiteCredential>>,
@@ -109,10 +107,27 @@ pub async fn create_session_store(
         .with_same_site(tower_sessions::cookie::SameSite::Lax))
 }
 
+/// sqlx gives each persistent query its own named prepared statement and closes it only when
+/// the statement cache evicts it, so the cache stays at sqlx's bounded default. With the cache
+/// off, every query left a prepared statement on its connection until the connection retired,
+/// and a few thousand hosts of discovery grew Postgres by gigabytes. The dynamic `SELECT *`
+/// queries, whose result type a migration can change (SQLSTATE 0A000), run non-persistent in
+/// `GenericPostgresStorage` and `ChildStorage` instead.
+pub(crate) fn connect_options(database_url: &str) -> Result<PgConnectOptions> {
+    Ok(PgConnectOptions::from_str(database_url)?)
+}
+
 impl StorageFactory {
     pub async fn new(database_url: &str, use_secure_session_cookies: bool) -> Result<Self> {
-        let connect_options = PgConnectOptions::from_str(database_url)?.statement_cache_capacity(0);
-        let pool = PgPoolOptions::new().connect_with(connect_options).await?;
+        let connect_options = connect_options(database_url)?;
+        // `acquire_time_level` only makes sqlx emit an event per acquire, which
+        // `metrics::db::DbTimingLayer` turns into the acquire-time metrics. Pool size and
+        // timeouts stay at sqlx's defaults. It takes sqlx's `log::LevelFilter`, which the
+        // parse names without adding `log` as a dependency.
+        let pool = PgPoolOptions::new()
+            .acquire_time_level("trace".parse().expect("trace is a log level"))
+            .connect_with(connect_options)
+            .await?;
 
         crate::server::shared::storage::migration_runner::apply_embedded_migrations(&pool).await?;
 
@@ -148,8 +163,7 @@ impl StorageFactory {
             interfaces: Arc::new(GenericPostgresStorage::new(pool.clone())),
             vlans: Arc::new(GenericPostgresStorage::new(pool.clone())),
             entity_tags: Arc::new(GenericChildStorage::new(pool.clone())),
-            user_api_key_site_access: Arc::new(GenericChildStorage::new(pool.clone())),
-            user_site_access: Arc::new(GenericChildStorage::new(pool.clone())),
+            site_assignments: Arc::new(GenericChildStorage::new(pool.clone())),
             dependency_members: Arc::new(GenericChildStorage::new(pool.clone())),
             subnet_vlan: Arc::new(GenericChildStorage::new(pool.clone())),
             site_credentials: Arc::new(GenericChildStorage::new(pool.clone())),
@@ -163,7 +177,31 @@ impl StorageFactory {
     }
 }
 
+/// Connection counts of the main pool, for the pool gauges. Holds the pool but exposes only its
+/// counts, so it can't run a query.
+#[derive(Clone)]
+pub struct PoolStats(PgPool);
+
+impl PoolStats {
+    /// Open connections, idle or in use.
+    pub fn open(&self) -> u32 {
+        self.0.size()
+    }
+
+    pub fn idle(&self) -> u32 {
+        u32::try_from(self.0.num_idle()).unwrap_or(u32::MAX)
+    }
+
+    pub fn max(&self) -> u32 {
+        self.0.options().get_max_connections()
+    }
+}
+
 impl StorageFactory {
+    pub fn pool_stats(&self) -> PoolStats {
+        PoolStats(self.pool.clone())
+    }
+
     /// The pool and session layer, for the app state once the services are built. Taking
     /// `self` keeps the pool out of reach of `ServiceFactory::new`, which only borrows.
     pub fn into_parts(self) -> (PgPool, SessionManagerLayer<PostgresStore>) {

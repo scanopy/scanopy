@@ -3,7 +3,7 @@
 //! daemon.
 //!
 //! `OrgSetupService` is the one place this data is created, and it runs only from events:
-//! - an org created at signup (`OnboardingOperation::OrgCreated`) gets its credentials and system
+//! - an org created at signup (`AuthOperation::OrgCreated`) gets its credentials and system
 //!   groups, and, when signup named a site, the cloud setup and the integrated daemon;
 //! - a billing event that lands an org on a cloud plan gives it the cloud setup, so a self-hosted
 //!   license buyer who moves to cloud ends up with what a cloud signup has;
@@ -40,9 +40,9 @@ use crate::server::{
             registry::SubscriberRegistration,
             traits::{EntityEventFilter, Event, EventFilter, Subscriber},
             types::{
-                BillingOperation, BillingOperationDiscriminants, EntityOperation,
-                EntityOperationDiscriminants, OnboardingOperation,
-                OnboardingOperationDiscriminants, UpdateReason,
+                AuthOperation, AuthOperationDiscriminants, BillingOperation,
+                BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
+                UpdateReason,
             },
         },
         services::traits::CrudService,
@@ -388,20 +388,22 @@ impl OrgSetupService {
 }
 
 #[async_trait]
-impl Subscriber<OnboardingOperation> for OrgSetupService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
-        EventFilter::ops(vec![OnboardingOperationDiscriminants::OrgCreated])
+impl Subscriber<AuthOperation> for OrgSetupService {
+    fn filter(&self) -> EventFilter<AuthOperation> {
+        EventFilter::ops(vec![AuthOperationDiscriminants::OrgCreated])
     }
 
     /// A requested site means a cloud signup or a self-hosted server. No requested site means a
     /// self-hosted license buyer on cloud; the org gets the cloud setup if it later lands on a
     /// cloud plan.
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+    async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
         for event in events {
-            let OnboardingOperation::OrgCreated { site, .. } = &event.operation else {
+            let AuthOperation::OrgCreated { site, .. } = &event.operation else {
                 continue;
             };
-            let organization_id = event.scope.organization_id;
+            let Some(organization_id) = event.scope.organization_id else {
+                continue;
+            };
             self.seed_organization(organization_id, event.authentication.clone())
                 .await?;
             if let Some(site) = site {
@@ -415,10 +417,7 @@ impl Subscriber<OnboardingOperation> for OrgSetupService {
     }
 }
 
-inventory::submit!(SubscriberRegistration::new::<
-    OrgSetupService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<OrgSetupService, AuthOperation>());
 
 #[async_trait]
 impl Subscriber<BillingOperation> for OrgSetupService {
@@ -530,7 +529,7 @@ mod tests {
         let licensed = BillingPlan::SelfHostedStandard(PlanConfig::default());
         let trial = |plan: BillingPlan| BillingOperation::TrialStarted {
             plan,
-            trial_end: chrono::Utc::now(),
+            trial_end: crate::server::shared::clock::now(),
             trial_days: 14,
         };
 

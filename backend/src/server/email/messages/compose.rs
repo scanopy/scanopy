@@ -27,6 +27,16 @@
 /// each one ends with this single consistent pointer to the Billing page.
 pub const BILLING_DETAILS_TAGLINE: &str = "Visit your Billing page for full details.";
 
+/// The trial-ending emails' offer of the org's one self-serve extension,
+/// linking to the Billing tab that holds the extend action.
+pub fn trial_extension_offer() -> String {
+    format!(
+        r#"Need more time? <a href="{}" style="color: #2563eb; text-decoration: none;">Extend your trial by {} days</a>, once."#,
+        super::links::SETTINGS_BILLING,
+        crate::server::billing::plans::TRIAL_EXTENSION_DAYS
+    )
+}
+
 /// Escape text for an HTML element body or a quoted attribute.
 pub(super) fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -88,6 +98,13 @@ impl Content {
     pub fn link(self, href: &str, label: &str) -> Self {
         self.child(&format!(
             r#"<p style="margin: 0 0 24px 0; font-size: 14px; line-height: 20px;"><a href="{href}" style="color: #2563eb; font-weight: 500;">{label}</a></p>"#
+        ))
+    }
+
+    /// A blue box with a link, the email form of the app's inline info.
+    pub fn info(self, text: &str, href: &str, label: &str) -> Self {
+        self.child(&format!(
+            r#"<div style="margin: 0 0 20px 0; padding: 12px 16px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 14px; line-height: 20px; color: #1e40af;"><div style="font-weight: 500;">{text}</div><a href="{href}" style="color: #2563eb; font-weight: 500;">{label}</a></div>"#
         ))
     }
 

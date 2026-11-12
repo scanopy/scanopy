@@ -1,4 +1,4 @@
-import type { FieldDefinition } from '$lib/shared/stores/metadata';
+import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 
 type FieldSetField = Pick<FieldDefinition, 'id' | 'field_set' | 'default_value'>;
 

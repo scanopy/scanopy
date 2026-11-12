@@ -1,9 +1,9 @@
 <script lang="ts" context="module">
-	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { Binding, Service } from '$lib/features/services/types/base';
-	import type { Host, IPAddress, Port } from '$lib/features/hosts/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { common_service, common_unknownEntity } from '$lib/paraglide/messages';
+	import { entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import type { Binding, Service } from '#lib/features/services/types/base.ts';
+	import type { Host, IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { common_service, common_unknownEntity } from '#lib/paraglide/messages.js';
 	import { BindingDisplay } from './BindingDisplay.svelte';
 
 	// Context for binding display - needs access to services, hosts, interfaces, ports

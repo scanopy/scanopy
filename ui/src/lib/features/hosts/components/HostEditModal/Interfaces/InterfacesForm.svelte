@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Interface } from '$lib/features/hosts/types/base';
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
-	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+	import type { Interface } from '#lib/features/hosts/types/base.ts';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
 	import InterfaceConfigPanel from './InterfaceConfigPanel.svelte';
 	import {
 		hosts_interfaces_emptySubtitle,
@@ -11,9 +11,9 @@
 		hosts_interfaces_selectToView,
 		hosts_interfaces_subtitle,
 		common_interfaces
-	} from '$lib/paraglide/messages';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import { interfaceIntegrationsList } from '$lib/shared/stores/metadata';
+	} from '#lib/paraglide/messages.js';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { interfaceIntegrationsList } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		interfaces: Interface[];

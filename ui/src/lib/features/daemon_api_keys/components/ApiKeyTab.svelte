@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import { apiKeyColumns } from './ApiKeyTab.columns';
 	import CreateApiKeyModal from './ApiKeyModal.svelte';
 	import type { ApiKey } from '../types/base';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useApiKeysQuery,
 		useUnboundApiKeysListQuery,
@@ -19,16 +19,16 @@
 		useDeleteApiKeyMutation,
 		useBulkDeleteApiKeysMutation
 	} from '../queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { components } from '$lib/api/schema';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { components } from '#lib/api/schema';
 
 	type DaemonApiKeyOrderField = components['schemas']['DaemonApiKeyOrderField'];
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_edit,
 		common_delete,
@@ -39,21 +39,24 @@
 		daemonApiKeys_provisionOnlyHint,
 		daemonApiKeys_inUse,
 		daemonApiKeys_inUseBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Queries
 	const tagsQuery = useTagsQuery();
 	// Every key, bound or not: a deep link can name a key bound to a daemon.
-	const apiKeysQuery = useApiKeysQuery();
+	const apiKeysQuery = useApiKeysQuery({ enabled: () => can('DaemonApiKey', 'Read') });
 	// The page the table shows: keys no daemon is bound to, paged on the server. A key bound 1:1 to
 	// a daemon is managed from the daemon record, not this tab.
 	const page = listPageState(() => isActive);
 	const keysPageQuery = useUnboundApiKeysListQuery(() => page.params());
-	const siteValuesQuery = useFieldValuesQuery(
-		'/api/v1/daemon-api-keys/field-values/{field}',
-		'site_id',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/daemon-api-keys/field-values',
+		['site_id'],
 		() => ({
 			unbound: true
 		}),
@@ -143,11 +146,17 @@
 	}
 
 	/** Row actions. */
-	function apiKeyActions(apiKey: ApiKey): CardAction[] {
-		if (isReadOnly) return [];
+	function apiKeyActions(apiKey: ApiKey): RowAction[] {
+		if (!can('DaemonApiKey', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditApiKey(apiKey) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditApiKey(apiKey),
+				unavailable: refusedUnless(can('DaemonApiKey', 'Write', apiKey.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
@@ -155,11 +164,13 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteApiKey(apiKey),
-				unavailable: disabledWhen(
-					apiKeyIdsInUse.has(apiKey.id),
-					daemonApiKeys_inUse(),
-					daemonApiKeys_inUseBulk()
-				)
+				unavailable:
+					refusedUnless(can('DaemonApiKey', 'Delete', apiKey.site_id)) ??
+					disabledWhen(
+						apiKeyIdsInUse.has(apiKey.id),
+						daemonApiKeys_inUse(),
+						daemonApiKeys_inUseBulk()
+					)
 			}
 		];
 	}
@@ -176,7 +187,7 @@
 			lookup: () => lookup,
 			sites: () => sitesData,
 			tags: () => tagsData,
-			siteValues: () => siteValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id
 		})
 	);
 </script>
@@ -205,7 +216,7 @@
 			items={apiKeysData}
 			fields={apiKeyFields}
 			entityType="DaemonApiKey"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getApiKeyTags}
 			storageKey="scanopy-api-keys-table-state"
 			defaults={tableDefaults}

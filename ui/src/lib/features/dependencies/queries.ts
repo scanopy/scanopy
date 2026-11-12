@@ -3,9 +3,9 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Dependency } from './types/base';
 
 /**
@@ -154,9 +154,9 @@ export function useUpdateDependencyDescriptionMutation() {
 	}));
 }
 
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
-import { entities } from '$lib/shared/stores/metadata';
-import type { Color } from '$lib/shared/utils/styling';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
+import type { Color } from '#lib/shared/utils/styling.ts';
 
 // ============================================================================
 // Utility Functions

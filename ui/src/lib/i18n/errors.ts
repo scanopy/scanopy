@@ -8,8 +8,8 @@
  * translation is available.
  */
 
-import { type ErrorCode, ERROR_CODES } from '$lib/generated/error-codes';
-import * as m from '$lib/paraglide/messages';
+import { type ErrorCode, ERROR_CODES } from '#lib/generated/error-codes.ts';
+import * as m from '#lib/paraglide/messages.js';
 
 /**
  * API error response structure from the backend.

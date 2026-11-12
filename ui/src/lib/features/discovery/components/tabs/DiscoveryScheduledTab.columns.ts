@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
-import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-import { discoveryTypes } from '$lib/shared/stores/metadata';
+import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+import { discoveryTypes } from '#lib/shared/stores/metadata.ts';
 import type { Discovery } from '../../types/base';
 import {
 	discoveryFields,
@@ -10,29 +10,23 @@ import {
 	type DiscoveryListParam,
 	type DiscoverySharedOrderField
 } from '../../queries';
-import type { DisplayConfig } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import type { DisplayConfig } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import type { DiscoveryUpdatePayload } from '../../types/api';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 import {
-	common_lastRun,
 	common_legacy,
 	common_manual,
-	common_progress,
-	common_schedule,
-	common_status,
 	discovery_schedulePausedFreePlan,
 	discovery_schedulePausedLapsed,
 	common_tags,
-	discovery_completedScans,
-	discovery_forceFullScan,
 	discovery_legacyTagTitle,
 	discovery_runType
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /**
  * How the shared discovery fields sit on this tab. `discovery_type` is the same
@@ -106,7 +100,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			getGroupValue: (item) => item.discovery_type.type
 		},
 		scan_count: {
-			label: discovery_completedScans(),
 			type: 'string',
 			// A count: it sorts, but every value would be its own group.
 			groupable: false,
@@ -114,7 +107,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { hiddenByDefault: true, align: 'right' }
 		},
 		force_full_scan: {
-			label: discovery_forceFullScan(),
 			type: 'boolean',
 			filterable: true,
 			serverFiltered: true,
@@ -124,7 +116,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { hiddenByDefault: true }
 		},
 		legacy: {
-			label: common_status(),
 			type: 'boolean',
 			filterable: true,
 			serverFiltered: true,
@@ -163,7 +154,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { order: 1 }
 		},
 		last_run: {
-			label: common_lastRun(),
 			// A date column so it sorts by time. The ISO string rather than a Date, so the cell
 			// renders it as recent activity (a Date renders as a compact date).
 			type: 'date',
@@ -183,7 +173,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 		[
 			{
 				key: 'schedule',
-				label: common_schedule(),
 				type: 'string',
 				getValue: (item) =>
 					item.run_type.type !== 'Scheduled'
@@ -197,7 +186,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			},
 			{
 				key: 'progress',
-				label: common_progress(),
 				// Progress belongs to the run, not the record, so there is nothing to
 				// sort, filter or group by — but it is still a field, so a running scan
 				// shows its tracker in the table.

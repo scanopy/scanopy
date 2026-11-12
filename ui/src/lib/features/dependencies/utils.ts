@@ -1,6 +1,6 @@
 import type { DependencyType } from './types/base';
-import { edgeTypes } from '$lib/shared/stores/metadata';
-import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
+import { edgeTypes } from '#lib/shared/stores/metadata.ts';
+import { AVAILABLE_COLORS, type Color } from '#lib/shared/utils/styling.ts';
 
 type NameGenerator = (names: string[]) => string;
 

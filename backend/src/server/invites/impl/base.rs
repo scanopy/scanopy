@@ -12,6 +12,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::server::{
+    auth::access::{Grants, Keying},
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
         product_area::ProductArea,
@@ -69,12 +70,11 @@ impl Display for Invite {
 }
 
 impl Invite {
-    /// Whether an admin with `viewer_permissions` sees this invite: one they created, one for a
-    /// role below theirs, or any when they own the organization.
-    pub fn is_listed_for(&self, viewer_permissions: UserOrgPermissions, viewer_id: Uuid) -> bool {
+    /// Whether an admin with these organization grants sees this invite: one they created, or one
+    /// for a role they could grant.
+    pub fn is_listed_for(&self, viewer: &Grants, viewer_id: Uuid) -> bool {
         self.base.created_by == viewer_id
-            || self.base.permissions < viewer_permissions
-            || viewer_permissions == UserOrgPermissions::Owner
+            || viewer.may_grant_to_person(&self.base.permissions.grants(), Keying::Organization)
     }
 
     /// Create a new invite with the specified expiration
@@ -87,7 +87,7 @@ impl Invite {
         site_ids: Vec<Uuid>,
         send_to: Option<EmailAddress>,
     ) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -105,7 +105,7 @@ impl Invite {
     }
 
     pub fn is_valid(&self) -> bool {
-        Utc::now() < self.base.expires_at
+        crate::server::shared::clock::now() < self.base.expires_at
     }
 }
 
@@ -126,7 +126,7 @@ impl Storable for Invite {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -145,7 +145,6 @@ impl Storable for Invite {
                 "id",
                 "organization_id",
                 "permissions",
-                "site_ids",
                 "url",
                 "created_by",
                 "created_at",
@@ -157,7 +156,6 @@ impl Storable for Invite {
                 SqlValue::Uuid(self.id),
                 SqlValue::Uuid(self.base.organization_id),
                 SqlValue::UserOrgPermissions(self.base.permissions),
-                SqlValue::UuidArray(self.base.site_ids.clone()),
                 SqlValue::String(self.base.url.clone()),
                 SqlValue::Uuid(self.base.created_by),
                 SqlValue::Timestamp(self.created_at),
@@ -187,7 +185,7 @@ impl Storable for Invite {
             base: InviteBase {
                 organization_id: row.get("organization_id"),
                 permissions,
-                site_ids: row.get("site_ids"),
+                site_ids: Vec::new(),
                 url: row.get("url"),
                 created_by: row.get("created_by"),
                 expires_at: row.get("expires_at"),

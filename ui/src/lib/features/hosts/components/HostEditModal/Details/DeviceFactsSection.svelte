@@ -1,21 +1,21 @@
 <script lang="ts">
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import type { AttributeSource } from '$lib/shared/utils/attribute-source';
-	import AttributeSourceTag from '$lib/shared/components/data/AttributeSourceTag.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { TagProps } from '$lib/shared/components/data/types';
-	import { type HostOs } from '$lib/features/hosts/host-os';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import type { AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+	import AttributeSourceTag from '#lib/shared/components/data/AttributeSourceTag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
+	import { type HostOs } from '#lib/features/hosts/host-os.ts';
 	import OsTag from '../../OsTag.svelte';
 	import DeviceTypeLabel from '../../DeviceTypeLabel.svelte';
 	import EditableFactRow from './EditableFactRow.svelte';
 	import { EDITABLE_TEXT_FACTS, deviceLabelDefaults } from './device-labels';
-	import { deviceTypeSourceTag } from '$lib/features/hosts/device-type-source';
-	import { sysContactEmail } from '$lib/features/hosts/sys-contact';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
-	import GuestStateTag from '$lib/shared/components/virtualization/GuestStateTag.svelte';
-	import { entityRef, type EntityRef } from '$lib/shared/components/data/types';
-	import type { Color } from '$lib/shared/utils/styling';
+	import { deviceTypeSourceTag } from '#lib/features/hosts/device-type-source.ts';
+	import { sysContactEmail } from '#lib/features/hosts/sys-contact.ts';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import CopyableValue from '#lib/shared/components/data/CopyableValue.svelte';
+	import GuestStateTag from '#lib/shared/components/virtualization/GuestStateTag.svelte';
+	import { entityRef, type EntityRef } from '#lib/shared/components/data/types.ts';
+	import type { Color } from '#lib/shared/utils/styling.ts';
 	import {
 		containerNetworkTypes,
 		deviceTypes,
@@ -24,23 +24,23 @@
 		guestStates,
 		hostVirtualizations,
 		proxmoxGuestTypes
-	} from '$lib/shared/stores/metadata';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { hostIcon } from '$lib/features/hosts/host-icon';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import type { components } from '$lib/api/schema';
-	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
-	import { virtualizationSummary } from '$lib/features/hosts/host-virtualization';
-	import { useServicesByIds } from '$lib/features/services/queries';
-	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
-	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
+	} from '#lib/shared/stores/metadata.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import type { components } from '#lib/api/schema';
+	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
+	import { virtualizationSummary } from '#lib/features/hosts/host-virtualization.ts';
+	import { useServicesByIds } from '#lib/features/services/queries.ts';
+	import { useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
+	import { useInterfacesQuery } from '#lib/features/interfaces/queries.ts';
 	import {
 		collectionLookup,
 		entityFieldLabel,
 		entityFields,
 		fieldSource,
 		fieldText
-	} from '$lib/shared/entity-fields';
+	} from '#lib/shared/entity-fields/index.ts';
 	import {
 		common_hardware,
 		common_hypervisor,
@@ -62,7 +62,7 @@
 		hosts_deviceFacts_networkType,
 		hosts_deviceFacts_vmId,
 		hosts_deviceType
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		form,

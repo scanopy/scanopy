@@ -1,5 +1,5 @@
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Viewer},
+    auth::middleware::permissions::{Authorized, InOrganization},
     config::AppState,
     live_updates::types::{LiveTopologyUpdate, LiveUpdate},
     shared::{
@@ -27,12 +27,13 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new().route("/stream", get(live_updates_stream))
 }
 
-/// SSE stream of `LiveUpdate` events for the caller's sites: discovery progress, and topology
-/// changes when the plan includes the topology view. The plan is read at connect, so the app
-/// reconnects when the org's topology access changes.
+/// SSE stream of `LiveUpdate` events for the caller's sites: discovery progress, daemon check-ins
+/// that change a version or health, and topology changes when the plan includes the topology view. The plan is read at connect, so the app
+/// reconnects when the org's topology access changes. The caller's own access is read per event,
+/// so a revoked site stops at once, and the stream ends when the caller is gone.
 async fn live_updates_stream(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<InOrganization>,
 ) -> ApiResult<Sse<impl Stream<Item = Result<Event, Infallible>>>> {
     let organization_id = auth
         .organization_id()
@@ -51,7 +52,12 @@ async fn live_updates_stream(
         .services
         .topology_service
         .subscribe_live_topology_updates();
-    let site_ids = auth.site_ids();
+    let mut daemon_rx = state
+        .services
+        .daemon_service
+        .subscribe_live_daemon_updates();
+    let caller = auth.into_entity();
+    let events_state = state.clone();
 
     let stream = async_stream::stream! {
         loop {
@@ -72,8 +78,24 @@ async fn live_updates_stream(
                     }
                     Err(RecvError::Closed) => break,
                 },
+                received = daemon_rx.recv() => match received {
+                    Ok(update) => LiveUpdate::Daemon(update),
+                    Err(RecvError::Lagged(n)) => {
+                        tracing::warn!("Live-update stream lagged by {} daemon messages", n);
+                        continue;
+                    }
+                    Err(RecvError::Closed) => break,
+                },
             };
-            if update.is_visible_to(&site_ids, topology_on_plan) {
+            let access = match caller.current_access(&events_state.services).await {
+                Ok(Some(access)) => access,
+                Ok(None) => break,
+                Err(e) => {
+                    tracing::warn!("Skipped a live update: {e}");
+                    continue;
+                }
+            };
+            if update.is_visible_to(&access, topology_on_plan) {
                 let json = serde_json::to_string(&update).unwrap_or_default();
                 yield Ok(Event::default().data(json));
             }

@@ -37,6 +37,7 @@ import {
 	isExporting,
 	isMeasuring,
 	detailSimplified,
+	viewportZoom,
 	newNodeIds,
 	searchHiddenNodeIds,
 	searchMatchContainerMap,
@@ -56,6 +57,7 @@ export const edgeHandles = fromStore(
 export const exporting = fromStore(isExporting);
 export const measuring = fromStore(isMeasuring);
 export const simplified = fromStore(detailSimplified);
+export const zoom = fromStore(viewportZoom);
 export const searchHiddenNodes = fromStore(searchHiddenNodeIds);
 export const searchContainerMatches = fromStore(searchMatchContainerMap);
 export const hiddenEntities = fromStore(hiddenEntityIds);

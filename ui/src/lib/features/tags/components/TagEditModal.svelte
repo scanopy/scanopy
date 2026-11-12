@@ -1,27 +1,27 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Tag } from '../types/base';
 	import { createDefaultTag } from '../types/base';
-	import { createColorHelper, AVAILABLE_COLORS } from '$lib/shared/utils/styling';
+	import { createColorHelper, AVAILABLE_COLORS } from '#lib/shared/utils/styling.ts';
 	import { TagIcon } from '@lucide/svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import IconPicker from '$lib/shared/components/forms/IconPicker.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import IconPicker from '#lib/shared/components/forms/IconPicker.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		NO_TAG_GROUP,
 		TagGroupOptionDisplay
-	} from '$lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
 	import { useTagGroupsQuery } from '../queries';
-	import tagIconsFixture from '$lib/data/tag-icons.json';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import tagIconsFixture from '#lib/data/tag-icons.json';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_cancel,
 		common_color,
@@ -42,7 +42,7 @@
 		tags_tagGroupPlaceholder,
 		tags_iconApplicationFixed,
 		tags_tagNamePlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		tag = null,
@@ -77,15 +77,24 @@
 	let title = $derived(isEditing ? common_editName({ name: tag?.name ?? '' }) : tags_createTag());
 	let saveLabel = $derived(isEditing ? common_update() : common_create());
 
-	function getDefaultValues(): Tag {
-		if (tag) return { ...tag };
-		if (organization) return createDefaultTag(organization.id);
-		return createDefaultTag('');
+	// The form leaves out `source`: the server sets it, and its nested union is too deep for the
+	// form's field-path types.
+	type TagFormValues = Omit<Tag, 'source'>;
+	function formValues(t: Tag): TagFormValues {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { source, ...values } = t;
+		return values;
+	}
+
+	function getDefaultValues(): TagFormValues {
+		if (tag) return formValues(tag);
+		if (organization) return formValues(createDefaultTag(organization.id));
+		return formValues(createDefaultTag(''));
 	}
 
 	// Create form
 	const form = createForm(() => ({
-		defaultValues: createDefaultTag(''),
+		defaultValues: formValues(createDefaultTag('')),
 		onSubmit: async ({ value }) => {
 			if (!organization) {
 				pushError(common_couldNotLoadOrganization());
@@ -94,7 +103,8 @@
 			}
 
 			const tagData: Tag = {
-				...(value as Tag),
+				...(value as TagFormValues),
+				source: tag?.source ?? { type: 'Manual' },
 				name: value.name.trim(),
 				description: value.description?.trim() || null,
 				organization_id: organization.id

@@ -89,7 +89,7 @@ pub use crate::daemon::discovery::service::warnings::LocalPortPlacementReason;
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, ClaimSource, DeviceClaim, IncompleteInterfaceWalk, MalformedNeighbours,
     SnmpCollectionOutcome, SnmpGroupOutcome, SnmpWalkCause, SnmpWalkGroup, UnresolvedLldpPorts,
-    contradicted_claims, snmp_device_findings,
+    VlanPortsUnresolved, contradicted_claims, snmp_device_findings,
 };
 use queries::FailedQuery;
 
@@ -97,6 +97,10 @@ use queries::FailedQuery;
 pub struct SnmpProbeHandle {
     pub credential: SnmpQueryCredential,
     pub port: u16,
+    /// The AES-256 key extension the probe's session ended on (GH #846), which the collection's
+    /// sessions open with. A Cisco agent costs the probe one refused handshake; without this it
+    /// would cost every later session the same.
+    pub key_extension: Option<snmp2::v3::KeyExtension>,
 }
 
 /// Run one SNMP query under `SNMP_WALK_TIMEOUT`, collapsing both a query error and a
@@ -169,14 +173,18 @@ async fn attempt_on_port(
     ip: IpAddr,
     credential: SnmpQueryCredential,
     port: u16,
-) -> Result<SnmpQueryCredential, PortFailure> {
+) -> Result<SnmpProbeHandle, PortFailure> {
     match timeout(
         SNMP_PROBE_TIMEOUT,
         try_snmp_with_credential_on_port(ip, &credential, port),
     )
     .await
     {
-        Ok(SnmpProbeOutcome::Answered(_)) => Ok(credential),
+        Ok(SnmpProbeOutcome::Answered(port, key_extension)) => Ok(SnmpProbeHandle {
+            credential,
+            port,
+            key_extension,
+        }),
         Ok(SnmpProbeOutcome::Failed(outcome, message)) => Err((outcome, message)),
         Err(_) => Err((
             AttemptOutcome::TimedOut,
@@ -197,7 +205,7 @@ async fn probe_port(
     ip: IpAddr,
     credential: &SnmpQueryCredential,
     port: u16,
-) -> Result<SnmpQueryCredential, PortFailure> {
+) -> Result<SnmpProbeHandle, PortFailure> {
     if matches!(credential.version, SnmpVersion::V3) {
         return attempt_on_port(ip, credential.clone(), port).await;
     }
@@ -277,14 +285,16 @@ impl DiscoveryIntegration for SnmpIntegration {
 
             match probe_port(ctx.ip, snmp_cred, port).await {
                 Ok(answered) => {
-                    debug!(ip = %ctx.ip, port, version = %answered.version, "SNMP answered");
+                    debug!(
+                        ip = %ctx.ip,
+                        port,
+                        version = %answered.credential.version,
+                        "SNMP answered"
+                    );
                     return Ok(ProbeSuccess {
                         client_probe: Some(ClientProbe::Snmp),
                         ports: vec![PortType::new_udp(port)],
-                        handle: Some(Box::new(SnmpProbeHandle {
-                            credential: answered,
-                            port,
-                        })),
+                        handle: Some(Box::new(answered)),
                     });
                 }
                 Err((outcome, message)) => {
@@ -328,23 +338,25 @@ impl DiscoveryIntegration for SnmpIntegration {
 
         let credential = &handle.credential;
         let port = handle.port;
+        let key_extension = handle.key_extension;
         let ip = ctx.ip;
 
         // Open one SNMP session per host and reuse it across every query below.
         // Previously each of the ~12 queries opened its own session — and for v3 each
         // repeated the full engine-discovery handshake — so a single collection did
         // ~12 session setups. Reusing one session removes that per-query cost.
-        let mut session = match create_session(ip, credential, port, SnmpContext::Default).await {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::warn!(
-                    ip = %ip,
-                    error = %e,
-                    "Failed to open SNMP session; skipping SNMP collection"
-                );
-                return Ok(Completeness::Complete);
-            }
-        };
+        let mut session =
+            match create_session(ip, credential, port, SnmpContext::Default, key_extension).await {
+                Ok(s) => s,
+                Err(e) => {
+                    tracing::warn!(
+                        ip = %ip,
+                        error = %e,
+                        "Failed to open SNMP session; skipping SNMP collection"
+                    );
+                    return Ok(Completeness::Complete);
+                }
+            };
         session.watch_cancel(ctx.cancel.clone());
 
         // Query system info
@@ -585,14 +597,6 @@ impl DiscoveryIntegration for SnmpIntegration {
             remap_lldp_local_ports(&mut lldp_neighbors, &lldp_local_ports, &snmp_if_entries)
         };
         if local_ports.unmatched > 0 || local_ports.dropped > 0 {
-            tracing::warn!(
-                ip = %ip,
-                unmatched = local_ports.unmatched,
-                dropped = local_ports.dropped,
-                total = lldp_count,
-                "LLDP neighbours could not be placed on a local interface; the dropped ones \
-                 contribute no link at all"
-            );
             ctx.ops
                 .record_unresolved_lldp_ports(UnresolvedLldpPorts {
                     ip,
@@ -680,7 +684,15 @@ impl DiscoveryIntegration for SnmpIntegration {
         // losing its bridge data outright.
         let mut context_session = match bridge_context(credential) {
             Some(name) => {
-                match create_session(ip, credential, port, SnmpContext::FromCredential).await {
+                match create_session(
+                    ip,
+                    credential,
+                    port,
+                    SnmpContext::FromCredential,
+                    key_extension,
+                )
+                .await
+                {
                     Ok(mut s) => {
                         tracing::debug!(ip = %ip, context = name, "Opened bridge-context session");
                         s.watch_cancel(ctx.cancel.clone());
@@ -745,8 +757,16 @@ impl DiscoveryIntegration for SnmpIntegration {
         );
 
         // Query VLAN table for VLAN names and persist as VLAN entities
-        let vlan_table =
-            query_or_failed(ip, "vlan_table", query_vlan_table(bridge_session, ip)).await;
+        // Decides whether the VLAN queries may ask for TP-Link's private tables.
+        let sys_object_id = system_info
+            .as_ref()
+            .and_then(|info| info.sys_object_id.as_deref());
+        let vlan_table = query_or_failed(
+            ip,
+            "vlan_table",
+            query_vlan_table(bridge_session, ip, sys_object_id),
+        )
+        .await;
         let vlan_names_outcome = SnmpGroupOutcome {
             complete: vlan_table.complete,
             observed: vlan_table.records.len(),
@@ -772,7 +792,8 @@ impl DiscoveryIntegration for SnmpIntegration {
             match ctx.ops.upsert_vlans(items, site_id, ctx.cancel).await {
                 Ok(mapping) => mapping,
                 Err(e) => {
-                    tracing::warn!(ip = %ip, error = %e, "Failed to upsert VLANs, VLAN IDs will not be resolved");
+                    // The warning names the device; this keeps the error, which it does not carry.
+                    tracing::debug!(ip = %ip, error = %e, "VLAN upsert failed");
                     // The switch answered in full and we could not record it. Silent until now,
                     // and the consequence is not small — every interface on this device loses
                     // its VLAN ids, which looks identical to a switch that reports no VLANs.
@@ -788,9 +809,17 @@ impl DiscoveryIntegration for SnmpIntegration {
         let port_vlan_membership = query_or_failed(
             ip,
             "port_vlan_membership",
-            query_port_vlan_membership(bridge_session, ip, &bridge_ports),
+            query_port_vlan_membership(bridge_session, ip, &bridge_ports, sys_object_id),
         )
         .await;
+        ctx.ops
+            .record_vlan_ports_unresolved(VlanPortsUnresolved {
+                ip,
+                unresolved: port_vlan_membership.discarded,
+                credential_id: ctx.credential_id,
+                snmp_version: Some(credential.version),
+            })
+            .await;
         let vlan_membership_complete = port_vlan_membership.complete;
         let vlan_membership_reason = port_vlan_membership.reason;
         let port_vlan_membership = port_vlan_membership.records;
@@ -1023,11 +1052,6 @@ impl DiscoveryIntegration for SnmpIntegration {
         // The probe already proved the address, port and community are right, which is what
         // makes a device that returned nothing from any table worth a line of its own.
         if let Some(collected_nothing) = collected_nothing {
-            tracing::warn!(
-                ip = %ip,
-                failures = ?collected_nothing.failures,
-                "SNMP probe succeeded but every table came back empty"
-            );
             ctx.ops
                 .record_snmp_collected_nothing(collected_nothing)
                 .await;
@@ -1323,7 +1347,7 @@ pub async fn poll_device(
 )> {
     debug!("Starting SNMP poll of {}", ip);
 
-    let mut session = create_session(ip, credential, port, SnmpContext::Default).await?;
+    let mut session = create_session(ip, credential, port, SnmpContext::Default, None).await?;
 
     let system_info = timeout(SNMP_WALK_TIMEOUT, query_system_info(&mut session, ip))
         .await

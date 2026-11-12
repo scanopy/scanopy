@@ -911,7 +911,7 @@ impl DiscoveryOps {
             session_id: request.session_id,
             site_id,
             daemon_id,
-            started_at: Some(Utc::now()),
+            started_at: Some(crate::server::shared::clock::now()),
             discovery_type: request.discovery_type.clone(),
             discovery_id: request.discovery_id,
         };
@@ -986,11 +986,10 @@ impl DiscoveryOps {
         // warning per occurrence for each type that fires per host — see
         // `crate::daemon::discovery::service::warnings` for why those are recorded typed and coded
         // here rather than pushed as sentences when they happen.
-        let mut warnings = session
-            .warnings
-            .lock()
-            .map(|w| w.clone())
-            .unwrap_or_default();
+        let mut warnings = session.pushed_warnings();
+        // Those were logged as they were pushed. The ones coded below are built here, so this
+        // is where they are logged.
+        let already_logged = warnings.len();
 
         if let Ok(records) = session.incomplete_interface_walks.lock() {
             warnings.extend(warnings::warn_incomplete_interface_walks(&records));
@@ -1015,14 +1014,20 @@ impl DiscoveryOps {
         if let Ok(records) = session.vlan_recording_failures.lock() {
             warnings.extend(warnings::warn_vlan_recording_failures(&records));
         }
+        if let Ok(records) = session.vlan_ports_unresolved.lock() {
+            warnings.extend(warnings::warn_vlan_ports_unresolved(&records));
+        }
         if let Ok(records) = session.equal_reach_integrations.lock() {
             warnings.extend(warnings::warn_equal_reach_integrations(&records));
         }
-        if let Ok(records) = session.unreached_proxmox_guests.lock() {
-            warnings.extend(warnings::warn_unreached_proxmox_guests(&records));
+        if let Ok(records) = session.unreached_guests.lock() {
+            warnings.extend(warnings::warn_unreached_guests(&records));
         }
         if let Ok(issues) = session.credential_issues.lock() {
             warnings.extend(warnings::warn_credential_issues(&issues));
+        }
+        for warning in &warnings[already_logged..] {
+            warning.log();
         }
 
         truncate_warnings(&mut warnings);
@@ -1063,7 +1068,7 @@ impl DiscoveryOps {
             final_progress,
             warnings,
             credential_results,
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
         match terminal_update.phase {
             DiscoveryPhase::Complete => tracing::info!(
@@ -1163,6 +1168,7 @@ impl DiscoveryOps {
             update,
         );
         payload.scanned = scanned;
+        payload.last_activity_at = Some(session.last_activity_at());
 
         // Populate estimation fields from session atomics
         let hosts = session.hosts_discovered.load(Ordering::Relaxed);
@@ -1417,10 +1423,23 @@ impl DiscoveryOps {
         }
     }
 
-    /// Record a Proxmox VE guest this scan reaches no ports on.
-    pub async fn record_unreached_proxmox_guest(&self, record: warnings::UnreachedProxmoxGuest) {
+    /// Record a hypervisor guest this scan reaches no ports on.
+    pub async fn record_unreached_guest(&self, record: warnings::UnreachedHypervisorGuest) {
         if let Ok(session) = self.get_session().await
-            && let Ok(mut buffer) = session.unreached_proxmox_guests.lock()
+            && let Ok(mut buffer) = session.unreached_guests.lock()
+        {
+            buffer.push(record);
+        }
+    }
+
+    /// Record a device whose VLAN tables name member ports that match none of its interfaces.
+    /// A record with nothing unresolved is dropped, so callers pass the count as they have it.
+    pub async fn record_vlan_ports_unresolved(&self, record: warnings::VlanPortsUnresolved) {
+        if record.unresolved == 0 {
+            return;
+        }
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut buffer) = session.vlan_ports_unresolved.lock()
         {
             buffer.push(record);
         }
@@ -1469,6 +1488,21 @@ impl DiscoveryOps {
             .await
     }
 
+    /// Record that the scan advanced: see [`super::base::DiscoverySession::last_activity_ms`].
+    pub async fn stamp_activity(&self) {
+        if let Ok(session) = self.get_session().await {
+            session.stamp_activity();
+        }
+    }
+
+    /// Track a deep scan of `ip` until the guard drops. `None` without a session.
+    pub async fn track_deep_scan(&self, ip: IpAddr) -> Option<super::base::DeepScanInFlight> {
+        self.get_session()
+            .await
+            .ok()
+            .map(|session| session.track_deep_scan(ip))
+    }
+
     /// Report progress already mapped to the whole session.
     async fn report_overall_progress(&self, percent: u8) -> Result<(), Error> {
         use crate::daemon::discovery::types::base::DiscoverySessionUpdate;
@@ -1483,6 +1517,11 @@ impl DiscoveryOps {
             .unwrap_or_default()
             .as_secs();
         let last_time = last_report_time.load(Ordering::Relaxed);
+
+        // A rise is the scan advancing whether or not this one is sent.
+        if percent > last_progress.load(Ordering::Relaxed) {
+            session.stamp_activity();
+        }
 
         let Some(percent) = progress_decision(
             percent,
@@ -1510,6 +1549,7 @@ impl DiscoveryOps {
                 session.info.clone(),
                 update,
             );
+            payload.last_activity_at = Some(session.last_activity_at());
 
             let hosts = session.hosts_discovered.load(Ordering::Relaxed);
             if hosts > 0 {
@@ -1685,6 +1725,8 @@ impl DiscoveryOps {
         cancel: &CancellationToken,
     ) -> Result<HostResponse, Error> {
         let pending_id = host.id;
+        // A host to submit is the scan advancing, however long the submission takes.
+        self.stamp_activity().await;
         let (mut ip_addresses, mut interfaces) = (ip_addresses, interfaces);
         retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
         port_coverage.merge(container_port_coverage(&ip_addresses, &ports, &services));
@@ -2156,6 +2198,26 @@ pub enum DiscoveryAbort {
          Part of the scan stopped responding."
     )]
     Watchdog { elapsed_secs: u64, cap_secs: u64 },
+    /// The session kept running and stopped advancing: nothing raised its progress, created a
+    /// host or finished a deep scan or integration for `quiet_secs`.
+    #[error(
+        "The scan made no progress for {} minutes and was stopped. {}",
+        quiet_secs / 60,
+        in_flight_sentence(in_flight)
+    )]
+    StoppedAdvancing {
+        quiet_secs: u64,
+        /// The addresses being deep-scanned when it was stopped.
+        in_flight: Vec<IpAddr>,
+    },
+}
+
+fn in_flight_sentence(in_flight: &[IpAddr]) -> String {
+    if in_flight.is_empty() {
+        return "No host was being deep-scanned.".to_string();
+    }
+    let ips: Vec<String> = in_flight.iter().map(|ip| ip.to_string()).collect();
+    format!("Still deep-scanning: {}.", ips.join(", "))
 }
 
 /// The terminal update a run reports, from how it ended.
@@ -2179,6 +2241,12 @@ fn terminal_update(
                 progress,
                 Some(abort.to_string()),
                 Some(DiscoveryTerminalReason::WatchdogTimeout),
+            ),
+            Some(abort @ DiscoveryAbort::StoppedAdvancing { .. }) => (
+                DiscoveryPhase::Failed,
+                progress,
+                Some(abort.to_string()),
+                Some(DiscoveryTerminalReason::SessionStoppedAdvancing),
             ),
             None if cancelled => (DiscoveryPhase::Cancelled, progress, None, None),
             None => {
@@ -2249,7 +2317,7 @@ mod terminal_update_tests {
                 99,
                 Vec::new(),
                 Vec::new(),
-                Utc::now(),
+                crate::server::shared::clock::now(),
             );
 
             assert_eq!(update.phase, DiscoveryPhase::Failed);
@@ -2269,7 +2337,7 @@ mod terminal_update_tests {
             40,
             Vec::new(),
             Vec::new(),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert_eq!(update.phase, DiscoveryPhase::Failed);

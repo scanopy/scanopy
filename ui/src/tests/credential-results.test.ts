@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
 	credentialResultRows,
 	type CredentialRunResult
-} from '$lib/features/discovery/utils/credentialResults';
+} from '#lib/features/discovery/utils/credentialResults.ts';
 import {
 	warningCountsByCredential,
 	type DiscoveryWarning
-} from '$lib/features/discovery/utils/warnings';
+} from '#lib/features/discovery/utils/warnings.ts';
 
 const SNMP = '00000000-0000-0000-0000-0000000000c1';
 const SSH = '00000000-0000-0000-0000-0000000000c2';

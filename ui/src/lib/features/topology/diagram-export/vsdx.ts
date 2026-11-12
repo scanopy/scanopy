@@ -13,12 +13,16 @@ import {
 	DIAGRAM_PADDING,
 	DIAGRAM_SIDES,
 	sideAnchor,
+	type DiagramBox,
 	type DiagramConnector,
 	type DiagramField,
 	type DiagramModel,
+	type DiagramPart,
 	type DiagramShape,
-	type DiagramSide
+	type DiagramSide,
+	type DiagramText
 } from './model';
+import { STYLE } from './style';
 import { escapeXml, fieldKeys, hexColor } from './xml';
 
 /** Diagram units per inch: one flow pixel is one screen pixel at 96 DPI. */
@@ -120,17 +124,46 @@ function propertySection(fields: DiagramField[]): string {
 	return `<Section N="Property">${rows}</Section>`;
 }
 
-/** Bold first line, regular after: two character rows, switched with `cp` markers. */
-function textBlock(
-	title: string,
-	lines: string[],
-	color: string,
-	sizePt: number
-): { character: string; text: string } {
-	const character = `<Section N="Character"><Row IX="0">${cell('Color', hexColor(color))}${cell('Size', sizePt * POINT, undefined, 'PT')}${cell('Style', 1)}</Row><Row IX="1">${cell('Color', hexColor(color))}${cell('Size', (sizePt - 1) * POINT, undefined, 'PT')}${cell('Style', 0)}</Row></Section>`;
-	const body = lines.length ? `\n<cp IX="1"/>${lines.map(escapeXml).join('\n')}` : '';
-	return { character, text: `<Text><cp IX="0"/>${escapeXml(title)}${body}</Text>` };
+/** Points per diagram unit: a 12px label is 9pt. */
+const POINTS_PER_UNIT = 72 / UNITS_PER_INCH;
+
+/** A shape's text as one run: its character row and its `Text` element. */
+function textBlock(text: DiagramText | undefined): { character: string; text: string } {
+	if (!text) return { character: '', text: '' };
+	return {
+		character: `<Section N="Character"><Row IX="0">${cell('Color', hexColor(text.color))}${cell('Size', text.size * POINTS_PER_UNIT * POINT, undefined, 'PT')}${cell('Style', text.bold ? 1 : 0)}</Row></Section>`,
+		text: `<Text>${escapeXml(text.value)}</Text>`
+	};
 }
+
+/**
+ * An ellipse filling a box of `width` by `height` diagram units: its centre, then a point on each
+ * axis. Each cell carries its value beside its formula, since a reader that does not evaluate
+ * formulas draws from the values.
+ */
+function ellipseGeometry(width: number, height: number, noFill: boolean, noLine: boolean): string {
+	const w = inches(width);
+	const h = inches(height);
+	return `<Section N="Geometry" IX="0">${cell('NoFill', noFill ? 1 : 0)}${cell('NoLine', noLine ? 1 : 0)}${cell('NoShow', 0)}${cell('NoSnap', 0)}<Row T="Ellipse" IX="1">${cell('X', w / 2, 'Width*0.5')}${cell('Y', h / 2, 'Height*0.5')}${cell('A', w, 'Width*1')}${cell('B', h / 2, 'Height*0.5')}${cell('C', w / 2, 'Width*0.5')}${cell('D', h, 'Height*1')}</Row></Section>`;
+}
+
+/** Fill, line and corner cells for an outline; an undrawn fill or line is pattern 0. */
+function boxCells(box: DiagramBox): string {
+	return [
+		cell('FillForegnd', hexColor(box.fill ?? '#ffffff')),
+		cell('FillBkgnd', hexColor(box.fill ?? '#ffffff')),
+		cell('FillPattern', box.fill ? 1 : 0),
+		cell('LineColor', hexColor(box.stroke ?? '#000000')),
+		cell('LineWeight', (box.strokeWidth ?? 1) * POINTS_PER_UNIT * POINT, undefined, 'PT'),
+		cell('LinePattern', box.stroke ? (box.dashed ? 2 : 1) : 0),
+		cell('Rounding', inches(box.outline === 'rect' ? (box.radius ?? 0) : 0))
+	].join('');
+}
+
+const boxGeometry = (box: DiagramBox, size: { width: number; height: number }) =>
+	box.outline === 'ellipse'
+		? ellipseGeometry(size.width, size.height, !box.fill, !box.stroke)
+		: rectangleGeometry(!box.fill, !box.stroke);
 
 interface Ids {
 	next: number;
@@ -165,68 +198,82 @@ function boxShapeXml(
 	const id = ids.next++;
 	ids.byShape.set(shape.id, id);
 	const isContainer = shape.type === 'container';
-	const iconRel = iconRelId(media, model, shape.iconKey);
 	const kids = children.get(shape.id) ?? [];
-	const isGroup = kids.length > 0 || iconRel !== null;
+	const childFrame: Frame = shape;
+	// A shape's parts first, then the shapes it holds, as draw.io orders them.
+	const childXml = [
+		...shape.parts.map((part) => partShapeXml(shape, part, childFrame, model, ids, media)),
+		...kids.map((kid) => boxShapeXml(kid, childFrame, model, children, ids, media))
+	].filter(Boolean);
+	const isGroup = childXml.length > 0;
 
-	const { character, text } = textBlock(
-		shape.title,
-		shape.lines,
-		shape.style.text,
-		isContainer ? 10 : 9
-	);
-	const iconInset = iconRel ? (isContainer ? 16 : 20) + 10 : 0;
-
+	// The shape is its box alone. Everything drawn on it, its name included, is a part.
 	const cells = [
 		transformCells(shape, frame),
-		cell('FillForegnd', hexColor(shape.style.fill)),
-		cell('FillBkgnd', hexColor(shape.style.fill)),
-		cell('FillPattern', 1),
-		cell('LineColor', hexColor(shape.style.accent ?? shape.style.stroke)),
-		cell('LineWeight', (isContainer && shape.style.accent ? 1.5 : 0.75) * POINT, undefined, 'PT'),
-		cell('LinePattern', 1),
-		cell('Rounding', inches(isContainer ? 12 : 8)),
-		cell('VerticalAlign', isContainer || iconRel ? 0 : 1),
-		cell('LeftMargin', inches(6 + iconInset)),
-		cell('RightMargin', inches(6)),
-		cell('TopMargin', inches(6)),
-		cell('BottomMargin', inches(4)),
+		boxCells(shape.box),
 		// 1 draws the group's own box behind its members. 2 draws it in front and, filled, hides a
 		// container's cards and a card's icon in Visio (draw.io's importer ignores the cell).
 		isGroup ? cell('SelectMode', 1) : '',
 		isGroup ? cell('DisplayMode', 1) : ''
 	].join('');
 
-	const paragraph = `<Section N="Paragraph"><Row IX="0">${cell('HorzAlign', isContainer || iconRel ? 0 : 1)}</Row></Section>`;
 	const sections =
-		rectangleGeometry(false, false) +
+		boxGeometry(shape.box, shape) +
 		connectionSection(shape.width, shape.height) +
-		character +
-		paragraph +
 		propertySection(shape.data);
 
-	const childFrame: Frame = shape;
-	const childXml = kids.map((kid) => boxShapeXml(kid, childFrame, model, children, ids, media));
-	if (iconRel)
-		childXml.unshift(iconShapeXml(shape, childFrame, ids, iconRel, isContainer ? 16 : 20));
-
 	const name = `${isContainer ? 'Container' : 'Element'}.${id}`;
-	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="${isGroup ? 'Group' : 'Shape'}" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${sections}${text}${
-		childXml.length ? `<Shapes>${childXml.join('')}</Shapes>` : ''
+	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="${isGroup ? 'Group' : 'Shape'}" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${sections}${
+		isGroup ? `<Shapes>${childXml.join('')}</Shapes>` : ''
 	}</Shape>`;
 }
 
-function iconShapeXml(
+const HORZ_ALIGN = { left: 0, center: 1, right: 2 } as const;
+
+/**
+ * A part as a member of its shape's group: a bitmap for an icon, otherwise an outline with its
+ * text. A part whose icon did not load is not drawn.
+ */
+function partShapeXml(
 	owner: DiagramShape,
+	part: DiagramPart,
 	frame: Frame,
+	model: DiagramModel,
 	ids: Ids,
-	relId: string,
-	size: number
+	media: Media
 ): string {
+	const box: Frame = {
+		x: owner.x + part.x,
+		y: owner.y + part.y,
+		width: part.width,
+		height: part.height
+	};
+	if (part.iconKey) {
+		const relId = iconRelId(media, model, part.iconKey);
+		if (!relId) return '';
+		const id = ids.next++;
+		return `<Shape ID="${id}" NameU="Icon.${id}" Name="Icon.${id}" Type="Foreign" LineStyle="0" FillStyle="0" TextStyle="0">${transformCells(box, frame)}${cell('ImgOffsetX', 0, 'ImgWidth*0')}${cell('ImgOffsetY', 0, 'ImgHeight*0')}${cell('ImgWidth', inches(part.width), 'Width*1')}${cell('ImgHeight', inches(part.height), 'Height*1')}${rectangleGeometry(true, true)}<ForeignData ForeignType="Bitmap" CompressionType="PNG"><Rel r:id="${relId}"/></ForeignData></Shape>`;
+	}
+
 	const id = ids.next++;
-	const box: Frame = { x: owner.x + 6, y: owner.y + 6, width: size, height: size };
-	const w = inches(size);
-	return `<Shape ID="${id}" NameU="Icon.${id}" Name="Icon.${id}" Type="Foreign" LineStyle="0" FillStyle="0" TextStyle="0">${transformCells(box, frame)}${cell('ImgOffsetX', 0, 'ImgWidth*0')}${cell('ImgOffsetY', 0, 'ImgHeight*0')}${cell('ImgWidth', w, 'Width*1')}${cell('ImgHeight', w, 'Height*1')}${rectangleGeometry(true, true)}<ForeignData ForeignType="Bitmap" CompressionType="PNG"><Rel r:id="${relId}"/></ForeignData></Shape>`;
+	const text = part.text;
+	const align = text?.align ?? 'center';
+	const { character, text: textXml } = textBlock(text);
+	const cells = [
+		transformCells(box, frame),
+		boxCells(part),
+		// Wrapped text starts at the top of its box; one line sits in the middle of it.
+		cell('VerticalAlign', text?.wrap ? 0 : 1),
+		cell('LeftMargin', inches(align === 'left' ? (text?.inset ?? 0) : 0)),
+		cell('RightMargin', inches(align === 'right' ? (text?.inset ?? 0) : 0)),
+		cell('TopMargin', 0),
+		cell('BottomMargin', 0)
+	].join('');
+	const paragraph = text
+		? `<Section N="Paragraph"><Row IX="0">${cell('HorzAlign', HORZ_ALIGN[align])}</Row></Section>`
+		: '';
+	const name = `${part.role}.${id}`;
+	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="Shape" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${boxGeometry(part, part)}${character}${paragraph}${textXml}</Shape>`;
 }
 
 /** A side's connection point in page inches (y up). */
@@ -278,15 +325,22 @@ function connectorXml(
 		cell('EndTrigger', 2, `_XFTRIGGER(Sheet.${targetSheet}!EventXFMod)`),
 		cell('ObjType', 2),
 		cell('LineColor', hexColor(connector.color)),
-		cell('LineWeight', connector.width * 0.75 * POINT, undefined, 'PT'),
+		cell('LineWeight', connector.width * POINTS_PER_UNIT * POINT, undefined, 'PT'),
 		cell('LinePattern', pattern),
 		cell('BeginArrow', 0),
 		cell('EndArrow', 0)
 	].join('');
 
 	const geometry = `<Section N="Geometry" IX="0">${cell('NoFill', 1)}${cell('NoLine', 0)}${cell('NoShow', 0)}${cell('NoSnap', 0)}<Row T="MoveTo" IX="1">${cell('X', 0, 'Width*0')}${cell('Y', 0, 'Height*0.5')}</Row><Row T="LineTo" IX="2">${cell('X', length, 'Width*1')}${cell('Y', 0, 'Height*0.5')}</Row></Section>`;
-	const character = `<Section N="Character"><Row IX="0">${cell('Color', hexColor(connector.color))}${cell('Size', 8 * POINT, undefined, 'PT')}</Row></Section>`;
-	const text = connector.label ? `<Text>${escapeXml(connector.label)}</Text>` : '';
+	const { character, text } = textBlock(
+		connector.label
+			? {
+					value: connector.label,
+					color: connector.labelStyle?.color ?? connector.color,
+					size: connector.labelStyle?.size ?? STYLE.edge.labelText
+				}
+			: undefined
+	);
 	const name = `Dynamic connector.${id}`;
 
 	return {
@@ -314,8 +368,15 @@ function headerXml(model: DiagramModel, ids: Ids, page: Frame): string {
 	};
 	const { title, subtitle, color, subtitleColor } = model.header;
 	return (
-		line(title, color, 14, true, DIAGRAM_PADDING - 8, 26) +
-		line(subtitle, subtitleColor, 9, false, DIAGRAM_PADDING + 18, 20)
+		line(title, color, STYLE.header.titleText * POINTS_PER_UNIT, true, DIAGRAM_PADDING - 8, 26) +
+		line(
+			subtitle,
+			subtitleColor,
+			STYLE.header.subtitleText * POINTS_PER_UNIT,
+			false,
+			DIAGRAM_PADDING + 18,
+			20
+		)
 	);
 }
 

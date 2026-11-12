@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import type { Component } from 'svelte';
 	import PageTitle, { providePageTabs } from './PageTitle.svelte';
 
@@ -15,12 +15,10 @@
 	let {
 		tabs,
 		activeTab = $bindable(),
-		isReadOnly = false,
 		notifications
 	}: {
 		tabs: SubTab[];
 		activeTab: string;
-		isReadOnly: boolean;
 		notifications?: Record<string, string>;
 	} = $props();
 
@@ -53,7 +51,7 @@
 	-->
 	{#each tabs as tab (tab.id)}
 		<div class={activeTab !== tab.id ? 'relative h-0 overflow-hidden contain-[paint]' : ''}>
-			<tab.component {isReadOnly} isActive={activeTab === tab.id} />
+			<tab.component isActive={activeTab === tab.id} />
 		</div>
 	{/each}
 </div>

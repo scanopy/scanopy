@@ -4,6 +4,7 @@ mod dns;
 pub mod emitted_os;
 pub mod icmp;
 pub mod mdns;
+mod performance_warnings;
 mod scan;
 mod subnets;
 pub mod tcp_stack;
@@ -158,10 +159,10 @@ impl NetworkScan {
         // Add ports from all credential types generically
         for mapping in &credential_mappings {
             if let Some(default) = &mapping.default_credential {
-                light_scan_ports.extend(default.required_scan_ports());
+                light_scan_ports.extend(default.reach().scan_ports());
             }
             for override_entry in &mapping.ip_overrides {
-                light_scan_ports.extend(override_entry.credential.required_scan_ports());
+                light_scan_ports.extend(override_entry.credential.reach().scan_ports());
             }
         }
 

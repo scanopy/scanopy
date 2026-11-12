@@ -1,6 +1,7 @@
 import type { RenderableTopology } from '../types/base';
 import type { Node } from '@xyflow/svelte';
 import { v4 as uuidv4 } from 'uuid';
+import { ICON_ELEMENT_WIDTH_PX } from '../pipeline/build-flow-nodes';
 
 const HOST_IDS = [uuidv4(), uuidv4(), uuidv4()];
 const SERVICE_IDS = [uuidv4(), uuidv4(), uuidv4()];
@@ -93,23 +94,23 @@ export const TUTORIAL_TOPOLOGY: RenderableTopology = {
 // Xyflow nodes positioned in a triangle for the mini topology viewer
 const POSITIONS = [
 	{ x: 150, y: 0 },
-	{ x: 0, y: 130 },
-	{ x: 300, y: 130 }
+	{ x: 0, y: 180 },
+	{ x: 300, y: 180 }
 ];
 
 export const TUTORIAL_XYFLOW_NODES: Node[] = TUTORIAL_SERVICES.map((n, i) => ({
 	id: n.id,
 	position: POSITIONS[i],
-	width: 150,
-	height: 80,
+	width: ICON_ELEMENT_WIDTH_PX,
 	data: {
 		id: n.id,
 		node_type: 'Element',
 		element_type: 'Service',
+		entity_id: n.id,
 		host_id: n.hostId,
 		header: n.hostName,
 		position: POSITIONS[i],
-		size: { x: 150, y: 80 }
+		size: { x: ICON_ELEMENT_WIDTH_PX, y: 0 }
 	},
 	type: 'Element'
 }));

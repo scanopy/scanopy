@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
+	import { page } from '$app/state';
+	import AuthBackground from '#lib/shared/components/layout/AuthBackground.svelte';
 	import { goto } from '$app/navigation';
 	import {
 		useLoginMutation,
 		useForgotPasswordMutation,
 		useResetPasswordMutation
-	} from '$lib/features/auth/queries';
-	import LoginModal, { setLastLoginMethod } from '$lib/features/auth/components/LoginModal.svelte';
-	import ForgotPasswordModal from '$lib/features/auth/components/ForgotPasswordModal.svelte';
-	import ResetPasswordModal from '$lib/features/auth/components/ResetPasswordModal.svelte';
-	import type { LoginRequest } from '$lib/features/auth/types/base';
-	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import { navigate } from '$lib/shared/utils/navigation';
-	import { fetchOrganization } from '$lib/features/organizations/queries';
+	} from '#lib/features/auth/queries.ts';
+	import LoginModal, { setLastLoginMethod } from '#lib/features/auth/components/LoginModal.svelte';
+	import ForgotPasswordModal from '#lib/features/auth/components/ForgotPasswordModal.svelte';
+	import ResetPasswordModal from '#lib/features/auth/components/ResetPasswordModal.svelte';
+	import type { LoginRequest } from '#lib/features/auth/types/base.ts';
+	import Toast from '#lib/shared/components/feedback/Toast.svelte';
+	import { navigate } from '#lib/shared/utils/navigation.ts';
+	import { fetchOrganization } from '#lib/features/organizations/queries.ts';
 	import { resolve } from '$app/paths';
 
 	// TanStack Query mutations
@@ -29,14 +29,14 @@
 
 	onMount(() => {
 		// Check if we have a reset token in the URL
-		const token = $page.url.searchParams.get('token');
+		const token = page.url.searchParams.get('token');
 		if (token) {
 			activeModal = 'reset';
 			resetToken = token;
 		}
 
 		// Check if demo mode based on hostname
-		demoMode = $page.url.hostname === 'demo.scanopy.net';
+		demoMode = page.url.hostname === 'demo.scanopy.net';
 
 		// Note: Auth check is handled by +layout.svelte - no need to check here
 	});
@@ -84,8 +84,7 @@
 
 	function switchToSignUp() {
 		// Preserve the query string so signup params (e.g. `hosting`, UTM) survive
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		goto(`${resolve('/onboarding')}${$page.url.search}`);
+		goto(`${resolve('onboarding')}${page.url.search}`);
 	}
 
 	// Dummy onClose since we don't want to close these modals

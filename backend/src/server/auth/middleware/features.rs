@@ -2,7 +2,7 @@ use crate::server::{
     auth::middleware::{
         auth::{AuthError, AuthenticatedEntity},
         cache::CachedOrganization,
-        permissions::{Authorized, Viewer},
+        permissions::{Authorized, InOrganization},
     },
     billing::types::base::{BillingPlan, LimitSource, LimitType},
     config::AppState,
@@ -81,7 +81,7 @@ where
     type Rejection = AuthError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let auth = Authorized::<Viewer>::from_request_parts(parts, state).await?;
+        let auth = Authorized::<InOrganization>::from_request_parts(parts, state).await?;
         let permissions = auth
             .entity
             .permissions()

@@ -5,7 +5,7 @@ use crate::server::daemons::subscriber::CancelDelivery;
 
 impl DiscoveryService {
     pub async fn cleanup_old_sessions(&self, max_age_hours: i64) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let cutoff = now - chrono::Duration::hours(max_age_hours);
 
         let promotions = {
@@ -43,7 +43,8 @@ impl DiscoveryService {
     /// `older_than_hours` must exceed the longest a session can legitimately
     /// live (a queued rescan waits on `max_discovery_duration`, 6h by default).
     pub async fn sweep_orphaned_rescans(&self, older_than_hours: i64) {
-        let cutoff = Utc::now() - chrono::Duration::hours(older_than_hours);
+        let cutoff =
+            crate::server::shared::clock::now() - chrono::Duration::hours(older_than_hours);
         let filter = StorableFilter::<Discovery>::new()
             .rescan_discovery()
             .updated_before(cutoff);
@@ -76,10 +77,45 @@ impl DiscoveryService {
         }
     }
 
+    /// End every session whose daemon has not stopped it by [`state::CANCEL_DEADLINE`] after a
+    /// cancel, in either daemon mode: a ServerPoll daemon can accept the cancel and keep running,
+    /// and a DaemonPoll one can keep reporting progress, so neither goes quiet for the stall rule.
+    async fn end_overdue_cancellations(&self, now: chrono::DateTime<Utc>) {
+        let ended = {
+            // The lock order documented on `DiscoveryService`.
+            let mut sessions = self.sessions.write().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            let mut daemon_sessions = self.daemon_sessions.write().await;
+            let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
+            state::end_overdue_cancels(
+                &mut SessionMaps {
+                    sessions: &mut sessions,
+                    last_updated: &mut last_updated,
+                    daemon_sessions: &mut daemon_sessions,
+                    discovery_sessions: &mut discovery_sessions,
+                    pull_cancellations: &mut daemon_pull_cancellations,
+                },
+                now,
+                state::CANCEL_DEADLINE,
+            )
+        };
+
+        for effects in ended {
+            tracing::warn!(
+                session_id = %effects.session.session_id,
+                daemon_id = %effects.session.daemon_id,
+                "The daemon did not stop a cancelled session; the server ended it"
+            );
+            self.finish_terminal_detached(effects).await;
+        }
+    }
+
     /// Cleanup stalled sessions (called periodically from background task)
     pub async fn cleanup_stalled_sessions(&self) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let stall_threshold = chrono::Duration::minutes(5);
+        self.end_overdue_cancellations(now).await;
 
         // First pass: identify stalled sessions (read locks only)
         let stalled_sessions: Vec<DiscoveryUpdatePayload> = {
@@ -110,7 +146,12 @@ impl DiscoveryService {
             let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
             for session in &stalled_sessions {
                 if pulled_by_daemon.contains(&session.session_id) {
-                    pull_cancellations.insert(session.daemon_id, (true, session.session_id));
+                    state::request_cancel(
+                        &mut pull_cancellations,
+                        session.daemon_id,
+                        session.session_id,
+                        now,
+                    );
                 }
             }
         }
@@ -135,7 +176,7 @@ impl DiscoveryService {
                 now,
             );
             for reaped_session in &reaped {
-                let _ = self.update_tx.send(reaped_session.session.clone());
+                self.send_session_update(&reaped_session.session);
             }
             state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
             reaped
@@ -257,8 +298,17 @@ impl DiscoveryService {
             // is, so a subscriber reading the discovery's run history finds this run in it.
             let mut event = session.into_discovery_event();
             event.scope.previous_phase = Some(previous_phase);
-            self.record_stalled_session(session, now).await;
-            self.event_bus().publish(event).await;
+            if session.discovery_type.records_history() {
+                self.record_stalled_session(session, now).await;
+            } else {
+                tracing::warn!(
+                    session_id = %session.session_id,
+                    daemon_id = %daemon_id,
+                    "Interface refresh stalled; the daemon's interfaced subnets stay as last \
+                     reported"
+                );
+            }
+            self.publish_session_event(event).await;
             if let Some(promoted) = promoted {
                 self.publish_promoted(daemon_id, site_id, promoted).await;
             }

@@ -253,7 +253,7 @@ impl BillingService {
                     .map(|c| c.to_string())
                     .unwrap_or_else(|| "usd".to_string()),
                 expires_at: DateTime::<Utc>::from_timestamp(quote.expires_at, 0)
-                    .unwrap_or_else(Utc::now),
+                    .unwrap_or_else(crate::server::shared::clock::now),
             });
 
         Ok(InvoiceBillingStatus {
@@ -519,7 +519,7 @@ impl BillingService {
             AuthenticatedEntity::System,
         );
         self.organization_service
-            .commit_billing(locked, None, vec![event])
+            .commit_billing(locked, vec![event])
             .await
     }
 
@@ -683,7 +683,10 @@ impl BillingService {
             .invoice_settings(invoice_settings)
             .line_items(vec![line_item])
             .subscription_data(subscription_data)
-            .expires_at((Utc::now() + chrono::Duration::days(QUOTE_VALID_DAYS)).timestamp())
+            .expires_at(
+                (crate::server::shared::clock::now() + chrono::Duration::days(QUOTE_VALID_DAYS))
+                    .timestamp(),
+            )
             .send(&self.stripe)
             .await
             .map_err(|e| anyhow!("Stripe rejected the quote: {e}"))?;
@@ -917,7 +920,7 @@ pub(crate) async fn license_invoices(
 ///
 /// `as_of` is Stripe's own timestamp for the cancellation. Due dates live in
 /// the customer's billing clock, which under a test clock is not the server's,
-/// so comparing against `Utc::now()` reads a different calendar.
+/// so comparing against `crate::server::shared::clock::now()` reads a different calendar.
 pub(crate) async fn write_off_unpaid_license_invoices(
     stripe: &RateLimitedStripe,
     customer_id: &CustomerId,
@@ -1038,7 +1041,7 @@ mod tests {
     use crate::server::billing::types::base::BillingReason;
 
     fn licensed_invoice(collection: InvoiceCollection, licensed: bool) -> BillingInvoice {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         BillingInvoice {
             stripe_invoice_id: "in_test".to_string(),
             amount_paid_cents: 0,
@@ -1116,7 +1119,7 @@ mod tests {
     fn only_a_past_due_invoice_is_written_off() {
         // Stands for Stripe's own timestamp for the cancellation, which is
         // what the caller passes: every timestamp here is one Stripe reported.
-        let cancelled_at = Utc::now();
+        let cancelled_at = crate::server::shared::clock::now();
         let with = |id: &str, due: Option<DateTime<Utc>>| BillingInvoice {
             stripe_invoice_id: id.to_string(),
             due_date: due,
@@ -1159,7 +1162,7 @@ mod tests {
     /// still owed whenever they pay.
     #[test]
     fn settling_moves_the_unused_term_to_the_payment_date() {
-        let term_start = Utc::now();
+        let term_start = crate::server::shared::clock::now();
         let term_end = term_start + chrono::Duration::days(365);
         // The licence runs 30 days to the due date plus 30 days of grace, and
         // Stripe cancels at the same point, so the key dies around day 60.
@@ -1184,9 +1187,16 @@ mod tests {
 
         // A customer whose key outlived the term used all of it. Their payment
         // settles the debt and buys nothing forward.
-        assert_eq!(resumed_term_end(term_end, term_end, Utc::now()), None);
         assert_eq!(
-            resumed_term_end(term_end, term_end + chrono::Duration::days(1), Utc::now()),
+            resumed_term_end(term_end, term_end, crate::server::shared::clock::now()),
+            None
+        );
+        assert_eq!(
+            resumed_term_end(
+                term_end,
+                term_end + chrono::Duration::days(1),
+                crate::server::shared::clock::now()
+            ),
             None
         );
     }

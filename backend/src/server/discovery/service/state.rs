@@ -17,13 +17,27 @@ use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalRea
 use crate::server::daemons::r#impl::api::DiscoveryUpdatePayload;
 use crate::server::discovery::r#impl::types::DiscoveryType;
 
+/// How long a daemon has to end a session after a cancel is requested. Past it, the server ends
+/// the session itself (see [`end_overdue_cancels`]). A current daemon aborts a session that ignores
+/// its cancel token after 30s, so this is reached only by a daemon that predates that, or one that
+/// took the cancel and kept running anyway.
+pub(crate) const CANCEL_DEADLINE: Duration = Duration::minutes(2);
+
+/// A cancel requested for the session a daemon is running.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct PendingCancel {
+    pub session_id: Uuid,
+    pub requested_at: DateTime<Utc>,
+}
+
 /// The five session maps, borrowed from guards the caller holds.
 pub(crate) struct SessionMaps<'a> {
     pub sessions: &'a mut HashMap<Uuid, DiscoveryUpdatePayload>,
     pub last_updated: &'a mut HashMap<Uuid, DateTime<Utc>>,
     pub daemon_sessions: &'a mut HashMap<Uuid, Vec<Uuid>>,
     pub discovery_sessions: &'a mut HashMap<Uuid, Uuid>,
-    pub pull_cancellations: &'a mut HashMap<Uuid, (bool, Uuid)>,
+    /// daemon_id → the cancel requested for the session it is running.
+    pub pull_cancellations: &'a mut HashMap<Uuid, PendingCancel>,
 }
 
 /// What applying one daemon update did to the maps.
@@ -133,20 +147,23 @@ fn apply(
     let Some(session) = maps.sessions.get_mut(&session_id) else {
         unreachable!("the session was present or inserted above");
     };
+    // An update that does not say when the scan last advanced leaves what an earlier one said.
+    let last_activity_at = update.last_activity_at.or(session.last_activity_at);
     *session = update.clone();
+    session.last_activity_at = last_activity_at;
+    // A client that opens the stream mid-run times the session's silence from this, not from
+    // when it happened to connect. A server-ended session was last heard from before this update.
+    session.last_update_at = match origin {
+        Origin::Daemon => Some(now),
+        Origin::Server => last_heard,
+    };
 
     if !session.phase.is_terminal() {
         return UpdateOutcome::Progress;
     }
 
-    match origin {
-        Origin::Daemon => {
-            session.reason = reason_for_daemon_terminal(session.phase, update.reason);
-            session.last_update_at = Some(now);
-        }
-        // The server is ending the session on the daemon's behalf, so the daemon was last heard
-        // from before this update, not by it.
-        Origin::Server => session.last_update_at = last_heard,
+    if origin == Origin::Daemon {
+        session.reason = reason_for_daemon_terminal(session.phase, update.reason);
     }
     let session = session.clone();
     let parent_discovery_id = maps
@@ -154,7 +171,12 @@ fn apply(
         .iter()
         .find(|(_, sid)| **sid == session_id)
         .map(|(did, _)| *did);
-    maps.pull_cancellations.remove(&session.daemon_id);
+    // A daemon that reported the end has stopped. A session the server ended can still be running
+    // on its daemon, and its cancel is how that daemon learns to stop, as for a reaped session: it
+    // stays, and is sent once (see `cancellation_to_deliver`).
+    if origin == Origin::Daemon {
+        maps.pull_cancellations.remove(&session.daemon_id);
+    }
     let promoted = remove_from_queue_and_promote_head(maps, session.daemon_id, session_id, now);
     maps.sessions.remove(&session_id);
 
@@ -224,7 +246,127 @@ pub(crate) fn cancel_undispatched(
 ) -> Option<PromotedSession> {
     let session = maps.sessions.remove(&session_id)?;
     maps.discovery_sessions.retain(|_, sid| *sid != session_id);
+    maps.pull_cancellations
+        .retain(|_, cancel| cancel.session_id != session_id);
     remove_from_queue_and_promote_head(maps, session.daemon_id, session_id, now)
+}
+
+/// Record a cancel for the session `daemon_id` is running. A repeat request for the same session
+/// keeps the first request's time, so asking again does not push back [`CANCEL_DEADLINE`].
+pub(crate) fn request_cancel(
+    pull_cancellations: &mut HashMap<Uuid, PendingCancel>,
+    daemon_id: Uuid,
+    session_id: Uuid,
+    now: DateTime<Utc>,
+) {
+    match pull_cancellations.get(&daemon_id) {
+        Some(pending) if pending.session_id == session_id => {}
+        _ => {
+            pull_cancellations.insert(
+                daemon_id,
+                PendingCancel {
+                    session_id,
+                    requested_at: now,
+                },
+            );
+        }
+    }
+}
+
+/// The session a polling daemon is told to cancel, if any.
+///
+/// A cancel for a session still running is sent on every poll, so one lost response, or a daemon
+/// that misses it, does not lose the cancel; it stops when the session ends and leaves the maps.
+/// A daemon that predates the session id reads only "cancel the current session", which is safe
+/// to repeat only while that session is the one it runs. The one cancel that outlives its session
+/// is the stall sweep's for a session it reaped, which is the only way a daemon still running that
+/// session learns to stop; it is sent once.
+pub(crate) fn cancellation_to_deliver(
+    sessions: &HashMap<Uuid, DiscoveryUpdatePayload>,
+    pull_cancellations: &mut HashMap<Uuid, PendingCancel>,
+    daemon_id: Uuid,
+) -> Option<Uuid> {
+    let pending = *pull_cancellations.get(&daemon_id)?;
+    let running = sessions
+        .get(&pending.session_id)
+        .is_some_and(|session| !session.phase.is_terminal());
+    if !running {
+        pull_cancellations.remove(&daemon_id);
+    }
+    Some(pending.session_id)
+}
+
+/// End, as cancelled by the user, every running session whose cancel was requested at least
+/// `deadline` ago and that its daemon has not ended. Each leaves the maps as any finished session
+/// does: its stamp stays as a tombstone, so the daemon's later updates for it are ignored, and a
+/// `Queued` session behind it is promoted. Its cancel is sent once more, so a daemon that was
+/// frozen through the deadline stops the session when it next polls instead of resuming it.
+pub(crate) fn end_overdue_cancels(
+    maps: &mut SessionMaps,
+    now: DateTime<Utc>,
+    deadline: Duration,
+) -> Vec<TerminalEffects> {
+    let overdue: Vec<DiscoveryUpdatePayload> = maps
+        .pull_cancellations
+        .values()
+        .filter(|pending| now.signed_duration_since(pending.requested_at) >= deadline)
+        .filter_map(|pending| maps.sessions.get(&pending.session_id))
+        .filter(|session| !session.phase.is_terminal())
+        .cloned()
+        .collect();
+
+    overdue
+        .into_iter()
+        .filter_map(|mut session| {
+            session.phase = DiscoveryPhase::Cancelled;
+            session.finished_at = Some(now);
+            session.reason = Some(DiscoveryTerminalReason::UserCancelled);
+            session.error = Some(format!(
+                "The daemon did not stop the session within {} minutes of the cancel, so the \
+                 server ended it",
+                deadline.num_minutes()
+            ));
+            match apply_server_update(maps, &session, now) {
+                UpdateOutcome::Terminal(effects) => Some(*effects),
+                UpdateOutcome::Ignored | UpdateOutcome::Progress => None,
+            }
+        })
+        .collect()
+}
+
+/// Whether `daemon_id` has a session it has been handed and not finished. `Queued` and `Pending`
+/// have not been dispatched, so a daemon with only those is free for the next one.
+pub(crate) fn daemon_has_dispatched_session(
+    sessions: &HashMap<Uuid, DiscoveryUpdatePayload>,
+    daemon_sessions: &HashMap<Uuid, Vec<Uuid>>,
+    daemon_id: Uuid,
+) -> bool {
+    daemon_sessions
+        .get(&daemon_id)
+        .into_iter()
+        .flatten()
+        .filter_map(|session_id| sessions.get(session_id))
+        .any(|s| {
+            !s.phase.is_terminal()
+                && s.phase != DiscoveryPhase::Queued
+                && s.phase != DiscoveryPhase::Pending
+        })
+}
+
+/// The daemon's `Pending` sessions, in queue order: what its next work request dispatches from.
+pub(crate) fn pending_sessions_for_daemon(
+    sessions: &HashMap<Uuid, DiscoveryUpdatePayload>,
+    daemon_sessions: &HashMap<Uuid, Vec<Uuid>>,
+    daemon_id: Uuid,
+) -> Vec<DiscoveryUpdatePayload> {
+    daemon_sessions
+        .get(&daemon_id)
+        .into_iter()
+        .flatten()
+        .filter_map(|session_id| sessions.get(session_id))
+        .filter(|session| session.phase == DiscoveryPhase::Pending)
+        .cloned()
+        .collect()
 }
 
 /// Sessions the daemon has gone quiet on for longer than `threshold`.
@@ -328,7 +470,8 @@ pub(crate) fn reap(
         let promoted = remove_from_queue_and_promote_head(maps, daemon_id, *session_id, now);
         maps.discovery_sessions.retain(|_, sid| sid != session_id);
         // The daemon's pull cancellation, if the sweep just set one, stays: it is how a DaemonPoll
-        // daemon still running this session learns to stop. It is consumed when the daemon polls.
+        // daemon still running this session learns to stop. It is sent once, on the daemon's next
+        // poll (see `cancellation_to_deliver`).
 
         reaped.push(ReapedSession {
             session,
@@ -434,7 +577,7 @@ mod tests {
         last_updated: HashMap<Uuid, DateTime<Utc>>,
         daemon_sessions: HashMap<Uuid, Vec<Uuid>>,
         discovery_sessions: HashMap<Uuid, Uuid>,
-        pull_cancellations: HashMap<Uuid, (bool, Uuid)>,
+        pull_cancellations: HashMap<Uuid, PendingCancel>,
     }
 
     impl Maps {
@@ -496,9 +639,11 @@ mod tests {
         update.progress = 100;
         update.hosts_discovered = Some(12);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_update(&mut maps.borrow(), &update, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a Complete update is terminal");
         };
 
@@ -514,7 +659,7 @@ mod tests {
         let daemon = Uuid::new_v4();
         let running = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         let UpdateOutcome::Terminal(effects) = apply_update(
             &mut maps.borrow(),
@@ -541,9 +686,17 @@ mod tests {
         let mut maps = Maps::default();
         let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
         let complete = with_phase(&running, DiscoveryPhase::Complete);
-        apply_update(&mut maps.borrow(), &complete, Utc::now());
+        apply_update(
+            &mut maps.borrow(),
+            &complete,
+            crate::server::shared::clock::now(),
+        );
 
-        let outcome = apply_update(&mut maps.borrow(), &complete, Utc::now());
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &complete,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Ignored));
         assert!(!maps.sessions.contains_key(&running.session_id));
@@ -562,7 +715,11 @@ mod tests {
         );
         update.phase = DiscoveryPhase::Scanning;
 
-        let outcome = apply_update(&mut maps.borrow(), &update, Utc::now());
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Progress));
         assert!(maps.sessions.contains_key(&update.session_id));
@@ -583,16 +740,20 @@ mod tests {
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
         let awaiting = maps.start(Uuid::new_v4(), DiscoveryPhase::AwaitingSnapshot);
         let silent = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let long_ago = Utc::now() - Duration::hours(3);
+        let long_ago = crate::server::shared::clock::now() - Duration::hours(3);
         for id in [queued.session_id, awaiting.session_id, silent.session_id] {
             maps.last_updated.insert(id, long_ago);
         }
 
-        let stalled: Vec<Uuid> =
-            select_stalled(&maps.sessions, &maps.last_updated, Utc::now(), threshold())
-                .into_iter()
-                .map(|s| s.session_id)
-                .collect();
+        let stalled: Vec<Uuid> = select_stalled(
+            &maps.sessions,
+            &maps.last_updated,
+            crate::server::shared::clock::now(),
+            threshold(),
+        )
+        .into_iter()
+        .map(|s| s.session_id)
+        .collect();
 
         assert_eq!(stalled, vec![silent.session_id]);
     }
@@ -603,7 +764,7 @@ mod tests {
         let daemon = Uuid::new_v4();
         let stalled = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         let reaped = reap(&mut maps.borrow(), &[stalled_as(&stalled)], now);
 
@@ -629,7 +790,11 @@ mod tests {
     ) -> Option<DiscoveryTerminalReason> {
         let mut update = with_phase(running, phase);
         update.reason = sent;
-        match apply_update(&mut maps.borrow(), &update, Utc::now()) {
+        match apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        ) {
             UpdateOutcome::Terminal(effects) => effects.session.reason,
             _ => panic!("{phase:?} is terminal"),
         }
@@ -689,14 +854,20 @@ mod tests {
     fn a_daemon_still_running_a_reaped_session_cannot_bring_it_back() {
         let mut maps = Maps::default();
         let stalled = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        maps.last_updated
-            .insert(stalled.session_id, Utc::now() - Duration::minutes(10));
-        reap(&mut maps.borrow(), &[stalled_as(&stalled)], Utc::now());
+        maps.last_updated.insert(
+            stalled.session_id,
+            crate::server::shared::clock::now() - Duration::minutes(10),
+        );
+        reap(
+            &mut maps.borrow(),
+            &[stalled_as(&stalled)],
+            crate::server::shared::clock::now(),
+        );
 
         let late = apply_update(
             &mut maps.borrow(),
             &with_phase(&stalled, DiscoveryPhase::Scanning),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert!(matches!(late, UpdateOutcome::Ignored));
@@ -710,12 +881,12 @@ mod tests {
         let old = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
         maps.sessions.get_mut(&old.session_id).unwrap().finished_at =
-            Some(Utc::now() - Duration::hours(30));
+            Some(crate::server::shared::clock::now() - Duration::hours(30));
 
         let promotions = sweep_old(
             &mut maps.borrow(),
-            Utc::now() - Duration::hours(24),
-            Utc::now(),
+            crate::server::shared::clock::now() - Duration::hours(24),
+            crate::server::shared::clock::now(),
         );
 
         assert!(!maps.sessions.contains_key(&old.session_id));
@@ -740,30 +911,50 @@ mod tests {
         // Left the maps a moment ago; its post-lock work still needs the mapping.
         maps.discovery_sessions
             .insert(finishing_discovery, finishing_session);
-        maps.last_updated.insert(finishing_session, Utc::now());
+        maps.last_updated
+            .insert(finishing_session, crate::server::shared::clock::now());
 
         sweep_old(
             &mut maps.borrow(),
-            Utc::now() - Duration::hours(24),
-            Utc::now(),
+            crate::server::shared::clock::now() - Duration::hours(24),
+            crate::server::shared::clock::now(),
         );
 
         assert!(!maps.discovery_sessions.contains_key(&orphaned_discovery));
         assert!(maps.discovery_sessions.contains_key(&finishing_discovery));
     }
 
+    /// The session list and the stream carry when the daemon last reported a running session, so
+    /// a client that connects after it went quiet can tell how long it has been silent.
+    #[test]
+    fn a_running_session_records_when_its_daemon_last_reported() {
+        let mut maps = Maps::default();
+        let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
+        let heard = crate::server::shared::clock::now() - Duration::seconds(120);
+
+        let outcome = apply_update(&mut maps.borrow(), &running, heard);
+
+        assert!(matches!(outcome, UpdateOutcome::Progress));
+        assert_eq!(
+            maps.sessions[&running.session_id].last_update_at,
+            Some(heard)
+        );
+    }
+
     #[test]
     fn a_failure_the_server_decides_keeps_its_reason_and_when_the_daemon_was_last_heard() {
         let mut maps = Maps::default();
         let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let last_heard = Utc::now() - Duration::seconds(40);
+        let last_heard = crate::server::shared::clock::now() - Duration::seconds(40);
         maps.last_updated.insert(running.session_id, last_heard);
         let mut failure = with_phase(&running, DiscoveryPhase::Failed);
         failure.reason = Some(DiscoveryTerminalReason::DaemonRestarted);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_server_update(&mut maps.borrow(), &failure, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a Failed update is terminal");
         };
 
@@ -786,41 +977,248 @@ mod tests {
         );
         failure.phase = DiscoveryPhase::Failed;
 
-        let outcome = apply_server_update(&mut maps.borrow(), &failure, Utc::now());
+        let outcome = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Ignored));
         assert!(maps.sessions.is_empty());
     }
 
     #[test]
-    fn reaping_leaves_the_cancellation_a_polling_daemon_has_yet_to_collect() {
+    fn a_cancel_for_a_reaped_session_reaches_its_polling_daemon_once() {
         // The sweep flags a DaemonPoll daemon's session for cancellation, then reaps it. The flag
         // is the only way that daemon learns to stop.
         let mut maps = Maps::default();
         let daemon = Uuid::new_v4();
         let stalled = maps.start(daemon, DiscoveryPhase::Scanning);
-        maps.pull_cancellations
-            .insert(daemon, (true, stalled.session_id));
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            stalled.session_id,
+            crate::server::shared::clock::now(),
+        );
 
-        reap(&mut maps.borrow(), &[stalled_as(&stalled)], Utc::now());
+        reap(
+            &mut maps.borrow(),
+            &[stalled_as(&stalled)],
+            crate::server::shared::clock::now(),
+        );
+
+        // Sent once, then gone: the session it names has ended, and a daemon that predates the
+        // session id would apply a second one to whatever it runs next.
+        assert_eq!(deliver(&mut maps, daemon), Some(stalled.session_id));
+        assert_eq!(deliver(&mut maps, daemon), None);
+    }
+
+    fn deliver(maps: &mut Maps, daemon_id: Uuid) -> Option<Uuid> {
+        cancellation_to_deliver(&maps.sessions, &mut maps.pull_cancellations, daemon_id)
+    }
+
+    #[test]
+    fn a_cancel_is_sent_on_every_poll_until_the_session_ends() {
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let running = maps.start(daemon, DiscoveryPhase::Scanning);
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            running.session_id,
+            crate::server::shared::clock::now(),
+        );
+
+        assert_eq!(deliver(&mut maps, daemon), Some(running.session_id));
+        assert_eq!(deliver(&mut maps, daemon), Some(running.session_id));
+
+        apply_update(
+            &mut maps.borrow(),
+            &with_phase(&running, DiscoveryPhase::Cancelled),
+            crate::server::shared::clock::now(),
+        );
+
+        assert_eq!(deliver(&mut maps, daemon), None);
+    }
+
+    #[test]
+    fn asking_again_does_not_push_back_the_cancel_deadline() {
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let running = maps.start(daemon, DiscoveryPhase::Scanning);
+        let first = crate::server::shared::clock::now();
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            running.session_id,
+            first,
+        );
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            running.session_id,
+            first + Duration::seconds(90),
+        );
+
+        let ended =
+            end_overdue_cancels(&mut maps.borrow(), first + CANCEL_DEADLINE, CANCEL_DEADLINE);
+
+        assert_eq!(ended.len(), 1);
+    }
+
+    #[test]
+    fn the_server_ends_a_cancelled_session_its_daemon_keeps_running_at_the_deadline() {
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let running = maps.start(daemon, DiscoveryPhase::Scanning);
+        let requested = crate::server::shared::clock::now();
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            running.session_id,
+            requested,
+        );
+
+        let early = requested + CANCEL_DEADLINE - Duration::seconds(1);
+        assert!(end_overdue_cancels(&mut maps.borrow(), early, CANCEL_DEADLINE).is_empty());
+        assert!(maps.sessions.contains_key(&running.session_id));
+
+        let due = requested + CANCEL_DEADLINE;
+        let ended = end_overdue_cancels(&mut maps.borrow(), due, CANCEL_DEADLINE);
+
+        assert_eq!(ended.len(), 1);
+        assert_eq!(ended[0].session.phase, DiscoveryPhase::Cancelled);
+        assert_eq!(
+            ended[0].session.reason,
+            Some(DiscoveryTerminalReason::UserCancelled)
+        );
+        assert!(!maps.sessions.contains_key(&running.session_id));
+        // A daemon frozen through the deadline still has the session; its next poll tells it to stop.
+        assert_eq!(deliver(&mut maps, daemon), Some(running.session_id));
+        assert_eq!(deliver(&mut maps, daemon), None);
+        // The daemon's heartbeats for it, should they continue, do not bring it back.
+        let heartbeat = apply_update(
+            &mut maps.borrow(),
+            &with_phase(&running, DiscoveryPhase::Scanning),
+            due + Duration::seconds(30),
+        );
+        assert!(matches!(heartbeat, UpdateOutcome::Ignored));
+        assert!(!maps.sessions.contains_key(&running.session_id));
+    }
+
+    #[test]
+    fn once_the_server_ends_an_ignored_cancel_the_next_queued_session_is_dispatched() {
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let running = maps.start(daemon, DiscoveryPhase::Scanning);
+        let queued = maps.start(daemon, DiscoveryPhase::Queued);
+        let requested = crate::server::shared::clock::now();
+        request_cancel(
+            &mut maps.pull_cancellations,
+            daemon,
+            running.session_id,
+            requested,
+        );
+        assert!(daemon_has_dispatched_session(
+            &maps.sessions,
+            &maps.daemon_sessions,
+            daemon
+        ));
+
+        end_overdue_cancels(
+            &mut maps.borrow(),
+            requested + CANCEL_DEADLINE,
+            CANCEL_DEADLINE,
+        );
+
+        assert!(!daemon_has_dispatched_session(
+            &maps.sessions,
+            &maps.daemon_sessions,
+            daemon
+        ));
+        let next: Vec<Uuid> =
+            pending_sessions_for_daemon(&maps.sessions, &maps.daemon_sessions, daemon)
+                .into_iter()
+                .map(|s| s.session_id)
+                .collect();
+        assert_eq!(next, vec![queued.session_id]);
+    }
+
+    #[test]
+    fn an_update_without_activity_keeps_the_activity_already_recorded() {
+        let mut maps = Maps::default();
+        let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
+        let advanced = crate::server::shared::clock::now() - Duration::minutes(3);
+        let mut progress = with_phase(&running, DiscoveryPhase::Scanning);
+        progress.last_activity_at = Some(advanced);
+        apply_update(
+            &mut maps.borrow(),
+            &progress,
+            crate::server::shared::clock::now(),
+        );
+
+        apply_update(
+            &mut maps.borrow(),
+            &with_phase(&running, DiscoveryPhase::Scanning),
+            crate::server::shared::clock::now(),
+        );
 
         assert_eq!(
-            maps.pull_cancellations.get(&daemon),
-            Some(&(true, stalled.session_id))
+            maps.sessions[&running.session_id].last_activity_at,
+            Some(advanced)
         );
+    }
+
+    #[test]
+    fn after_a_restart_a_finished_session_is_recorded_and_its_heartbeats_do_not_recreate_it() {
+        // A server restart empties the maps, tombstones included, while the daemon runs on. The
+        // daemon then ends the session itself and reports it.
+        let mut maps = Maps::default();
+        let mut cancelled = DiscoveryUpdatePayload::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            DiscoveryType::default(),
+            Some(Uuid::new_v4()),
+        );
+        cancelled.phase = DiscoveryPhase::Cancelled;
+        let daemon = cancelled.daemon_id;
+
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &cancelled,
+            crate::server::shared::clock::now(),
+        );
+
+        assert!(matches!(outcome, UpdateOutcome::Terminal(_)));
+        assert!(maps.sessions.is_empty());
+        assert!(!daemon_has_dispatched_session(
+            &maps.sessions,
+            &maps.daemon_sessions,
+            daemon
+        ));
+
+        let late = apply_update(
+            &mut maps.borrow(),
+            &with_phase(&cancelled, DiscoveryPhase::Scanning),
+            crate::server::shared::clock::now(),
+        );
+
+        assert!(matches!(late, UpdateOutcome::Ignored));
+        assert!(maps.sessions.is_empty());
     }
 
     #[test]
     fn a_reaped_session_records_why_and_when_it_was_last_heard_from() {
         let mut maps = Maps::default();
         let stalled = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let last_heard = Utc::now() - Duration::minutes(7);
+        let last_heard = crate::server::shared::clock::now() - Duration::minutes(7);
         maps.last_updated.insert(stalled.session_id, last_heard);
 
         let reaped = reap(
             &mut maps.borrow(),
             &[(stalled.session_id, DiscoveryTerminalReason::SessionSilent)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert_eq!(
@@ -832,7 +1230,7 @@ mod tests {
 
     #[test]
     fn a_stall_names_its_cause_from_when_the_daemon_last_checked_in() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let seen = |ago: i64| Some(now - Duration::seconds(ago));
 
         assert_eq!(
@@ -858,9 +1256,11 @@ mod tests {
         let mut failure = with_phase(&dropped, DiscoveryPhase::Failed);
         failure.reason = Some(DiscoveryTerminalReason::DaemonDroppedSession);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_server_update(&mut maps.borrow(), &failure, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a server-decided failure is terminal");
         };
 
@@ -884,7 +1284,7 @@ mod tests {
         let UpdateOutcome::Terminal(effects) = apply_update(
             &mut maps.borrow(),
             &with_phase(&running, DiscoveryPhase::Complete),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         ) else {
             panic!("a Complete update is terminal");
         };
@@ -898,7 +1298,7 @@ mod tests {
 
     #[test]
     fn cancelling_a_pending_session_promotes_a_queued_one_but_not_one_awaiting_a_snapshot() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for (behind, promoted) in [
             (DiscoveryPhase::Queued, true),
             (DiscoveryPhase::AwaitingSnapshot, false),

@@ -52,7 +52,7 @@ jobs:
       # Best-effort: a failed download keeps the committed copy. Runs before
       # the tests so refreshed data is tested before it is committed or baked
       # into the Docker images.
-      - name: Refresh vendored data (IEEE MAC registries)
+      - name: Refresh vendored data (IEEE MAC registries, disposable email domains)
         run: backend/scripts/refresh-vendored-data.sh
 
       # Licences of every crate and bundled data file: compiled into the daemon (`scanopy-daemon
@@ -101,7 +101,7 @@ jobs:
           git add backend/Cargo.toml backend/Cargo.lock ui/package.json ui/package-lock.json
           git add backend/src/tests/scanopy.sql backend/src/tests/daemon_config.json ui/static/schema.mermaid ui/static/schema-er.mermaid ui/static/entity-metadata.json
           git add backend/tests/integration/compat/fixtures/
-          git add backend/assets/oui.csv backend/assets/mam.csv backend/assets/oui36.csv backend/assets/iab.csv
+          git add backend/assets/oui.csv backend/assets/mam.csv backend/assets/oui36.csv backend/assets/iab.csv backend/assets/disposable-email-domains.txt
           git add backend/THIRD-PARTY-NOTICES.txt
 
           if git diff --staged --quiet; then
@@ -364,7 +364,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Build UI
         working-directory: ui
@@ -553,7 +553,7 @@ jobs:
 
       - name: Sign daemon exe (standalone binary, OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@ea2c20939861de6438d5c8740b69c40d81d75786 # 1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}
@@ -583,7 +583,7 @@ jobs:
       # Sign the .exe BEFORE it is embedded in the MSI so the binary inside is trusted too.
       - name: Sign daemon exe (WiX-staged, OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@ea2c20939861de6438d5c8740b69c40d81d75786 # 1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}
@@ -607,7 +607,7 @@ jobs:
 
       - name: Sign MSI (OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@ea2c20939861de6438d5c8740b69c40d81d75786 # 1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}

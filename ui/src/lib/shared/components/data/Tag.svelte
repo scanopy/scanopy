@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
-	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
-	import { common_remove, common_unknown } from '$lib/paraglide/messages';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { tooltip, type TooltipContent } from '$lib/shared/actions/tooltip';
+	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
+	import { common_remove, common_unknown } from '#lib/paraglide/messages.js';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { tooltip, type TooltipOptions } from '#lib/shared/actions/tooltip.ts';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -33,8 +33,11 @@
 		badge?: string;
 		href?: string;
 		pill?: boolean;
-		/** Hover text, or structured tooltip content. A native tooltip shows text only. */
-		title?: string | TooltipContent | null;
+		/**
+		 * Hover text, or structured tooltip content, or a function that builds it on hover. A native
+		 * tooltip shows text only.
+		 */
+		title?: string | TooltipOptions['content'];
 		removable?: boolean;
 		isShiny?: boolean;
 		/** A paid feature's badge (`upgradeTagProps`): an amber chip around its crown, instead of `color`. */

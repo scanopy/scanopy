@@ -15,12 +15,12 @@ import {
 	removeSelectedChip,
 	responseGroups,
 	withMorePages
-} from '$lib/features/search/results';
-import { tagCompletion } from '$lib/features/tags/completion';
-import type { Tag } from '$lib/features/tags/types/base';
-import { entityUIConfig } from '$lib/shared/entity-ui-config';
+} from '#lib/features/search/results.ts';
+import { tagCompletion } from '#lib/features/tags/completion.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import { entityUIConfig } from '#lib/shared/entity-ui-config.ts';
 import { FEATURES } from './entity-tabs';
-import { keyLabel, shortcutLabel } from '$lib/shared/utils/shortcuts';
+import { keyLabel, shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 
 const key = (
 	k: string,

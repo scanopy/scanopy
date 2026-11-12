@@ -5,11 +5,10 @@ use crate::server::license::online::InstanceUsage;
 use crate::server::license::types::LicenseKeyType;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
 use crate::server::organizations::r#impl::base::LICENSE_SILENCE_THRESHOLD_DAYS;
+use crate::server::setup::types::SetupOperation;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{Event, OrgScope};
-use crate::server::shared::events::types::{
-    BillingOperation, OnboardingOperationDiscriminants, UpdateReason,
-};
+use crate::server::shared::events::types::{BillingOperation, UpdateReason};
 use crate::server::shared::services::traits::EventBusService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::lock::{
@@ -182,27 +181,43 @@ impl OrganizationService {
         Ok(Some(result))
     }
 
-    /// Record an onboarding milestone. `true` only for the call that added it, so the caller
-    /// publishes the milestone event once however many requests reach it together.
-    pub async fn record_milestone(
+    /// Store the item type a Completed or Answered `operation` names in the org's
+    /// `setup`, and publish the operation. Only the call that added the type publishes, so the
+    /// event goes out once however many requests reach it together. `true` for that call.
+    pub async fn record_setup(
         &self,
         organization_id: Uuid,
-        step: OnboardingOperationDiscriminants,
+        operation: SetupOperation,
+        authentication: AuthenticatedEntity,
     ) -> Result<bool, Error> {
+        let Some(item_type) = operation.recorded_item_type() else {
+            return Ok(false);
+        };
+        debug_assert!(
+            item_type.recorded(),
+            "{item_type:?} is not stored in organizations.setup"
+        );
         let Some(mut locked) = self.lock_for_update(organization_id).await? else {
             return Ok(false);
         };
-        if !locked.org.not_onboarded(&step) {
+        if locked.org.has_setup(item_type) {
             locked.release().await?;
             return Ok(false);
         }
-        locked.org.base.onboarding.push(step);
+        locked.org.base.setup.push(item_type);
         locked
             .save(
                 AuthenticatedEntity::System,
-                UpdateReason::OrganizationOnboardingMilestone,
+                UpdateReason::OrganizationSetupRecorded,
             )
             .await?;
+        self.event_bus
+            .publish(Event::new(
+                OrgScope { organization_id },
+                operation,
+                authentication,
+            ))
+            .await;
         Ok(true)
     }
 
@@ -329,7 +344,7 @@ impl OrganizationService {
                 // Whole seconds: the claim carries seconds, and Postgres keeps
                 // microseconds, so a truncating round trip would otherwise hand
                 // back a different stamp than the one just written.
-                let issued_at = whole_second(Utc::now());
+                let issued_at = whole_second(crate::server::shared::clock::now());
                 locked.org.base.license_key_issued_at = Some(issued_at);
                 let organization = locked.save_quietly().await?;
                 let issued = BillingOperation::LicenseKeyIssued {
@@ -398,7 +413,8 @@ impl OrganizationService {
             .license_key_version
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
-        locked.org.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        locked.org.base.license_key_issued_at =
+            Some(whole_second(crate::server::shared::clock::now()));
 
         // Dry-run the mint against the state about to be written. The loaded
         // copy is mutated but not yet persisted, so a refusal here leaves the
@@ -476,7 +492,8 @@ impl OrganizationService {
             .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
         // Move the stamp too. The version alone already changes the key; this
         // keeps the stamp honest about when the current key was issued.
-        locked.org.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        locked.org.base.license_key_issued_at =
+            Some(whole_second(crate::server::shared::clock::now()));
         let updated = locked
             .save(authentication, UpdateReason::OrganizationLicenseKeyChanged)
             .await?;
@@ -506,7 +523,7 @@ impl OrganizationService {
             return None;
         }
         let status = DemoPopulateStatus::Running {
-            started_at: Utc::now(),
+            started_at: crate::server::shared::clock::now(),
         };
         map.insert(org_id, status.clone());
         Some(status)
@@ -565,7 +582,7 @@ impl OrganizationService {
                     },
                     AuthenticatedEntity::System,
                 );
-                self.commit_billing(locked, None, vec![event]).await?;
+                self.commit_billing(locked, vec![event]).await?;
                 Ok::<_, Error>(true)
             }
             .await;

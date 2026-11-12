@@ -1,27 +1,27 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
-	import { isProvisionalCidr } from '$lib/shared/utils/cidr-source';
-	import { cidrContains } from '$lib/shared/utils/cidr';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
+	import { isProvisionalCidr } from '#lib/shared/utils/cidr-source.ts';
+	import { cidrContains } from '#lib/shared/utils/cidr.ts';
 	import SubnetUtilization from './SubnetUtilization.svelte';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import type { Subnet, SubnetResponse } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import { disabledWhen, hiddenWhen, type RowAction } from '#lib/shared/components/data/types.ts';
 	import { subnetColumns } from './SubnetTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Trash2, Edit, CircleDashedCheck } from '@lucide/svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		isUserManagedSubnet,
 		LISTED_SUBNETS,
@@ -34,16 +34,16 @@
 		useDeleteSubnetMutation,
 		useBulkDeleteSubnetsMutation
 	} from '../queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useVlansQuery } from '$lib/features/vlans/queries';
-	import { useServicesByIds } from '$lib/features/services/queries';
-	import type { Service } from '$lib/features/services/types/base';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import type { TabProps } from '$lib/shared/types';
-	import type { components } from '$lib/api/schema';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useVlansQuery } from '#lib/features/vlans/queries.ts';
+	import { useServicesByIds } from '#lib/features/services/queries.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import type { components } from '#lib/api/schema';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -59,21 +59,21 @@
 		subnets_resolveRange,
 		subnets_sharedRangeReadOnly,
 		subnets_sharedRangeReadOnlyBulk
-	} from '$lib/paraglide/messages';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	} from '#lib/paraglide/messages.js';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
-	// Organization query for onboarding state
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
+
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	const tagsQuery = useTagsQuery();
-	const SUBNET_FIELD_VALUES = '/api/v1/subnets/field-values/{field}';
+	const SUBNET_FIELD_VALUES = '/api/v1/subnets/field-values';
 	// The filter options count only the ranges the list shows.
 	const listedOnly = () => LISTED_SUBNETS;
 
@@ -84,27 +84,9 @@
 	// created, so a later declaration throws "Cannot access 'subnetsData' before initialization".
 	let subnetsData = $derived(subnetsQuery.data?.items ?? []);
 	// Filter options: the values the listed subnets hold, counted by the server.
-	const siteValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		SUBNET_FIELD_VALUES,
-		'site_id',
-		listedOnly,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'subnet_type',
-		listedOnly,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'source',
-		listedOnly,
-		() => isActive
-	);
-	const managedByValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'managed_by',
+		['site_id', 'subnet_type', 'source', 'managed_by'],
 		listedOnly,
 		() => isActive
 	);
@@ -118,7 +100,7 @@
 			...subnetsData
 				.map((s) => s.virtualization_service_id)
 				.filter((id): id is string => id != null),
-			...fieldValueOptions(managedByValuesQuery.data)
+			...fieldValueOptions(fieldValuesQuery.data?.managed_by)
 		])
 	]);
 	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(subnetsData));
@@ -210,9 +192,10 @@
 	}
 
 	/** Row actions. */
-	function subnetActions(subnet: SubnetResponse): CardAction[] {
-		if (isReadOnly) return [];
+	function subnetActions(subnet: SubnetResponse): RowAction[] {
+		if (!can('Subnet', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Subnet', 'Write', subnet.site_id));
 		// The Internet and Remote rows stand for a copy on every site, and editing one would change
 		// only one site's copy.
 		const shared = disabledWhen(
@@ -237,14 +220,14 @@
 				label: subnets_resolveRange(),
 				icon: CircleDashedCheck,
 				onClick: () => handleResolveRange(subnet),
-				unavailable: hiddenWhen(!isProvisionalCidr(subnet), subnets_rangeSettled())
+				unavailable: hiddenWhen(!isProvisionalCidr(subnet), subnets_rangeSettled()) ?? writeRefusal
 			},
 			{
 				label: common_edit(),
 				icon: Edit,
 				isOpen: true,
 				onClick: () => handleEditSubnet(subnet),
-				unavailable: shared ?? unresolved
+				unavailable: writeRefusal ?? shared ?? unresolved
 			},
 			{
 				label: common_delete(),
@@ -253,7 +236,7 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteSubnet(subnet),
-				unavailable: shared ?? unresolved
+				unavailable: refusedUnless(can('Subnet', 'Delete', subnet.site_id)) ?? shared ?? unresolved
 			}
 		];
 	}
@@ -403,10 +386,10 @@
 			runtimeOf,
 			runtimes: () => runtimesData,
 			utilizationCell,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
-			managedByValues: () => managedByValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.subnet_type,
+			sourceValues: () => fieldValuesQuery.data?.source,
+			managedByValues: () => fieldValuesQuery.data?.managed_by
 		})
 	);
 </script>
@@ -417,7 +400,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && !isReadOnly}
+	{#if daemonConnected && can('Subnet', 'Write')}
 		<CreateButton onclick={handleCreateSubnet} />
 	{/if}
 {/snippet}
@@ -425,8 +408,8 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptSubnets()} />
 	{:else if isLoading}
 		<!-- Loading state -->
 		<Loading />
@@ -434,8 +417,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_subnets() })}
 			subtitle=""
-			onClick={handleCreateSubnet}
-			cta={common_create()}
+			onClick={can('Subnet', 'Write') ? handleCreateSubnet : undefined}
+			cta={can('Subnet', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -446,7 +429,7 @@
 			storageKey="scanopy-subnets-table-state"
 			defaults={tableDefaults}
 			entityType="Subnet"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getSubnetTags}
 			getItemId={(item) => item.id}
 			serverPagination={subnetsPagination}

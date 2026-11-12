@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/groups';
+	import { isApplicationTag } from '#lib/features/tags/groups.ts';
 	import type { Node } from '@xyflow/svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { TopologyEditState } from '$lib/features/topology/state';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import { useTagsQuery, type EntityDiscriminants } from '$lib/features/tags/queries';
-	import { concepts } from '$lib/shared/stores/metadata';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { TopologyEditState } from '#lib/features/topology/state.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import { useTagsQuery, type EntityDiscriminants } from '#lib/features/tags/queries.ts';
+	import { concepts } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_host,
 		common_service,
@@ -15,7 +15,7 @@
 		tags_inheritedFromHost,
 		tags_inheritedOverrideHint,
 		tags_serviceOverridesHostApplication
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

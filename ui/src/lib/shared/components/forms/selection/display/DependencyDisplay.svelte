@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
-	import { entities, dependencyTypes } from '$lib/shared/stores/metadata';
-	import { dependencies_memberCount } from '$lib/paraglide/messages';
+	import { entities, dependencyTypes } from '#lib/shared/stores/metadata.ts';
+	import { dependencies_memberCount } from '#lib/paraglide/messages.js';
 
 	export type DependencyTagRole = 'dependencyType';
 
@@ -35,7 +35,7 @@
 <script lang="ts">
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import ListSelectItem from '../ListSelectItem.svelte';
-	import type { Dependency } from '$lib/features/dependencies/types/base';
+	import type { Dependency } from '#lib/features/dependencies/types/base.ts';
 
 	export let item: Dependency;
 	export let context: DependencyDisplayContext = {};

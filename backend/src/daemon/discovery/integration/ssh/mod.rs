@@ -8,7 +8,7 @@
 //! `server::credentials::impl::types::ssh_script`.
 
 mod apply;
-mod client;
+pub(crate) mod client;
 
 use std::time::Duration;
 
@@ -21,13 +21,11 @@ use super::{
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::server::credentials::r#impl::mapping::{
-    CredentialQueryPayload, CredentialQueryPayloadDiscriminants, SshQueryCredential,
+    CredentialQueryPayload, CredentialQueryPayloadDiscriminants, SshLogin, SshQueryCredential,
 };
 use crate::server::credentials::r#impl::types::ssh_script::{
     MAX_SCRIPT_OUTPUT_BYTES, SshScriptOutcome, SshScriptOutput, SshScriptRun,
 };
-use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::patterns::ClientProbe;
 use client::SessionError;
 
 /// The longest a credential may let a script run, whatever it asks for.
@@ -66,51 +64,16 @@ impl DiscoveryIntegration for SshIntegration {
         MAX_SCRIPT_TIMEOUT + client::CONNECT_TIMEOUT * 2
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        self::credential(credential)
-            .map(|c| vec![PortType::new_tcp(c.port)])
-            .unwrap_or_default()
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let cred = credential(ctx.credential)
             .ok_or_else(|| ProbeFailure::malformed("Expected SSH credential"))?;
-        let handshake = client::handshake(ctx.ip, cred.port)
-            .await
-            .map_err(|e| ProbeFailure::not_this_service(format!("SSH handshake failed: {e}")))?;
-        let observed = handshake.fingerprint().to_string();
+        let session = connect_trusted(ctx, &cred.login).await?;
 
-        let endpoint = format!("{}:{}", ctx.ip, cred.port);
-        let store = ctx.config_store;
-        let pinned = store.ssh_known_host_key(&endpoint).await;
-        let pin_after_login = match host_key_verdict(
-            &observed,
-            cred.host_key_fingerprint.as_deref(),
-            pinned.as_deref(),
-        ) {
-            KeyVerdict::Trust { pin } => pin,
-            KeyVerdict::Mismatch { trusted } => {
-                return Err(ProbeFailure::rejected(format!(
-                    "the host presented key {observed}, not the trusted {trusted}; nothing was sent to it and the script was not run. If the host was reinstalled, remove {endpoint} from ssh_known_host_keys in the daemon config"
-                )));
-            }
-        };
-
-        let session = handshake
-            .authenticate(&cred.username, &cred.auth)
-            .await
-            .map_err(|e| match e {
-                SessionError::AuthenticationFailed(m) => ProbeFailure::rejected(m),
-                SessionError::Malformed(m) => ProbeFailure::malformed(m),
-                SessionError::Unreachable(m) => ProbeFailure::unreachable(m),
-            })?;
-        if pin_after_login && let Err(e) = store.pin_ssh_host_key(&endpoint, &observed).await {
-            tracing::warn!(%endpoint, error = %e, "Could not pin the SSH host key");
-        }
-
+        // No evidence of its own: the script signs in through its login, and dispatch credits
+        // the login's port to the SSH service (`CredentialReach::ThroughLogin`).
         Ok(ProbeSuccess {
-            client_probe: Some(ClientProbe::Ssh),
-            ports: vec![PortType::new_tcp(cred.port)],
+            client_probe: None,
+            ports: vec![],
             handle: Some(Box::new(SshProbeHandle {
                 session: tokio::sync::Mutex::new(Some(session)),
             })),
@@ -252,6 +215,53 @@ impl SshIntegration {
         );
         Ok(Completeness::Complete)
     }
+}
+
+/// Log in with `login` at the probed address, trusting the host key only when it is the required
+/// one, or the one pinned on first use, or the first key seen there (pinned once the login
+/// succeeds). Nothing is sent to a host whose key fails that. Shared by every integration that
+/// signs in over SSH, so they pin and check keys alike, keyed by `ip:port`.
+pub(crate) async fn connect_trusted(
+    ctx: &ProbeContext<'_>,
+    login: &SshLogin,
+) -> Result<client::Session, ProbeFailure> {
+    let SshLogin {
+        port,
+        username,
+        auth,
+        host_key_fingerprint,
+    } = login;
+    let required_fingerprint = host_key_fingerprint.as_deref();
+    let handshake = client::handshake(ctx.ip, *port)
+        .await
+        .map_err(|e| ProbeFailure::not_this_service(format!("SSH handshake failed: {e}")))?;
+    let observed = handshake.fingerprint().to_string();
+
+    let endpoint = format!("{}:{}", ctx.ip, port);
+    let store = ctx.config_store;
+    let pinned = store.ssh_known_host_key(&endpoint).await;
+    let pin_after_login = match host_key_verdict(&observed, required_fingerprint, pinned.as_deref())
+    {
+        KeyVerdict::Trust { pin } => pin,
+        KeyVerdict::Mismatch { trusted } => {
+            return Err(ProbeFailure::rejected(format!(
+                "the host presented key {observed}, not the trusted {trusted}; nothing was sent to it. If the host was reinstalled, remove {endpoint} from ssh_known_host_keys in the daemon config"
+            )));
+        }
+    };
+
+    let session = handshake
+        .authenticate(username, auth)
+        .await
+        .map_err(|e| match e {
+            SessionError::AuthenticationFailed(m) => ProbeFailure::rejected(m),
+            SessionError::Malformed(m) => ProbeFailure::malformed(m),
+            SessionError::Unreachable(m) => ProbeFailure::unreachable(m),
+        })?;
+    if pin_after_login && let Err(e) = store.pin_ssh_host_key(&endpoint, &observed).await {
+        tracing::warn!(%endpoint, error = %e, "Could not pin the SSH host key");
+    }
+    Ok(session)
 }
 
 /// Whether to run the script on a host presenting `observed`.

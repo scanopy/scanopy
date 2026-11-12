@@ -25,6 +25,93 @@ use crate::server::{
     vlans::r#impl::base::Vlan,
 };
 
+/// Lookups over the context's slices, built once per context.
+///
+/// The builders ask for a host's addresses, a host's services or an interface by id once per
+/// host, address or neighbour row. Answering each by scanning the slice made a build quadratic in
+/// the site's size. Every list holds its rows in slice order and every id maps to the first row
+/// carrying it, so a lookup returns what the scan returned.
+struct ContextIndex<'a> {
+    host_by_id: HashMap<Uuid, &'a Host>,
+    subnet_by_id: HashMap<Uuid, &'a Subnet>,
+    service_by_id: HashMap<Uuid, &'a Service>,
+    ip_address_by_id: HashMap<Uuid, &'a IPAddress>,
+    interface_by_id: HashMap<Uuid, &'a Interface>,
+    ip_addresses_by_host: HashMap<Uuid, Vec<&'a IPAddress>>,
+    services_by_host: HashMap<Uuid, Vec<&'a Service>>,
+    services_by_bound_ip_address: HashMap<Uuid, Vec<&'a Service>>,
+    interfaces_by_host: HashMap<Uuid, Vec<&'a Interface>>,
+}
+
+impl<'a> ContextIndex<'a> {
+    fn new(
+        hosts: &'a [Host],
+        ip_addresses: &'a [IPAddress],
+        subnets: &'a [Subnet],
+        services: &'a [Service],
+        interfaces: &'a [Interface],
+    ) -> Self {
+        let mut index = Self {
+            host_by_id: HashMap::with_capacity(hosts.len()),
+            subnet_by_id: HashMap::with_capacity(subnets.len()),
+            service_by_id: HashMap::with_capacity(services.len()),
+            ip_address_by_id: HashMap::with_capacity(ip_addresses.len()),
+            interface_by_id: HashMap::with_capacity(interfaces.len()),
+            ip_addresses_by_host: HashMap::new(),
+            services_by_host: HashMap::new(),
+            services_by_bound_ip_address: HashMap::new(),
+            interfaces_by_host: HashMap::new(),
+        };
+        for host in hosts {
+            index.host_by_id.entry(host.id).or_insert(host);
+        }
+        for subnet in subnets {
+            index.subnet_by_id.entry(subnet.id).or_insert(subnet);
+        }
+        for ip_address in ip_addresses {
+            index
+                .ip_address_by_id
+                .entry(ip_address.id)
+                .or_insert(ip_address);
+            index
+                .ip_addresses_by_host
+                .entry(ip_address.base.host_id)
+                .or_default()
+                .push(ip_address);
+        }
+        for service in services {
+            index.service_by_id.entry(service.id).or_insert(service);
+            index
+                .services_by_host
+                .entry(service.base.host_id)
+                .or_default()
+                .push(service);
+            let mut bound: HashSet<Uuid> = HashSet::new();
+            for ip_address_id in service.to_bound_ip_address_ids().into_iter().flatten() {
+                if bound.insert(ip_address_id) {
+                    index
+                        .services_by_bound_ip_address
+                        .entry(ip_address_id)
+                        .or_default()
+                        .push(service);
+                }
+            }
+        }
+        for interface in interfaces {
+            index
+                .interface_by_id
+                .entry(interface.id)
+                .or_insert(interface);
+            index
+                .interfaces_by_host
+                .entry(interface.base.host_id)
+                .or_default()
+                .push(interface);
+        }
+        index
+    }
+}
+
 /// Central context for topology building operations
 /// Provides topology-specific business logic and data access
 pub struct TopologyContext<'a> {
@@ -60,6 +147,13 @@ pub struct TopologyContext<'a> {
     pub learned_by_port: HashMap<Uuid, Vec<LearnedHost>>,
     /// The far ends of those links (`fdb::learned_interfaces`).
     pub interfaces_learned_by_ports: HashSet<Uuid>,
+    index: ContextIndex<'a>,
+    /// Interfaces with a resolved neighbour row of their own, from `neighbours`.
+    interfaces_with_neighbor: HashSet<Uuid>,
+    /// Interfaces another interface's resolved neighbour row points at, from `neighbours`.
+    interfaces_named_as_neighbor: HashSet<Uuid>,
+    /// Interfaces with a candidate carrying LLDP evidence, from `candidates`.
+    interfaces_with_lldp_evidence: HashSet<Uuid>,
 }
 
 impl<'a> TopologyContext<'a> {
@@ -97,16 +191,30 @@ impl<'a> TopologyContext<'a> {
             view,
             interfaces_learned_by_ports: super::fdb::learned_interfaces(&learned_by_port),
             learned_by_port,
+            index: ContextIndex::new(hosts, ip_addresses, subnets, services, interfaces),
+            interfaces_with_neighbor: HashSet::new(),
+            interfaces_named_as_neighbor: HashSet::new(),
+            interfaces_with_lldp_evidence: HashSet::new(),
         }
     }
 
     pub fn with_neighbours(mut self, neighbours: &'a [InterfaceNeighborRow]) -> Self {
         self.neighbours = neighbours;
+        self.interfaces_with_neighbor = neighbours.iter().map(|n| n.interface_id).collect();
+        self.interfaces_named_as_neighbor = neighbours
+            .iter()
+            .filter_map(|n| n.neighbor.interface_id())
+            .collect();
         self
     }
 
     pub fn with_candidates(mut self, candidates: &'a [InterfaceNeighborCandidate]) -> Self {
         self.candidates = candidates;
+        self.interfaces_with_lldp_evidence = candidates
+            .iter()
+            .filter(|c| c.base.evidence.has_lldp_data())
+            .map(|c| c.base.interface_id)
+            .collect();
         self
     }
 
@@ -121,10 +229,7 @@ impl<'a> TopologyContext<'a> {
     /// for the common case of one candidate per port, and strictly better than the old
     /// interface-level `has_lldp_data()` it replaces.
     pub fn interface_has_lldp_evidence(&self, interface_id: Uuid) -> bool {
-        self.candidates
-            .iter()
-            .filter(|c| c.base.interface_id == interface_id)
-            .any(|c| c.base.evidence.has_lldp_data())
+        self.interfaces_with_lldp_evidence.contains(&interface_id)
     }
 
     // ============================================================================
@@ -132,27 +237,27 @@ impl<'a> TopologyContext<'a> {
     // ============================================================================
 
     pub fn get_subnet_by_id(&self, subnet_id: Uuid) -> Option<&'a Subnet> {
-        self.subnets.iter().find(|s| s.id == subnet_id)
+        self.index.subnet_by_id.get(&subnet_id).copied()
     }
 
     pub fn get_host_by_id(&self, host_id: Uuid) -> Option<&'a Host> {
-        self.hosts.iter().find(|h| h.id == host_id)
+        self.index.host_by_id.get(&host_id).copied()
     }
 
     pub fn get_service_by_id(&self, service_id: Uuid) -> Option<&'a Service> {
-        self.services.iter().find(|s| s.id == service_id)
+        self.index.service_by_id.get(&service_id).copied()
     }
 
     pub fn get_ip_address_by_id(&self, ip_address_id: Option<Uuid>) -> Option<&'a IPAddress> {
-        let id = ip_address_id?;
-        self.ip_addresses.iter().find(|i| i.id == id)
+        self.index.ip_address_by_id.get(&ip_address_id?).copied()
     }
 
     pub fn get_ip_addresses_for_host(&self, host_id: Uuid) -> Vec<&'a IPAddress> {
-        self.ip_addresses
-            .iter()
-            .filter(|i| i.base.host_id == host_id)
-            .collect()
+        self.index
+            .ip_addresses_by_host
+            .get(&host_id)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// Heading for a container that stands for `host`.
@@ -164,10 +269,11 @@ impl<'a> TopologyContext<'a> {
     }
 
     pub fn get_services_for_host(&self, host_id: Uuid) -> Vec<&'a Service> {
-        self.services
-            .iter()
-            .filter(|s| s.base.host_id == host_id)
-            .collect()
+        self.index
+            .services_by_host
+            .get(&host_id)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// Get the first non-docker-bridge interface for a host
@@ -175,10 +281,8 @@ impl<'a> TopologyContext<'a> {
         &self,
         host_id: Uuid,
     ) -> Option<&'a IPAddress> {
-        self.ip_addresses.iter().find(|ip_address| {
-            if ip_address.base.host_id != host_id {
-                return false;
-            }
+        let ip_addresses = self.index.ip_addresses_by_host.get(&host_id)?;
+        ip_addresses.iter().copied().find(|ip_address| {
             if let Some(subnet) = self.get_subnet_by_id(ip_address.base.subnet_id) {
                 return !subnet.base.subnet_type().is_container_bridge()
                     && !subnet.base.subnet_type().is_loopback();
@@ -188,24 +292,21 @@ impl<'a> TopologyContext<'a> {
     }
 
     pub fn get_services_bound_to_ip_address(&self, ip_address_id: Uuid) -> Vec<&'a Service> {
-        self.services
-            .iter()
-            .filter(|s| {
-                s.to_bound_ip_address_ids()
-                    .iter()
-                    .any(|s| s.map(|id| id == ip_address_id).unwrap_or(false))
-            })
-            .collect()
+        self.index
+            .services_by_bound_ip_address
+            .get(&ip_address_id)
+            .cloned()
+            .unwrap_or_default()
     }
 
     pub fn get_subnet_from_ip_address_id(&self, ip_address_id: Uuid) -> Option<&'a Subnet> {
-        let ip_address = self.ip_addresses.iter().find(|i| i.id == ip_address_id)?;
+        let ip_address = self.get_ip_address_by_id(Some(ip_address_id))?;
         self.get_subnet_by_id(ip_address.base.subnet_id)
     }
 
     pub fn get_host_from_ip_address_id(&self, ip_address_id: Uuid) -> Option<&'a Host> {
-        let ip_address = self.ip_addresses.iter().find(|i| i.id == ip_address_id)?;
-        self.hosts.iter().find(|h| h.id == ip_address.base.host_id)
+        let ip_address = self.get_ip_address_by_id(Some(ip_address_id))?;
+        self.get_host_by_id(ip_address.base.host_id)
     }
 
     // ============================================================================
@@ -213,7 +314,7 @@ impl<'a> TopologyContext<'a> {
     // ============================================================================
 
     pub fn get_interface_by_id(&self, id: Uuid) -> Option<&'a Interface> {
-        self.interfaces.iter().find(|e| e.id == id)
+        self.index.interface_by_id.get(&id).copied()
     }
 
     /// Resolve an IP address ID from an Interface, with single-IP-address host fallback.
@@ -236,10 +337,11 @@ impl<'a> TopologyContext<'a> {
     }
 
     pub fn get_interfaces_for_host(&self, host_id: Uuid) -> Vec<&'a Interface> {
-        self.interfaces
-            .iter()
-            .filter(|e| e.base.host_id == host_id)
-            .collect()
+        self.index
+            .interfaces_by_host
+            .get(&host_id)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// Every resolved full adjacency (specific remote port known) — one row per
@@ -268,9 +370,7 @@ impl<'a> TopologyContext<'a> {
     /// [`Self::interface_link_state`] instead: a link is recorded on one side, so this answers
     /// `false` for the far end of most links.
     pub fn interface_has_neighbor(&self, interface_id: Uuid) -> bool {
-        self.neighbours
-            .iter()
-            .any(|n| n.interface_id == interface_id)
+        self.interfaces_with_neighbor.contains(&interface_id)
     }
 
     /// Whether `interface_id` is linked, judged in **both** directions.
@@ -283,9 +383,7 @@ impl<'a> TopologyContext<'a> {
         InterfaceLinkState::classify(
             self.interface_has_neighbor(interface_id)
                 || self.learned_by_port.contains_key(&interface_id),
-            self.neighbours
-                .iter()
-                .any(|n| n.neighbor.interface_id() == Some(interface_id))
+            self.interfaces_named_as_neighbor.contains(&interface_id)
                 || self.interfaces_learned_by_ports.contains(&interface_id),
         )
     }
@@ -301,16 +399,14 @@ impl<'a> TopologyContext<'a> {
     /// a single-variant match creates silently and a column cannot.
     pub fn get_host_is_virtualized_by(&self, host_id: &Uuid) -> Option<&Service> {
         let host = self.get_host_by_id(*host_id)?;
-        let service_id = host.base.virtualization_service_id?;
-        self.services.iter().find(|s| s.id == service_id)
+        self.get_service_by_id(host.base.virtualization_service_id?)
     }
 
     /// The container runtime service hosting this service. Was `Docker`-only; Podman containers
     /// were invisible here for the same reason.
     pub fn get_service_is_containerized_by(&self, service_id: &Uuid) -> Option<&Service> {
         let service = self.get_service_by_id(*service_id)?;
-        let runtime_service_id = service.base.virtualization_service_id?;
-        self.services.iter().find(|s| s.id == runtime_service_id)
+        self.get_service_by_id(service.base.virtualization_service_id?)
     }
 
     pub fn get_node_subnet(&self, node_id: Uuid, nodes: &[Node]) -> Option<Uuid> {

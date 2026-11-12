@@ -154,7 +154,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if topology}
-	<div class="relative h-[calc(100vh-120px)] w-full">
+	<div class="relative h-[calc(100dvh_-_var(--app-banner-height,0px)_-_120px)] w-full">
 		<BaseTopologyViewer
 			bind:this={baseViewer}
 			{topology}

@@ -53,5 +53,16 @@
     "metadata": {
       "is_legacy": false
     }
+  },
+  {
+    "id": "InterfaceRefresh",
+    "name": "InterfaceRefresh",
+    "description": "Re-read which subnets the daemon's host is attached to",
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": {
+      "is_legacy": false
+    }
   }
 ]

@@ -1,7 +1,7 @@
 <script lang="ts" generics="TItem">
 	import { onMount } from 'svelte';
 	import { ArrowLeft } from '@lucide/svelte';
-	import { common_back } from '$lib/paraglide/messages';
+	import { common_back } from '#lib/paraglide/messages.js';
 	import Loading from '../../feedback/Loading.svelte';
 
 	// Core data

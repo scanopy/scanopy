@@ -1,10 +1,10 @@
 import type { RenderableTopology, TopologyNode, TopologyEdge } from '../types/base';
 import type { LayoutState, PrepareResult, XY } from './types';
-import { LayoutGraph } from '../layout/layout-graph';
-import { ElkLayoutEngine } from '../layout/engine';
+import { LayoutGraph, type LayoutContainer } from '../layout/layout-graph';
+import { ElkLayoutEngine, type LayoutResult } from '../layout/engine';
 import { getViewLayout } from '../layout/view-layout';
 import { computeForceLayout, type ForceNode, type ForceLink } from '../layout/force-layout';
-import { containerTypes } from '$lib/shared/stores/metadata';
+import { containerTypes } from '#lib/shared/stores/metadata.ts';
 import * as perf from '../perf';
 import { noteRunDetail, noteElkResultDiscarded } from '../diagnostics';
 import { effectiveElementSort } from '../element-sort';
@@ -17,15 +17,22 @@ const layoutEngine = new ElkLayoutEngine();
  * Mutates state.layoutGraph, state.sessionStructureKey, state.sessionBaseKey,
  * state.seenAutoCollapseIds, state.viewSizeCache, state.containerSizeCache.
  *
- * @returns Updated visible nodes, or null if stale.
+ * `stored` is a layout engine result kept from an earlier run with the same inputs (see
+ * `layout-store.ts`). Given one, the ELK path applies it and does not run the engine.
+ * `onFirstPassDone` is handed to the engine; see `LayoutInput`.
+ *
+ * @returns Updated visible nodes and, on the ELK path, the engine result that was applied; or
+ * null if stale.
  */
 export async function executeLayout(
 	topology: RenderableTopology,
 	state: LayoutState,
 	prep: PrepareResult,
 	elementNodeSizes: Map<string, XY>,
-	isStale: () => boolean
-): Promise<{ visibleNodes: TopologyNode[] } | null> {
+	isStale: () => boolean,
+	stored?: LayoutResult,
+	onFirstPassDone?: () => Promise<void>
+): Promise<{ visibleNodes: TopologyNode[]; engineResult?: LayoutResult } | null> {
 	const {
 		layoutNodes,
 		collapsed,
@@ -39,6 +46,7 @@ export async function executeLayout(
 		hiddenEdgeTypes
 	} = prep;
 	let { visibleNodes } = prep;
+	let engineResult: LayoutResult | undefined;
 
 	// Detect if all root containers are collapsed -> use force layout
 	const rootContainerNodes = visibleNodes.filter(
@@ -59,8 +67,18 @@ export async function executeLayout(
 	// than a denser one, and reads worse. Workloads opts out for the same reason.
 	const useForceLayout = allRootCollapsed && getViewLayout(currentView).force_overview;
 
+	// One container opened on a large site: lay out its inside and make room around it. A stored
+	// layout for this exact state is the tidier result and wins. False means the local path could
+	// not size the container, and the full layout below runs as it always did.
+	if (prep.localExpand && !stored) {
+		const applied = await executeLocalExpand(topology, state, prep, elementNodeSizes, isStale);
+		if (applied === null) return null;
+		if (applied) return { visibleNodes };
+	}
+
 	if (useForceLayout) {
 		// Force layout for all-collapsed overview mode
+		state.sessionCollapsed = null;
 		visibleNodes = executeForceLayout(
 			state,
 			rootContainerNodes,
@@ -91,21 +109,26 @@ export async function executeLayout(
 		}
 
 		const elkComputeDone = perf.stage('layout.elk-compute');
-		const elkResult = await layoutEngine.compute({
-			nodes: elkNodes,
-			edges: elevatedEdges,
-			topology: topology,
-			view: currentView,
-			parentIndex: prep.parentIndex,
-			collapsedContainers: elkCollapsed,
-			expandedContainerSizes: prevExpandedSizes,
-			elementNodeSizes,
-			hiddenEdgeTypes,
-			// Read from the options these nodes were built with, so the flag always matches their order.
-			preserveChildOrder:
-				effectiveElementSort(topology.options?.request, currentView) !== 'Automatic'
-		});
+		const elkResult =
+			stored ??
+			(await layoutEngine.compute({
+				nodes: elkNodes,
+				edges: elevatedEdges,
+				topology: topology,
+				view: currentView,
+				parentIndex: prep.parentIndex,
+				collapsedContainers: elkCollapsed,
+				expandedContainerSizes: prevExpandedSizes,
+				elementNodeSizes,
+				hiddenEdgeTypes,
+				// Read from the options these nodes were built with, so the flag always matches their
+				// order.
+				preserveChildOrder:
+					effectiveElementSort(topology.options?.request, currentView) !== 'Automatic',
+				onFirstPassDone
+			}));
 		elkComputeDone();
+		engineResult = elkResult;
 		// Superseded, but too late for the check above to have saved anything: this layout ran in
 		// full and is now thrown away. Counted separately from `runsSuperseded`, which records the
 		// signal rather than the saving — read together they say whether cancellation is firing
@@ -119,6 +142,7 @@ export async function executeLayout(
 
 		state.sessionStructureKey = structureKey;
 		state.sessionBaseKey = baseKey;
+		state.sessionCollapsed = new Set(collapsed);
 
 		// Rebuild the graph only when the node set changed; otherwise reuse and re-sync.
 		//
@@ -175,7 +199,139 @@ export async function executeLayout(
 		cacheDone();
 	}
 
-	return { visibleNodes };
+	return { visibleNodes, engineResult };
+}
+
+/**
+ * The container a local expand applies to: the one container that is collapsed in the layout on
+ * screen (`laidOut`) and open in `collapsed`, when it is visible and nothing else differs but
+ * containers inside it opening with it.
+ *
+ * Undefined when another container's collapse flag in the graph has moved away from the layout on
+ * screen, which a superseded run leaves behind: the graph's positions are then no longer the ones
+ * on screen.
+ */
+export function localExpandTarget(
+	graph: LayoutGraph,
+	laidOut: Set<string> | null,
+	collapsed: Set<string>
+): string | undefined {
+	if (!laidOut) return undefined;
+	const opened = new Set<string>();
+	for (const id of laidOut) if (!collapsed.has(id)) opened.add(id);
+	// Something opened, and nothing closed.
+	if (opened.size === 0 || laidOut.size - opened.size !== collapsed.size) return undefined;
+
+	// Opening a container opens its subcontainers with it (`toggleCollapse`), so the opened set is
+	// one container and any number of containers inside it.
+	let top: LayoutContainer | undefined;
+	for (const id of opened) {
+		const container = graph.containers.get(id);
+		if (!container) return undefined;
+		let inside = false;
+		for (let parent = container.parent; parent && !inside; parent = parent.parent) {
+			inside = opened.has(parent.id);
+		}
+		if (inside) continue;
+		if (top) return undefined;
+		top = container;
+	}
+	if (!top) return undefined;
+	for (let parent = top.parent; parent; parent = parent.parent) {
+		if (collapsed.has(parent.id)) return undefined;
+	}
+	// The opened containers themselves may already be flagged open: an earlier run for this same
+	// expand that was superseded before it laid anything out.
+	for (const other of graph.containers.values()) {
+		if (!opened.has(other.id) && other.collapsed !== laidOut.has(other.id)) return undefined;
+	}
+	return top.id;
+}
+
+/**
+ * Lay out one newly opened container without running the layout engine on the whole graph.
+ *
+ * A full run lays out every root container and the inside of every open one, which on a site of a
+ * few thousand hosts takes seconds, to open one switch. Here the engine runs on the opened
+ * container and its descendants alone, the container keeps its position, and
+ * `LayoutGraph.makeRoomFor` moves what is right of it and below it out of the way.
+ *
+ * The result is not what a full run would draw: the rest of the graph is not re-packed around the
+ * larger container, and its children are not ordered by the side their links leave from. It is
+ * never written to the layout store, so a reload of the same state gets the full layout.
+ *
+ * @returns true when applied, false when the engine returned no size for the container, null when
+ * the run went stale.
+ */
+async function executeLocalExpand(
+	topology: RenderableTopology,
+	state: LayoutState,
+	prep: PrepareResult,
+	elementNodeSizes: Map<string, XY>,
+	isStale: () => boolean
+): Promise<boolean | null> {
+	const graph = state.layoutGraph;
+	const { containerId, previousSize } = prep.localExpand!;
+	const container = graph?.containers.get(containerId);
+	if (!graph || !container) return false;
+
+	// A container of cards only, opened earlier in the session, still holds that layout.
+	const insideKnown =
+		container.childContainers.length === 0 &&
+		container.expandedSize.width > 0 &&
+		!container.childElements.some((element) => element.size.y === 0);
+
+	if (!insideKnown) {
+		const inside = graph.descendantIds(containerId);
+		inside.add(containerId);
+		const nodes = prep.visibleNodes
+			.filter((node) => inside.has(node.id))
+			// The engine lays out root containers; inside a parent, the opened container stands as one.
+			.map((node) =>
+				node.id === containerId
+					? ({ ...node, parent_container_id: undefined } as unknown as TopologyNode)
+					: node
+			);
+		const edges = prep.elevatedEdges.filter(
+			(edge) => inside.has(edge.source) && inside.has(edge.target)
+		);
+
+		if (isStale()) return null;
+		const computeDone = perf.stage('layout.local-compute');
+		const result = await layoutEngine.compute({
+			nodes,
+			edges,
+			topology,
+			view: prep.currentView,
+			collapsedContainers: prep.collapsed,
+			expandedContainerSizes: prep.prevExpandedSizes,
+			elementNodeSizes,
+			hiddenEdgeTypes: prep.hiddenEdgeTypes,
+			preserveChildOrder:
+				effectiveElementSort(topology.options?.request, prep.currentView) !== 'Automatic'
+		});
+		computeDone();
+		if (isStale()) return null;
+		if (!result.containerSizes.get(containerId)?.width) return false;
+
+		// The container stays where it is; only its inside and its size come from this run.
+		const positions = new Map(result.nodePositions);
+		positions.set(containerId, { ...container.position });
+		graph.applyElkResult(positions, result.containerSizes, result.elementNodeSizes);
+		for (const [id, size] of result.containerSizes) {
+			const entry = state.containerSizeCache.get(id) ?? {};
+			if (prep.collapsed.has(id)) entry.collapsed = { x: size.width, y: size.height };
+			else entry.expanded = { x: size.width, y: size.height };
+			state.containerSizeCache.set(id, entry);
+		}
+	}
+
+	graph.makeRoomFor(containerId, previousSize);
+	state.sessionStructureKey = prep.structureKey;
+	state.sessionBaseKey = prep.baseKey;
+	state.sessionCollapsed = new Set(prep.collapsed);
+	perf.count('layout:local-expand');
+	return true;
 }
 
 function executeForceLayout(

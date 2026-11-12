@@ -1,9 +1,9 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { applicationGroupId, tagDescription, tagIcon } from '$lib/features/tags/groups';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import type { TagGroup } from '$lib/features/tags/types/base';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import { applicationGroupId, tagDescription, tagIcon } from '#lib/features/tags/groups.ts';
+	import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+	import type { TagGroup } from '#lib/features/tags/types/base.ts';
 
 	/** The organization's tag groups, as the tag-group query last loaded them. */
 	const cachedTagGroups = (): TagGroup[] =>
@@ -22,9 +22,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { Tag } from '$lib/features/tags/types/base';
+	import type { Tag } from '#lib/features/tags/types/base.ts';
 
 	interface Props {
 		item: Tag;

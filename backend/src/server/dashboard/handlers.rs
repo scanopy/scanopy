@@ -1,10 +1,10 @@
-use crate::daemon::discovery::types::warnings::RunWarningSummary;
 use crate::server::openapi::tags as api_tags;
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Viewer},
+    auth::{
+        access::{Action, Resource},
+        middleware::permissions::{Authorized, InOrganization},
+    },
     config::AppState,
-    daemons::r#impl::{api::DaemonResponse, base::Daemon, version::DaemonVersionPolicy},
-    discovery::r#impl::{base::Discovery, types::RunType},
     shared::{
         services::traits::CrudService,
         storage::filter::StorableFilter,
@@ -13,25 +13,29 @@ use crate::server::{
     sites::r#impl::Site,
 };
 
-use super::types::{
-    DashboardSummary, PlanUsage, RecentDiscovery, SiteSummary, TargetlessCredential,
-    UncoveredIntegration,
+use super::types::{DashboardSummary, PlanUsage, SiteSummary};
+use crate::server::{
+    setup::{
+        service::IssueList,
+        types::{IssueFilterQuery, SetupItemTier, SetupListEntry},
+    },
+    shared::{extractors::Query, handlers::list::computed_page, types::api::PaginatedApiResponse},
 };
-use crate::server::credentials::service::FoundIntegration;
-use strum::IntoDiscriminant;
 
 use axum::{extract::State, response::Json};
 use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
+use uuid::Uuid;
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
-    OpenApiRouter::new().routes(routes!(get_dashboard_summary))
+    OpenApiRouter::new()
+        .routes(routes!(get_dashboard_summary))
+        .routes(routes!(get_dashboard_issues))
 }
 
 /// Get dashboard summary
 ///
-/// Returns aggregated dashboard data including site metrics, daemon health,
-/// recent discoveries, and plan usage.
+/// Returns site metrics, plan usage and the organization's Setup list as the caller sees it.
 #[utoipa::path(
     get,
     path = "/summary",
@@ -43,9 +47,15 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_dashboard_summary(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<InOrganization>,
 ) -> ApiResult<Json<ApiResponse<DashboardSummary>>> {
-    let site_ids = auth.site_ids();
+    // The summary spans resource types, so each count reads the sites its own type allows.
+    let readable = |resource| auth.entity.site_ids_for(resource, Action::Read);
+    let host_site_ids = readable(Resource::Host);
+    let service_site_ids = readable(Resource::Service);
+    let subnet_site_ids = readable(Resource::Subnet);
+    let daemon_site_ids = readable(Resource::Daemon);
+    let site_ids = readable(Resource::Site);
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
@@ -64,84 +74,51 @@ async fn get_dashboard_summary(
     // counted (daemons are non-SCD2 → plain count).
     let mut site_summaries = Vec::new();
     for site in &sites_result.items {
-        let ids = [site.id];
         let map_err = |e: anyhow::Error| ApiError::internal_error(&e.to_string());
+        let within = |allowed: &[Uuid]| {
+            allowed
+                .contains(&site.id)
+                .then_some(site.id)
+                .into_iter()
+                .collect::<Vec<Uuid>>()
+        };
         site_summaries.push(SiteSummary {
             id: site.id,
             name: site.base.name.clone(),
             host_count: state
                 .services
                 .host_service
-                .confirmed_count_for_sites(&ids)
+                .confirmed_count_for_sites(&within(&host_site_ids))
                 .await
                 .map_err(map_err)?,
             service_count: state
                 .services
                 .service_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&service_site_ids))
                 .await
                 .map_err(map_err)?,
             subnet_count: state
                 .services
                 .subnet_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&subnet_site_ids))
                 .await
                 .map_err(map_err)?,
             daemon_count: state
                 .services
                 .daemon_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&daemon_site_ids))
                 .await
                 .map_err(map_err)?,
         });
     }
 
-    // Fetch all daemons with version status
-    let daemons_filter = StorableFilter::<Daemon>::new_from_site_ids(&site_ids);
-    let daemons_result = state
-        .services
-        .daemon_service
-        .get_paginated(daemons_filter)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-
-    let daemon_ids: Vec<_> = daemons_result.items.iter().map(|d| d.id).collect();
-    let subnet_ids_map = state
-        .services
-        .daemon_service
-        .get_interfaced_subnet_ids_batch(&daemon_ids)
-        .await;
-
-    let policy = DaemonVersionPolicy::default();
-    let daemon_responses: Vec<DaemonResponse> = daemons_result
-        .items
-        .into_iter()
-        .map(|d| {
-            let version_status = policy.evaluate(d.base.version.as_ref());
-            let interfaced_subnet_ids = subnet_ids_map.get(&d.id).cloned().unwrap_or_default();
-            DaemonResponse::new(d, version_status, interfaced_subnet_ids)
-        })
-        .collect();
-
-    // Fetch recent historical discoveries (last 5)
-    let discovery_filter = StorableFilter::<Discovery>::new_from_site_ids(&site_ids)
-        .historical_discovery()
-        .limit(5);
-    let discovery_result = state
-        .services
-        .discovery_service
-        .get_paginated_ordered(discovery_filter, "created_at DESC")
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-
-    // Plan usage
-    let plan = state
+    let organization = state
         .services
         .organization_service
         .get_by_id(&organization_id)
         .await?
-        .map(|o| o.base.plan)
-        .unwrap_or_else(crate::server::billing::plans::get_free_plan);
+        .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
+    let plan = &organization.base.plan;
     let (host_limit, site_limit, seat_limit) =
         (plan.host_limit(), plan.site_limit(), plan.seat_limit());
 
@@ -149,7 +126,7 @@ async fn get_dashboard_summary(
     let host_count = state
         .services
         .host_service
-        .confirmed_count_for_sites(&site_ids)
+        .confirmed_count_for_sites(&host_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let seat_count = state
@@ -159,66 +136,20 @@ async fn get_dashboard_summary(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    let recent_discoveries = discovery_result
-        .items
-        .into_iter()
-        .map(|discovery| {
-            let warning_summary = match &discovery.base.run_type {
-                RunType::Historical { results } => {
-                    RunWarningSummary::from(results.warnings.as_slice())
-                }
-                _ => RunWarningSummary::default(),
-            };
-            RecentDiscovery {
-                discovery,
-                warning_summary,
-            }
-        })
-        .collect();
-
-    // What the latest full scans found with no credential, re-checked against today's
-    // assignments so a credential saved since clears its nudge without waiting for a scan.
-    let (found, tried_at) = state
+    let (issues, setup_items): (Vec<SetupListEntry>, Vec<SetupListEntry>) = state
         .services
-        .discovery_service
-        .latest_integrations_without_credentials(&site_ids)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-    let uncovered = state
-        .services
-        .credential_service
-        .uncovered_integrations(found, &[], None, &tried_at)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-    let uncovered_integrations = group_by_integration(uncovered);
-
-    // Re-checked against today's assignments, so a target saved since clears its nudge.
-    let targetless_credentials = state
-        .services
-        .discovery_service
-        .targetless_credentials(&organization_id, None)
+        .setup_service
+        .for_user(&organization, &auth.entity)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .into_iter()
-        .map(|c| TargetlessCredential {
-            id: c.id,
-            integration: c.base.credential_type.discriminant().integration(),
-            name: c.base.name,
-        })
-        .collect();
-
-    let unconfirmed_host_count = state
-        .services
-        .host_service
-        .unconfirmed_count_for_sites(&site_ids)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-    let unconfirmed_subnet_count = state
-        .services
-        .subnet_service
-        .unconfirmed_count_for_sites(&site_ids)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+        .partition(|entry| entry.tier == SetupItemTier::Issue);
+    let mut issue_site_ids: Vec<Uuid> = Vec::new();
+    for site_id in issues.iter().flat_map(|entry| &entry.site_ids) {
+        if !issue_site_ids.contains(site_id) {
+            issue_site_ids.push(*site_id);
+        }
+    }
 
     let plan_usage = PlanUsage {
         host_limit,
@@ -231,34 +162,55 @@ async fn get_dashboard_summary(
 
     Ok(Json(ApiResponse::success(DashboardSummary {
         sites: site_summaries,
-        daemons: daemon_responses,
-        recent_discoveries,
         plan_usage,
-        uncovered_integrations,
-        targetless_credentials,
-        unconfirmed_host_count,
-        unconfirmed_subnet_count,
+        setup_items,
+        issue_count: issues.len() as u64,
+        issue_site_ids,
     })))
 }
 
-/// One entry per integration, naming every host it was found on, most hosts first.
-fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegration> {
-    let mut grouped: Vec<UncoveredIntegration> = Vec::new();
-    for f in found {
-        match grouped.iter_mut().find(|g| g.integration == f.integration) {
-            Some(g) => {
-                g.host_ids.push(f.host_id);
-                if !g.site_ids.contains(&f.site_id) {
-                    g.site_ids.push(f.site_id);
-                }
-            }
-            None => grouped.push(UncoveredIntegration {
-                integration: f.integration,
-                host_ids: vec![f.host_id],
-                site_ids: vec![f.site_id],
-            }),
-        }
-    }
-    grouped.sort_by(|a, b| b.host_ids.len().cmp(&a.host_ids.len()));
-    grouped
+/// List dashboard Issues
+///
+/// One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
+/// summary.
+#[utoipa::path(
+    get,
+    path = "/issues",
+    tags = [api_tags::INTERNAL],
+    params(IssueFilterQuery),
+    responses(
+        (status = 200, description = "Issues", body = PaginatedApiResponse<SetupListEntry>),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn get_dashboard_issues(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<InOrganization>,
+    Query(query): Query<IssueFilterQuery>,
+) -> ApiResult<Json<PaginatedApiResponse<SetupListEntry>>> {
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
+    let organization = state
+        .services
+        .organization_service
+        .get_by_id(&organization_id)
+        .await?
+        .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
+    // Already cut to what the caller may read, so `site_ids` only narrows it: a site the caller
+    // can't read matches nothing.
+    let issues: Vec<SetupListEntry> = state
+        .services
+        .setup_service
+        .for_user(&organization, &auth.entity)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .into_iter()
+        .filter(|entry| entry.tier == SetupItemTier::Issue)
+        .collect();
+    Ok(Json(computed_page::<IssueList>(
+        issues,
+        &query,
+        query.pagination(),
+    )))
 }

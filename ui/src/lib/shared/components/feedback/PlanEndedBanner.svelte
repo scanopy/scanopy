@@ -1,27 +1,27 @@
 <script lang="ts">
 	import { Info } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		billing_lapsedBannerAskOwner,
 		billing_lapsedBannerCta,
 		billing_planEndedBannerBody
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// A cloud plan that ends lands the org on Free. Says which plan ended, once
 	// per downgrade: dismissing it hides it until the next one, because the key
 	// carries the downgrade's time.
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let endedPlan = $derived(org?.last_downgrade_from_plan?.type ?? null);
 	let shouldShow = $derived(
 		isCloudDeployment &&

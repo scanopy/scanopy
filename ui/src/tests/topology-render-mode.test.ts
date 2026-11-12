@@ -5,8 +5,10 @@ import {
 	nodeDetail,
 	BOX_MIN_PX,
 	LOD_MIN_NODES,
-	DETAIL_ZOOM
-} from '$lib/features/topology/pipeline/render-mode';
+	DETAIL_ZOOM,
+	MIN_CARD_TEXT_PX,
+	CARD_TEXT_PX
+} from '#lib/features/topology/pipeline/render-mode.ts';
 
 /**
  * Culling has two hard suspensions. Both exist because something else needs
@@ -80,24 +82,52 @@ describe('nodeDetail', () => {
  * The size gate.
  *
  * Simplifying costs the operator something real — the cards stop saying what they are — so it has
- * to buy something back. On a few hundred nodes there is nothing to reclaim and hiding detail is
- * purely worse, which is why this is gated on the graph and not on the zoom alone.
+ * to buy something back. On a small site there is nothing to reclaim and hiding detail is purely
+ * worse, which is why this is gated on the graph and not on the zoom alone.
  */
 describe('shouldSimplify', () => {
-	const big = { zoom: 0.01, nodeCount: LOD_MIN_NODES, measuring: false, exporting: false };
+	// The widest node is a 5,000px root container, 50px on screen at this zoom, so the size gate
+	// is what decides these cases.
+	const big = {
+		zoom: 0.01,
+		nodeCount: LOD_MIN_NODES,
+		widestNodeWidth: 5_000,
+		measuring: false,
+		exporting: false
+	};
 
 	it('simplifies a large graph once it is zoomed out past the detail threshold', () => {
 		expect(shouldSimplify(big)).toBe(true);
 	});
 
 	it('leaves a small graph alone however far it is zoomed out', () => {
-		// The whole point of the gate: a 200-node graph costs nothing to draw in full, so taking its
-		// labels away at low zoom would be a loss with no compensating gain.
+		// The whole point of the gate: a small site costs nothing to draw in full, so taking its
+		// cards away at low zoom would be a loss with no compensating gain.
 		expect(shouldSimplify({ ...big, nodeCount: LOD_MIN_NODES - 1 })).toBe(false);
+	});
+
+	it('leaves the demo sites it must not change in full at the zoom they fit at', () => {
+		// The largest fully expanded view of a small demo site is 102 nodes and fits at about 0.33.
+		expect(shouldSimplify({ ...big, nodeCount: 102, zoom: 0.33 })).toBe(false);
+	});
+
+	it('simplifies a view of a few hundred containers below the detail threshold', () => {
+		// 252 collapsed switches drew every card in full from zoom 0.04 up, at 125 ms a frame.
+		const switches = { ...big, nodeCount: 252, widestNodeWidth: 353 };
+		expect(shouldSimplify({ ...switches, zoom: 0.1 })).toBe(true);
+		expect(shouldSimplify({ ...switches, zoom: 0.4 })).toBe(true);
+		expect(shouldSimplify({ ...switches, zoom: 0.5 })).toBe(false);
 	});
 
 	it('leaves a large graph alone while it is zoomed in', () => {
 		expect(shouldSimplify({ ...big, zoom: DETAIL_ZOOM })).toBe(false);
+	});
+
+	it('draws detail from the zoom where card text reaches its minimum size on screen', () => {
+		// Card text is at the minimum size on screen at this zoom, and under it below.
+		expect(DETAIL_ZOOM).toBeCloseTo(MIN_CARD_TEXT_PX / CARD_TEXT_PX);
+		expect(CARD_TEXT_PX * DETAIL_ZOOM).toBeCloseTo(MIN_CARD_TEXT_PX);
+		expect(shouldSimplify({ ...big, zoom: DETAIL_ZOOM - 0.01 })).toBe(true);
 	});
 
 	it('suspends for the measure pass and for export', () => {
@@ -105,5 +135,28 @@ describe('shouldSimplify', () => {
 		// pinned heights, and an export would rasterise a page of empty boxes.
 		expect(shouldSimplify({ ...big, measuring: true })).toBe(false);
 		expect(shouldSimplify({ ...big, exporting: true })).toBe(false);
+	});
+
+	describe('when every node is too small to read', () => {
+		// A site below the node-count gate, zoomed far out past its fit zoom: its widest card,
+		// 353px, is 5.3px on screen.
+		const collapsed = { ...big, nodeCount: 100, widestNodeWidth: 353, zoom: 0.015 };
+
+		it('simplifies a graph below the size gate', () => {
+			expect(shouldSimplify(collapsed)).toBe(true);
+		});
+
+		it('draws in full once the widest node reaches the minimum box width', () => {
+			expect(shouldSimplify({ ...collapsed, zoom: BOX_MIN_PX / 353 })).toBe(false);
+		});
+
+		it('still suspends for the measure pass and for export', () => {
+			expect(shouldSimplify({ ...collapsed, measuring: true })).toBe(false);
+			expect(shouldSimplify({ ...collapsed, exporting: true })).toBe(false);
+		});
+
+		it('does not simplify before any node has a width', () => {
+			expect(shouldSimplify({ ...collapsed, widestNodeWidth: 0 })).toBe(false);
+		});
 	});
 });

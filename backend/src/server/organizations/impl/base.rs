@@ -11,10 +11,8 @@ use validator::Validate;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     license::{instances::InstanceLimits, online::InstanceUsage},
-    shared::{
-        entities::ChangeTriggersTopologyStaleness,
-        events::types::{BillingOperation, OnboardingOperationDiscriminants},
-    },
+    setup::types::SetupItemDiscriminants,
+    shared::{entities::ChangeTriggersTopologyStaleness, events::types::BillingOperation},
 };
 
 #[derive(
@@ -99,6 +97,13 @@ pub struct OrgNotifications {
     /// per overrun.
     #[serde(default)]
     pub license_over_instance_limit: bool,
+    /// The Issues and Next steps the hourly trial sweep last saw on the org's Setup list, each
+    /// with when the sweep first saw it. An item that clears leaves the list.
+    #[serde(default)]
+    pub setup_items_open: Vec<crate::server::setup::types::OpenSetupItem>,
+    /// The items already reported as stuck. Never pruned, so each item is reported once per org.
+    #[serde(default)]
+    pub setup_items_reported: Vec<crate::server::setup::types::SetupItemKey>,
 }
 
 #[derive(
@@ -106,22 +111,32 @@ pub struct OrgNotifications {
 )]
 pub struct OrganizationBase {
     /// Stripe customer ID - internal, not exposed to API
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub stripe_customer_id: Option<String>,
     /// Human-facing name for this organization.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
     /// The plan this organization is on.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan: BillingPlan,
     /// Current billing state of that plan.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan_status: Option<PlanStatus>,
-    /// Progress through first-run setup.
+    /// The Setup item types the org has finished or dismissed.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
-    pub onboarding: Vec<OnboardingOperationDiscriminants>,
+    pub setup: Vec<SetupItemDiscriminants>,
     /// Whether a payment method is on file.
     #[serde(default)]
     #[schema(read_only)]
@@ -180,7 +195,10 @@ pub struct OrganizationBase {
     /// BillingPlanModal; the UI interprets the value based on plan_status
     /// (hide for paused/cancelled/past_due where the stored value can be
     /// stale or meaningless).
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub next_renewal_at: Option<DateTime<Utc>>,
     /// Latest entitlement an online license key fetched from Scanopy Cloud.
@@ -202,32 +220,38 @@ pub struct OrganizationBase {
     /// during a self-hosted trial, then the end of the last paid invoice's
     /// service period. While a sent invoice is unpaid, its due date plus a
     /// grace window. License keys and entitlements expire 7 days later.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_paid_through: Option<DateTime<Utc>>,
     /// Last time a self-hosted server fetched an entitlement with this org's
     /// online license key.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_checkin_at: Option<DateTime<Utc>>,
     /// Version embedded in online license keys - internal, not exposed to API.
     /// Rotating the key increments it, retiring every earlier key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_version: i64,
     /// `iat` embedded in this org's online license key. Held so re-minting
     /// returns a byte-identical key rather than a new string each time; set on
     /// first issue and moved on rotation. Not key material.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_issued_at: Option<DateTime<Utc>>,
     /// Which license key this org currently has issued - internal, not exposed
     /// to API. `None` reads as online. Switching retires the previous key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
     /// Highest server version a check-in with this org's online key has
     /// reported - internal, not exposed to API. Several servers can share a
     /// key, so it only ever rises. `None` until a server new enough to send
     /// its version checks in.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_server_version: Option<Version>,
     /// The date this org's air-gapped key stays current until, or `None` when
     /// it holds an online key or that date has passed.
@@ -263,12 +287,9 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn not_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        !self.base.onboarding.contains(step)
-    }
-
-    pub fn has_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        self.base.onboarding.contains(step)
+    /// Whether the org has finished or dismissed this Setup item type.
+    pub fn has_setup(&self, item_type: SetupItemDiscriminants) -> bool {
+        self.base.setup.contains(&item_type)
     }
 
     /// Whether the org has a way to pay its next invoice: a card on file, or a
@@ -319,7 +340,7 @@ impl Organization {
     pub fn air_gapped_key_current_until(&self) -> Option<DateTime<Utc>> {
         let paid_through = self.base.license_paid_through?;
         (self.base.license_key_type == Some(crate::server::license::types::LicenseKeyType::Offline)
-            && Utc::now() < paid_through)
+            && crate::server::shared::clock::now() < paid_through)
             .then_some(paid_through)
     }
 
@@ -527,7 +548,7 @@ mod tests {
     fn a_trial_with_a_scheduled_cancellation_is_still_a_trial() {
         use crate::server::billing::types::base::PlanStatus;
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let with = |status: Option<PlanStatus>, trial_end: Option<DateTime<Utc>>| {
             let mut org = Organization::default();
             org.base.plan_status = status;
@@ -550,8 +571,8 @@ mod tests {
     /// air-gapped key with time left on it counts.
     #[test]
     fn only_an_unexpired_air_gapped_key_is_current() {
-        let future = Utc::now() + chrono::Duration::days(30);
-        let past = Utc::now() - chrono::Duration::days(1);
+        let future = crate::server::shared::clock::now() + chrono::Duration::days(30);
+        let past = crate::server::shared::clock::now() - chrono::Duration::days(1);
 
         assert_eq!(
             org(Some(LicenseKeyType::Offline), Some(future)).air_gapped_key_current_until(),
@@ -587,7 +608,7 @@ mod tests {
     fn a_current_air_gapped_key_blocks_license_moves_but_not_cloud_ones() {
         use crate::server::billing::plans::{get_purchasable_plans, get_self_hosted_plus_plan};
 
-        let until = Utc::now() + chrono::Duration::days(30);
+        let until = crate::server::shared::clock::now() + chrono::Duration::days(30);
         let mut holder = org(Some(LicenseKeyType::Offline), Some(until));
         holder.base.plan = get_self_hosted_plus_plan();
 

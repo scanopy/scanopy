@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
-	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import AuthBackground from '#lib/shared/components/layout/AuthBackground.svelte';
+	import { goto, preloadCode } from '$app/navigation';
 	import {
 		useVerifyEmailMutation,
 		useResendVerificationMutation
-	} from '$lib/features/auth/queries';
-	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import { navigate } from '$lib/shared/utils/navigation';
-	import { fetchOrganization } from '$lib/features/organizations/queries';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
+	} from '#lib/features/auth/queries.ts';
+	import Toast from '#lib/shared/components/feedback/Toast.svelte';
+	import { navigate } from '#lib/shared/utils/navigation.ts';
+	import { fetchOrganization } from '#lib/features/organizations/queries.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import { Mail } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import {
@@ -30,7 +30,7 @@
 		verifyEmail_verifiedBody,
 		verifyEmail_verifying,
 		verifyEmail_verifyingBody
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const verifyMutation = useVerifyEmailMutation();
 	const resendMutation = useResendVerificationMutation();
@@ -43,8 +43,8 @@
 	let email = $state('');
 
 	onMount(async () => {
-		const token = $page.url.searchParams.get('token');
-		const emailParam = $page.url.searchParams.get('email');
+		const token = page.url.searchParams.get('token');
+		const emailParam = page.url.searchParams.get('email');
 
 		if (emailParam) {
 			email = emailParam;
@@ -56,13 +56,15 @@
 			return;
 		}
 
+		// The app follows straight after verification, so its code is ready by then.
+		void preloadCode('/');
+
 		try {
 			await verifyMutation.mutateAsync({ token });
 			status = 'success';
-			// Fetch organization data before navigating
+			// The app decides what to open from the org, so it arrives with this in the cache.
 			await fetchOrganization();
-			// Auto-navigate after delay
-			setTimeout(() => navigate(), 2000);
+			void navigate();
 		} catch (e) {
 			status = 'error';
 			errorMessage = e instanceof Error ? e.message : verifyEmail_failed();
@@ -79,7 +81,7 @@
 	}
 
 	function handleBackToLogin() {
-		goto(resolve('/login'));
+		goto(resolve('login'));
 	}
 </script>
 

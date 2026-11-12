@@ -161,10 +161,12 @@ async fn sign_up(state: &AppState, site: Option<PendingSiteSetup>) -> Uuid {
                 use_case: UseCase::InternalIt,
             }),
             permissions: None,
-            site_ids: Vec::new(),
+            site_assignments: Vec::new(),
             terms_accepted_at: None,
             email_verified: true,
             deployment_type: get_deployment_type(&state.config),
+            ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
+            user_agent: None,
         })
         .await
         .unwrap()

@@ -44,6 +44,36 @@ pub enum AuthErrorKind {
     SecurityNotProvided,
     SecurityNotReady,
     KeyExtensionRequired,
+    /// SCANOPY LOCAL PATCH (GH #846): the agent answered an encrypted request with a
+    /// `usmStatsDecryptionErrors` Report, so the privacy key is not the one it holds.
+    DecryptionError,
+}
+
+/// `usmStatsDecryptionErrors.0` (RFC 3414 §5).
+const USM_STATS_DECRYPTION_ERRORS: &[u64] = &[1, 3, 6, 1, 6, 3, 15, 1, 1, 6, 0];
+
+/// SCANOPY LOCAL PATCH (GH #846): whether the plaintext scoped PDU at `rdr` is a Report whose
+/// first varbind is `usmStatsDecryptionErrors`. Anything that does not parse as one is not.
+fn is_decryption_error_report(mut rdr: AsnReader<'_>) -> bool {
+    let mut first_counter = || -> Result<Option<Oid<'_>>> {
+        let mut scoped_pdu = AsnReader::from_bytes(rdr.read_raw(asn1::TYPE_SEQUENCE)?);
+        scoped_pdu.read_asn_octetstring()?; // contextEngineID
+        scoped_pdu.read_asn_octetstring()?; // contextName
+        let ident = scoped_pdu.peek_byte()?;
+        if MessageType::from_ident(ident)? != MessageType::Report {
+            return Ok(None);
+        }
+        let mut pdu = AsnReader::from_bytes(scoped_pdu.read_raw(ident)?);
+        pdu.read_asn_integer()?; // request-id
+        pdu.read_asn_integer()?; // error-status
+        pdu.read_asn_integer()?; // error-index
+        let mut varbinds = Varbinds::from_bytes(pdu.read_raw(asn1::TYPE_SEQUENCE)?);
+        Ok(varbinds.next().map(|(oid, _)| oid))
+    };
+    let Ok(expected) = Oid::from(USM_STATS_DECRYPTION_ERRORS) else {
+        return false;
+    };
+    matches!(first_counter(), Ok(Some(oid)) if oid == expected)
 }
 
 impl fmt::Display for AuthErrorKind {
@@ -65,6 +95,9 @@ impl fmt::Display for AuthErrorKind {
             AuthErrorKind::SecurityNotReady => write!(f, "Security parameters not ready"),
             AuthErrorKind::KeyExtensionRequired => {
                 write!(f, "Auth/Priv pair needs a key extension method")
+            }
+            AuthErrorKind::DecryptionError => {
+                write!(f, "The agent could not decrypt the request")
             }
         }
     }
@@ -723,18 +756,12 @@ impl Security {
                 decryptor.decrypt_block_mut(block);
             }
 
-            if let Some(&pad_len) = self.plain_buf.last() {
-                let pad_len = pad_len as usize;
-                if pad_len > 0 && pad_len <= block_size && pad_len <= self.plain_buf.len() {
-                    let new_len = self.plain_buf.len() - pad_len;
-                    self.plain_buf.truncate(new_len);
-                    Ok(())
-                } else {
-                    Err(Error::Crypto("Invalid padding".into()))
-                }
-            } else {
-                Ok(())
-            }
+            // SCANOPY LOCAL PATCH (GH #846): the padding is left in place. RFC 3414 §8.1.1.2
+            // makes it arbitrary and §8.1.1.3 has the receiver ignore it, since the scoped PDU's
+            // BER length says where it ends. Upstream stripped it as PKCS#7, which net-snmp does
+            // not use: a reply that needed no padding lost its last byte to the check, or was
+            // refused as "Invalid padding". See vendor/snmp2/README.md.
+            Ok(())
         }
     }
 
@@ -1001,6 +1028,19 @@ impl<'a> Pdu<'a> {
         let auth_params_pos =
             bytes.len() - rdr.bytes_left() - auth_params.len() - security_rdr.bytes_left();
         let priv_params = security_rdr.read_asn_octetstring()?;
+
+        // SCANOPY LOCAL PATCH (GH #846): a plaintext Report naming usmStatsDecryptionErrors,
+        // once this side holds a privacy key, means the agent holds a different one. Read
+        // before the branches below, which report the same message as `NotAuthenticated` (the
+        // Report is unauthenticated), the error a wrong auth password gets. AES-256 under MD5
+        // or SHA-1 has two key derivations, and the caller needs to tell this failure apart
+        // to try the other. See vendor/snmp2/README.md.
+        if flags & V3_MSG_FLAGS_PRIVACY == 0
+            && security.need_encrypt()
+            && is_decryption_error_report(rdr.clone())
+        {
+            return Err(Error::AuthFailure(AuthErrorKind::DecryptionError));
+        }
 
         // Discovery process requires two steps, each involving a separate request and response pair:
         // - Authoritive engine ID acknowledgement
@@ -1316,4 +1356,76 @@ pub(crate) fn build(
     }
 
     Ok(())
+}
+
+/// SCANOPY LOCAL PATCH tests (GH #846): DES replies as net-snmp pads them.
+///
+/// RFC 3414 §8.1.1.2 leaves DES padding arbitrary and §8.1.1.3 has the receiver ignore it: the
+/// scoped PDU's own BER length says where it ends. net-snmp adds no padding when the scoped PDU
+/// is already a multiple of 8 bytes, and pads with bytes that are not a PKCS#7 length otherwise.
+/// These encrypt the way such an agent does, rather than through `encrypt_des`, which pads the way
+/// this crate's own decryption expects and so cannot catch a mismatch.
+#[cfg(all(test, feature = "crypto-rust", not(feature = "crypto-openssl")))]
+mod des_padding {
+    use super::*;
+
+    const SALT: [u8; 8] = [0, 0, 0, 1, 0xde, 0xad, 0xbe, 0xef];
+
+    fn user() -> Security {
+        Security::new(b"scanopydes", b"desauthpass12345")
+            .with_auth_protocol(AuthProtocol::Sha1)
+            .with_auth(Auth::AuthPriv {
+                cipher: Cipher::Des,
+                privacy_password: b"desprivpass12345".to_vec(),
+            })
+            .with_engine_id(&[0x80, 0x00, 0x1f, 0x88, 0x04, 0x01])
+            .unwrap()
+    }
+
+    /// `plaintext` encrypted with `security`'s DES key under `SALT`, with no padding of its own.
+    fn encrypt_unpadded(security: &Security, plaintext: &[u8]) -> Vec<u8> {
+        assert!(plaintext.len().is_multiple_of(8));
+        let key = &security.authoritative_state.priv_key;
+        let mut iv = [0u8; 8];
+        for (i, (a, b)) in key[8..16].iter().zip(SALT.iter()).enumerate() {
+            iv[i] = a ^ b;
+        }
+        let mut encryptor = CbcEncryptor::<Des>::new_from_slices(&key[..8], &iv).unwrap();
+        let mut out = plaintext.to_vec();
+        for chunk in out.chunks_mut(8) {
+            encryptor.encrypt_block_mut(cipher::generic_array::GenericArray::from_mut_slice(chunk));
+        }
+        out
+    }
+
+    /// The scoped PDU `decrypt_des` leaves in `plain_buf`, read as the parser reads it.
+    fn decrypted_sequence(plaintext: &[u8]) -> Result<Vec<u8>> {
+        let mut security = user();
+        let encrypted = encrypt_unpadded(&security, plaintext);
+        security.decrypt_des(&encrypted, &SALT)?;
+        let mut rdr = AsnReader::from_bytes(&security.plain_buf);
+        Ok(rdr.read_raw(asn1::TYPE_SEQUENCE)?.to_vec())
+    }
+
+    /// A 16-byte SEQUENCE whose last content byte is 0x00, sent with no padding at all.
+    #[test]
+    fn a_reply_with_no_padding_decrypts_whole() {
+        let sequence = [0x30, 0x0e, 0x04, 0x0c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0];
+        assert_eq!(decrypted_sequence(&sequence).unwrap(), sequence[2..]);
+    }
+
+    /// A 16-byte SEQUENCE whose last content byte happens to read as a PKCS#7 length.
+    #[test]
+    fn a_reply_ending_in_a_byte_that_looks_like_padding_is_not_cut_short() {
+        let sequence = [0x30, 0x0e, 0x04, 0x0c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 3];
+        assert_eq!(decrypted_sequence(&sequence).unwrap(), sequence[2..]);
+    }
+
+    /// A 13-byte SEQUENCE padded to 16 with zero bytes.
+    #[test]
+    fn a_reply_padded_with_zeros_decrypts() {
+        let mut padded = vec![0x30, 0x0b, 0x04, 0x09, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        padded.resize(16, 0);
+        assert_eq!(decrypted_sequence(&padded).unwrap(), padded[2..13]);
+    }
 }

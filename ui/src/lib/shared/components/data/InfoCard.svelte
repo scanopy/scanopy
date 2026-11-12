@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { common_dismiss } from '$lib/paraglide/messages';
+	import { common_dismiss } from '#lib/paraglide/messages.js';
 
 	export let title: string | null = null;
 	export let variant: 'default' | 'compact' = 'default';

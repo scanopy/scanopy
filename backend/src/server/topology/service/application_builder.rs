@@ -388,7 +388,6 @@ mod tests {
             },
         },
     };
-    use chrono::Utc;
 
     #[derive(PartialEq, Eq, Hash, Clone)]
     struct TestServiceDef {
@@ -422,8 +421,8 @@ mod tests {
     ) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(TestServiceDef { category, name }),
@@ -438,8 +437,8 @@ mod tests {
     fn make_binding(service_id: Uuid) -> Binding {
         Binding {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: BindingBase {
                 service_id,
                 site_id: Uuid::new_v4(),
@@ -454,8 +453,8 @@ mod tests {
     fn make_dependency(dep_type: DependencyType, members: DependencyMembers) -> Dependency {
         Dependency {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: DependencyBase {
                 name: "Test Dependency".to_string(),
                 dependency_type: dep_type,
@@ -750,8 +749,8 @@ mod tests {
 
         let host_a = Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual("host-a".to_string()),
                 tags: vec![app_tag_a_id],
@@ -761,8 +760,8 @@ mod tests {
         };
         let host_b = Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual("host-b".to_string()),
                 tags: vec![app_tag_b_id],
@@ -782,8 +781,8 @@ mod tests {
 
         let app_tag_a = Tag {
             id: app_tag_a_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: TagBase {
                 name: "Group A".to_string(),
                 description: None,
@@ -792,13 +791,14 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
         let app_tag_b = Tag {
             id: app_tag_b_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: TagBase {
                 name: "Group B".to_string(),
                 description: None,
@@ -807,6 +807,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
@@ -907,8 +908,8 @@ mod tests {
         // Both hosts have the monitoring tag AND their app tag
         let host_a = Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual("host-a".to_string()),
                 tags: vec![app_tag_a_id, monitoring_tag_id],
@@ -918,8 +919,8 @@ mod tests {
         };
         let host_b = Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual("host-b".to_string()),
                 tags: vec![app_tag_b_id, monitoring_tag_id],
@@ -937,8 +938,8 @@ mod tests {
 
         let app_tag_a = Tag {
             id: app_tag_a_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: TagBase {
                 name: "Group A".to_string(),
                 description: None,
@@ -947,13 +948,14 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
         let app_tag_b = Tag {
             id: app_tag_b_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: TagBase {
                 name: "Group B".to_string(),
                 description: None,
@@ -962,6 +964,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };

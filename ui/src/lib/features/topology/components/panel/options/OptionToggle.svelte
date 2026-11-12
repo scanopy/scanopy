@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { topologyOptions, updateTopologyOptions } from '$lib/features/topology/queries';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { topologyOptions, updateTopologyOptions } from '#lib/features/topology/queries.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 
 	let {
 		label,

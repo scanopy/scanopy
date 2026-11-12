@@ -9,7 +9,8 @@ use crate::daemon::utils::base::DaemonUtils;
 use crate::daemon::utils::base::{PlatformDaemonUtils, create_system_utils};
 use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
-    DaemonStartupRequest, DiscoveryUpdatePayload, LegacyCapabilities, ServerCapabilities,
+    DaemonStartupRequest, DaemonWorkResponse, DiscoveryUpdatePayload, LegacyCapabilities,
+    ServerCapabilities,
 };
 use crate::server::daemons::r#impl::base::{Daemon, DaemonOs};
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse};
@@ -194,7 +195,7 @@ impl DaemonRuntimeService {
             "The daemon was already running session {running} (for {}s) and refused this one",
             age.as_secs()
         ));
-        payload.finished_at = Some(chrono::Utc::now());
+        payload.finished_at = Some(crate::server::shared::clock::now());
         payload.reason = Some(DiscoveryTerminalReason::DaemonBusy);
 
         let path = format!("/api/v1/discoveries/{}/update", request.session_id);
@@ -255,8 +256,11 @@ impl DaemonRuntimeService {
             tracing::debug!(target: LOG_TARGET, daemon_id = %daemon_id, "Polling server for work");
 
             let path = format!("/api/daemons/{}/request-work", daemon_id);
-            // Detect ip_addresses fresh — cheap NIC enumeration
-            let interfaced_subnets = self.detect_interfaced_subnets().await.unwrap_or_default();
+            let (interfaced_subnets, interfaces_fingerprint) = self
+                .discovery_manager
+                .discovery_service()
+                .status_interfaces()
+                .await;
 
             let status_payload = DaemonStatus {
                 // URL not sent - server manages this via provisioning
@@ -266,6 +270,7 @@ impl DaemonRuntimeService {
                 version: Some(semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap()),
                 capabilities: LegacyCapabilities::default(),
                 interfaced_subnets,
+                interfaces_fingerprint,
                 ready_for_work: !self.discovery_manager.is_discovery_running().await,
                 os: Some(DaemonOs::current()),
             };
@@ -273,7 +278,7 @@ impl DaemonRuntimeService {
             // Use backon for retry with exponential backoff
             let result = (|| async {
                 api_client
-                    .post::<_, (Option<DaemonDiscoveryRequest>, bool)>(
+                    .post::<_, DaemonWorkResponse<DaemonDiscoveryRequest>>(
                         &path,
                         &status_payload,
                         "Failed to request work",
@@ -303,14 +308,22 @@ impl DaemonRuntimeService {
             .await;
 
             match result {
-                Ok((request, cancel_current_session)) => {
-                    if cancel_current_session {
-                        // The server's pull cancellation names no session, so it targets
-                        // whatever is running.
-                        let cancelled = self.discovery_manager.cancel(CancelTarget::Current).await;
+                Ok(work) => {
+                    let request = work.next_session;
+                    if work.cancel {
+                        let target = CancelTarget::from_work_response(
+                            self.discovery_manager.running_session_id().await,
+                            work.cancel,
+                            work.cancel_session_id,
+                        );
+                        let cancelled = match target {
+                            Some(target) => self.discovery_manager.cancel(target).await,
+                            None => false,
+                        };
                         tracing::info!(
                             target: LOG_TARGET,
                             cancelled,
+                            cancel_session_id = ?work.cancel_session_id,
                             "Received cancellation request from server"
                         );
                     }
@@ -401,24 +414,6 @@ impl DaemonRuntimeService {
                 );
             }
         }
-    }
-
-    /// Detect subnets from daemon's network ip_addresses.
-    async fn detect_interfaced_subnets(
-        &self,
-    ) -> Result<Vec<crate::server::subnets::r#impl::base::Subnet>> {
-        let site_id = match self.config.get_site_id().await? {
-            Some(id) => id,
-            None => return Ok(Vec::new()),
-        };
-        let interface_filter = self.config.get_interfaces().await?;
-
-        let (_, subnets, _) = self
-            .utils
-            .get_own_interfaces(site_id, &interface_filter)
-            .await?;
-
-        Ok(subnets)
     }
 
     pub async fn initialize_services(

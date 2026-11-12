@@ -1,10 +1,10 @@
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import type { Snippet } from 'svelte';
-import type { Color } from '$lib/shared/utils/styling';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import type { AttributeSource } from '$lib/shared/utils/attribute-source';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
-import type { components } from '$lib/api/schema';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import type { AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
+import type { components } from '#lib/api/schema';
 
 /** The heading a column is listed under in the column menu; see `field-groups.json`. */
 export type FieldGroup = components['schemas']['FieldGroup'];
@@ -56,7 +56,7 @@ export interface TagProps {
 /** An action's colour. Omitted, it renders neutral. The row and the toolbar both render from it. */
 export type ActionTone = 'danger' | 'warning' | 'success' | 'info';
 
-export interface CardAction {
+export interface RowAction {
 	label: string;
 	icon: IconComponent; // Svelte component
 	tone?: ActionTone;
@@ -64,6 +64,8 @@ export interface CardAction {
 	isDelete?: boolean;
 	/** This action opens the row's modal: double-clicking the row runs it. */
 	isOpen?: boolean;
+	/** The row shows the label beside the icon, rather than in a tooltip. */
+	showLabel?: boolean;
 	onClick: () => void;
 	/**
 	 * Runs the action on every selected row, given their ids. With it, the action runs in the
@@ -100,7 +102,7 @@ export interface Unavailable {
 	bulkReason?: string;
 }
 
-/** `CardAction.unavailable` for an action most rows support: shown, greyed out, while `when`. */
+/** `RowAction.unavailable` for an action most rows support: shown, greyed out, while `when`. */
 export function disabledWhen(
 	when: boolean,
 	reason: string,
@@ -109,7 +111,7 @@ export function disabledWhen(
 	return when ? { state: 'disabled', reason, bulkReason } : undefined;
 }
 
-/** `CardAction.unavailable` for an action of a special state: left off the row while `when`. */
+/** `RowAction.unavailable` for an action of a special state: left off the row while `when`. */
 export function hiddenWhen(
 	when: boolean,
 	reason: string,
@@ -123,18 +125,15 @@ export interface EntityRef {
 	entityId: string;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	context?: any;
 }
 
 /** Shorthand to build an EntityRef — avoids casting at every call site. */
 export function entityRef(
 	entityType: EntityDiscriminants,
 	entityId: string,
-	data: object,
-	context?: object
+	data: object
 ): EntityRef {
-	return { entityType, entityId, data, context };
+	return { entityType, entityId, data };
 }
 
 /**

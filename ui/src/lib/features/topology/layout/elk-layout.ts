@@ -5,7 +5,7 @@ import {
 	containerTypes,
 	getIrrelevantServiceCategories,
 	getServiceDefinitionCategory
-} from '$lib/shared/stores/metadata';
+} from '#lib/shared/stores/metadata.ts';
 import type { LayoutInput, LayoutResult } from './engine';
 import { getOrgUseCase } from '../queries';
 import { getTopologyIndex } from '../entity-index';
@@ -167,7 +167,11 @@ const ROOT_OPTIONS_BY_ALGORITHM: Record<ViewLayoutConfig['algorithm'], Record<st
 		...ROOT_LAYOUT_OPTIONS,
 		'elk.layered.crossingMinimization.forceNodeModelOrder': 'true',
 		'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-		'elk.layered.considerModelOrder.components': 'MODEL_ORDER'
+		'elk.layered.considerModelOrder.components': 'MODEL_ORDER',
+		// Hosts with no layout edge between them are each their own component. Compacting
+		// components stacks thousands of them into one strip a few hosts wide; without it they
+		// fill rows to the root aspect ratio.
+		'elk.layered.compaction.connectedComponents': 'false'
 	},
 	// For mostly independent container groups (Application's Customer Portal, CI/CD, Wiki,
 	// Monitoring, Ungrouped, …) with only a few cross-group flow edges. Layered layout strings the
@@ -1736,6 +1740,8 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	// graph before the second one is allocated.
 	// eslint-disable-next-line no-useless-assignment -- releases the pass-1 tree for collection
 	pass1Children = null;
+
+	await input.onFirstPassDone?.();
 
 	// Pass 2: rebuild graph with FIXED_POS ports at actual element positions
 	const build2Done = perf.stage('elk.build-graph.pass2');

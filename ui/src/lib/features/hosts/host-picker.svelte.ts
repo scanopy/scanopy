@@ -1,6 +1,6 @@
-import { useServicesQuery } from '$lib/features/services/queries';
-import type { Service } from '$lib/features/services/types/base';
-import type { HostDisplayContext } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+import { useServicesQuery } from '#lib/features/services/queries.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { HostDisplayContext } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
 import { useHostPickerQuery } from './queries';
 import type { HostWithAddresses, IPAddress } from './types/base';
 

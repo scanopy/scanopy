@@ -16,7 +16,7 @@ use crate::server::credentials::r#impl::types::CredentialType;
 use crate::server::credentials::r#impl::types::SecretValue;
 use crate::server::daemons::r#impl::api::ScannedEntityIds;
 use crate::server::hosts::r#impl::base::{Host, HostBase};
-use crate::server::hosts::r#impl::virtualization::{HostVirtualization, ProxmoxVirtualization};
+use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::ports::r#impl::coverage::PortCoverage;
@@ -64,6 +64,45 @@ impl Lab<'_> {
                 Credential::new(CredentialBase {
                     organization_id: site.base.organization_id,
                     credential_type,
+                    ..Default::default()
+                }),
+                AuthenticatedEntity::System,
+            )
+            .await
+            .unwrap()
+            .id
+    }
+
+    /// A libvirt credential in this lab's organization, over a new SSH login.
+    pub(super) async fn libvirt_credential(&self) -> Uuid {
+        let login = self
+            .credential(CredentialType::SshPassword {
+                port: 22,
+                username: "scanopy".to_string(),
+                password: SecretValue::Inline {
+                    value: SecretString::from("password".to_string()),
+                },
+                host_key_fingerprint: None,
+            })
+            .await;
+        let organization_id = self
+            .services
+            .site_service
+            .get_by_id(&self.site_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .base
+            .organization_id;
+        self.services
+            .credential_service
+            .create(
+                Credential::new(CredentialBase {
+                    organization_id,
+                    login_credential_id: Some(login),
+                    credential_type: CredentialType::Libvirt {
+                        connection_uri: "qemu:///system".to_string(),
+                    },
                     ..Default::default()
                 }),
                 AuthenticatedEntity::System,
@@ -326,54 +365,60 @@ async fn another_integration_does_not_remove_containers() {
     assert!(lab.named("kuma").await.is_some());
 }
 
-/// A guest VM removed from a listed Proxmox VE node goes. A guest the run reported stays.
+/// A guest VM removed from a listed hypervisor goes. A guest the run reported stays. Holds for
+/// each integration that lists a hypervisor's guests.
 #[tokio::test]
-async fn a_guest_the_listed_node_no_longer_has_is_deleted() {
-    let (storage, services, _container) = test_services().await;
-    let lab = Lab::new(&services, &storage).await;
-    let proxmox = lab.credential(proxmox_token()).await;
-    let lan = lab.lan_ip();
-    let mut pve = lab.service("Proxmox VE", vec![]);
-    pve.base.bindings =
-        vec![crate::server::bindings::r#impl::base::Binding::new_ip_address_serviceless(lan.id)];
-    lab.scan(vec![lan], vec![], vec![pve]).await;
-    let pve_id = lab.named("Proxmox VE").await.unwrap().id;
+async fn a_guest_the_listed_hypervisor_no_longer_has_is_deleted() {
+    for virtualization in [
+        HostVirtualizationDiscriminants::Proxmox,
+        HostVirtualizationDiscriminants::Libvirt,
+    ] {
+        let (storage, services, _container) = test_services().await;
+        let lab = Lab::new(&services, &storage).await;
+        let credential = match virtualization {
+            HostVirtualizationDiscriminants::Proxmox => lab.credential(proxmox_token()).await,
+            _ => lab.libvirt_credential().await,
+        };
+        let lan = lab.lan_ip();
+        let definition = virtualization.manager_definition();
+        let mut hypervisor = lab.service(definition, vec![]);
+        hypervisor.base.bindings = vec![
+            crate::server::bindings::r#impl::base::Binding::new_ip_address_serviceless(lan.id),
+        ];
+        lab.scan(vec![lan], vec![], vec![hypervisor]).await;
+        let hypervisor_id = lab.named(definition).await.unwrap().id;
 
-    let guest = |name: &str| {
-        Host::new(HostBase {
-            source: EntitySource::Discovery,
-            virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
-                vm_name: Some(name.to_string()),
-                vm_id: Some("100".to_string()),
-                guest_type: None,
-                state: GuestState::Running,
-            })),
-            virtualization_service_id: Some(pve_id),
+        let guest = |name: &str| {
+            Host::new(HostBase {
+                source: EntitySource::Discovery,
+                virtualization_metadata: Some(virtualization.guest(name, "100")),
+                virtualization_service_id: Some(hypervisor_id),
+                ..Default::default()
+            })
+        };
+        let kept = lab
+            .submit_host(
+                guest("kept"),
+                vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
+            )
+            .await;
+        let removed = lab
+            .submit_host(
+                guest("removed"),
+                vec![lab.lan_ip_at("192.168.4.71", "02:00:00:00:00:71")],
+            )
+            .await;
+
+        let scanned = ScannedEntityIds {
+            host_ids: vec![lab.host_id, kept],
+            service_ids: vec![hypervisor_id],
             ..Default::default()
-        })
-    };
-    let kept = lab
-        .submit_host(
-            guest("kept"),
-            vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
-        )
-        .await;
-    let removed = lab
-        .submit_host(
-            guest("removed"),
-            vec![lab.lan_ip_at("192.168.4.71", "02:00:00:00:00:71")],
-        )
-        .await;
+        };
+        lab.finish_run(credential, &[lab.host_id], &scanned).await;
 
-    let scanned = ScannedEntityIds {
-        host_ids: vec![lab.host_id, kept],
-        service_ids: vec![pve_id],
-        ..Default::default()
-    };
-    lab.finish_run(proxmox, &[lab.host_id], &scanned).await;
-
-    assert!(lab.host_exists(&kept).await);
-    assert!(!lab.host_exists(&removed).await);
+        assert!(lab.host_exists(&kept).await, "{virtualization:?}");
+        assert!(!lab.host_exists(&removed).await, "{virtualization:?}");
+    }
 }
 
 /// Older daemons send no list, and an older server's payload reads with none.

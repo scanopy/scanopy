@@ -14,8 +14,8 @@
 	 * above the shroud — see `TopologyOptionsPanel`'s `raised` prop, which the caller sets.
 	 */
 	import type { Snippet } from 'svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import { OPTIONS_PANEL_FITVIEW_PADDING_PX } from '../queries';
 
 	let {

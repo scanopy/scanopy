@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { hosts_unnamedHost } from '$lib/paraglide/messages';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { hosts_unnamedHost } from '#lib/paraglide/messages.js';
 
 /**
  * The frontend half of the title contract.

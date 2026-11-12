@@ -36,6 +36,20 @@ part way (GH #685).
 request's varbinds echoed: a device that answers each table read with an error while its system
 group still answers the probe.
 
+GH #848's TP-Link takes about half a second over each per-port utilization row, so a GETBULK of 20
+that reaches ten of them is answered in 5.06s and one of 10 that stops short is answered in 64ms.
+`--slow OID --row-cost MS` holds a relayed reply for MS per varbind on it under OID. The cost is
+counted on the reply because the request does not say which rows it will reach: the page that was
+slow on that switch was aimed at the CDP table, which the switch does not have. With `--slow`,
+replies leave in order: one that arrives from the agent while a slow reply is being held waits
+until that reply has gone, as the capture shows the switch answering the retry only after the
+slow page. A request the agent does not answer, such as one with another device's community, holds
+nothing up, because the daemon probes every credential at once and the right one has to get
+through. The sleep is here and not in a `pass` handler for the reason given above.
+
+    snmp-bulk-refuser.py --listen 192.168.7.234:161 --upstream 127.0.0.1:16234 \\
+                         --slow 1.3.6.1.4.1.11863.6.1.1.11 --row-cost 506
+
 Everything that is not a dropped or refused request is relayed untouched, including SNMPv3, whose
 PDU this deliberately does not try to read. Parsing is fail-open throughout: a packet this cannot
 make sense of is forwarded, because a shim that goes silent on a parse bug turns one unreadable
@@ -44,10 +58,12 @@ replaced.
 """
 
 import argparse
+import contextlib
 import socket
 import socketserver
 import sys
 import threading
+import time
 
 # BER tags. Only the ones needed to reach the first varbind of a v1/v2c request and to build the
 # error Response a refused GETBULK gets.
@@ -203,6 +219,41 @@ def error_response(request, error_status):
     return encode_tlv(SEQUENCE, request.header + encode_tlv(RESPONSE_PDU, pdu))
 
 
+def slow_rows(reply, slow):
+    """How many varbinds of a v1/v2c Response sit under one of the `slow` subtrees.
+
+    Fail-open like the rest: a reply this cannot read costs nothing and is relayed at once.
+    """
+    try:
+        tag, body, _, _ = read_tlv(reply, 0)
+        if tag != SEQUENCE:
+            return 0
+        _, _, _, i = read_tlv(reply, body)  # version
+        _, _, _, i = read_tlv(reply, i)  # community
+        pdu_tag, pdu, _, _ = read_tlv(reply, i)
+        if pdu_tag != RESPONSE_PDU:
+            return 0
+        j = pdu
+        for _ in range(3):  # request-id, error-status, error-index
+            _, _, _, j = read_tlv(reply, j)
+        tag, varbind, length, _ = read_tlv(reply, j)
+        if tag != SEQUENCE:
+            return 0
+        end = varbind + length
+        count = 0
+        while varbind < end:
+            _, inner, _, varbind = read_tlv(reply, varbind)
+            tag, oid, oid_len, _ = read_tlv(reply, inner)
+            if tag != OBJECT_IDENTIFIER:
+                return 0
+            name = decode_oid(reply[oid : oid + oid_len])
+            if any(name[: len(p)] == p for p in slow):
+                count += 1
+        return count
+    except Unparseable:
+        return 0
+
+
 class Drop:
     """A request to answer with silence, named for the log."""
 
@@ -239,7 +290,13 @@ def decide(packet, refused, silenced, rejected, reject_above, error_status):
     return None
 
 
-def serve(listen, upstream, refused, silenced, rejected, reject_above, error_status, log):
+def serve(
+    listen, upstream, refused, silenced, rejected, reject_above, error_status, slow, row_cost, log
+):
+    # Taken to send a reply, and held through a slow reply's wait, so no reply overtakes one being
+    # held. Only replies take it: a request the agent never answers must not stall the others.
+    in_order = threading.Lock() if slow else contextlib.nullcontext()
+
     class Handler(socketserver.BaseRequestHandler):
         def handle(self):
             packet, client = self.request
@@ -261,7 +318,12 @@ def serve(listen, upstream, refused, silenced, rejected, reject_above, error_sta
                 except OSError as error:
                     log(f"upstream {upstream[0]}:{upstream[1]} did not answer: {error}")
                     return
-            client.sendto(reply, self.client_address)
+            held = slow_rows(reply, slow) * row_cost / 1000
+            with in_order:
+                if held:
+                    log(f"hold reply to {self.client_address[0]} for {held:.2f}s")
+                    time.sleep(held)
+                client.sendto(reply, self.client_address)
 
     class Server(socketserver.ThreadingUDPServer):
         # The agent behind this is one process; several devices' shims share the host. Reusing the
@@ -281,6 +343,11 @@ def serve(listen, upstream, refused, silenced, rejected, reject_above, error_sta
                 log(f"{label} under " + ", ".join(".".join(map(str, p)) for p in prefixes))
         if reject_above is not None:
             log(f"answering getbulk above {reject_above} repetitions with error-status {error_status}")
+        if slow:
+            log(
+                f"holding replies {row_cost}ms per row under "
+                + ", ".join(".".join(map(str, p)) for p in slow)
+            )
         server.serve_forever()
 
 
@@ -340,11 +407,33 @@ def main(argv=None):
         metavar="S",
         help="error status for --reject and --reject-above (default 5, genErr)",
     )
+    parser.add_argument(
+        "--slow",
+        type=prefix,
+        action="append",
+        default=[],
+        metavar="OID",
+        help="hold a reply for --row-cost per varbind on it at or under this subtree; repeatable",
+    )
+    parser.add_argument(
+        "--row-cost",
+        type=int,
+        default=0,
+        metavar="MS",
+        help="milliseconds each --slow row adds to its reply",
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
-    if not args.refuse and not args.silence and not args.reject and args.reject_above is None:
+    if (
+        not args.refuse
+        and not args.silence
+        and not args.reject
+        and args.reject_above is None
+        and not args.slow
+    ):
         parser.error(
-            "nothing to do: give --refuse, --silence, --reject, --reject-above, or a combination"
+            "nothing to do: give --refuse, --silence, --reject, --reject-above, --slow, or a "
+            "combination"
         )
 
     def log(message):
@@ -359,6 +448,8 @@ def main(argv=None):
         args.reject,
         args.reject_above,
         args.error_status,
+        args.slow,
+        args.row_cost,
         log,
     )
 

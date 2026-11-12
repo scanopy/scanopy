@@ -13,6 +13,7 @@ use crate::server::{
         permissions::{ExternalServiceType, Grafana, Prometheus},
     },
     config::AppState,
+    shared::types::api::LatencyExempt,
 };
 
 /// The caller label for HTTP metrics. An external service names itself in the
@@ -78,6 +79,18 @@ impl Drop for InFlightGuard {
         )
         .decrement(1.0);
     }
+}
+
+/// Whether a response's time goes into `http_request_duration_seconds`. An SSE stream's
+/// handler returns once the stream opens, so its time is the handshake, not a wait anyone sees;
+/// a [`LatencyExempt`] route waits on purpose.
+fn records_latency(response: &Response) -> bool {
+    let is_event_stream = response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("text/event-stream"));
+    !is_event_stream && response.extensions().get::<LatencyExempt>().is_none()
 }
 
 /// Normalizes a path for metrics labels to prevent high cardinality.
@@ -151,7 +164,7 @@ pub async fn request_logging_middleware(
 
     // Process request
     let in_flight = InFlightGuard::new(entity_type_str.clone(), method.to_string());
-    let response = next.run(request).await;
+    let (response, db_totals) = crate::server::metrics::db::measure(next.run(request)).await;
     drop(in_flight);
 
     // Capture response info
@@ -215,13 +228,16 @@ pub async fn request_logging_middleware(
     )
     .increment(1);
 
-    metrics::histogram!(
-        "http_request_duration_seconds",
-        "method" => method_str.clone(),
-        "path" => normalized_path.clone(),
-        "entity_type" => entity_type_str.clone()
-    )
-    .record(duration.as_secs_f64());
+    if records_latency(&response) {
+        // No `entity_type`: it multiplies the series, and `http_requests_total` carries it.
+        metrics::histogram!(
+            "http_request_duration_seconds",
+            "method" => method_str.clone(),
+            "path" => normalized_path.clone()
+        )
+        .record(duration.as_secs_f64());
+        crate::server::metrics::db::record_request(&normalized_path, duration, db_totals);
+    }
 
     // Track request/response sizes
     if request_size > 0 {
@@ -304,6 +320,25 @@ mod tests {
             "{}",
             handle.render()
         );
+    }
+
+    #[test]
+    fn streams_and_deliberate_waits_stay_out_of_request_latency() {
+        use axum::response::{
+            IntoResponse,
+            sse::{Event, Sse},
+        };
+        let stream = Sse::new(futures::stream::empty::<
+            Result<Event, std::convert::Infallible>,
+        >())
+        .into_response();
+        assert!(!records_latency(&stream));
+
+        let mut probe = axum::Json("reachable").into_response();
+        probe.extensions_mut().insert(LatencyExempt);
+        assert!(!records_latency(&probe));
+
+        assert!(records_latency(&axum::Json("hosts").into_response()));
     }
 
     #[test]

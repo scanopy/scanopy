@@ -306,7 +306,7 @@ impl InterfaceNeighborCandidate {
     pub fn new(base: InterfaceNeighborCandidateBase) -> Self {
         Self {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
             base,
         }
     }
@@ -352,7 +352,7 @@ pub struct InterfaceNeighborInterface {
 
 impl InterfaceNeighborInterface {
     pub fn new(base: InterfaceNeighborInterfaceBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -421,7 +421,7 @@ pub struct InterfaceNeighborHost {
 
 impl InterfaceNeighborHost {
     pub fn new(base: InterfaceNeighborHostBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

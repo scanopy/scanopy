@@ -4,19 +4,20 @@ import {
 	groupNamed,
 	groupsFor,
 	tagAllowedOn,
+	tagsDisplacedBy,
 	tagTooltip,
 	withTagAdded
-} from '$lib/features/tags/groups';
-import { tagGroupFields, tagGroupIdOf } from '$lib/features/tags/groupFields';
-import { blankFilterState, toggleValue } from '$lib/shared/components/data/controls/filtering';
-import { decodeFilters, listParams } from '$lib/shared/components/data/controls/listQuery';
+} from '#lib/features/tags/groups.ts';
+import { tagGroupFields, tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
+import { blankFilterState, toggleValue } from '#lib/shared/components/data/controls/filtering.ts';
+import { decodeFilters, listParams } from '#lib/shared/components/data/controls/listQuery.ts';
 import {
 	createDefaultTag,
 	createDefaultTagGroup,
 	type Tag,
 	type TagGroup
-} from '$lib/features/tags/types/base';
-import { getFieldKey, isOrderableField } from '$lib/shared/components/data/types';
+} from '#lib/features/tags/types/base.ts';
+import { getFieldKey, isOrderableField } from '#lib/shared/components/data/types.ts';
 
 function group(
 	id: string,
@@ -72,6 +73,21 @@ describe('withTagAdded', () => {
 			'web',
 			'critical'
 		]);
+	});
+});
+
+describe('tagsDisplacedBy', () => {
+	// GH #841: the application wizard's picker lists the Application group's tags, not one entity's.
+	// Picking suggestions, going Next and Back, then creating a custom tag there must keep them all.
+	it('displaces nothing when the selection is a group member list', () => {
+		const media = tag('media', applicationGroup);
+		const custom = tag('custom', applicationGroup);
+		const wizardTags = [web, db, media, custom];
+		expect(tagsDisplacedBy(['web', 'db', 'media'], 'custom', wizardTags, false)).toEqual([]);
+	});
+
+	it("displaces the same group's tags on an entity", () => {
+		expect(tagsDisplacedBy(['web', 'planned'], 'db', tags, true)).toEqual(['web']);
 	});
 });
 
@@ -187,7 +203,7 @@ describe('tag-group filters as tag_sets', () => {
 				search: ''
 			},
 			fields,
-			{ tags: true, stale: true }
+			{ tags: true, stale: true, search: true }
 		);
 		expect(request.getAll('tag_sets')).toEqual(['planned,active', 'production']);
 

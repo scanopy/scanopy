@@ -1,6 +1,6 @@
-import type { Organization } from '$lib/features/organizations/types';
-import { billingPlans } from '$lib/shared/stores/metadata';
-import pickablePlans from '$lib/data/billing-plans.json';
+import type { Organization } from '#lib/features/organizations/types.ts';
+import { billingPlans } from '#lib/shared/stores/metadata.ts';
+import pickablePlans from '#lib/data/billing-plans.json';
 
 export function getTrialEndDate(org: Organization | null | undefined): Date | null {
 	return org?.trial_end_date ? new Date(org.trial_end_date) : null;
@@ -130,4 +130,20 @@ export function topologyTrialDays(): number {
 /** Whether the org would get a trial of the topology view if it picked a plan now. */
 export function canTrialTopology(org: Organization | null | undefined): boolean {
 	return !isReturningCustomer(org) && topologyTrialDays() > 0;
+}
+
+/**
+ * Whether the org can take its one self-serve trial extension now: trialing,
+ * in the last three days, and not extended before.
+ */
+export function canExtendTrial(
+	org: Organization | null | undefined,
+	trialDaysLeft: number | null
+): boolean {
+	return (
+		org?.plan_status === 'trialing' &&
+		trialDaysLeft !== null &&
+		trialDaysLeft <= 3 &&
+		!org.trial_extended_used
+	);
 }

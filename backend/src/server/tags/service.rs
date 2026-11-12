@@ -135,7 +135,7 @@ impl CrudService<Tag> for TagService {
             return Ok(());
         }
 
-        entity.valid_to = Some(chrono::Utc::now());
+        entity.valid_to = Some(crate::server::shared::clock::now());
         let _ = self.storage().update(&mut entity).await?;
 
         let trigger_stale = entity.triggers_staleness(None);
@@ -275,6 +275,15 @@ impl TagService {
         }
         let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
         self.entity_tags.inner().get_all(filter).await
+    }
+
+    /// Whether any of `tag_ids` is assigned to a live entity.
+    pub(crate) async fn has_live_assignment(&self, tag_ids: &[Uuid]) -> Result<bool> {
+        if tag_ids.is_empty() {
+            return Ok(false);
+        }
+        let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
+        self.entity_tags.inner().exists(filter).await
     }
 
     /// The live tags in a group.

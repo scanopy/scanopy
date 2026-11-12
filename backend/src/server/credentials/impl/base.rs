@@ -3,6 +3,7 @@ use crate::server::credentials::r#impl::types::{
 };
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
+use crate::server::shared::types::entities::EntitySource;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -38,6 +39,11 @@ pub struct CredentialBase {
     /// the credential reads something on the daemon; `None` otherwise.
     #[serde(default)]
     pub daemon_os: Option<OsFamily>,
+    /// The SSH login this credential runs over, for a type that needs one (`SshScript`): another
+    /// credential of the organization whose role is `Login`. `None` for every other type.
+    #[serde(default)]
+    #[schema(required)]
+    pub login_credential_id: Option<Uuid>,
     /// Tags assigned to this entity.
     #[serde(default = "default_tags")]
     #[schema(required)]
@@ -52,6 +58,19 @@ pub struct CredentialBase {
     #[serde(default)]
     #[schema(required)]
     pub host_assignments: Vec<CredentialHostAssignment>,
+    /// For a login: the credentials that run over it. Hydrated from their `login_credential_id`;
+    /// empty for any other type. A value sent in a request is ignored.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
+    #[schema(read_only, required)]
+    pub used_by: Vec<Uuid>,
+    /// `System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.
+    /// Set by the server.
+    #[serde(default)]
+    #[schema(read_only, required)]
+    pub source: EntitySource,
 }
 
 impl PartialEq for CredentialBase {
@@ -61,9 +80,11 @@ impl PartialEq for CredentialBase {
             && self.description == other.description
             && self.credential_type == other.credential_type
             && self.daemon_os == other.daemon_os
+            && self.login_credential_id == other.login_credential_id
             && self.tags == other.tags
             && self.assigned_site_ids == other.assigned_site_ids
             && self.host_assignments == other.host_assignments
+            && self.source == other.source
     }
 }
 
@@ -124,9 +145,12 @@ impl Default for CredentialBase {
                 },
             },
             daemon_os: None,
+            login_credential_id: None,
             tags: Vec::new(),
             assigned_site_ids: Vec::new(),
             host_assignments: Vec::new(),
+            used_by: Vec::new(),
+            source: EntitySource::System,
         }
     }
 }
@@ -187,7 +211,7 @@ impl Display for Credential {
 
 impl Credential {
     pub fn new(base: CredentialBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let is_default = base.credential_type.is_default();
         Self {
             id: Uuid::new_v4(),

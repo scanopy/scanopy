@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import type { UseCase, SiteSetup } from '../types/base';
-import type { PlanPickerHosting } from '$lib/features/billing/types';
+import type { PlanPickerHosting } from '#lib/features/billing/types.ts';
 
 export interface OnboardingState {
 	useCase: UseCase | null;

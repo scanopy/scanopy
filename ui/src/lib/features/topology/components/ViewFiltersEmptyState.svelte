@@ -16,7 +16,7 @@
 		topology_emptyByFilterDescription,
 		topology_emptyByFilterShowAll,
 		topology_nHidden
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		filters,

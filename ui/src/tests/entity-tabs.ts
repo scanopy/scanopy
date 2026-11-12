@@ -2,9 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'svelte/compiler';
-import type { components } from '$lib/api/schema';
-import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
-import type { ServerQuery } from '$lib/shared/components/data/controls/listQuery';
+import type { components } from '#lib/api/schema';
+import { getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
+import type { ServerQuery } from '#lib/shared/components/data/controls/listQuery.ts';
 
 /**
  * What the entity-tab tests share: the committed OpenAPI spec, the tabs that render
@@ -155,7 +155,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				url: 'url',
 				version: 'version',
 				user_id: 'maintainer',
-				// Status renders one state per daemon, from `getDaemonStatusTag`: Unsupported, then
+				// Status renders one state per daemon, its server-derived `health`: Unsupported, then
 				// Unreachable, then Standby, then the version lifecycle.
 				is_unreachable: 'status',
 				standby: 'status',
@@ -236,6 +236,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				updated_at: 'updated_at',
 				id: ID,
 				organization_id: ORGANIZATION,
+				source: excluded('Whether Scanopy seeded the tag; only the Setup list reads it'),
 				...HISTORY
 			})
 		]
@@ -472,12 +473,12 @@ export const COVERAGE: Record<string, TabCoverage> = {
 	'credentials/components/CredentialsTab.svelte': {
 		schemas: [
 			decide('Credential', {
-				assigned_site_ids: 'assigned_sites',
+				assigned_site_ids: 'assignments',
 				created_at: 'created_at',
 				credential_type: 'credential_type',
 				daemon_os: 'daemon_os',
 				description: 'description',
-				host_assignments: 'assigned_hosts',
+				host_assignments: 'assignments',
 				name: 'name',
 				tags: 'tags',
 				updated_at: 'updated_at',
@@ -485,6 +486,27 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				organization_id: ORGANIZATION,
 				is_default: excluded(
 					"A default's description says what it is, and its row has no delete action"
+				),
+				source: excluded('Whether Scanopy seeded the credential; only the Setup list reads it'),
+				// A login's Assignments cell lists the credentials that sign in with it.
+				used_by: 'assignments',
+				login_credential_id: excluded(
+					'The login a credential runs over; its form shows it, and the login counts its users'
+				)
+			})
+		]
+	},
+	'home/components/IssuesTable.svelte': {
+		schemas: [
+			decide('SetupListEntry', {
+				// The Issue column shows the item: its title, the entities it names, its sentence.
+				item: 'type',
+				site_ids: 'site_ids',
+				key: excluded("The item's identity across loads; the row itself is the Issue"),
+				tier: excluded('Always Issue: the table lists Issues only'),
+				state: excluded('Always Open: an Issue is listed only while it holds'),
+				alerts_when_stuck: excluded(
+					'Whether the trial sweep reports the item; only analytics read it'
 				)
 			})
 		]
@@ -505,7 +527,7 @@ export function dataControlsTabs(): string[] {
 		.sort();
 }
 
-const COLUMN_MODULES = import.meta.glob<Record<string, unknown>>('$lib/features/**/*.columns.ts', {
+const COLUMN_MODULES = import.meta.glob<Record<string, unknown>>('#lib/features/**/*.columns.ts', {
 	eager: true
 });
 
@@ -585,7 +607,7 @@ export function dataControlsProps(tab: string): Set<string> {
  */
 export function dataControlsServerQuery(tab: string): ServerQuery {
 	const attributes = dataControlsAttributes(tab);
-	const server: ServerQuery = { tags: true, stale: true };
+	const server: ServerQuery = { tags: true, stale: true, search: true };
 	const literal = attributes.find((attribute: SchemaNode) => attribute.name === 'serverQuery')
 		?.value?.expression;
 	for (const property of literal?.properties ?? []) {

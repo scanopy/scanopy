@@ -1,0 +1,582 @@
+//! Gathers the facts the Setup list reads, through each entity's service, and lists the items.
+
+use std::{collections::BTreeSet, sync::Arc};
+
+use anyhow::Result;
+use strum::{IntoDiscriminant, IntoEnumIterator};
+use uuid::Uuid;
+
+use super::items::{
+    SetupContext, SetupCounts, SetupDaemon, SetupSite, TargetlessCredential, UncoveredIntegration,
+};
+use super::types::{
+    IssueCategory, IssueFilterQuery, IssueOrderField, SetupItemDiscriminants, SetupListEntry,
+    SetupOperation,
+};
+use crate::server::shared::{
+    handlers::list::{Computed, ComputedValue, ListOrdering, ListRows},
+    types::metadata::HasId,
+};
+use crate::server::{
+    auth::{
+        access::{Action, Resource},
+        middleware::auth::AuthenticatedEntity,
+    },
+    config::DeploymentType,
+    credentials::service::{CredentialService, FoundIntegration},
+    daemons::{
+        r#impl::{api::DaemonHealth, base::Daemon, version::DaemonVersionPolicy},
+        service::DaemonService,
+    },
+    dependencies::service::DependencyService,
+    discovery::service::DiscoveryService,
+    hosts::service::HostService,
+    invites::{r#impl::base::Invite, service::InviteService},
+    organizations::{r#impl::base::Organization, service::OrganizationService},
+    shared::{
+        services::traits::CrudService, storage::filter::StorableFilter,
+        types::entities::EntitySource,
+    },
+    shares::service::ShareService,
+    sites::{r#impl::Site, service::SiteService},
+    subnets::service::SubnetService,
+    tags::{r#impl::base::Tag, service::TagService},
+    user_api_keys::service::UserApiKeyService,
+    users::service::UserService,
+};
+
+pub struct SetupService {
+    pub site_service: Arc<SiteService>,
+    pub daemon_service: Arc<DaemonService>,
+    pub discovery_service: Arc<DiscoveryService>,
+    pub credential_service: Arc<CredentialService>,
+    pub host_service: Arc<HostService>,
+    pub subnet_service: Arc<SubnetService>,
+    pub dependency_service: Arc<DependencyService>,
+    pub share_service: Arc<ShareService>,
+    pub user_api_key_service: Arc<UserApiKeyService>,
+    pub user_service: Arc<UserService>,
+    pub invite_service: Arc<InviteService>,
+    pub tag_service: Arc<TagService>,
+    pub organization_service: Arc<OrganizationService>,
+    pub deployment_type: DeploymentType,
+}
+
+impl SetupService {
+    /// The org's facts. `entity` is the user the list is for, whose writable resources decide
+    /// which items apply and whose readable sites count the unconfirmed rows. `None` for the
+    /// sweep.
+    pub async fn gather(
+        &self,
+        org: &Organization,
+        entity: Option<&AuthenticatedEntity>,
+    ) -> Result<SetupContext> {
+        let org_id = org.id;
+        let sites: Vec<SetupSite> = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
+            .await?
+            .into_iter()
+            .map(|s| SetupSite {
+                id: s.id,
+                name: s.base.name,
+            })
+            .collect();
+        let site_ids: Vec<Uuid> = sites.iter().map(|s| s.id).collect();
+
+        let policy = DaemonVersionPolicy::default();
+        let mut daemon_rows = self
+            .daemon_service
+            .get_all(StorableFilter::<Daemon>::new_from_site_ids(&site_ids))
+            .await?;
+        daemon_rows.sort_by_key(|d| d.created_at);
+        let first_scan_daemon_id = daemon_rows
+            .iter()
+            .find(|d| d.base.last_seen.is_some())
+            .map(|d| d.id);
+        let daemons: Vec<SetupDaemon> = daemon_rows
+            .into_iter()
+            .map(|d| SetupDaemon {
+                id: d.id,
+                health: DaemonHealth::of(&d.base, &policy.evaluate(d.base.version.as_ref())),
+                name: d.base.name,
+                site_id: d.base.site_id,
+                version: d.base.version,
+            })
+            .collect();
+        let daemon_ids: Vec<Uuid> = daemons.iter().map(|d| d.id).collect();
+
+        // Re-checked against today's assignments, so a target saved since clears the item without
+        // waiting for a scan. Only a credential a person added counts.
+        let targetless_credentials = self
+            .discovery_service
+            .targetless_credentials(&org_id, None)
+            .await?
+            .into_iter()
+            .filter(|c| c.base.source == EntitySource::Manual)
+            .map(|c| TargetlessCredential {
+                id: c.id,
+                integration: c.base.credential_type.discriminant().integration(),
+                name: c.base.name,
+            })
+            .collect();
+
+        // What the latest full scans found with no credential, re-checked against today's
+        // assignments so a credential saved since clears it.
+        let (found, tried_at) = self
+            .discovery_service
+            .latest_integrations_without_credentials(&site_ids)
+            .await?;
+        let uncovered = self
+            .credential_service
+            .uncovered_integrations(found, &[], None, &tried_at)
+            .await?;
+
+        let run_warnings = self
+            .discovery_service
+            .latest_runs_per_daemon(&daemon_ids)
+            .await?;
+
+        let (host_sites, subnet_sites) = match entity {
+            Some(e) => (
+                e.site_ids_for(Resource::Host, Action::Read),
+                e.site_ids_for(Resource::Subnet, Action::Read),
+            ),
+            None => (site_ids.clone(), site_ids.clone()),
+        };
+        let unconfirmed_hosts = self
+            .host_service
+            .unconfirmed_count_by_site(&host_sites)
+            .await?;
+        let unconfirmed_subnets = self
+            .subnet_service
+            .unconfirmed_count_by_site(&subnet_sites)
+            .await?;
+
+        let now = crate::server::shared::clock::now();
+        let counts = SetupCounts {
+            dependencies: self.dependency_service.count_for_sites(&site_ids).await?,
+            user_api_keys: self.user_api_key_service.count_for_org(&org_id).await?,
+            shares: self.share_service.count_for_sites(&site_ids).await?,
+            members: self.user_service.count_for_org(&org_id).await?,
+            pending_invites: self
+                .invite_service
+                .get_all(StorableFilter::<Invite>::new_from_org_id(&org_id))
+                .await?
+                .iter()
+                .filter(|i| i.base.expires_at > now)
+                .count() as u64,
+        };
+
+        // Read only while the step is still to do: once recorded, it stays done.
+        let has_tag_assignment = !org.has_setup(SetupItemDiscriminants::Tags) && {
+            let tag_ids: Vec<Uuid> = self
+                .tag_service
+                .get_all(StorableFilter::<Tag>::new_from_org_id(&org_id).live())
+                .await?
+                .iter()
+                .map(|t| t.id)
+                .collect();
+            self.tag_service.has_live_assignment(&tag_ids).await?
+        };
+        let has_application_tag_assignment = !org
+            .has_setup(SetupItemDiscriminants::ApplicationTags)
+            && match self.tag_service.application_group_id(&org_id).await? {
+                Some(group_id) => {
+                    let tag_ids: Vec<Uuid> = self
+                        .tag_service
+                        .live_tags_in_group(group_id)
+                        .await?
+                        .iter()
+                        .map(|t| t.id)
+                        .collect();
+                    // On a host or a service: either groups it on the Application view.
+                    self.tag_service.has_live_assignment(&tag_ids).await?
+                }
+                None => false,
+            };
+
+        Ok(SetupContext {
+            recorded: org.base.setup.iter().copied().collect(),
+            daemons,
+            sites,
+            targetless_credentials,
+            uncovered_integrations: group_by_integration(uncovered),
+            run_warnings,
+            first_scan_daemon_id,
+            unconfirmed_hosts,
+            unconfirmed_subnets,
+            counts,
+            has_tag_assignment,
+            has_application_tag_assignment,
+            has_manual_interface_credential: self
+                .credential_service
+                .has_manual_interface_credential(org_id)
+                .await?,
+            plan: org.base.plan,
+            cloud: self.deployment_type == DeploymentType::Cloud,
+            can_write: entity.map(|e| {
+                Resource::iter()
+                    .filter(|r| e.can(*r, Action::Write))
+                    .collect::<BTreeSet<_>>()
+            }),
+        })
+    }
+
+    /// Every type's entries in declaration order, which groups them by tier.
+    pub fn list(ctx: &SetupContext) -> Vec<SetupListEntry> {
+        SetupItemDiscriminants::iter()
+            .flat_map(|t| t.items(ctx))
+            .collect()
+    }
+
+    /// Record each Setup type the org's rows show done and `organizations.setup` doesn't hold
+    /// yet, so it stays done after the rows change, and add it to `ctx`.
+    pub async fn record_newly_done(
+        &self,
+        ctx: &mut SetupContext,
+        organization_id: Uuid,
+        entity: &AuthenticatedEntity,
+    ) -> Result<()> {
+        let newly_done: Vec<SetupItemDiscriminants> = SetupItemDiscriminants::iter()
+            .filter(|t| t.recorded() && !ctx.recorded.contains(t) && t.live_done(ctx))
+            .collect();
+        for item_type in newly_done {
+            self.organization_service
+                .record_setup(
+                    organization_id,
+                    SetupOperation::Completed {
+                        item_type,
+                        subject_id: None,
+                    },
+                    entity.clone(),
+                )
+                .await?;
+            ctx.recorded.insert(item_type);
+        }
+        Ok(())
+    }
+
+    /// The Setup list `entity` sees: Issues on what it may read, and every Setup item that
+    /// applies to it, each with its state.
+    pub async fn for_user(
+        &self,
+        org: &Organization,
+        entity: &AuthenticatedEntity,
+    ) -> Result<Vec<SetupListEntry>> {
+        let mut ctx = self.gather(org, Some(entity)).await?;
+        self.record_newly_done(&mut ctx, org.id, entity).await?;
+        Ok(Self::for_reader(Self::list(&ctx), entity))
+    }
+
+    /// `entries` cut to what `entity` may read.
+    fn for_reader(
+        entries: Vec<SetupListEntry>,
+        entity: &AuthenticatedEntity,
+    ) -> Vec<SetupListEntry> {
+        entries
+            .into_iter()
+            .filter(|entry| entry.item.readable_by(entity))
+            .collect()
+    }
+}
+
+/// Home's Issues list, paged with [`computed_page`](crate::server::shared::handlers::list::computed_page):
+/// categories and types sort in declaration order, and ties keep the order the list gave.
+pub struct IssueList;
+
+impl ListRows for IssueList {
+    type Item = SetupListEntry;
+    type Field = IssueOrderField;
+    type Query = IssueFilterQuery;
+
+    fn ordering(query: &IssueFilterQuery) -> ListOrdering<IssueOrderField> {
+        ListOrdering {
+            group_by: query.group_by,
+            order_by: query.order_by,
+            direction: query.order_direction,
+            tag_group: Default::default(),
+        }
+    }
+
+    fn computed(field: &IssueOrderField, entry: &SetupListEntry) -> Option<Computed> {
+        let rank =
+            |position: Option<usize>| position.map(|rank| ComputedValue::Number(rank as f64));
+        match field {
+            IssueOrderField::Category => entry.item.issue_category().map(|category| Computed {
+                value: rank(IssueCategory::iter().position(|c| c == category)),
+                group: Some(category.id().to_string()),
+            }),
+            IssueOrderField::Type => {
+                let item_type = entry.item.discriminant();
+                Some(Computed {
+                    value: rank(SetupItemDiscriminants::iter().position(|t| t == item_type)),
+                    group: Some(<&str>::from(item_type).to_string()),
+                })
+            }
+        }
+    }
+
+    /// An Issue about the whole organization passes every site filter.
+    fn keep(query: &IssueFilterQuery, entry: &SetupListEntry) -> bool {
+        let on_sites = match &query.site_ids {
+            Some(wanted) if !wanted.is_empty() => {
+                entry.site_ids.is_empty() || entry.site_ids.iter().any(|id| wanted.contains(id))
+            }
+            _ => true,
+        };
+        let in_categories = match &query.categories {
+            Some(wanted) if !wanted.is_empty() => entry
+                .item
+                .issue_category()
+                .is_some_and(|c| wanted.contains(&c)),
+            _ => true,
+        };
+        let of_types = match &query.types {
+            Some(wanted) if !wanted.is_empty() => wanted.contains(&entry.item.discriminant()),
+            _ => true,
+        };
+        on_sites && in_categories && of_types
+    }
+}
+
+/// One entry per integration, naming every host it was found on, most hosts first.
+fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegration> {
+    let mut grouped: Vec<UncoveredIntegration> = Vec::new();
+    for f in found {
+        match grouped.iter_mut().find(|g| g.integration == f.integration) {
+            Some(g) => {
+                g.host_ids.push(f.host_id);
+                if !g.site_ids.contains(&f.site_id) {
+                    g.site_ids.push(f.site_id);
+                }
+            }
+            None => grouped.push(UncoveredIntegration {
+                integration: f.integration,
+                host_ids: vec![f.host_id],
+                site_ids: vec![f.site_id],
+            }),
+        }
+    }
+    grouped.sort_by(|a, b| b.host_ids.len().cmp(&a.host_ids.len()));
+    grouped
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::{
+        credentials::r#impl::types::CredentialIntegration,
+        daemons::r#impl::api::DaemonHealth,
+        setup::types::{SetupItem, SetupItemState},
+        shared::{
+            handlers::{list::computed_page, query::OrderDirection},
+            types::api::PaginatedApiResponse,
+        },
+        users::r#impl::permissions::UserOrgPermissions,
+    };
+    use email_address::EmailAddress;
+
+    fn member_on(site_ids: &[Uuid]) -> AuthenticatedEntity {
+        AuthenticatedEntity::User {
+            user_id: Uuid::new_v4(),
+            organization_id: Uuid::new_v4(),
+            permissions: UserOrgPermissions::Member,
+            access: crate::tests::access_on(UserOrgPermissions::Member, site_ids),
+            email: EmailAddress::new_unchecked("member@example.test"),
+            email_verified: true,
+            terms_accepted_at: None,
+        }
+    }
+
+    fn entry(item: SetupItem) -> SetupListEntry {
+        SetupListEntry::new(item, SetupItemState::Open)
+    }
+
+    fn daemon_issue(site_id: Uuid) -> SetupItem {
+        SetupItem::DaemonHealth {
+            daemon_id: Uuid::new_v4(),
+            name: "edge-01".to_string(),
+            site_id,
+            health: DaemonHealth::Outdated,
+        }
+    }
+
+    fn unconfirmed_hosts(site_id: Uuid) -> SetupItem {
+        SetupItem::UnconfirmedHosts { site_id, count: 3 }
+    }
+
+    fn targetless_credential() -> SetupItem {
+        SetupItem::TargetlessCredential {
+            credential_id: Uuid::new_v4(),
+            name: "Warehouse switches".to_string(),
+            integration: CredentialIntegration::Snmp,
+        }
+    }
+
+    fn page(
+        issues: &[SetupItem],
+        site_ids: Option<Vec<Uuid>>,
+        limit: u32,
+        offset: u32,
+    ) -> PaginatedApiResponse<SetupListEntry> {
+        page_for(
+            issues,
+            IssueFilterQuery {
+                site_ids,
+                group_by: Some(IssueOrderField::Category),
+                limit: Some(limit),
+                offset: Some(offset),
+                ..Default::default()
+            },
+        )
+    }
+
+    fn page_for(
+        issues: &[SetupItem],
+        query: IssueFilterQuery,
+    ) -> PaginatedApiResponse<SetupListEntry> {
+        let entries = issues.iter().cloned().map(entry).collect();
+        computed_page::<IssueList>(entries, &query, query.pagination())
+    }
+
+    /// Sorting by type descending puts later-declared types first; a category filter drops
+    /// every other category.
+    #[test]
+    fn issues_sort_by_type_and_filter_by_category() {
+        let site = Uuid::new_v4();
+        let issues = [
+            daemon_issue(site),
+            unconfirmed_hosts(site),
+            daemon_issue(site),
+        ];
+        let sorted: Vec<SetupItemDiscriminants> = page_for(
+            &issues,
+            IssueFilterQuery {
+                order_by: Some(IssueOrderField::Type),
+                order_direction: Some(OrderDirection::Desc),
+                ..Default::default()
+            },
+        )
+        .data
+        .iter()
+        .map(|e| e.item.discriminant())
+        .collect();
+        assert_eq!(
+            sorted,
+            [
+                SetupItemDiscriminants::UnconfirmedHosts,
+                SetupItemDiscriminants::DaemonHealth,
+                SetupItemDiscriminants::DaemonHealth,
+            ]
+        );
+
+        let review = page_for(
+            &issues,
+            IssueFilterQuery {
+                categories: Some(vec![IssueCategory::Review]),
+                ..Default::default()
+            },
+        );
+        assert_eq!(review.meta.pagination.total_count, 1);
+        assert!(review.meta.pagination.group_counts.is_none());
+    }
+
+    /// Groups come out in category order, whatever order the list gave, and a group a page cuts
+    /// still reports its full count.
+    #[test]
+    fn a_page_groups_by_category_and_counts_whole_groups() {
+        let site = Uuid::new_v4();
+        let issues = [
+            unconfirmed_hosts(site),
+            daemon_issue(site),
+            daemon_issue(site),
+            daemon_issue(site),
+        ];
+        let first = page(&issues, None, 2, 0);
+        let categories: Vec<Option<IssueCategory>> =
+            first.data.iter().map(|e| e.item.issue_category()).collect();
+        assert_eq!(categories, [Some(IssueCategory::Daemons); 2]);
+        let counts = first.meta.pagination.group_counts.expect("grouped");
+        let counts: Vec<(Option<String>, u64)> =
+            counts.into_iter().map(|g| (g.value, g.count)).collect();
+        assert_eq!(
+            counts,
+            [
+                (Some(IssueCategory::Daemons.id().to_string()), 3),
+                (Some(IssueCategory::Review.id().to_string()), 1),
+            ]
+        );
+        assert_eq!(first.meta.pagination.total_count, 4);
+
+        let second = page(&issues, None, 2, 2);
+        let categories: Vec<Option<IssueCategory>> = second
+            .data
+            .iter()
+            .map(|e| e.item.issue_category())
+            .collect();
+        assert_eq!(
+            categories,
+            [Some(IssueCategory::Daemons), Some(IssueCategory::Review)]
+        );
+    }
+
+    /// Narrowing to a site keeps that site's Issues, its unconfirmed rows among them, and the
+    /// ones about the whole org.
+    #[test]
+    fn a_site_filter_keeps_that_sites_and_org_wide_issues() {
+        let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let issues = [
+            daemon_issue(mine),
+            daemon_issue(other),
+            unconfirmed_hosts(mine),
+            unconfirmed_hosts(other),
+            targetless_credential(),
+        ];
+        let kept: Vec<(SetupItemDiscriminants, Vec<Uuid>)> = page(&issues, Some(vec![mine]), 50, 0)
+            .data
+            .into_iter()
+            .map(|e| (e.item.discriminant(), e.site_ids))
+            .collect();
+        assert_eq!(
+            kept,
+            [
+                (SetupItemDiscriminants::DaemonHealth, vec![mine]),
+                (SetupItemDiscriminants::TargetlessCredential, vec![]),
+                (SetupItemDiscriminants::UnconfirmedHosts, vec![mine]),
+            ]
+        );
+        assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 5);
+    }
+
+    /// A member sees Issues on its own sites only, and every Setup item.
+    #[test]
+    fn a_reader_sees_its_sites_issues_and_every_setup_item() {
+        let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let entries = [
+            daemon_issue(mine),
+            daemon_issue(other),
+            SetupItem::OpenTopology,
+            SetupItem::Tags,
+            SetupItem::InviteTeam,
+            SetupItem::Share,
+        ]
+        .map(entry)
+        .to_vec();
+        let shown: Vec<SetupItemDiscriminants> =
+            SetupService::for_reader(entries, &member_on(&[mine]))
+                .iter()
+                .map(|e| SetupItemDiscriminants::from(&e.item))
+                .collect();
+        assert_eq!(
+            shown,
+            [
+                SetupItemDiscriminants::DaemonHealth,
+                SetupItemDiscriminants::OpenTopology,
+                SetupItemDiscriminants::Tags,
+                SetupItemDiscriminants::InviteTeam,
+                SetupItemDiscriminants::Share,
+            ]
+        );
+    }
+}

@@ -1,18 +1,18 @@
 <script lang="ts">
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import IPAddressConfigPanel from './IPAddressConfigPanel.svelte';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { type HostFormData, type IPAddress } from '$lib/features/hosts/types/base';
-	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { type HostFormData, type IPAddress } from '#lib/features/hosts/types/base.ts';
+	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+	import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import InternetIPAddressConfigPanel from './InternetIPAddressConfigPanel.svelte';
 	import { v4 as uuidv4 } from 'uuid';
-	import type { Service } from '$lib/features/services/types/base';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import {
 		common_cancel,
 		common_ipAddress,
@@ -24,7 +24,7 @@
 		hosts_ipAddresses_helpText,
 		hosts_ipAddresses_placeholder,
 		hosts_ipAddresses_selectToConfig
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: HostFormData;

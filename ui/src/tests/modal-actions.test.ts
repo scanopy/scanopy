@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
+import { get } from 'svelte/store';
 import {
 	assignModalKeys,
 	closesModalOnEscape,
+	isStackedModal,
 	isTopmostModal,
+	openModalStack,
 	keyPausedAt,
 	registerOpenModal,
 	resolveModalKeydown,
@@ -10,8 +13,8 @@ import {
 	ESCAPE_KEY,
 	type ModalAction,
 	type ModalKeydown
-} from '$lib/shared/components/layout/modalActions';
-import { DELETE_KEY } from '$lib/shared/components/data/controls/actionShortcuts';
+} from '#lib/shared/components/layout/modalActions.ts';
+import { DELETE_KEY } from '#lib/shared/components/data/controls/actionShortcuts.ts';
 
 const action = (role: ModalAction['role'], label: string, extra: Partial<ModalAction> = {}) =>
 	({ role, label, onClick: vi.fn(), ...extra }) as ModalAction;
@@ -218,6 +221,28 @@ describe('stacked modals', () => {
 		expect(isTopmostModal(editor)).toBe(true);
 		closeEditor();
 		expect(isTopmostModal(editor)).toBe(false);
+	});
+
+	it('shrouds a modal over another only once the one beneath closes', () => {
+		const settings = Symbol('settings');
+		const payment = Symbol('payment');
+		const closeSettings = registerOpenModal(settings);
+		const closePayment = registerOpenModal(payment);
+		expect(isStackedModal(get(openModalStack), payment)).toBe(true);
+		expect(isStackedModal(get(openModalStack), settings)).toBe(false);
+		closeSettings();
+		expect(isStackedModal(get(openModalStack), payment)).toBe(false);
+		closePayment();
+	});
+
+	it('shrouds a modal over one that darkens only its own area', () => {
+		const prompt = Symbol('anchored prompt');
+		const plans = Symbol('plans');
+		const closePrompt = registerOpenModal(prompt, false);
+		const closePlans = registerOpenModal(plans);
+		expect(isStackedModal(get(openModalStack), plans)).toBe(false);
+		closePlans();
+		closePrompt();
 	});
 });
 

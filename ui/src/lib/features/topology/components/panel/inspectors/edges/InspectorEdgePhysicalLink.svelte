@@ -1,17 +1,21 @@
 <script lang="ts">
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { common_source, common_target, topology_neighborEvidence } from '$lib/paraglide/messages';
-	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
-	import type { components } from '$lib/api/schema';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import {
+		common_source,
+		common_target,
+		topology_neighborEvidence
+	} from '#lib/paraglide/messages.js';
+	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
+	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { neighborEvidenceTag } from '$lib/shared/utils/freshness';
-	import { formatRelativeTime } from '$lib/shared/utils/formatting';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
+	import { formatRelativeTime } from '#lib/shared/utils/formatting.ts';
 
 	let {
 		sourceEntityId,

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import {
 		useTagsQuery,
 		useTagGroupsQuery,
@@ -12,21 +12,19 @@
 		useSetTagOrderMutation
 	} from '../queries';
 	import TagGroupEditModal from './TagGroupEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import type { TagGroup } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import { disabledWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
-	import type { TabProps } from '$lib/shared/types';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import { isSystemGroup } from '../groups';
 	import { tagGroupColumns } from './TagGroupTab.columns';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -36,9 +34,12 @@
 		tags_tagGroupsSubtitle,
 		tags_systemGroupFixed,
 		tags_systemGroupFixedBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	let showEditor = $state(false);
 	let editingGroup: TagGroup | null = $state(null);
@@ -57,16 +58,7 @@
 		}
 	});
 
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 	const organizationQuery = useOrganizationQuery();
-	let organization = $derived(organizationQuery.data);
-
-	// Demo orgs are read-only for non-owners (mirrors the tags tab)
-	let isNonOwnerInDemo = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true &&
-			currentUser?.permissions !== 'Owner'
-	);
 
 	const tagsQuery = useTagsQuery();
 	// Every group, for the tag chips' group labels and deep links; the table reads its own page.
@@ -86,12 +78,7 @@
 	let isLoading = $derived(groupsPageQuery.isPending && !groupsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, groupsPageQuery));
 
-	let canManage = $derived(
-		!isReadOnly &&
-			!isNonOwnerInDemo &&
-			!!currentUser &&
-			permissions.getMetadata(currentUser.permissions).manage_org_entities
-	);
+	let canManage = $derived(can('Tag', 'Write'));
 
 	function handleCreate() {
 		editingGroup = null;
@@ -115,7 +102,7 @@
 		}
 	}
 
-	function actions(group: TagGroup): CardAction[] {
+	function actions(group: TagGroup): RowAction[] {
 		if (!canManage) return [];
 		return [
 			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEdit(group) },
@@ -126,11 +113,9 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDelete(group),
-				unavailable: disabledWhen(
-					isSystemGroup(group),
-					tags_systemGroupFixed(),
-					tags_systemGroupFixedBulk()
-				)
+				unavailable:
+					refusedUnless(can('Tag', 'Delete')) ??
+					disabledWhen(isSystemGroup(group), tags_systemGroupFixed(), tags_systemGroupFixedBulk())
 			}
 		];
 	}

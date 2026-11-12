@@ -49,6 +49,9 @@ export const ERROR_CODES = {
 		'This license key is in use on {active} servers and your plan covers {limit}, so this server is in read-only mode. Delete a server you no longer run under License in Scanopy Cloud, then restart this one.',
 	license_plan_has_no_key:
 		"This organization's plan has no license key. License keys come with the Self-Hosted Standard and Plus plans.",
+	license_key_regenerated:
+		'This license key was regenerated. Copy the current key from Scanopy Cloud.',
+	license_organization_missing: "This license key's organization no longer exists",
 	entity_not_found: "{entity} with ID '{id}' not found",
 	entity_already_exists: "{entity} '{name}' already exists",
 	entity_in_use: "Cannot delete {entity} '{name}' because it's used by {used_by}",
@@ -76,6 +79,18 @@ export const ERROR_CODES = {
 		"'{name}' is a default credential and can't be deleted. Unassign it from sites and hosts instead.",
 	credential_default_settings_locked:
 		"'{name}' is a default credential. Its name, description and tags can change, but its settings can't.",
+	credential_login_required: 'Choose the SSH login this credential runs over.',
+	credential_login_invalid:
+		'The chosen login is not an SSH login of this organization. Choose another.',
+	credential_login_not_used:
+		'This type of credential runs over no login. Clear the login and save again.',
+	credential_login_daemon_os_mismatch:
+		"This credential and its login '{login}' read files on daemons of different OSes. Set both to the same Daemon OS.",
+	credential_login_in_use:
+		"'{name}' is the login for {users}. Choose another login for them before deleting it.",
+	credential_login_not_assignable:
+		"'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead.",
+	entity_reference_refused: "'{field}' isn't available here",
 	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
 	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
 	discovery_session_not_found: "Discovery session '{id}' not found",
@@ -160,6 +175,8 @@ export interface ErrorParams {
 	license_locked: Record<string, never>;
 	license_instance_limit_reached: { active: string | number; limit: string | number };
 	license_plan_has_no_key: Record<string, never>;
+	license_key_regenerated: Record<string, never>;
+	license_organization_missing: Record<string, never>;
 	entity_not_found: { entity: string | number; id: string | number };
 	entity_already_exists: { entity: string | number; name: string | number };
 	entity_in_use: { entity: string | number; name: string | number; used_by: string | number };
@@ -183,6 +200,13 @@ export interface ErrorParams {
 	credential_default_exists: { name: string | number };
 	credential_default_delete_forbidden: { name: string | number };
 	credential_default_settings_locked: { name: string | number };
+	credential_login_required: Record<string, never>;
+	credential_login_invalid: Record<string, never>;
+	credential_login_not_used: Record<string, never>;
+	credential_login_daemon_os_mismatch: { login: string | number };
+	credential_login_in_use: { name: string | number; users: string | number };
+	credential_login_not_assignable: { name: string | number };
+	entity_reference_refused: { field: string | number };
 	discovery_historical_read_only: Record<string, never>;
 	discovery_subnet_site_mismatch: { subnet: string | number };
 	discovery_session_not_found: { id: string | number };

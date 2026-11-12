@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 
 	interface ToggleOption {
 		value: string;

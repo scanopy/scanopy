@@ -2,13 +2,12 @@ use crate::server::auth::r#impl::base::ProvisionOrg;
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::config::DeploymentType;
 use crate::server::license::service::{LicenseService, self_hosted_plan};
-use crate::server::shared::events::types::{
-    EmailAndToken, OnboardingOperation, OnboardingOperationDiscriminants,
-};
+use crate::server::shared::events::types::EmailAndToken;
 use crate::server::shared::types::api::ApiError;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::{
     auth::{
+        access_service::AccessService,
         r#impl::{
             api::{LoginRequest, RegisterRequest},
             base::{LoginRegisterParams, PendingSetup, ProvisionUserParams},
@@ -22,12 +21,13 @@ use crate::server::{
     shared::{
         events::{
             bus::EventBus,
-            traits::{AuthScope, Event, OrgScope},
+            traits::{AuthScope, Event},
             types::{AuthMethod, AuthOperation, UpdateReason},
         },
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
     },
+    site_assignments::r#impl::base::Principal,
     users::{
         r#impl::{
             base::{User, UserBase},
@@ -39,11 +39,11 @@ use crate::server::{
 use anyhow::{Result, anyhow};
 use argon2::{
     Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHasher, PasswordVerifier, phc::PasswordHash},
 };
 use axum::http::StatusCode;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use email_address::EmailAddress;
 use rand::RngCore;
 use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Instant};
@@ -53,6 +53,7 @@ use validator::Validate;
 
 pub struct AuthService {
     pub user_service: Arc<UserService>,
+    access_service: Arc<AccessService>,
     organization_service: Arc<OrganizationService>,
     has_email_service: bool,
     login_attempts: Arc<RwLock<HashMap<EmailAddress, (u32, Instant)>>>,
@@ -83,6 +84,7 @@ impl AuthService {
 
     pub fn new(
         user_service: Arc<UserService>,
+        access_service: Arc<AccessService>,
         organization_service: Arc<OrganizationService>,
         has_email_service: bool,
         event_bus: Arc<EventBus>,
@@ -90,6 +92,7 @@ impl AuthService {
     ) -> Self {
         Self {
             user_service,
+            access_service,
             organization_service,
             has_email_service,
             login_attempts: Arc::new(RwLock::new(HashMap::new())),
@@ -151,7 +154,7 @@ impl AuthService {
             permissions,
             ip,
             user_agent,
-            site_ids,
+            site_assignments,
             invited_as,
         } = params;
 
@@ -170,7 +173,7 @@ impl AuthService {
         }
 
         let terms_accepted_at = if request.terms_accepted {
-            Some(Utc::now())
+            Some(crate::server::shared::clock::now())
         } else {
             None
         };
@@ -189,9 +192,11 @@ impl AuthService {
                 email_verified: auto_verify,
                 provision_org,
                 permissions,
-                site_ids,
+                site_assignments,
                 terms_accepted_at,
                 deployment_type,
+                ip_address: ip,
+                user_agent: user_agent.clone(),
             })
             .await?;
 
@@ -232,8 +237,8 @@ impl AuthService {
     }
 
     /// Core user provisioning logic - handles both password and OIDC registration
-    /// If pending_setup is provided, uses setup.org_name, marks OrgCreated and
-    /// OnboardingModalCompleted, and publishes `OrgCreated`, which gives the org its setup data
+    /// If pending_setup is provided, uses setup.org_name and publishes `OrgCreated`, which gives
+    /// the org its setup data
     /// On a self-hosted server the new org gets the license plan
     pub async fn provision_user(&self, params: ProvisionUserParams) -> Result<User> {
         let ProvisionUserParams {
@@ -244,12 +249,14 @@ impl AuthService {
             provision_org,
             email_verified,
             permissions,
-            site_ids,
+            site_assignments,
             terms_accepted_at,
             deployment_type,
+            ip_address,
+            user_agent,
         } = params;
 
-        // Plan at org creation time — surfaced on the OrgCreated onboarding
+        // Plan at org creation time — surfaced on the OrgCreated auth
         // event for downstream PostHog identify.
         let mut new_org_plan: Option<BillingPlan> = None;
 
@@ -287,11 +294,6 @@ impl AuthService {
                     }
                 }
 
-                let onboarding = vec![
-                    OnboardingOperationDiscriminants::OrgCreated,
-                    OnboardingOperationDiscriminants::OnboardingModalCompleted,
-                ];
-
                 // Self-hosted: the license-resolved plan. Cloud: Free for a signup that names a
                 // site, and Self-Hosted Standard for a license buyer (no site), whose trial the
                 // billing subscriber starts off `OrgCreated` below. `plan_status` stays empty
@@ -314,7 +316,7 @@ impl AuthService {
                             name: org_name,
                             plan,
                             plan_status: None,
-                            onboarding,
+                            setup: Vec::new(),
                             has_payment_method: false,
                             bills_by_invoice: false,
                             trial_end_date: None,
@@ -357,7 +359,7 @@ impl AuthService {
                         hash,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -374,7 +376,7 @@ impl AuthService {
                         oidc_provider,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -383,6 +385,15 @@ impl AuthService {
         } else {
             Err(anyhow!("Must provide either password or OIDC credentials"))
         }?;
+
+        self.access_service
+            .set_access(
+                Principal::User(user.id),
+                permissions,
+                &site_assignments,
+                AuthenticatedEntity::System,
+            )
+            .await?;
 
         if let ProvisionOrg::New(PendingSetup {
             org_name,
@@ -395,8 +406,13 @@ impl AuthService {
             // `OrgSetupService` gives the org its setup data in reaction to this event.
             self.event_bus
                 .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::OrgCreated {
+                    AuthScope {
+                        user_id: Some(user.id),
+                        organization_id: Some(organization_id),
+                        ip_address,
+                        user_agent,
+                    },
+                    AuthOperation::OrgCreated {
                         org_name,
                         plan: new_org_plan,
                         use_case,
@@ -576,7 +592,7 @@ impl AuthService {
                 AuthOperation::PasswordChanged {
                     email: user.base.email.clone(),
                     had_password,
-                    timestamp: Utc::now(),
+                    timestamp: crate::server::shared::clock::now(),
                 },
                 authentication.clone(),
             ))
@@ -610,7 +626,8 @@ impl AuthService {
 
         // Generate token and store in database
         let token = Self::generate_secure_token();
-        let expires = Utc::now() + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
+        let expires = crate::server::shared::clock::now()
+            + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
         user.base.password_reset_token = Some(token.clone());
         user.base.password_reset_expires = Some(expires);
         self.user_service
@@ -660,7 +677,7 @@ impl AuthService {
 
         // Check if token is expired
         if let Some(expires) = user.base.password_reset_expires {
-            if Utc::now() > expires {
+            if crate::server::shared::clock::now() > expires {
                 // Clear expired token
                 user.base.password_reset_token = None;
                 user.base.password_reset_expires = None;
@@ -756,7 +773,8 @@ impl AuthService {
     ) -> Result<EmailAndToken> {
         // Generate token and expiry
         let token = Self::generate_secure_token();
-        let expiry = Utc::now() + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
+        let expiry = crate::server::shared::clock::now()
+            + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
 
         // Store token in user record
         user.base.email_verification_token = Some(token.clone());
@@ -929,7 +947,7 @@ impl AuthService {
         // Unknown and expired tokens get the same coded error: the page offers a new link
         // either way.
         match user.base.email_verification_expires {
-            Some(expires) if Utc::now() <= expires => {}
+            Some(expires) if crate::server::shared::clock::now() <= expires => {}
             _ => return Err(Self::verification_token_invalid()),
         }
 
@@ -1061,15 +1079,12 @@ impl AuthService {
 
 /// Hash a password using Argon2id
 pub fn hash_password(password: &str) -> Result<String> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
+    // `hash_password` draws a fresh random salt from the system RNG.
+    let hash: PasswordHash = Argon2::default()
+        .hash_password(password.as_bytes())
+        .map_err(|e| anyhow!("Password hashing failed: {}", e))?;
 
-    let hash = argon2
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| anyhow!("Password hashing failed: {}", e))?
-        .to_string();
-
-    Ok(hash)
+    Ok(hash.to_string())
 }
 
 /// Verify a password against a hash
@@ -1080,4 +1095,35 @@ pub fn verify_password(password: &str, hash: &str) -> Result<()> {
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .map_err(|_| anyhow!("Invalid username or password"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Produced by `hash_password` on argon2 0.5.3 / password-hash 0.5.0, the versions that wrote
+    /// every hash stored before the 0.6 upgrade.
+    const HASH_FROM_PASSWORD_HASH_0_5: &str = "$argon2id$v=19$m=19456,t=2,p=1$eoSyx2BJoFLPSMz8gGkxwQ$5yGrW5pib17d+D/Rrn9OggnTPpKtTmajQo1AQauRoEU";
+    const PASSWORD: &str = "correct horse battery staple";
+
+    #[test]
+    fn verifies_a_hash_stored_by_password_hash_0_5() {
+        verify_password(PASSWORD, HASH_FROM_PASSWORD_HASH_0_5).unwrap();
+        assert!(verify_password("wrong password", HASH_FROM_PASSWORD_HASH_0_5).is_err());
+    }
+
+    #[test]
+    fn a_new_hash_verifies_only_its_own_password() {
+        let hash = hash_password(PASSWORD).unwrap();
+
+        verify_password(PASSWORD, &hash).unwrap();
+        assert!(verify_password("wrong password", &hash).is_err());
+        // A fresh salt per call: the same password never hashes to the same string twice.
+        assert_ne!(hash, hash_password(PASSWORD).unwrap());
+    }
+
+    #[test]
+    fn a_malformed_stored_hash_is_refused() {
+        assert!(verify_password(PASSWORD, "not a phc string").is_err());
+    }
 }

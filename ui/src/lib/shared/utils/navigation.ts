@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { Organization } from '$lib/features/organizations/types';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 /**
  * Determines the correct route for an authenticated user based on their state
@@ -12,7 +12,7 @@ export function getRoute(): string {
 	);
 
 	if (!organization) {
-		return resolve('/onboarding');
+		return resolve('onboarding');
 	}
 
 	// Org exists - go to main app
@@ -25,7 +25,6 @@ export function getRoute(): string {
  */
 export async function navigate(): Promise<void> {
 	const route = getRoute();
-	// eslint-disable-next-line svelte/no-navigation-without-resolve
 	await goto(route);
 }
 
@@ -41,6 +40,5 @@ export async function navigateWithModal(
 	url.searchParams.set('modal', modalName);
 	if (opts?.id) url.searchParams.set('id', opts.id);
 	if (opts?.tab) url.searchParams.set('tab', opts.tab);
-	// eslint-disable-next-line svelte/no-navigation-without-resolve
 	await goto(url.pathname + url.search);
 }

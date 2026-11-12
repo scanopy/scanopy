@@ -18,7 +18,6 @@ use crate::server::shared::types::api::ApiJson;
 
 use axum::extract::State;
 use axum::response::Json;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -27,13 +26,9 @@ use uuid::Uuid;
 use crate::server::{
     auth::middleware::{
         features::{RequireFeature, TakeSnapshotFeature},
-        permissions::{Authorized, Member},
+        permissions::{Authorized, Can, Write},
     },
     config::AppState,
-    shared::events::{
-        traits::{Event, OrgScope},
-        types::{OnboardingOperation, OnboardingOperationDiscriminants},
-    },
     shared::{
         services::traits::CrudService,
         storage::traits::Entity,
@@ -49,7 +44,7 @@ pub struct CreateSnapshotRequest {
 }
 
 // Generated handlers for generic CRUD operations. `create` is hand-rolled below
-// because it needs the discovery lock + close-and-clone + onboarding event.
+// because it needs the discovery lock + close-and-clone.
 mod generated {
     use super::*;
     crate::crud_get_all_handler!(Snapshot);
@@ -84,7 +79,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn create_snapshot(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Snapshot, Write>>,
     RequireFeature { .. }: RequireFeature<TakeSnapshotFeature>,
     ApiJson(req): ApiJson<CreateSnapshotRequest>,
 ) -> ApiResult<Json<ApiResponse<Snapshot>>> {
@@ -113,7 +108,11 @@ async fn create_snapshot(
 
     let result = async {
         let snapshot = Snapshot {
-            base: SnapshotBase::new(req.site_id, Utc::now(), auth.user_id()),
+            base: SnapshotBase::new(
+                req.site_id,
+                crate::server::shared::clock::now(),
+                auth.user_id(),
+            ),
             ..Default::default()
         };
 
@@ -174,33 +173,6 @@ async fn create_snapshot(
     reservation.release().await;
 
     let created = result?;
-
-    // First-snapshot onboarding event. Best-effort: failures here don't fail
-    // the request — same fire-and-forget pattern as SecondSiteCreated in
-    // sites/handlers.rs.
-    if let Some(organization_id) = auth.organization_id()
-        && let Ok(true) = state
-            .services
-            .organization_service
-            .record_milestone(
-                organization_id,
-                OnboardingOperationDiscriminants::FirstSnapshotCreated,
-            )
-            .await
-    {
-        state
-            .services
-            .event_bus
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstSnapshotCreated {
-                    snapshot_id: created.id,
-                    site_id: created.base.site_id,
-                },
-                auth.entity.clone(),
-            ))
-            .await;
-    }
 
     Ok(Json(ApiResponse::success(created)))
 }

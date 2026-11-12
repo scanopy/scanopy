@@ -3,7 +3,7 @@ import type { LayoutGraph } from '../layout/layout-graph';
 import type { RenderableTopology, TopologyNode } from '../types/base';
 import type { XY } from './types';
 import { getTopologyIndex } from '../entity-index';
-import { entities } from '$lib/shared/stores/metadata';
+import { entities } from '#lib/shared/stores/metadata.ts';
 
 export interface BuildFlowNodesParams {
 	visibleNodes: TopologyNode[];
@@ -50,6 +50,28 @@ export const ELEMENT_WIDTH_PX = 250;
 
 /** Width of an icon card. */
 export const ICON_ELEMENT_WIDTH_PX = 120;
+
+/** The icon card's large tile. The top service badge is centred on its bottom-right corner. */
+export const ICON_TILE_PX = 48;
+
+/** A service or OS badge on the tile's corner. */
+export const ICON_BADGE_PX = 24;
+
+/** Where the top service badge rests: from the tile's centre to the badge's left edge. */
+export const ICON_BADGE_PILE_OFFSET_PX = ICON_TILE_PX / 2 - ICON_BADGE_PX / 2;
+
+/**
+ * Where service badge `index` of `count` sits once the stack fans into a row centred under the
+ * tile (on hover, and in the diagram exports): from the tile's centre to the badge's left edge,
+ * spaced to fit inside the card's `px-2` padding. A lone badge has nothing to fan out from and
+ * stays on the corner.
+ */
+export function iconBadgeFanOffsetPx(index: number, count: number): number {
+	if (count <= 1) return ICON_BADGE_PILE_OFFSET_PX;
+	const inner = ICON_ELEMENT_WIDTH_PX - 16;
+	const step = Math.min(ICON_BADGE_PX + 2, (inner - ICON_BADGE_PX) / (count - 1));
+	return (index - (count - 1) / 2) * step - ICON_BADGE_PX / 2;
+}
 
 /**
  * Width of an icon card that lists a guest's containers in rows. Each row holds a glyph, a name and

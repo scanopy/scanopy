@@ -13,13 +13,19 @@ import {
 	isScaleCollapsed,
 	scaleCollapseCandidates,
 	expandedInlineGroups,
-	allInlineGroupKeys
+	allInlineGroupKeys,
+	collapseScope,
+	collapsedForEntryFromOtherScope,
+	currentCollapseScope,
+	currentOpenCandidates,
+	saveCollapseScope,
+	saveOpenCandidates
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
-import { containerTypes, views } from '$lib/shared/stores/metadata';
+import { containerTypes, views } from '#lib/shared/stores/metadata.ts';
 import { activeView, hiddenEdgeTypes as hiddenEdgeTypesStore, topologyOptions } from '../queries';
 import { tagHiddenNodeIds, hiddenEntityIdsByType } from '../interactions';
-import { changedCardIds } from './execute-layout';
+import { changedCardIds, localExpandTarget } from './execute-layout';
 import { buildTopologyParentIndex } from '../topology-parent-index';
 import { ENTITY_COLLECTIONS } from '../resolvers';
 import { noteRunDetail } from '../diagnostics';
@@ -264,6 +270,14 @@ function applyAutoCollapse(
 		);
 	});
 
+	// A candidate that is collapsed now has had its shot, whoever collapsed it. `collapsedContainers`
+	// is restored from `localStorage` on load while the seen set starts empty, so without this the
+	// first expand of each container after a reload was put straight back, and only the second
+	// press opened it.
+	for (const candidate of allCandidates) {
+		if (collapsed.has(candidate.id)) state.seenAutoCollapseIds.add(candidate.id);
+	}
+
 	const userExplicitlyExpandedAll = currentLevel >= 4 && state.collapseLevelInferred;
 	const autoCollapseIds = userExplicitlyExpandedAll
 		? []
@@ -278,6 +292,10 @@ function applyAutoCollapse(
 		for (const id of autoCollapseIds) next.add(id);
 		collapsedContainers.set(next);
 	}
+
+	// Every candidate still open is open by the user's doing. Saved so a reload can tell it from a
+	// container that is new since, which is collapsed; see `currentOpenCandidates`.
+	saveOpenCandidates(allCandidates.filter((n) => !next.has(n.id)).map((n) => n.id));
 
 	// Re-infer the level from what auto-collapse actually produced.
 	//
@@ -416,8 +434,18 @@ export function prepareTopologyData(
 	//
 	// Otherwise: infer the level from the persisted collapsed set so any
 	// prior user choice (including an explicit stepExpand to 4) is respected.
+	const scope = collapseScope(topology.id ?? '', currentView);
 	if (!state.collapseLevelInferred) {
 		state.collapseLevelInferred = true;
+		// Asked of the scope the state describes now, not the one it had when the tab opened: the
+		// viewer mounts afresh whenever a site's topology has to be fetched, and that mount is a
+		// first render too.
+		const otherScopeCollapsed = collapsedForEntryFromOtherScope(
+			currentCollapseScope(),
+			scope,
+			topology.nodes,
+			containerTypes
+		);
 		if (!defaultsAppliedThisSession && !hadStoredLevelOnLoad) {
 			const defaultLevel = get(collapseLevel);
 			const defaultCollapsed = computeCollapsedForLevel(
@@ -429,7 +457,18 @@ export function prepareTopologyData(
 			collapsedContainers.set(defaultCollapsed);
 			collapsed = defaultCollapsed;
 			collapseLevel.set(defaultLevel);
+		} else if (otherScopeCollapsed) {
+			// The collapse state describes another topology or view, and this graph is large enough
+			// to scale-collapse: open it at level 1, as a view switch into it does. Inferring a
+			// level here instead reads the stripped, empty set as "everything expanded" and mounts
+			// the whole site, which is what a switch from a small site to a large one did.
+			collapsedContainers.set(otherScopeCollapsed);
+			collapsed = otherScopeCollapsed;
+			collapseLevel.set(1);
 		} else {
+			// The collapse state applies as it stands, and so does its record of what the user had
+			// open: auto-collapse leaves those containers alone.
+			for (const id of currentOpenCandidates()) state.seenAutoCollapseIds.add(id);
 			const inferred = inferCurrentLevel(
 				collapsed,
 				topology.nodes,
@@ -440,6 +479,7 @@ export function prepareTopologyData(
 		}
 		defaultsAppliedThisSession = true;
 	}
+	saveCollapseScope(scope);
 
 	// On view switch, apply the current collapse level to the new view's containers
 	if (viewChanged && topologyChanged && state.collapseLevelInferred) {
@@ -638,9 +678,33 @@ export function prepareTopologyData(
 		}
 	}
 
+	// One container opening on a large site is laid out locally instead of by a full layout run;
+	// see `executeLocalExpand`. Decided before the sync below, which restacks the opened container's
+	// surroundings and would lose the positions the local path builds on. A manager box toggled in
+	// the same run changes a card's height, so that goes to the full layout.
+	const localExpandId =
+		!deferCollapse &&
+		!isNewBaseStructure &&
+		!viewChanged &&
+		isScaleCollapsed(topology.nodes) &&
+		changedCardIds(state.prevExpandedInlineGroups, get(expandedInlineGroups)).size === 0
+			? localExpandTarget(state.layoutGraph, state.sessionCollapsed, collapsed)
+			: undefined;
+	const localExpandContainer = localExpandId
+		? state.layoutGraph.containers.get(localExpandId)
+		: undefined;
+	const localExpand = localExpandContainer
+		? { containerId: localExpandContainer.id, previousSize: localExpandContainer.collapsedSize }
+		: undefined;
+
 	// Sync collapse state from store -> graph
 	let collapseChanged = false;
-	if (!deferCollapse) {
+	if (localExpand) {
+		for (const id of state.sessionCollapsed ?? []) {
+			if (!collapsed.has(id)) state.layoutGraph.openInPlace(id);
+		}
+		collapseChanged = true;
+	} else if (!deferCollapse) {
 		collapseChanged = state.layoutGraph.syncCollapseState(collapsed);
 	}
 
@@ -715,6 +779,7 @@ export function prepareTopologyData(
 		currentView,
 		topologyId: topology.id ?? '',
 		needsElk,
-		isViewTransition
+		isViewTransition,
+		localExpand
 	};
 }

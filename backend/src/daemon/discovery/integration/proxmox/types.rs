@@ -122,26 +122,7 @@ pub struct LxcInterface {
 /// Windows equivalent), as the QEMU guest agent reads it.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentOsInfo {
-    pub result: AgentOsInfoResult,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct AgentOsInfoResult {
-    /// `debian`, `haos`, `mswindows`, ...
-    #[serde(default)]
-    pub id: Option<String>,
-    /// `Debian GNU/Linux`.
-    #[serde(default)]
-    pub name: Option<String>,
-    /// `12 (bookworm)`.
-    #[serde(default)]
-    pub version: Option<String>,
-    /// `12`.
-    #[serde(rename = "version-id", default)]
-    pub version_id: Option<String>,
-    /// `6.1.0-53-amd64`.
-    #[serde(rename = "kernel-release", default)]
-    pub kernel_release: Option<String>,
+    pub result: crate::daemon::discovery::integration::hypervisor::qemu_agent::OsInfo,
 }
 
 /// `GET /nodes/{node}/qemu/{vmid}/agent/get-host-name`.

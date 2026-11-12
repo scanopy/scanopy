@@ -18,7 +18,7 @@
  */
 
 import { ApiError } from './client';
-import { translateError } from '$lib/i18n/errors';
+import { translateError } from '#lib/i18n/errors.ts';
 
 /** An openapi-fetch result, reduced to what these helpers read. */
 export interface FetchResult<E> {

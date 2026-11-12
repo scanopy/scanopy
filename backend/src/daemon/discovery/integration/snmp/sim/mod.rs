@@ -20,12 +20,13 @@ pub mod udp;
 pub mod wire;
 
 use std::net::Ipv4Addr;
+use std::time::Duration;
 
 use transport::{BulkRejection, Handler, Registration, SimAgent};
 use wire::{DataFile, Ordering};
 
 use crate::daemon::discovery::integration::snmp::oids::{
-    arp, bridge, cdp, entity, if_mib, ip_mib, lldp as lldp_oids, oid_parts,
+    arp, bridge, cdp, entity, if_mib, ip_mib, lldp as lldp_oids, oid_parts, vlan,
 };
 use crate::daemon::discovery::integration::snmp::types::SystemInfo;
 use crate::server::credentials::r#impl::types::CredentialType;
@@ -64,6 +65,20 @@ pub struct Tables {
     pub own_address: mibs::OwnAddress,
     pub entity: mibs::EntityTable,
     pub cdp: mibs::CdpTable,
+    /// TP-Link's private VLAN MIB, on the devices that keep their VLANs there (GH #847).
+    pub tplink_vlan: mibs::TplinkVlanTable,
+    /// Cisco VTP VLAN names, on a device that serves them in place of Q-BRIDGE's.
+    pub vtp: mibs::VtpTable,
+    /// Rows from the vendor's enterprise subtree. Only `switch-omada-02` (GH #848).
+    pub vendor: mibs::VendorTree,
+    /// Keep net-snmp's own enterprise MIBs (UCD-SNMP, NET-SNMP-AGENT) out of the device's view.
+    ///
+    /// snmpd on the lab VM serves both, and they sort between Cisco's tree and every vendor
+    /// above 8072. A device whose defect depends on what a walk reaches past a missing Cisco
+    /// table would reach those rows instead, which no real switch serves. The model never serves
+    /// them, so this only changes the lab twin. `pass` lines cannot hide them: net-snmp registers
+    /// them column by column, and the longest registration wins whatever its priority.
+    pub hides_agent_mibs: bool,
     /// Alternative LLDP files written alongside the active one and swapped in by hand. Only
     /// `switch-flaky-01` has these; each drives a different discard counter.
     pub lldp_variants: Vec<(&'static str, lldp::LldpTable)>,
@@ -90,6 +105,12 @@ pub struct AgentFaults {
     /// (`--reject`).
     pub reject: Vec<&'static str>,
     pub error_status: u32,
+    /// Rows under these take `row_cost` each to answer, so an answer is held for as long as the
+    /// slow rows on it add up to (`--slow`, `--row-cost`). GH #848's switch computes a per-port
+    /// utilization figure on request: a page with ten of them arrives after the client has given
+    /// up on it, and a page with none arrives at once.
+    pub slow_rows: Vec<&'static str>,
+    pub row_cost: Duration,
 }
 
 impl AgentFaults {
@@ -158,6 +179,9 @@ const ARP: &str = "arp";
 const IPADDR: &str = "ipaddr";
 const ENTITY: &str = "entity";
 const CDP: &str = "cdp";
+const TPLINK_VLAN: &str = "tplinkvlan";
+const VTP: &str = "vtp";
+const VENDOR: &str = "vendor";
 pub(crate) const VLAN20: &str = "vlan20";
 /// `lldpLocPortTable`, split out for a device that serves it through a handler of its own.
 const LOCPORTS: &str = "locports";
@@ -250,6 +274,17 @@ impl SimDevice {
             .collect()
     }
 
+    /// Subtrees whose rows this device takes [`AgentFaults::row_cost`] each to answer, as
+    /// `snmp-bulk-refuser.py --slow` is configured.
+    pub fn slow_rows(&self) -> Vec<Vec<u64>> {
+        self.tables
+            .faults
+            .slow_rows
+            .iter()
+            .map(|o| oid_parts(o))
+            .collect()
+    }
+
     /// The `pass` data files this device serves, in a fixed order that the registrations index
     /// into.
     pub fn data_files(&self) -> Vec<DataFile> {
@@ -313,6 +348,17 @@ impl SimDevice {
         }
         if !self.tables.cdp.is_empty() {
             files.push(self.file(CDP, Ordering::Ascending, self.tables.cdp.wire_rows()));
+        }
+        if !self.tables.tplink_vlan.is_empty() {
+            let rows = self.tables.tplink_vlan.wire_rows();
+            files.push(self.file(TPLINK_VLAN, Ordering::Ascending, rows));
+        }
+        if !self.tables.vtp.is_empty() {
+            files.push(self.file(VTP, Ordering::Ascending, self.tables.vtp.wire_rows()));
+        }
+        if !self.tables.vendor.is_empty() {
+            let rows = self.tables.vendor.rows.clone();
+            files.push(self.file(VENDOR, Ordering::Ascending, rows));
         }
         if !self.suppresses.is_empty() {
             files.push(self.file(EMPTY, Ordering::Ascending, Vec::new()));
@@ -434,6 +480,8 @@ impl SimDevice {
             (BRIDGE, bridge::BRIDGE_MIB),
             (ENTITY, entity::ENTITY_MIB),
             (CDP, cdp::CDP_MIB),
+            (TPLINK_VLAN, vlan::tplink::TPLINK_DOT1Q_VLAN_MIB),
+            (VTP, vlan::cisco_vtp::VTP_VLAN_NAME),
         ] {
             if let Some(file) = index(suffix) {
                 registrations.push(Registration {
@@ -500,6 +548,13 @@ impl SimDevice {
                 });
             }
         }
+        if let Some(file) = index(VENDOR) {
+            registrations.push(Registration {
+                subtree: oid_parts(self.tables.vendor.subtree),
+                file,
+                handler: Handler::Normal,
+            });
+        }
         if let Some(file) = index(EMPTY) {
             for subtree in &self.suppresses {
                 registrations.push(Registration {
@@ -557,7 +612,8 @@ impl SimDevice {
             .refusing_getbulk(self.refuses_getbulk())
             .silent_on(self.silenced())
             .rejecting_getbulk_above(self.rejects_getbulk)
-            .erroring_on(self.rejected(), self.tables.faults.error_status);
+            .erroring_on(self.rejected(), self.tables.faults.error_status)
+            .slow_on(self.slow_rows(), self.tables.faults.row_cost);
         match self.community_versions {
             CommunityVersions::V1Only => agent.without_getbulk(),
             CommunityVersions::Both | CommunityVersions::V2cOnly => agent,
@@ -597,6 +653,20 @@ impl SimDevice {
             // both reach no interface. A device that placed them would not reproduce the report.
             "switch-shortports-01" => 2,
             _ => 0,
+        }
+    }
+
+    /// How this device's agent stretches a privacy key too short for its cipher (AES-256 under
+    /// MD5 or SHA-1).
+    ///
+    /// The agent's choice, which no credential field records: one `AES-256` credential has to
+    /// read both. Blumenthal is net-snmp's `AES-256`; Reeder is Cisco IOS's `aes 256` and
+    /// net-snmp's `AES-256-C`.
+    pub fn agent_key_extension(&self) -> snmp2::v3::KeyExtension {
+        match self.name {
+            // GH #846's Catalyst 2960.
+            "secure-switch-05" => snmp2::v3::KeyExtension::Reeder,
+            _ => snmp2::v3::KeyExtension::Blumenthal,
         }
     }
 

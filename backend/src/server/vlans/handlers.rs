@@ -1,4 +1,4 @@
-use crate::server::auth::middleware::permissions::{Authorized, IsDaemon, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, IsDaemon, Read, Write};
 use crate::server::openapi::tags as api_tags;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::AttributeSource;
@@ -31,6 +31,7 @@ use uuid::Uuid;
 // Vlan Ordering
 // ============================================================================
 
+/// Fields that VLANs can be ordered/grouped by.
 #[derive(
     Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
 )]
@@ -176,12 +177,12 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_vlans(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Vlan, Read>>,
     crate::server::shared::extractors::Query(query): crate::server::shared::extractors::Query<
         VlanFilterQuery,
     >,
 ) -> ApiResult<Json<PaginatedApiResponse<Vlan>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     // Rows come through the service, which hydrates each VLAN's `subnet_ids` and
     // `interface_ids`.
     Ok(Json(list_page::<Vlan>(&state, &scope, &query).await?))
@@ -204,7 +205,7 @@ async fn get_all_vlans(
 )]
 pub async fn create_vlan(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Vlan, Write>>,
     ApiJson(vlan): ApiJson<Vlan>,
 ) -> ApiResult<Json<ApiResponse<Vlan>>> {
     let site_ids = auth.site_ids();

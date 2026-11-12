@@ -1,4 +1,6 @@
-use crate::server::auth::middleware::permissions::{Admin, Authorized, Viewer};
+use crate::server::auth::access::{Action, Resource};
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
+use crate::server::auth::middleware::permissions::{Authorized, Can, Delete, Read, Write};
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::mapping::Target;
 use crate::server::credentials::r#impl::types::{
@@ -7,7 +9,7 @@ use crate::server::credentials::r#impl::types::{
 use crate::server::credentials::service::{CredentialService, check_type_in_plan};
 use crate::server::daemons::r#impl::base::Daemon;
 use crate::server::services::r#impl::definitions::ServiceDefinition;
-use crate::server::shared::handlers::list::{ListOrdering, PaginatedList, list_page};
+use crate::server::shared::handlers::list::{ListOrdering, ListRows, PaginatedList, list_page};
 use crate::server::shared::handlers::ordering::{OrderField, TagGroupOrdering, case_sql, in_sql};
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams, deserialize_bool_values,
@@ -25,6 +27,8 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
+use crate::server::shared::types::entities::EntitySource;
+use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
     config::AppState,
@@ -49,6 +53,15 @@ const CREDENTIAL_TYPE_SQL: &str = "credentials.credential_type->>'type'";
 static INTEGRATION_SQL: LazyLock<String> = LazyLock::new(|| {
     let arms: Vec<(&str, &str)> = CredentialTypeDiscriminants::iter()
         .map(|t| (t.into(), t.integration().into()))
+        .collect();
+    case_sql(CREDENTIAL_TYPE_SQL, arms)
+});
+
+/// The category each credential type is listed under, from
+/// `CredentialTypeDiscriminants::category_str`, the label the type picker groups by.
+static CATEGORY_SQL: LazyLock<String> = LazyLock::new(|| {
+    let arms: Vec<(&str, &str)> = CredentialTypeDiscriminants::iter()
+        .map(|t| (t.into(), t.category_str()))
         .collect();
     case_sql(CREDENTIAL_TYPE_SQL, arms)
 });
@@ -87,6 +100,9 @@ pub enum CredentialOrderField {
     CredentialType,
     /// The integration the type is a transport of, e.g. `Docker` for its socket and its proxy.
     Integration,
+    /// The category the type is listed under, e.g. `Logins` for SSH logins: what the type picker
+    /// groups by, and the table by default.
+    Category,
     /// Whether the type is in beta.
     Beta,
     /// Whether the type reads an API its vendor doesn't publish.
@@ -103,6 +119,7 @@ impl OrderField for CredentialOrderField {
             Self::UpdatedAt => "credentials.updated_at",
             Self::CredentialType => CREDENTIAL_TYPE_SQL,
             Self::Integration => INTEGRATION_SQL.as_str(),
+            Self::Category => CATEGORY_SQL.as_str(),
             Self::Beta => BETA_SQL.as_str(),
             Self::UnofficialApi => UNOFFICIAL_API_SQL.as_str(),
             // Stored as a JSON string; unwrapped so it groups and filters as the bare family.
@@ -288,9 +305,10 @@ impl CrudHandlers for Credential {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Credential {
+impl ListRows for Credential {
     type Item = Credential;
+    type Field = CredentialOrderField;
+    type Query = CredentialFilterQuery;
 
     fn ordering(query: &CredentialFilterQuery) -> ListOrdering<CredentialOrderField> {
         ListOrdering {
@@ -303,7 +321,10 @@ impl PaginatedList for Credential {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Credential {
     /// Each credential with its site and host assignments.
     async fn items(
         state: &AppState,
@@ -357,7 +378,16 @@ async fn hydrate_assignments(
         .get_host_assignments_for_credentials(&ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    let users = state
+        .services
+        .credential_service
+        .users_of_logins(credentials)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     for credential in credentials.iter_mut() {
+        if let Some(used_by) = users.get(&credential.id) {
+            credential.base.used_by = used_by.clone();
+        }
         if let Some(site_ids) = site_map.get(&credential.id) {
             credential.base.assigned_site_ids = site_ids.clone();
         }
@@ -414,6 +444,20 @@ async fn enforce_supported_targets(
     let integration =
         ServiceDefinition::name(&*credential.base.credential_type.associated_service());
 
+    // A login runs nothing, so it has no target of its own: the credentials that use it do.
+    let assigned = !credential.base.assigned_site_ids.is_empty()
+        || !credential.base.host_assignments.is_empty();
+    if assigned
+        && credential.base.credential_type.discriminant().role()
+            == crate::server::credentials::r#impl::types::CredentialRole::Login
+    {
+        return Err(ApiError::validation(
+            ErrorCode::CredentialLoginNotAssignable {
+                name: credential.base.name.clone(),
+            },
+        ));
+    }
+
     if !credential.base.assigned_site_ids.is_empty() && !permitted.contains(&Target::Site) {
         return Err(ApiError::bad_request(&format!(
             "{integration} credentials cannot be assigned to a site — a site assignment is offered to every host on the subnet. Assign it to specific hosts instead."
@@ -458,6 +502,11 @@ async fn enforce_supported_targets(
     }
 
     Ok(())
+}
+
+/// The sites a credential writer can assign to: a credential is org-keyed, its targets aren't.
+fn assignable_site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+    entity.site_ids_for(Resource::Site, Action::Read)
 }
 
 async fn save_assignments(
@@ -511,7 +560,7 @@ async fn save_assignments(
 )]
 async fn get_by_id_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Credential, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let mut response =
@@ -542,7 +591,7 @@ async fn get_by_id_credential(
 )]
 async fn update_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut entity): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
@@ -554,18 +603,13 @@ async fn update_credential(
 
     let assigned_site_ids = entity.base.assigned_site_ids.clone();
     let host_assignments = entity.base.host_assignments.clone();
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     enforce_supported_targets(&state, &entity, &site_ids).await?;
     enforce_single_endpoint(&state, &entity).await?;
 
-    let mut response = update_handler::<Credential>(
-        State(state.clone()),
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        Path(id),
-        ApiJson(entity),
-    )
-    .await?;
+    let mut response =
+        update_handler::<Credential>(State(state.clone()), auth, Path(id), ApiJson(entity)).await?;
 
     if let Some(credential) = response.data_mut() {
         save_assignments(
@@ -597,15 +641,10 @@ async fn update_credential(
 )]
 async fn delete_credential(
     state: State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Delete>>,
     id: axum::extract::Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    delete_handler::<Credential>(
-        state,
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        id,
-    )
-    .await
+    delete_handler::<Credential>(state, auth, id).await
 }
 
 /// Bulk delete credentials
@@ -622,15 +661,10 @@ async fn delete_credential(
 )]
 async fn bulk_delete_credentials(
     state: State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Delete>>,
     ids: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
-    bulk_delete_handler::<Credential>(
-        state,
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        ids,
-    )
-    .await
+    bulk_delete_handler::<Credential>(state, auth, ids).await
 }
 
 /// List credentials
@@ -650,12 +684,12 @@ async fn bulk_delete_credentials(
 )]
 async fn get_all_credentials(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Credential, Read>>,
     crate::server::shared::extractors::Query(query): crate::server::shared::extractors::Query<
         CredentialFilterQuery,
     >,
 ) -> ApiResult<Json<PaginatedApiResponse<Credential>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Credential>(&state, &scope, &query).await?))
 }
 
@@ -675,22 +709,18 @@ async fn get_all_credentials(
 )]
 pub async fn create_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     ApiJson(credential): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let assigned_site_ids = credential.base.assigned_site_ids.clone();
     let host_assignments = credential.base.host_assignments.clone();
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     enforce_supported_targets(&state, &credential, &site_ids).await?;
     enforce_single_endpoint(&state, &credential).await?;
 
-    let mut response = create_handler::<Credential>(
-        State(state.clone()),
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        ApiJson(credential),
-    )
-    .await?;
+    let mut response =
+        create_handler::<Credential>(State(state.clone()), auth, ApiJson(credential)).await?;
 
     if let Some(created) = response.data_mut() {
         save_assignments(
@@ -737,7 +767,7 @@ fn check_bulk_create_size(len: usize) -> Result<(), ApiError> {
 )]
 async fn bulk_create_credentials(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     ApiJson(credentials): ApiJson<Vec<Credential>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Credential>>>> {
     if credentials.is_empty() {
@@ -750,7 +780,7 @@ async fn bulk_create_credentials(
     // each credential's org to the caller's rather than trusting the body, and
     // validate assignment references (inside save_assignments).
     let org_id = auth.require_organization_id()?;
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     // Validate all credential types and their assignments up front, so a batch containing one
     // contradicting credential creates none of them. The service checks the plan again per create.
@@ -775,6 +805,7 @@ async fn bulk_create_credentials(
     let mut created = Vec::new();
     for mut credential in credentials {
         credential.base.organization_id = org_id;
+        credential.base.source = EntitySource::Manual;
         let assigned_site_ids = credential.base.assigned_site_ids.clone();
         let host_assignments = credential.base.host_assignments.clone();
         // Checked sequentially, so each credential also sees earlier batch members

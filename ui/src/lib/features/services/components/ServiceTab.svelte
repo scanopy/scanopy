@@ -1,29 +1,29 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import {
 		entityRef,
-		type CardAction,
+		type RowAction,
 		type LabelledCardFieldItem
-	} from '$lib/shared/components/data/types';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { virtualizedSummary } from '$lib/features/services/virtualized-count';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import { formatIPAddress } from '$lib/features/hosts/address-labels';
-	import { formatPort } from '$lib/shared/utils/formatting';
-	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/components/data/types.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { virtualizedSummary } from '#lib/features/services/virtualized-count.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import { formatIPAddress } from '#lib/features/hosts/address-labels.ts';
+	import { formatPort } from '#lib/shared/utils/formatting.ts';
+	import type { IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
 	import type { Service } from '../types/base';
 	import ServiceEditModal from './ServiceEditModal.svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useServicesQuery,
 		useUpdateServiceMutation,
@@ -32,19 +32,23 @@
 		type ServicesQueryParams,
 		useServicesByIds
 	} from '../queries';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import { useHostsByIds, useHostSummariesQuery } from '$lib/features/hosts/queries';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
-	import type { components } from '$lib/api/schema';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import { useHostsByIds, useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import type { components } from '#lib/api/schema';
 	import { serviceColumns } from './ServiceTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { closeModal, modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import {
+		closeModal,
+		modalState,
+		resolveModalDeepLink
+	} from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmBulkDeleteWithGuests,
@@ -58,15 +62,13 @@
 		daemons_installPromptServices,
 		gettingStarted_stepDiscoveryLabel,
 		services_subtitle
-	} from '$lib/paraglide/messages';
-	import { serviceDefinitions, ports as ports_metadata } from '$lib/shared/stores/metadata';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
+	} from '#lib/paraglide/messages.js';
+	import { serviceDefinitions, ports as ports_metadata } from '#lib/shared/stores/metadata.ts';
+	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 
-	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
+	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values';
 
 	// Well-known port numbers for the filter panel. People look for 443, not
 	// "HTTPS", so the options are the numbers themselves. Deduplicated because
@@ -85,11 +87,13 @@
 			.map(String)
 	);
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
-	// Organization query for onboarding state
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
+
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Pagination state (managed by DataControls, updated via callback)
 	let pageSize = $state(20);
@@ -125,39 +129,9 @@
 	// Filter options: the values the caller's services actually hold, counted by the server.
 	// None of these takes the tab's active filters, so the options do not shrink as the user
 	// filters.
-	const hostValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		SERVICE_FIELD_VALUES,
-		'host',
-		undefined,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const definitionValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'service_definition',
-		undefined,
-		() => isActive
-	);
-	const containerizedByValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'containerized_by',
-		undefined,
-		() => isActive
-	);
-	const matchConfidenceValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'match_confidence',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'source',
+		['host', 'site_id', 'service_definition', 'containerized_by', 'match_confidence', 'source'],
 		undefined,
 		() => isActive
 	);
@@ -267,7 +241,7 @@
 				id: iface.id,
 				label: formatIPAddress(iface, isContainerSubnetFn),
 				color: entities.getColorHelper('IPAddress').color,
-				entityRef: entityRef('IPAddress', iface.id, iface, { subnets: subnetsData })
+				entityRef: entityRef('IPAddress', iface.id, iface)
 			}));
 	}
 
@@ -303,18 +277,25 @@
 	});
 
 	/** Row actions. */
-	function serviceActions(service: Service): CardAction[] {
-		if (isReadOnly) return [];
+	function serviceActions(service: Service): RowAction[] {
+		if (!can('Service', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditService(service) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditService(service),
+				unavailable: refusedUnless(can('Service', 'Write', service.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteService(service)
+				onClick: () => handleDeleteService(service),
+				unavailable: refusedUnless(can('Service', 'Delete', service.site_id))
 			}
 		];
 	}
@@ -393,7 +374,7 @@
 	// holds stays selected and excludes nothing.
 	let serviceCategories = $derived([
 		...new Set(
-			fieldValueOptions(definitionValuesQuery.data)
+			fieldValueOptions(fieldValuesQuery.data?.service_definition)
 				.map((id) => serviceDefinitions.getCategory(id))
 				.filter((category): category is string => !!category)
 		)
@@ -402,7 +383,7 @@
 	// The hosts some service runs on: the server counts their titles, the same ladder
 	// `hostDisplayName` renders, and the full host list gives each title's ids.
 	let hostOptions = $derived.by(() => {
-		const titles = new Set(fieldValueOptions(hostValuesQuery.data));
+		const titles = new Set(fieldValueOptions(fieldValuesQuery.data?.host));
 		return allHostsData.filter((host) => titles.has(hostDisplayName(host))).map((host) => host.id);
 	});
 
@@ -433,11 +414,11 @@
 			runtimes: () => runtimesData,
 			hostOptions: () => hostOptions,
 			hostLabel,
-			siteValues: () => siteValuesQuery.data,
-			definitionValues: () => definitionValuesQuery.data,
-			containerizedByValues: () => containerizedByValuesQuery.data,
-			matchConfidenceValues: () => matchConfidenceValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			definitionValues: () => fieldValuesQuery.data?.service_definition,
+			containerizedByValues: () => fieldValuesQuery.data?.containerized_by,
+			matchConfidenceValues: () => fieldValuesQuery.data?.match_confidence,
+			sourceValues: () => fieldValuesQuery.data?.source,
 			wellKnownPortNumbers: () => wellKnownPortNumbers,
 			serviceCategories: () => serviceCategories,
 			portBindingItems,
@@ -449,8 +430,8 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptServices()} {isReadOnly} />
+	{:else if !daemonConnected}
+		<PreDaemonEmptyState title={daemons_installPromptServices()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />
@@ -459,8 +440,10 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_services() })}
 			subtitle=""
-			onClick={isReadOnly ? undefined : () => (window.location.hash = 'discovery-scans')}
-			cta={isReadOnly ? '' : gettingStarted_stepDiscoveryLabel()}
+			onClick={can('Discovery', 'Write')
+				? () => (window.location.hash = 'discovery-scans')
+				: undefined}
+			cta={can('Discovery', 'Write') ? gettingStarted_stepDiscoveryLabel() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -471,7 +454,7 @@
 			storageKey="scanopy-services-table-state"
 			defaults={tableDefaults}
 			entityType="Service"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getServiceTags}
 			getItemId={(item) => item.id}
 			serverPagination={servicesPagination}

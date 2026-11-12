@@ -43,7 +43,9 @@ const RETRY_INTERVAL: Duration = Duration::from_millis(50);
 /// means adding a variant here — keys are never built from ad-hoc strings,
 /// so every lock scope is auditable in one place and two sites can't
 /// accidentally mint overlapping keys.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The variant name (snake_case) is the `lock` label on `scanopy_lock_wait_seconds`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum LockKey {
     /// Serialize update/delete/merge of one host.
     Host(Uuid),
@@ -81,6 +83,10 @@ pub enum LockKey {
     /// tags), so registration and a billing event landing together can't both create a site.
     /// Taken before `SiteSetup` and `TagGroups`, never after.
     CloudSetup { organization_id: Uuid },
+    /// Serialize changes to who holds Owner in an organization (deleting, demoting or moving a
+    /// user out), so two of them can't each count the other and leave no Owner. The owners and
+    /// the targets are read under it. Taken before `JunctionSync`, never after.
+    OrganizationOwners { organization_id: Uuid },
     /// Serialize filling in one site's system subnets and live topology, so the org's cloud
     /// setup and the site's Created event can't both create them.
     SiteSetup { site_id: Uuid },
@@ -120,6 +126,9 @@ impl LockKey {
             LockKey::Organization(id) => format!("organization:{id}"),
             LockKey::TagGroups { organization_id } => format!("tag-groups:{organization_id}"),
             LockKey::CloudSetup { organization_id } => format!("cloud-setup:{organization_id}"),
+            LockKey::OrganizationOwners { organization_id } => {
+                format!("organization-owners:{organization_id}")
+            }
             LockKey::SiteSetup { site_id } => format!("site-setup:{site_id}"),
             LockKey::ReleaseAnnouncement => "release-announcement".to_string(),
             LockKey::ServerInstance => "server-instance".to_string(),
@@ -187,7 +196,8 @@ pub async fn session_lock(
     timeout: Duration,
 ) -> Result<SessionLockGuard, LockError> {
     let pg_key = key.pg_key();
-    let deadline = tokio::time::Instant::now() + timeout;
+    let started = tokio::time::Instant::now();
+    let deadline = started + timeout;
     loop {
         let mut tx = pool.begin().await?;
         let acquired: bool = sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
@@ -195,16 +205,22 @@ pub async fn session_lock(
             .fetch_one(&mut *tx)
             .await?;
         if acquired {
+            record_lock_wait(key, started.elapsed());
             return Ok(SessionLockGuard { key, tx: Some(tx) });
         }
         // Not acquired: the connection goes straight back to the pool so
         // waiting never starves the lock holder of connections.
         tx.rollback().await?;
         if tokio::time::Instant::now() + RETRY_INTERVAL > deadline {
+            record_lock_wait(key, started.elapsed());
             return Err(LockError::Timeout(timeout, key));
         }
         tokio::time::sleep(RETRY_INTERVAL).await;
     }
+}
+
+fn record_lock_wait(key: LockKey, waited: Duration) {
+    crate::server::metrics::db::record_lock_wait(key.into(), waited.as_secs_f64());
 }
 
 /// Acquire several session locks in the process-wide canonical order
@@ -249,10 +265,13 @@ pub async fn xact_lock(
     sqlx::query(&format!("SET LOCAL lock_timeout = '{millis}ms'"))
         .execute(&mut **tx)
         .await?;
+    // Postgres blocks inside this statement, so the wait also counts as query time.
+    let started = tokio::time::Instant::now();
     let result = sqlx::query("SELECT pg_advisory_xact_lock($1)")
         .bind(key.pg_key())
         .execute(&mut **tx)
         .await;
+    record_lock_wait(key, started.elapsed());
     match result {
         Ok(_) => {
             sqlx::query("SET LOCAL lock_timeout = DEFAULT")
@@ -316,6 +335,10 @@ mod tests {
             }
             .pg_key(),
             LockKey::CloudSetup {
+                organization_id: uuid_a(),
+            }
+            .pg_key(),
+            LockKey::OrganizationOwners {
                 organization_id: uuid_a(),
             }
             .pg_key(),

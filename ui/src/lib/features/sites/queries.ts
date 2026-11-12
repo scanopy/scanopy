@@ -3,12 +3,12 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys, queryClient } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryKeys, queryClient } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Site } from './types';
-import type { User } from '$lib/features/users/types';
-import { invalidateListPages, useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import type { User } from '#lib/features/users/types.ts';
+import { invalidateListPages, useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 
 /**
  * Query hook for fetching all sites
@@ -65,6 +65,8 @@ export function useCreateSiteMutation() {
 			);
 			// credential_ids changes are reflected on credentials' assigned_site_ids
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
+			// The creator holds Admin on the new site.
+			queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
 		}
 	}));
 }
@@ -142,7 +144,7 @@ export function useBulkDeleteSitesMutation() {
 	}));
 }
 
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 // ============================================================================
 // Utility Functions

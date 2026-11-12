@@ -1,35 +1,35 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
-	import { formatLongDate } from '$lib/shared/utils/formatting';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import { CreditCard } from '@lucide/svelte';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import { billingPlans, features, planStatuses } from '$lib/shared/stores/metadata';
-	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
+	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { hasLicensedPlan, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { billingPlans, features, planStatuses } from '#lib/shared/stores/metadata.ts';
+	import { canExtendTrial, canPay, isMissingPaymentMethod } from '#lib/shared/utils/trial.ts';
+	import { useExtendTrial } from '#lib/features/billing/extend-trial.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { trackEvent, trackOncePerSession } from '#lib/shared/utils/analytics.ts';
 	import {
 		useCustomerPortalMutation,
 		useResumeSubscriptionMutation,
 		useReactivateSubscriptionMutation,
-		useExtendTrialMutation,
 		useInvoiceBillingStatusQuery,
 		useAcceptQuoteMutation,
 		useCancelQuoteMutation,
 		invalidateInvoiceBilling,
 		useCheckoutMutation,
 		downloadQuotePdf
-	} from '$lib/features/billing/queries';
-	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import InvoiceBillingCard from '$lib/features/billing/InvoiceBillingCard.svelte';
-	import { renewalLabel } from '$lib/features/billing/renewal';
-	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import ProcurementDocumentsRequest from '$lib/features/billing/ProcurementDocumentsRequest.svelte';
-	import { useDashboardQuery } from '$lib/features/home/queries';
+	} from '#lib/features/billing/queries.ts';
+	import CancelSubscriptionModal from '#lib/features/billing/CancelSubscriptionModal.svelte';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import InvoiceBillingCard from '#lib/features/billing/InvoiceBillingCard.svelte';
+	import { renewalLabel } from '#lib/features/billing/renewal.ts';
+	import { discountedPrice, saveOfferDiscount } from '#lib/features/billing/pricing.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import ProcurementDocumentsRequest from '#lib/features/billing/ProcurementDocumentsRequest.svelte';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
 	import {
 		common_atLimit,
 		common_billingExtra,
@@ -61,7 +61,6 @@
 		settings_billing_resume_confirmBody,
 		settings_billing_reactivateSubscription,
 		settings_billing_extendTrial_link,
-		settings_billing_extendTrial_confirmBody,
 		settings_billing_trialEndsOn,
 		settings_billing_trialEndsOnDaysLeft,
 		billing_trialPillToday,
@@ -84,14 +83,13 @@
 		billing_invoice_quoteCancelled,
 		common_processing,
 		billing_requestAccepted,
-		billing_subscriptionReactivated,
-		billing_trialExtended
-	} from '$lib/paraglide/messages';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import ButtonMenu, { type ButtonMenuItem } from '$lib/shared/components/ButtonMenu.svelte';
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
+		billing_subscriptionReactivated
+	} from '#lib/paraglide/messages.js';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import ButtonMenu, { type ButtonMenuItem } from '#lib/shared/components/ButtonMenu.svelte';
+	import { pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
 
 	let {
 		isOpen = false,
@@ -211,7 +209,7 @@
 	const customerPortalMutation = useCustomerPortalMutation();
 	const resumeMutation = useResumeSubscriptionMutation();
 	const reactivateMutation = useReactivateSubscriptionMutation();
-	const extendTrialMutation = useExtendTrialMutation();
+	const extendTrial = useExtendTrial();
 
 	// Cancel modal state. Replaces the legacy Stripe-Portal handoff.
 	let showCancelModal = $state(false);
@@ -266,9 +264,7 @@
 
 	// Extend trial is offered to any trialing org in the final stretch that
 	// hasn't already used its one-time extension — independent of card status.
-	let canExtendTrial = $derived(
-		isTrialing && trialDaysLeft !== null && trialDaysLeft <= 3 && !org?.trial_extended_used
-	);
+	let showExtendTrial = $derived(canExtendTrial(org, trialDaysLeft));
 
 	// Cancel is available while on a live, manageable active/trial subscription.
 	let showCancelItem = $derived(hasManageableSubscription && (isActive || isTrialing));
@@ -344,11 +340,11 @@
 				onclick: handleDownloadQuote,
 				disabled: downloadingQuote
 			};
-		return canExtendTrial
+		return showExtendTrial
 			? {
 					label: settings_billing_extendTrial_link(),
-					onclick: handleExtendTrial,
-					disabled: extendTrialMutation.isPending
+					onclick: extendTrial.extend,
+					disabled: extendTrial.isPending
 				}
 			: undefined;
 	});
@@ -541,22 +537,6 @@
 			const flipped = await waitForOrgUpdate((o) => o.plan_status === 'active');
 			if (flipped) {
 				pushSuccess(billing_subscriptionReactivated());
-			} else {
-				pushWarning(billing_requestAccepted());
-			}
-			organizationQuery.refetch();
-		} catch {
-			// Mutation onError handles toast.
-		}
-	}
-
-	async function handleExtendTrial() {
-		if (!confirm(settings_billing_extendTrial_confirmBody())) return;
-		try {
-			await extendTrialMutation.mutateAsync();
-			const flipped = await waitForOrgUpdate((o) => o.trial_extended_used === true);
-			if (flipped) {
-				pushSuccess(billing_trialExtended());
 			} else {
 				pushWarning(billing_requestAccepted());
 			}

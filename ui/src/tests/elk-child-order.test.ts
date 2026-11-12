@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeElkLayout, type ElkLayoutInput } from '$lib/features/topology/layout/elk-layout';
-import type { components } from '$lib/api/schema';
+import { computeElkLayout, type ElkLayoutInput } from '#lib/features/topology/layout/elk-layout.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyNode = components['schemas']['Node'];
 type TopologyEdge = components['schemas']['Edge'];

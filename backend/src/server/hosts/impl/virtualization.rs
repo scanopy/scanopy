@@ -492,6 +492,53 @@ impl HasFilterValues for Host {
     }
 }
 
+/// For tests that a guest's handling holds under every hypervisor.
+#[cfg(test)]
+impl HostVirtualizationDiscriminants {
+    /// Every kind of guest a hypervisor runs.
+    pub fn hypervisor_guests() -> impl Iterator<Item = Self> {
+        use strum::IntoEnumIterator;
+        Self::iter().filter(|k| k.state() == HostVirtualizationState::Virtualized)
+    }
+
+    /// A running guest of this kind, named `name` with the hypervisor's id `vm_id`.
+    pub fn guest(self, name: &str, vm_id: &str) -> HostVirtualization {
+        let (vm_name, vm_id) = (Some(name.to_string()), Some(vm_id.to_string()));
+        match self {
+            Self::Proxmox => HostVirtualization::Proxmox(ProxmoxVirtualization {
+                vm_name,
+                vm_id,
+                guest_type: Some(ProxmoxGuestType::Qemu),
+                state: GuestState::Running,
+            }),
+            Self::Libvirt => HostVirtualization::Libvirt(LibvirtVirtualization {
+                vm_name,
+                vm_id,
+                state: GuestState::Running,
+            }),
+            Self::VCenter => HostVirtualization::VCenter(VCenterVirtualization { vm_name, vm_id }),
+            Self::ESXi => HostVirtualization::ESXi(EsxiVirtualization { vm_name, vm_id }),
+            Self::Docker | Self::Podman | Self::NetworkIdentity => {
+                panic!("{self:?} is not a hypervisor's guest")
+            }
+        }
+    }
+
+    /// The id of the service definition whose service runs guests of this kind.
+    pub fn manager_definition(self) -> &'static str {
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+        use crate::server::services::r#impl::definitions::{
+            ServiceDefinitionExt, VirtualizationRole,
+        };
+        let role = Some(VirtualizationRole::Hypervisor { hosts: self });
+        ServiceDefinitionRegistry::all_service_definitions()
+            .into_iter()
+            .find(|d| d.virtualization_role() == role)
+            .map(|d| d.id())
+            .unwrap_or_else(|| panic!("no service definition runs {self:?} guests"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

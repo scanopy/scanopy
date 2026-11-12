@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import {
 		useCredentialsQuery,
 		useCredentialsListQuery,
@@ -9,39 +9,38 @@
 		useBulkDeleteCredentialsMutation
 	} from '../queries';
 	import CredentialEditModal from './CredentialEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import type { Credential } from '../types/base';
 	import type { CredentialOrderField } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import {
 		disabledWhen,
-		type CardAction,
+		type RowAction,
 		type CardFieldItem
-	} from '$lib/shared/components/data/types';
+	} from '#lib/shared/components/data/types.ts';
 	import { credentialColumns } from './CredentialsTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import type { Site } from '$lib/features/sites/types';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, credentialTypes, billingPlans } from '$lib/shared/stores/metadata';
-	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+	import { getCredentialTypeId } from '#lib/features/credentials/types/base.ts';
 	import {
 		modalState,
 		openModal,
 		resolveModalDeepLink,
 		type ModalState
-	} from '$lib/shared/stores/modal-registry';
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import type { Host } from '$lib/features/hosts/types/base';
+	} from '#lib/shared/stores/modal-registry.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
 	import {
 		common_confirmDeleteName,
 		common_create,
@@ -57,15 +56,16 @@
 		common_notApplicable,
 		common_noEntityYet,
 		credentials_defaultCantDelete,
+		credentials_loginInUse,
+		credentials_loginInUseBulk,
 		gettingStarted_stepDaemonLabel
-	} from '$lib/paraglide/messages';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/paraglide/messages.js';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	import { useCan } from '#lib/features/auth/access.ts';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	let showCredentialEditor = $state(false);
 	let editingCredential: Credential | null = $state(null);
@@ -89,12 +89,9 @@
 	});
 
 	// Queries and mutations
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organization?.daemon_connected ?? false);
 
 	// With no daemon there are no hosts to assign to yet. The daemon setup's credentials step
 	// targets devices by IP address instead, so the empty page points there too.
@@ -174,20 +171,16 @@
 		if (applicable) return items;
 		return [{ id: 'not-applicable', label: common_notApplicable(), color: 'Gray' }];
 	}
+
+	/** A login is assigned nowhere; what it has is the credentials that sign in with it. */
+	function usersOfLogin(credential: Credential): Credential[] {
+		const ids = new Set(credential.used_by);
+		return (credentialsQuery.data ?? []).filter((c) => ids.has(c.id));
+	}
 	let isLoading = $derived(credentialsPageQuery.isPending && !credentialsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, credentialsPageQuery));
 
-	// Demo mode check
-	let isDemoOrg = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
-	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
-
-	let canManage = $derived(
-		!isReadOnly && !isNonOwnerInDemo && currentUser
-			? permissions.getMetadata(currentUser.permissions).manage_org_entities
-			: false
-	);
+	let canManage = $derived(can('Credential', 'Write'));
 
 	function handleCreateCredential() {
 		prefill = undefined;
@@ -196,7 +189,7 @@
 	}
 
 	/** Row actions. */
-	function credentialActions(credential: Credential): CardAction[] {
+	function credentialActions(credential: Credential): RowAction[] {
 		if (!canManage) return [];
 
 		return [
@@ -213,7 +206,13 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteCredential(credential),
-				unavailable: disabledWhen(credential.is_default, credentials_defaultCantDelete())
+				unavailable:
+					disabledWhen(credential.is_default, credentials_defaultCantDelete()) ??
+					disabledWhen(
+						credential.used_by.length > 0,
+						credentials_loginInUse({ count: credential.used_by.length }),
+						credentials_loginInUseBulk()
+					)
 			}
 		];
 	}
@@ -294,7 +293,7 @@
 	}
 
 	const tableDefaults: TableDefaults<CredentialOrderField> = {
-		group: 'integration',
+		group: 'category',
 		sort: { field: 'name', direction: 'asc' }
 	};
 
@@ -309,7 +308,8 @@
 		hostsForCredential,
 		targetsFor,
 		daemonHostOnly,
-		assignmentItems
+		assignmentItems,
+		usersOfLogin
 	});
 </script>
 
@@ -332,7 +332,7 @@
 			onClick={canManage ? handleCreateCredential : undefined}
 			cta={canManage ? common_create() : ''}
 		/>
-		{#if canManage && !hasDaemon(onboarding)}
+		{#if canManage && !daemonConnected}
 			<p class="-mt-6 text-center text-sm text-tertiary">
 				{credentials_emptyNoDaemonHint()}
 				<button type="button" class="text-link hover:underline" onclick={handleInstallDaemon}>
@@ -350,7 +350,7 @@
 			storageKey="scanopy-credentials-table-state"
 			defaults={tableDefaults}
 			entityType="Credential"
-			canEditTags={canManage}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getCredentialTags}
 			getItemId={(item) => item.id}
 			serverPagination={credentialsPagination}

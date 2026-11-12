@@ -6,6 +6,7 @@ import {
 	reconcileColumnState,
 	toggledColumnVisibility,
 	visibleColumns,
+	columnsWhileGrouped,
 	moveColumn,
 	moveColumnTo,
 	movableIds,
@@ -19,13 +20,13 @@ import {
 	MIN_COLUMN_WIDTH,
 	TAG_COLUMN_ID,
 	type ColumnState
-} from '$lib/shared/components/data/table/columns';
-import { fieldGroups } from '$lib/shared/stores/metadata';
-import { defineFields, getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/table/columns.ts';
+import { fieldGroups } from '#lib/shared/stores/metadata.ts';
+import { defineFields, getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
 import {
 	parseStoredState,
 	serializeState
-} from '$lib/shared/components/data/controls/dataControlsStorage';
+} from '#lib/shared/components/data/controls/dataControlsStorage.ts';
 
 interface Row {
 	name: string;
@@ -207,6 +208,23 @@ describe('visibleColumns', () => {
 		state.visibility.name = false;
 
 		expect(visibleColumns(columns, state).map((c) => c.id)).not.toContain('name');
+	});
+});
+
+describe('columnsWhileGrouped', () => {
+	it('leaves out the grouped column until the table is ungrouped', () => {
+		const columns = fieldsToColumns(fields());
+		const ids = (cols: typeof columns) => cols.map((c) => c.id);
+
+		expect(ids(columnsWhileGrouped(columns, 'site_id'))).toEqual(
+			ids(columns).filter((id) => id !== 'site_id')
+		);
+		expect(ids(columnsWhileGrouped(columns, null))).toEqual(ids(columns));
+	});
+
+	it('keeps the primary column, which identifies the row', () => {
+		const columns = fieldsToColumns(fields());
+		expect(columnsWhileGrouped(columns, 'name').map((c) => c.id)).toContain('name');
 	});
 });
 

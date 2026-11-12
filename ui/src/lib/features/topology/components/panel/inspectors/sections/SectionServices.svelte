@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-	import type { TopologyEditState } from '$lib/features/topology/state';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import type { Service } from '$lib/features/services/types/base';
-	import { inspector_servicesOnIPAddress, common_containers } from '$lib/paraglide/messages';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { inspectorServiceSections } from '$lib/features/topology/element-render-data';
-	import { hiddenEntityIds } from '$lib/features/topology/interactions';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+	import type { TopologyEditState } from '#lib/features/topology/state.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { inspector_servicesOnIPAddress, common_containers } from '#lib/paraglide/messages.js';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import { inspectorServiceSections } from '#lib/features/topology/element-render-data.ts';
+	import { hiddenEntityIds } from '#lib/features/topology/interactions.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
 

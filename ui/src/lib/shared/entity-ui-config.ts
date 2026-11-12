@@ -3,27 +3,27 @@
  * Single source of truth mapping EntityDiscriminants to tab IDs, modal names, and display components.
  */
 
-import type { EntityDiscriminants } from '$lib/api/entities';
-import type { EntityDisplayComponent } from '$lib/shared/components/forms/selection/types';
-import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-import { DaemonDisplay } from '$lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
-import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
-import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-import { TagGroupDisplay } from '$lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
-import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
-import { TopologyDisplay } from '$lib/shared/components/forms/selection/display/TopologyDisplay.svelte';
-import { DaemonApiKeyDisplay } from '$lib/shared/components/forms/selection/display/DaemonApiKeyDisplay.svelte';
-import { BindingDisplay } from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
-import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
-import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
-import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
-import { VlanDisplay } from '$lib/shared/components/forms/selection/display/VlanDisplay.svelte';
-import { TagDisplay } from '$lib/shared/components/forms/selection/display/TagDisplay.svelte';
-import { UserApiKeyDisplay } from '$lib/shared/components/forms/selection/display/UserApiKeyDisplay.svelte';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import type { EntityDisplayComponent } from '#lib/shared/components/forms/selection/types.ts';
+import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+import { DaemonDisplay } from '#lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
+import { DependencyDisplay } from '#lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
+import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+import { TagGroupDisplay } from '#lib/shared/components/forms/selection/display/TagGroupDisplay.svelte';
+import { CredentialDisplay } from '#lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
+import { TopologyDisplay } from '#lib/shared/components/forms/selection/display/TopologyDisplay.svelte';
+import { DaemonApiKeyDisplay } from '#lib/shared/components/forms/selection/display/DaemonApiKeyDisplay.svelte';
+import { BindingDisplay } from '#lib/shared/components/forms/selection/display/BindingDisplay.svelte';
+import { UserDisplay } from '#lib/shared/components/forms/selection/display/UserDisplay.svelte';
+import { DiscoveryDisplay } from '#lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
+import { PortDisplay } from '#lib/shared/components/forms/selection/display/PortDisplay.svelte';
+import { VlanDisplay } from '#lib/shared/components/forms/selection/display/VlanDisplay.svelte';
+import { TagDisplay } from '#lib/shared/components/forms/selection/display/TagDisplay.svelte';
+import { UserApiKeyDisplay } from '#lib/shared/components/forms/selection/display/UserApiKeyDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -47,7 +47,8 @@ export interface EntityUIConfig {
 
 /** Tab ID → display label. Single source of truth for sidebar and back navigation. */
 export const TAB_LABELS: Record<string, string> = {
-	home: 'Home',
+	setup: 'Setup',
+	issues: 'Issues',
 	topology: 'Topology',
 	discovery: 'Scans',
 	'discovery-scans': 'Scans',

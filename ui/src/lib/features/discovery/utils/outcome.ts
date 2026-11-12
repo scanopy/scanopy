@@ -1,7 +1,7 @@
-import { discoveryPhases, discoveryTerminalReasons } from '$lib/shared/stores/metadata';
-import { toColor, type Color } from '$lib/shared/utils/styling';
+import { discoveryPhases, discoveryTerminalReasons } from '#lib/shared/stores/metadata.ts';
+import { toColor, type Color } from '#lib/shared/utils/styling.ts';
 import type { DiscoveryUpdatePayload } from '../types/api';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
 
 export interface OutcomeTag {
 	label: string;

@@ -1,6 +1,6 @@
 // Re-export generated types from OpenAPI schema
-import type { components } from '$lib/api/schema';
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import type { components } from '#lib/api/schema';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 export type Share = components['schemas']['Share'];
 export type ShareOptions = components['schemas']['ShareOptions'];

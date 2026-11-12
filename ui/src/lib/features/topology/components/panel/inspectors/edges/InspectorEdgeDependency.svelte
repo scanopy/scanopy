@@ -1,19 +1,19 @@
 <script lang="ts">
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import {
 		useUpdateDependencyMutation,
 		useUpdateDependencyDescriptionMutation,
 		useDeleteDependencyMutation
-	} from '$lib/features/dependencies/queries';
+	} from '#lib/features/dependencies/queries.ts';
 	import {
 		BindingWithServiceDisplay,
 		type BindingWithServiceContext
-	} from '$lib/shared/components/forms/selection/display/BindingWithServiceDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/BindingWithServiceDisplay.svelte';
 	import {
 		ServiceDisplay,
 		type ServiceDisplayContext
-	} from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { DependencyDisplay } from '#lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 	import { ArrowDown, Edit, Trash2 } from '@lucide/svelte';
 	import {
 		common_delete,
@@ -23,25 +23,25 @@
 		common_edit,
 		common_services,
 		dependencies_missingMember
-	} from '$lib/paraglide/messages';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/paraglide/messages.js';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import type { Dependency } from '$lib/features/dependencies/types/base';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import type { Dependency } from '#lib/features/dependencies/types/base.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import {
 		editingDependencyId,
 		selectedNodes,
 		selectedEdge,
 		topologyReadOnly
-	} from '$lib/features/topology/queries';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
-	import { clearSelection } from '$lib/features/topology/selection';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
+	} from '#lib/features/topology/queries.ts';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
+	import { clearSelection } from '#lib/features/topology/selection.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	type TopologyView = components['schemas']['TopologyView'];
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

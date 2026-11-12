@@ -2,28 +2,30 @@
  * TanStack Query hooks for Discovery
  */
 
-import { displaySettings, effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
-import { formatTimeOfDay, weekdayOrder } from '$lib/shared/utils/date-format';
+import { displaySettings, effectiveTimeZone } from '#lib/shared/stores/display-settings.svelte.ts';
+import { formatTimeOfDay, weekdayOrder } from '#lib/shared/utils/date-format.ts';
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Discovery } from './types/base';
-import type { components, operations } from '$lib/api/schema';
-import { useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import type { components, operations } from '#lib/api/schema';
+import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
-import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-import { discoveryTerminalReasons, discoveryTypes } from '$lib/shared/stores/metadata';
+import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+import { discoveryTerminalReasons, discoveryTypes } from '#lib/shared/stores/metadata.ts';
 import { get, writable } from 'svelte/store';
-import * as m from '$lib/paraglide/messages';
-import { siteItems } from '$lib/features/sites/columns';
-import { daemonItems } from '$lib/features/daemons/columns';
+import * as m from '#lib/paraglide/messages.js';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { daemonItems } from '#lib/features/daemons/columns.ts';
 import {
 	discoveryStreamConnected,
 	forgetSession,
 	observeSessions,
+	recordSessionActivity,
 	recordSessionMessage,
+	sessionLastActivityAt,
 	sessionLastMessageAt
 } from './utils/staleness';
 
@@ -227,10 +229,10 @@ export function useBulkDeleteDiscoveriesMutation() {
 	}));
 }
 
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 import type { Daemon } from '../daemons/types/base';
 import type { Site } from '../sites/types';
-import type { OrderableFieldConfig } from '$lib/shared/components/data/types';
+import type { OrderableFieldConfig } from '#lib/shared/components/data/types.ts';
 
 // ============================================================================
 // Utility Functions
@@ -487,11 +489,9 @@ export const discoveryFields = (
 		groupable: false
 	},
 	created_at: {
-		label: m.common_created(),
 		type: 'date'
 	},
 	updated_at: {
-		label: m.common_updated(),
 		type: 'date'
 	},
 	daemon_id: {
@@ -562,10 +562,8 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 			const sessions = unwrapData(
 				await apiClient.GET('/api/v1/discoveries/active-sessions', {})
 			) as DiscoveryUpdatePayload[];
-			observeSessions(
-				sessions.map((s) => s.session_id),
-				Date.now()
-			);
+			observeSessions(sessions, Date.now());
+			sessions.forEach(recordSessionActivity);
 			return sessions;
 		},
 		// Sessions change frequently, keep fresh
@@ -686,6 +684,8 @@ const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
 
 /** Discovery events on the live-update stream (`liveUpdatesSSEManager`). */
 class DiscoveryStream {
+	/** When the stream last closed. A session list fetched before then is out of date. */
+	private closedAt = 0;
 	private invalidationPending = false;
 	private invalidationTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -727,26 +727,29 @@ class DiscoveryStream {
 		// Clear progress tracking for all sessions
 		lastProgress.clear();
 		sessionLastMessageAt.set(new Map());
+		sessionLastActivityAt.set(new Map());
 		discoveryStreamConnected.set(false);
+		this.closedAt = Date.now();
 	}
 
 	/** The stream dropped. Toasts once per lost connection, not on every reconnect attempt. */
 	lost() {
 		if (get(discoveryStreamConnected)) pushError(m.discovery_lostConnection());
 		discoveryStreamConnected.set(false);
+		this.closedAt = Date.now();
 	}
 
 	opened() {
-		// Silence while the stream was down says nothing about the daemon, so every session
-		// starts a fresh clock from the reconnect.
+		// Every session's clock restarts from when the server last heard from its daemon. A
+		// session list fetched before the stream closed holds older times than the server's, so
+		// it is left to the refetch that follows a reconnect.
 		sessionLastMessageAt.set(new Map());
-		const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
+		const cached = queryClient.getQueryState<DiscoveryUpdatePayload[]>(
 			queryKeys.discovery.sessions()
 		);
-		observeSessions(
-			(sessions ?? []).map((s) => s.session_id),
-			Date.now()
-		);
+		if (cached?.data && cached.dataUpdatedAt > this.closedAt) {
+			observeSessions(cached.data, Date.now());
+		}
 		discoveryStreamConnected.set(true);
 	}
 
@@ -755,6 +758,7 @@ class DiscoveryStream {
 			forgetSession(update.session_id);
 		} else {
 			recordSessionMessage(update.session_id, Date.now());
+			recordSessionActivity(update);
 		}
 
 		// Check if progress increased
@@ -788,9 +792,9 @@ class DiscoveryStream {
 			pushFailureToast(update);
 		}
 
-		// Invalidate org cache until FirstDiscoveryCompleted milestone appears
+		// Invalidate org cache until RunFirstScan is recorded
 		const org = queryClient.getQueryData<Organization>(queryKeys.organizations.current());
-		if (org && !org.onboarding.includes('FirstDiscoveryCompleted')) {
+		if (org && !org.setup.includes('RunFirstScan')) {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		}
 

@@ -81,7 +81,7 @@ fn stale_demo_hosts_are_stale_together_with_their_children() {
     use crate::server::shared::types::entities::EntityFreshness;
 
     let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4(), UseCase::default());
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let cutoffs: HashMap<Uuid, DateTime<Utc>> = demo
         .sites
         .iter()
@@ -289,9 +289,8 @@ fn demo_credentials_are_valid_and_described() {
 /// target check too), and every credential is assigned somewhere.
 #[test]
 fn demo_credentials_are_assigned_within_their_targets() {
-    use crate::server::credentials::r#impl::types::{CredentialTypeDiscriminants, Target};
+    use crate::server::credentials::r#impl::types::Target;
     use crate::server::credentials::service::find_targetless;
-    use strum::IntoDiscriminant;
 
     let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4(), UseCase::default());
     let by_id: HashMap<Uuid, &Credential> = demo.credentials.iter().map(|c| (c.id, c)).collect();
@@ -324,18 +323,15 @@ fn demo_credentials_are_assigned_within_their_targets() {
         );
     }
 
-    // One credential is left without a target on purpose, so the demo shows the warning and the
-    // home nudge. The Podman socket keeps none either (both demo daemons run Docker), and as a
-    // seeded default it is not reported.
+    // Every credential has a target, so Home lists no TargetlessCredential issue. The Podman
+    // socket keeps none (both demo daemons run Docker), and as a seeded default it is not
+    // reported.
     let used: HashSet<Uuid> = uses.iter().map(|(id, _)| *id).collect();
     let targetless = find_targetless(demo.credentials.clone(), &used, &HashSet::new());
-    assert_eq!(
-        targetless
-            .iter()
-            .map(|c| c.base.credential_type.discriminant())
-            .collect::<Vec<_>>(),
-        [CredentialTypeDiscriminants::SnmpV3],
-        "exactly one demo credential has no target"
+    assert!(
+        targetless.is_empty(),
+        "demo credentials with no target: {:?}",
+        targetless.iter().map(|c| &c.base.name).collect::<Vec<_>>()
     );
 }
 

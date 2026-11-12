@@ -61,7 +61,7 @@ impl LoggingEmailProvider {
         ses_tags: Option<&str>,
     ) -> Result<PathBuf, std::io::Error> {
         let subject = email.subject();
-        let timestamp = chrono::Utc::now();
+        let timestamp = crate::server::shared::clock::now();
 
         let stem = format!(
             "{}-{}-{}",

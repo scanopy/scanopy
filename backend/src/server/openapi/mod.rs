@@ -14,12 +14,13 @@ use utoipa::openapi::security::{ApiKey, ApiKeyValue, SecurityScheme};
 use utoipa::openapi::{Components, OpenApi, PathItem};
 
 use crate::daemon::discovery::types::warnings::SnmpCheck;
+use crate::server::auth::access::DisplayAction;
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::types::{
-    CredentialIntegration, CredentialOsFields, CredentialTypeDiscriminants, OsFamily, Target,
-    UpstreamSupport,
+    CredentialIntegration, CredentialOsFields, CredentialRole, CredentialTypeDiscriminants,
+    OsFamily, Target, UpstreamSupport,
 };
 use crate::server::daemon_api_keys::handlers::DaemonApiKeyOrderField;
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
@@ -36,17 +37,18 @@ use crate::server::hosts::r#impl::virtualization::HostVirtualizationState;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::live_updates::types::{LiveTopologyUpdate, LiveUpdate};
+use crate::server::live_updates::types::{LiveDaemonUpdate, LiveTopologyUpdate, LiveUpdate};
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::ports::r#impl::base::Port;
 use crate::server::services::handlers::ServiceOrderField;
 use crate::server::services::r#impl::base::Service;
+use crate::server::setup::types::{IssueCategory, IssueOrderField};
 use crate::server::shared::handlers::query::{OrderDirection, PaginationParams};
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::Stability;
 use crate::server::shared::types::entities::{EntityFreshness, EntitySourceDiscriminants};
 use crate::server::shared::types::entity_field::{
-    EntityField, FieldFormat, FieldGroup, Hop, MetadataFixture, TableColumn,
+    EntityField, FieldFormat, FieldGroup, Hop, MetadataFixture,
 };
 use crate::server::shared::types::field_definition::{
     FieldDefinition, FieldType, InlineFormat, SelectOption,
@@ -117,11 +119,16 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         TagGroupOrderField,
         MemberOrderField,
         MemberStatus,
+        IssueOrderField,
+        IssueCategory,
         // Derived staleness status. Not a field on any entity (it's computed
         // per-request against the site's window), so nothing else pulls it
         // into the schema — but the frontend must derive its union from here
         // rather than hand-maintaining one.
         EntityFreshness,
+        // What a role holds on a resource. Travels inside the resources fixture's untyped
+        // `TypeMetadata.metadata`, so nothing else pulls it into the schema.
+        DisplayAction,
         // A view's element hierarchy, filters and element marks. Travels inside the views fixture's
         // untyped `TypeMetadata.metadata`, so nothing else pulls it into the schema; the topology
         // types its colour marks and filters from here.
@@ -130,6 +137,7 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // pulls them in; the app types the stream from here.
         LiveUpdate,
         LiveTopologyUpdate,
+        LiveDaemonUpdate,
         // A view's inspector sections and dependency creation mode, from the same fixture; the
         // inspector types its section registry from here rather than keeping its own union.
         ViewInspectorConfig,
@@ -153,6 +161,9 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // `Stability` does and for the same reason — and it is a *separate* axis: an
         // integration can be `Stable` and still ride an undocumented endpoint, as UniFi is.
         UpstreamSupport,
+        // Whether a credential type is a login other credentials use. Travels like `Stability`; the
+        // form and the pickers type it from here.
+        CredentialRole,
         // The integration a credential type belongs to. Travels inside `TypeMetadata.metadata` like
         // `Stability`, and keys `credential-integrations.json`; the picker types its
         // grouping key from here.
@@ -188,7 +199,6 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         FieldFormat,
         MetadataFixture,
         FieldGroup,
-        TableColumn,
         FieldDefinition,
         FieldType,
         SelectOption,

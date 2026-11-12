@@ -9,9 +9,9 @@ use crate::server::{
     hosts::r#impl::virtualization::HostVirtualizationDiscriminants,
     services::{
         definitions::{
-            docker_daemon::Docker, gnmi::Gnmi, instant_on::InstantOn, podman::Podman,
-            proxmox::Proxmox, snmp::Snmp, ssh::Ssh, unifi_controller::UnifiController,
-            wake_on_lan::WakeOnLan,
+            docker_daemon::Docker, gnmi::Gnmi, instant_on::InstantOn, libvirt::Libvirt,
+            podman::Podman, proxmox::Proxmox, snmp::Snmp, ssh::Ssh,
+            unifi_controller::UnifiController, wake_on_lan::WakeOnLan,
         },
         r#impl::{definitions::ServiceDefinition, patterns::ClientProbe},
     },
@@ -59,6 +59,7 @@ pub enum CredentialIntegration {
     Ssh,
     WakeOnLan,
     Proxmox,
+    Libvirt,
 }
 
 /// How much of a device's interface list an integration can see when it succeeds.
@@ -96,7 +97,8 @@ impl CredentialTypeDiscriminants {
             Self::PodmanProxy | Self::PodmanSocket => CredentialIntegration::Podman,
             Self::UnifiApiKey | Self::UnifiLocalAdmin => CredentialIntegration::UnifiController,
             Self::InstantOnAccount => CredentialIntegration::InstantOn,
-            Self::SshPassword | Self::SshKey => CredentialIntegration::Ssh,
+            Self::SshPassword | Self::SshKey | Self::SshScript => CredentialIntegration::Ssh,
+            Self::Libvirt => CredentialIntegration::Libvirt,
             Self::WakeOnLan => CredentialIntegration::WakeOnLan,
             Self::ProxmoxApiToken => CredentialIntegration::Proxmox,
         }
@@ -116,6 +118,7 @@ impl CredentialIntegration {
             Self::Ssh => Box::new(Ssh),
             Self::WakeOnLan => Box::new(WakeOnLan),
             Self::Proxmox => Box::new(Proxmox),
+            Self::Libvirt => Box::new(Libvirt),
         }
     }
 
@@ -129,9 +132,8 @@ impl CredentialIntegration {
     pub fn credential_category(&self) -> CredentialCategory {
         match self {
             Self::Snmp | Self::Gnmi => CredentialCategory::NetworkMonitoring,
-            Self::Docker | Self::Podman | Self::Proxmox => {
-                CredentialCategory::ContainerVirtualization
-            }
+            Self::Docker | Self::Podman => CredentialCategory::Containers,
+            Self::Proxmox | Self::Libvirt => CredentialCategory::Virtualization,
             Self::UnifiController | Self::InstantOn => CredentialCategory::NetworkController,
             Self::Ssh | Self::WakeOnLan => CredentialCategory::HostManagement,
         }
@@ -184,6 +186,9 @@ impl CredentialIntegration {
             Self::Proxmox => {
                 "Discover Proxmox VE nodes and the VMs and LXC containers on each, with their addresses."
             }
+            Self::Libvirt => {
+                "Discover the KVM virtual machines a libvirt host runs, running or stopped, matched to the hosts the scan finds by their MAC addresses."
+            }
         }
     }
 
@@ -210,6 +215,8 @@ impl CredentialIntegration {
             // The node's own NICs come from SNMP or SSH; the Proxmox API's view of them is the
             // Linux bridge config, not an interface table.
             Self::Proxmox => InterfaceViewScope::NoInterfaces,
+            // Domains and their NICs' MACs; the host's own NICs come from SNMP or SSH.
+            Self::Libvirt => InterfaceViewScope::NoInterfaces,
             Self::WakeOnLan => InterfaceViewScope::NoInterfaces,
         }
     }
@@ -235,7 +242,9 @@ impl CredentialIntegration {
             | Self::Podman
             | Self::UnifiController
             | Self::InstantOn
-            | Self::Proxmox => true,
+            | Self::Proxmox
+            // A libvirt service a person added by hand asks for the credential that reads it.
+            | Self::Libvirt => true,
             Self::Ssh | Self::WakeOnLan => false,
         }
     }
@@ -264,6 +273,10 @@ impl CredentialIntegration {
         match self {
             Self::Proxmox => &[
                 HostVirtualizationDiscriminants::Proxmox,
+                HostVirtualizationDiscriminants::NetworkIdentity,
+            ],
+            Self::Libvirt => &[
+                HostVirtualizationDiscriminants::Libvirt,
                 HostVirtualizationDiscriminants::NetworkIdentity,
             ],
             Self::Docker => &[HostVirtualizationDiscriminants::Docker],
@@ -310,7 +323,8 @@ impl CredentialIntegration {
             | Self::InstantOn
             | Self::Ssh
             | Self::WakeOnLan
-            | Self::Proxmox => false,
+            | Self::Proxmox
+            | Self::Libvirt => false,
         }
     }
 
@@ -427,6 +441,24 @@ impl CredentialIntegration {
                 ),
                 (S::GuestAgent, &[Addresses, Hostnames, OperatingSystem]),
             ],
+            // The host with its hostname and the libvirt service, and its domains with their NICs'
+            // MACs, the addresses libvirt's DHCP leases and the host's ARP table hold for them,
+            // and their network identities. With a guest agent, a domain's own addresses, hostname
+            // and OS.
+            Self::Libvirt => &[
+                (
+                    S::Probe(P::Libvirt),
+                    &[
+                        Addresses,
+                        Hostnames,
+                        PortsAndServices,
+                        Interfaces,
+                        VirtualMachines,
+                    ],
+                ),
+                (S::HypervisorConfig, &[Addresses, Interfaces]),
+                (S::GuestAgent, &[Addresses, Hostnames, OperatingSystem]),
+            ],
             Self::WakeOnLan => &[],
         }
     }
@@ -463,6 +495,7 @@ impl CredentialIntegration {
             Self::Ssh => "/docs/guides/integrations/ssh/",
             Self::WakeOnLan => "/docs/guides/integrations/wake-on-lan/",
             Self::Proxmox => "/docs/guides/integrations/proxmox/",
+            Self::Libvirt => "/docs/guides/integrations/libvirt/",
         }
     }
 }
@@ -485,6 +518,7 @@ impl EntityMetadataProvider for CredentialIntegration {
             Self::Gnmi | Self::UnifiController | Self::InstantOn => Concept::L2.icon(),
             Self::Docker | Self::Podman => Concept::Containerization.icon(),
             Self::Proxmox => Concept::Virtualization.icon(),
+            Self::Libvirt => Concept::Virtualization.icon(),
             Self::Ssh => Icon::SquareTerminal,
             Self::WakeOnLan => Icon::Power,
         }
@@ -505,7 +539,8 @@ impl TypeMetadataProvider for CredentialIntegration {
             | Self::UnifiController
             | Self::Ssh
             | Self::WakeOnLan
-            | Self::Proxmox => ServiceDefinition::name(&*self.service()),
+            | Self::Proxmox
+            | Self::Libvirt => ServiceDefinition::name(&*self.service()),
         }
     }
 

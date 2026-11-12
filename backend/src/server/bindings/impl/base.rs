@@ -135,15 +135,15 @@ pub struct Binding {
     #[schema(read_only, required)]
     pub id: Uuid,
     /// When this record was first created.
-    #[serde(default = "Utc::now")]
+    #[serde(default = "crate::server::shared::clock::now")]
     #[schema(read_only, required)]
     pub created_at: DateTime<Utc>,
     /// When this record was last modified.
-    #[serde(default = "Utc::now")]
+    #[serde(default = "crate::server::shared::clock::now")]
     #[schema(read_only, required)]
     pub updated_at: DateTime<Utc>,
     /// Start of the interval this revision was current for (SCD2 history).
-    #[serde(default = "Utc::now")]
+    #[serde(default = "crate::server::shared::clock::now")]
     #[schema(read_only)]
     pub valid_from: DateTime<Utc>,
     /// End of the interval this revision was current for. `null` while it is the live revision.
@@ -155,7 +155,7 @@ pub struct Binding {
     #[schema(read_only)]
     pub lineage_id: Option<Uuid>,
     /// When a discovery last observed this entity.
-    #[serde(default = "Utc::now")]
+    #[serde(default = "crate::server::shared::clock::now")]
     #[schema(read_only)]
     pub last_seen_at: DateTime<Utc>,
     /// The most recent discovery that observed this entity.
@@ -232,7 +232,7 @@ impl Display for Binding {
 
 impl Binding {
     pub fn new(base: BindingBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

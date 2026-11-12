@@ -170,7 +170,8 @@ pub async fn walk_if_table<T: SnmpWalkTransport>(
             // what we hold is not a faithful copy of its ifTable.
             foreign_rows += column_foreign;
             shortfall.complete = false;
-            tracing::warn!(
+            // Reported on the run as an interface-set warning. This keeps the column name.
+            tracing::debug!(
                 ip = %ip,
                 column = column_name,
                 rows = column_foreign,

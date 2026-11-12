@@ -8,9 +8,9 @@ use crate::server::license::types::LicenseKeyType;
 use crate::server::{
     billing::types::base::BillingPlan,
     organizations::r#impl::base::{Organization, OrganizationBase},
+    setup::types::SetupItemDiscriminants,
     shared::{
         entities::EntityDiscriminants,
-        events::types::OnboardingOperationDiscriminants,
         product_area::ProductArea,
         storage::traits::{Entity, SqlValue, Storable},
     },
@@ -25,7 +25,7 @@ impl Storable for Organization {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -50,7 +50,7 @@ impl Storable for Organization {
                     stripe_customer_id,
                     plan,
                     plan_status,
-                    onboarding,
+                    setup,
                     has_payment_method,
                     bills_by_invoice,
                     trial_end_date,
@@ -90,7 +90,7 @@ impl Storable for Organization {
                 "stripe_customer_id",
                 "plan",
                 "plan_status",
-                "onboarding",
+                "setup",
                 "has_payment_method",
                 "bills_by_invoice",
                 "trial_end_date",
@@ -121,7 +121,7 @@ impl Storable for Organization {
                 SqlValue::OptionalString(stripe_customer_id),
                 SqlValue::OptionBillingPlan(Some(plan)),
                 SqlValue::OptionalString(plan_status.map(|s| s.to_string())),
-                SqlValue::OnboardingOperation(onboarding),
+                SqlValue::SetupItems(setup),
                 SqlValue::Bool(has_payment_method),
                 SqlValue::Bool(bills_by_invoice),
                 SqlValue::OptionTimestamp(trial_end_date),
@@ -156,13 +156,12 @@ impl Storable for Organization {
         let plan: BillingPlan = serde_json::from_value(row.get::<serde_json::Value, _>("plan"))
             .map_err(|e| anyhow::anyhow!("Failed to deserialize plan: {}", e))?;
 
+        // Values no item type or alias matches are dropped, so the next write stores the cleaned
+        // list.
         let raw: Vec<serde_json::Value> =
-            serde_json::from_value(row.get::<serde_json::Value, _>("onboarding"))
-                .map_err(|e| anyhow::anyhow!("Failed to deserialize onboarding: {}", e))?;
-        let onboarding: Vec<OnboardingOperationDiscriminants> = raw
-            .into_iter()
-            .filter_map(|v| serde_json::from_value(v).ok())
-            .collect();
+            serde_json::from_value(row.get::<serde_json::Value, _>("setup"))
+                .map_err(|e| anyhow::anyhow!("Failed to deserialize setup: {}", e))?;
+        let setup = SetupItemDiscriminants::parse_recorded(raw);
 
         let last_downgrade_from_plan: Option<BillingPlan> = row
             .try_get::<Option<serde_json::Value>, _>("last_downgrade_from_plan")
@@ -182,7 +181,7 @@ impl Storable for Organization {
                     .ok()
                     .flatten()
                     .and_then(|s| s.parse().ok()),
-                onboarding,
+                setup,
                 has_payment_method: row.get("has_payment_method"),
                 bills_by_invoice: row.try_get("bills_by_invoice").unwrap_or(false),
                 trial_end_date: row.get("trial_end_date"),
@@ -282,44 +281,5 @@ impl Entity for Organization {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // Billing fields are managed by Stripe integration, not user-editable
-        self.base.stripe_customer_id = existing.base.stripe_customer_id.clone();
-        self.base.plan = existing.base.plan;
-        self.base.plan_status = existing.base.plan_status;
-        self.base.next_renewal_at = existing.base.next_renewal_at;
-        // Onboarding state is server-managed
-        self.base.onboarding = existing.base.onboarding.clone();
-        // License state is server-managed. The key version is never
-        // serialized, so a PUT body always carries the default and would
-        // otherwise reset it (reviving retired online keys).
-        self.base.license_paid_through = existing.base.license_paid_through;
-        self.base.license_checkin_at = existing.base.license_checkin_at;
-        self.base.license_key_version = existing.base.license_key_version;
-        // The cached entitlement is written only by the license service
-        self.base.license_entitlement = existing.base.license_entitlement.clone();
-        self.base.license_entitlement_at = existing.base.license_entitlement_at;
-        self.base.license_key_issued_at = existing.base.license_key_issued_at;
-        self.base.license_key_type = existing.base.license_key_type;
-        self.base.license_server_version = existing.base.license_server_version.clone();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// `from_row` drops onboarding values it cannot parse, so a renamed milestone without an alias
-    /// silently un-onboards every org that reached it under the old name.
-    #[test]
-    fn a_milestone_persisted_under_its_former_name_still_parses() {
-        let parsed: OnboardingOperationDiscriminants =
-            serde_json::from_value(serde_json::json!("FirstSnmpCredentialCreated")).unwrap();
-        assert_eq!(
-            parsed,
-            OnboardingOperationDiscriminants::FirstInterfaceCredentialCreated
-        );
     }
 }

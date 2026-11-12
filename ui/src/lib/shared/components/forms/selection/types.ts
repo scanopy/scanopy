@@ -1,6 +1,6 @@
 import type { TagProps } from '../../data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
-import type { EntityDiscriminants } from '$lib/api/entities';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
 import type { Component } from 'svelte';
 
 /**
@@ -44,7 +44,7 @@ export interface EntityDisplayComponent<T, C> {
 		selectedTagIds: string[];
 		entityId: string;
 		entityType: EntityDiscriminants;
-		availableTags?: import('$lib/features/tags/types/base').Tag[];
+		availableTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		allowCreate?: boolean;
 	} | null;
 

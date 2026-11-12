@@ -1,35 +1,40 @@
 use crate::server::shared::events::types::{DeletionReason, UpdateReason};
 use crate::server::shared::extractors::Query;
 use crate::server::{
+    auth::access::Grants,
     auth::middleware::{
         auth::AuthenticatedEntity,
         features::{ensure_tagging_allowed, tags_changed},
-        permissions::{Authorized, Member, Viewer},
+        permissions::{Authorized, Delete, Proves, Read, Scoped, Write},
     },
     config::AppState,
     shared::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
         handlers::{ordering::OrderField, query::FilterQueryExtractor},
-        services::traits::{CrudService, EventBusService},
+        services::{
+            entity_fields::validate_references,
+            traits::{CrudService, EventBusService},
+        },
         storage::{filter::StorableFilter, traits::Entity},
-        types::api::{ApiError, ApiJson, ApiResponse, ApiResult, GroupCount, PaginatedApiResponse},
+        types::api::{
+            ApiError, ApiJson, ApiResponse, ApiResult, FieldValues, PaginatedApiResponse,
+        },
         types::entities::EntitySource,
         validation::{
             validate_bulk_delete_access, validate_create_access, validate_delete_access,
             validate_entity, validate_read_access, validate_update_access,
         },
     },
-    users::r#impl::permissions::UserOrgPermissions,
 };
 use async_trait::async_trait;
 use axum::{
-    Router,
     extract::{Path, State},
     response::Json,
-    routing::{delete, get, post, put},
 };
+use futures::stream::{self, StreamExt, TryStreamExt};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::sync::Arc;
 use utoipa::ToSchema;
@@ -37,27 +42,27 @@ use uuid::Uuid;
 
 /// Who is reading a list, which decides the rows it may hold: the caller's sites and organization,
 /// and for lists of the caller's own things (their API keys) or ruled by their role (the users
-/// list), the user and their permissions.
+/// list), the user and their organization grants.
 #[derive(Debug, Clone)]
 pub struct ListScope {
     pub site_ids: Vec<Uuid>,
     pub organization_id: Uuid,
     /// The signed-in user, or the user an API key belongs to.
     pub user_id: Option<Uuid>,
-    pub permissions: Option<UserOrgPermissions>,
+    pub organization_grants: Option<Grants>,
 }
 
 impl ListScope {
-    /// The scope of `entity`. Lists are organization data, so a caller with no organization is
-    /// refused.
-    pub fn of(entity: &AuthenticatedEntity) -> ApiResult<Self> {
+    /// The scope of an authorized caller: the sites where it may read what it asked for. Lists are
+    /// organization data, so a caller with no organization is refused.
+    pub fn of<P: Scoped>(auth: &Authorized<P>) -> ApiResult<Self> {
         Ok(Self {
-            site_ids: entity.site_ids(),
-            organization_id: entity
+            site_ids: auth.site_ids(),
+            organization_id: auth
                 .organization_id()
                 .ok_or_else(ApiError::organization_required)?,
-            user_id: entity.user_id(),
-            permissions: entity.permissions(),
+            user_id: auth.user_id(),
+            organization_grants: auth.entity.organization_grants(),
         })
     }
 }
@@ -81,7 +86,7 @@ where
 
     /// The fields `get_all` can sort and group by, and `field-values` can count.
     /// Use `NoOrderField` for entities without server-side ordering.
-    type OrderField: OrderField + DeserializeOwned + ToSchema;
+    type OrderField: OrderField + Serialize + DeserializeOwned + ToSchema;
 
     /// The order global search lists this entity's matches in. `None` lists them in creation
     /// order.
@@ -127,24 +132,37 @@ where
     }
 }
 
-/// Create a standard CRUD router
-pub fn create_crud_router<T>() -> Router<Arc<AppState>>
+/// [`validate_references`] for a typed entity.
+pub(crate) async fn validate_entity_references<T>(
+    state: &AppState,
+    entity: &T,
+    stored: Option<&T>,
+    caller: &AuthenticatedEntity,
+    organization_id: Uuid,
+) -> Result<(), ApiError>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    Router::new()
-        .route("/", post(create_handler::<T>))
-        .route("/", get(get_all_handler::<T>))
-        .route("/{id}", put(update_handler::<T>))
-        .route("/{id}", delete(delete_handler::<T>))
-        .route("/{id}", get(get_by_id_handler::<T>))
-        .route("/bulk-delete", post(bulk_delete_handler::<T>))
+    let to_json = |entity: &T| {
+        serde_json::to_value(entity).map_err(|e| ApiError::internal_error(&e.to_string()))
+    };
+    let stored = stored.map(to_json).transpose()?;
+    validate_references(
+        &state.services,
+        T::entity_type(),
+        &to_json(entity)?,
+        stored.as_ref(),
+        &[],
+        caller,
+        organization_id,
+    )
+    .await
 }
 
 pub async fn create_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Proves<T, Write>>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -163,12 +181,16 @@ where
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
+    // A row that is its own site (a `Site`) isn't on any site until it exists.
+    let entity_id = entity.id();
     validate_create_access(
-        service.get_site_id(&entity),
+        service.get_site_id(&entity).filter(|id| *id != entity_id),
         service.get_organization_id(&entity),
         &site_ids,
         organization_id,
     )?;
+
+    validate_entity_references::<T>(&state, &entity, None, &auth.entity, organization_id).await?;
 
     if tags_changed(None, entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;
@@ -197,8 +219,8 @@ where
 /// The filter every list-shaped read of `T` starts from: the caller's site or organization
 /// scope, the SCD2 live/as-of narrowing, and the entity's own query filters.
 ///
-/// Shared by `get_all_handler` and `get_field_values_handler`, so the values offered for a field
-/// can never come from rows the list itself would not show.
+/// Shared by `get_all_handler` and `field_values`, so the values offered for a field can never
+/// come from rows the list itself would not show.
 pub fn base_list_filter<T>(scope: &ListScope, query: &T::FilterQuery) -> StorableFilter<T>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
@@ -217,30 +239,67 @@ where
     query.apply_to_filter(base_filter, &scope.site_ids, scope.organization_id)
 }
 
-/// Every distinct value of one order field across the rows the caller can list, with how many
-/// rows hold each. Feeds a filter's options for a free-valued column, which a paginated list
-/// cannot collect from the page it has loaded.
+/// The fields a field-values request counts. Repeat `fields` to name several.
+#[derive(Deserialize, Debug)]
+#[serde(bound(deserialize = "F: DeserializeOwned"))]
+pub struct FieldValuesQuery<F> {
+    #[serde(default)]
+    pub fields: Vec<F>,
+}
+
+/// How many of one request's fields are counted at once. Each count holds a pool connection.
+const FIELD_VALUES_CONCURRENCY: usize = 4;
+
+/// Every distinct value of each named order field across the rows the caller can list, with how
+/// many rows hold each. Feeds the filter options of a tab's free-valued columns in one request,
+/// which a paginated list cannot collect from the page it has loaded.
 pub async fn get_field_values_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
-    Path(field): Path<T::OrderField>,
+    auth: Authorized<impl Proves<T, Read>>,
+    Query(FieldValuesQuery { fields }): Query<FieldValuesQuery<T::OrderField>>,
     Query(query): Query<T::FilterQuery>,
-) -> ApiResult<Json<ApiResponse<Vec<GroupCount>>>>
+) -> ApiResult<Json<ApiResponse<Vec<FieldValues<T::OrderField>>>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let scope = ListScope::of(&auth.entity)?;
-    let filter = field_values_filter::<T>(&scope, &query, field);
-
-    let counts = T::get_service(&state)
-        .count_by_group(filter, field.to_sql())
-        .await?;
-
+    let scope = ListScope::of(&auth)?;
+    let counts = field_values::<T>(T::get_service(&state), &scope, &query, fields).await?;
     Ok(Json(ApiResponse::success(counts)))
 }
 
-/// The filter `get_field_values_handler` counts under: the list's base filter plus the JOIN the
+/// Each field's distinct values and counts, in the order the fields were named. Every field
+/// counts under its own [`field_values_filter`], so one field's JOIN never changes another's
+/// counts. A field named twice is counted once.
+pub async fn field_values<T>(
+    service: &T::Service,
+    scope: &ListScope,
+    query: &T::FilterQuery,
+    mut fields: Vec<T::OrderField>,
+) -> Result<Vec<FieldValues<T::OrderField>>, anyhow::Error>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let mut seen = HashSet::new();
+    fields.retain(|field| seen.insert(serde_json::to_string(field).ok()));
+
+    stream::iter(fields)
+        .map(|field| async move {
+            let values = service
+                .count_by_group(
+                    field_values_filter::<T>(scope, query, field),
+                    field.to_sql(),
+                )
+                .await?;
+            Ok(FieldValues { field, values })
+        })
+        .buffered(FIELD_VALUES_CONCURRENCY)
+        .try_collect()
+        .await
+}
+
+/// The filter a field's values are counted under: the list's base filter plus the JOIN the
 /// field's expression reads from.
 pub fn field_values_filter<T>(
     scope: &ListScope,
@@ -260,14 +319,14 @@ where
 
 pub async fn get_all_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<impl Proves<T, Read>>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<T>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     let user_id = scope.user_id;
 
     let filter = T::list_filter(&state, &query, &scope).await?;
@@ -304,7 +363,7 @@ where
 
 pub async fn get_by_id_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<impl Proves<T, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -359,7 +418,7 @@ where
 
 pub async fn update_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Proves<T, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
@@ -420,6 +479,15 @@ where
         organization_id,
     )?;
 
+    validate_entity_references::<T>(
+        &state,
+        &entity,
+        Some(&existing),
+        &auth.entity,
+        organization_id,
+    )
+    .await?;
+
     if tags_changed(existing.get_tags(), entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;
     }
@@ -451,7 +519,7 @@ where
 
 pub async fn delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Proves<T, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>>
 where
@@ -516,7 +584,7 @@ where
 
 pub async fn bulk_delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Proves<T, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>>
 where

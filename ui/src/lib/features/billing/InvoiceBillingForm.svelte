@@ -9,20 +9,24 @@
 	} from '@stripe/stripe-js';
 	import { untrack } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, email as emailValidator, max } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import {
+		required,
+		email as emailValidator,
+		max
+	} from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { buildStripeAppearance } from '#lib/shared/billing/stripe-appearance.ts';
 	import { useSetUpInvoiceBillingMutation } from './queries';
 	import type { BillingPlan } from './types';
-	import billingPlansJson from '$lib/data/billing-plans.json';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import type { components } from '$lib/api/schema';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { useModalActions } from '$lib/shared/components/layout/modalActionsContext.svelte';
+	import billingPlansJson from '#lib/data/billing-plans.json';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import type { components } from '#lib/api/schema';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { useModalActions } from '#lib/shared/components/layout/modalActionsContext.svelte.ts';
 	import {
 		billing_cardLoadError,
 		billing_invoice_addressIncomplete,
@@ -37,7 +41,7 @@
 		billing_payByCard,
 		common_cancel,
 		common_processing
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type InvoiceBillingMode = components['schemas']['InvoiceBillingMode'];
 

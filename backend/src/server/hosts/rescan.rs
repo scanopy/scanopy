@@ -10,7 +10,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Write};
 use crate::server::config::AppState;
 use crate::server::daemons::r#impl::api::DiscoveryUpdatePayload;
 use crate::server::daemons::r#impl::base::Daemon;
@@ -73,7 +73,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn rescan_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     Path(host_id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DiscoveryUpdatePayload>>> {
     let host = state
@@ -113,7 +113,7 @@ async fn rescan_host(
 )]
 async fn bulk_rescan_hosts(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<Vec<DiscoveryUpdatePayload>>>> {
     if ids.is_empty() {
@@ -136,7 +136,7 @@ async fn bulk_rescan_hosts(
 /// can be rescanned.
 async fn rescan(
     state: &Arc<AppState>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     hosts: Vec<Host>,
 ) -> Result<Vec<DiscoveryUpdatePayload>, ApiError> {
     let site_ids = auth.site_ids();

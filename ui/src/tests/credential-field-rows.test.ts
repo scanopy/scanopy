@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { fieldRows } from '$lib/features/credentials/utils/fieldRows';
-import credentialTypes from '$lib/data/credential-types.json';
+import { fieldRows } from '#lib/features/credentials/utils/fieldRows.ts';
+import credentialTypes from '#lib/data/credential-types.json';
 
 const field = (id: string, half_width = false) => ({ id, half_width });
 const ids = (rows: { id: string }[][]) => rows.map((row) => row.map((f) => f.id));

@@ -1,5 +1,6 @@
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::daemon::discovery::types::base::DiscoveryCriticalError;
+use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::services::r#impl::base::Service;
 use crate::server::services::r#impl::endpoints::{Endpoint, EndpointResponse};
 use anyhow::anyhow;
@@ -76,6 +77,11 @@ pub struct ScanConcurrencyController {
     last_degradation_ms: AtomicU64,
     /// Controller creation time for computing relative timestamps
     created_at: Instant,
+    /// Times the batch size was cut after FD exhaustion, over the controller's whole life.
+    reductions: AtomicUsize,
+    /// The smallest batch size it was cut to. Recovery raises `current_batch_size` again and
+    /// leaves this where it was.
+    lowest_batch_size: AtomicUsize,
 }
 
 impl ScanConcurrencyController {
@@ -88,6 +94,20 @@ impl ScanConcurrencyController {
             success_streak: AtomicUsize::new(0),
             last_degradation_ms: AtomicU64::new(0),
             created_at: Instant::now(),
+            reductions: AtomicUsize::new(0),
+            lowest_batch_size: AtomicUsize::new(initial_batch_size),
+        })
+    }
+
+    /// The warning for a port scan that ran out of file descriptors at any point, or `None` for
+    /// one that never did. A scan that recovered its batch size still lost the ports it was
+    /// probing when it ran out.
+    pub fn fd_exhaustion_warning(&self) -> Option<DiscoveryWarning> {
+        let reductions = self.reductions.load(Ordering::Relaxed);
+        (reductions > 0).then(|| DiscoveryWarning::PortScanDescriptorsExhausted {
+            reductions: u32::try_from(reductions).unwrap_or(u32::MAX),
+            lowest_batch_size: u32::try_from(self.lowest_batch_size.load(Ordering::Relaxed))
+                .unwrap_or(u32::MAX),
         })
     }
 
@@ -147,13 +167,10 @@ impl ScanConcurrencyController {
                     // Use max(1, now_ms) so we never store 0 (which means "never degraded")
                     self.last_degradation_ms
                         .store(now_ms.max(1), Ordering::Relaxed);
-
-                    tracing::warn!(
-                        previous_batch_size = current,
-                        new_batch_size = new_size,
-                        floor = PORT_SCAN_BATCH_MIN,
-                        "FD exhaustion detected, reducing batch size"
-                    );
+                    // Read back at the end of the run as `PortScanDescriptorsExhausted`.
+                    self.reductions.fetch_add(1, Ordering::Relaxed);
+                    self.lowest_batch_size
+                        .fetch_min(new_size, Ordering::Relaxed);
                     return;
                 }
                 Err(_) => {
@@ -317,14 +334,9 @@ where
 pub fn can_arp_scan(use_npcap: bool) -> bool {
     let available = crate::daemon::discovery::service::network::arp::is_available(use_npcap);
 
+    // The unavailable case is reported on the run as `ArpSweepUnavailable`, which logs itself.
     if available {
         tracing::info!("ARP scanning capability confirmed. Fast host discovery enabled.");
-    } else {
-        tracing::warn!(
-            "ARP scanning not available. Will fall back to TCP port scanning for host discovery. \
-             For MACVLAN deployments, ensure: (1) container has NET_RAW and NET_ADMIN capabilities, \
-             (2) network ip_address is properly configured with a MAC address."
-        );
     }
 
     available
@@ -759,8 +771,9 @@ pub async fn fetch_favicon_hashes(
 /// engine discovery / authentication" — and an operator with a mistyped password was sent to
 /// check whether the device was online.
 pub enum SnmpProbeOutcome {
-    /// Answered sysDescr on this port.
-    Answered(u16),
+    /// Answered sysDescr on this port, with the AES-256 key extension its session ended on
+    /// (`SnmpSession::key_extension`).
+    Answered(u16, Option<snmp2::v3::KeyExtension>),
     Failed(AttemptOutcome, String),
 }
 
@@ -792,6 +805,8 @@ pub async fn try_snmp_with_credential_on_port(
         credential,
         port,
         crate::daemon::discovery::integration::snmp::session::SnmpContext::Default,
+        // The first session to this host: nothing has said yet how it extends an AES-256 key.
+        None,
     )
     .await
     {
@@ -815,10 +830,11 @@ pub async fn try_snmp_with_credential_on_port(
         }
     };
 
+    let key_extension = session.key_extension();
     match timeout(Duration::from_millis(2000), session.get(&sys_descr_oid)).await {
         Ok(Ok(mut response)) => {
             if response.varbinds.next().is_some() {
-                SnmpProbeOutcome::Answered(port)
+                SnmpProbeOutcome::Answered(port, key_extension)
             } else {
                 SnmpProbeOutcome::Failed(
                     AttemptOutcome::NotThisService,
@@ -975,6 +991,35 @@ mod tests {
         let controller = ScanConcurrencyController::new(200);
         assert_eq!(controller.batch_size(), 200);
         assert!(!controller.is_degraded());
+    }
+
+    /// The warning outlives recovery: the ports probed while descriptors were exhausted got no
+    /// result whether or not the batch size later climbed back.
+    #[test]
+    fn a_port_scan_that_ran_out_of_descriptors_reports_it_after_recovering() {
+        let controller = ScanConcurrencyController::new(200);
+        controller.on_fd_exhaustion();
+        for _ in 0..(RECOVERY_THRESHOLD * 8) {
+            controller.on_success();
+        }
+        assert!(!controller.is_degraded());
+
+        assert_eq!(
+            controller.fd_exhaustion_warning(),
+            Some(DiscoveryWarning::PortScanDescriptorsExhausted {
+                reductions: 1,
+                lowest_batch_size: 100,
+            })
+        );
+    }
+
+    #[test]
+    fn a_port_scan_that_never_ran_out_of_descriptors_reports_nothing() {
+        let controller = ScanConcurrencyController::new(200);
+        for _ in 0..10 {
+            controller.on_success();
+        }
+        assert_eq!(controller.fd_exhaustion_warning(), None);
     }
 
     #[test]

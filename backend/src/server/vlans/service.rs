@@ -247,7 +247,8 @@ impl VlanService {
         // A VLAN reported again unchanged is not written above, so its Last seen would stay at
         // the scan that created it and the digest would call it stale while every scan still
         // reports it. ServerPoll processing has no `ScanContext`; the time of processing stands in.
-        let scan_time = scan_ctx.map_or_else(chrono::Utc::now, |ctx| ctx.scan_time);
+        let scan_time =
+            scan_ctx.map_or_else(crate::server::shared::clock::now, |ctx| ctx.scan_time);
         let ids: Vec<Uuid> = vlans.iter().map(|v| v.id).collect();
         self.refresh_observed(
             StorableFilter::<Vlan>::new_from_uuids_column("id", &ids),
@@ -266,7 +267,7 @@ impl VlanService {
     /// `scan_ctx` carries the per-submission `scan_time` (see `ScanContext`)
     /// and is used to stamp `valid_from` / `created_at` on freshly inserted
     /// rows so all VLANs in the same daemon submission share a consistent
-    /// SCD2 origination timestamp. When `None`, defaults to `Utc::now()` for
+    /// SCD2 origination timestamp. When `None`, defaults to `crate::server::shared::clock::now()` for
     /// each new row (legacy callers + tests).
     pub async fn upsert_from_discovery(
         &self,
@@ -286,7 +287,7 @@ impl VlanService {
         if let Some(existing) = self.storage.get_unique(filter).await?.at_most_one()? {
             let mut updated = existing.clone();
             if updated.base.name.apply_in_place(name) {
-                updated.updated_at = chrono::Utc::now();
+                updated.updated_at = crate::server::shared::clock::now();
                 if let Some(ctx) = scan_ctx {
                     updated.refresh_scan_timestamps(ctx.scan_time);
                 }

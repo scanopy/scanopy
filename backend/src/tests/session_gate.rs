@@ -9,13 +9,13 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::middleware::{self, Next};
 use axum::routing::{get, post};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{
     cloud_test_state, create_org, test_state_from, test_state_with_email_dir,
 };
-use super::user;
+use super::{access_on, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::session_gate::session_gate_middleware;
 use crate::server::auth::terms_gate::{TERMS_ACCEPTANCE_EFFECTIVE, acceptance_required};
@@ -31,7 +31,7 @@ fn session(user: &User) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: access_on(UserOrgPermissions::Owner, &[Uuid::new_v4()]),
         email: user.base.email.clone(),
         email_verified: true,
         terms_accepted_at: user.base.terms_accepted_at,
@@ -133,7 +133,7 @@ async fn a_user_who_accepted_earlier_terms_is_refused_until_they_accept_again() 
         user_id: stale.id,
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: access_on(UserOrgPermissions::Owner, &[Uuid::new_v4()]),
     };
     assert_eq!(
         status(addr, reqwest::Method::GET, "/api/v1/hosts").await.0,
@@ -157,7 +157,7 @@ async fn a_user_who_accepted_earlier_terms_is_refused_until_they_accept_again() 
         .await
         .unwrap();
     let accepted_at = accepted.base.terms_accepted_at.unwrap();
-    assert!(Utc::now() - accepted_at < Duration::minutes(1));
+    assert!(crate::server::shared::clock::now() - accepted_at < Duration::minutes(1));
     assert!(!acceptance_required(
         DeploymentType::Cloud,
         Some(&org.base.plan),
@@ -187,12 +187,7 @@ async fn a_self_hosted_server_enforcing_plan_limits_never_gates() {
 }
 
 /// A Scanopy Cloud server whose email transport writes into `dir`.
-async fn cloud_state_with_email(
-    dir: &tempfile::TempDir,
-) -> (
-    Arc<AppState>,
-    testcontainers::ContainerAsync<testcontainers::GenericImage>,
-) {
+async fn cloud_state_with_email(dir: &tempfile::TempDir) -> (Arc<AppState>, super::TestDb) {
     test_state_from(ServerConfig {
         stripe_secret: Some("sk_test_unused".to_string()),
         email_log_dir: Some(dir.path().to_path_buf()),

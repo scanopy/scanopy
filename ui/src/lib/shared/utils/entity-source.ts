@@ -4,9 +4,9 @@
  * fixture, so every entity list names a source the same way.
  */
 
-import type { components } from '$lib/api/schema';
-import type { CardFieldItem } from '$lib/shared/components/data/types';
-import { entitySources } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import type { CardFieldItem } from '#lib/shared/components/data/types.ts';
+import { entitySources } from '#lib/shared/stores/metadata.ts';
 
 type EntitySource = components['schemas']['EntitySource'];
 

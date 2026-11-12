@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { entityFreshness, neighborEvidenceFreshness } from '$lib/shared/utils/freshness';
-import type { Site } from '$lib/features/sites/types';
-import type { components } from '$lib/api/schema';
+import { entityFreshness, neighborEvidenceFreshness } from '#lib/shared/utils/freshness.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { components } from '#lib/api/schema';
 
 type EntitySource = components['schemas']['EntitySource'];
 

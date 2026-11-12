@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import warningCodes from '$lib/data/warning-codes.json';
-import warningRemedies from '$lib/data/warning-remedies.json';
-import discoveryIntegrations from '$lib/data/discovery-integrations.json';
-import claimSources from '$lib/data/claim-sources.json';
-import type { components } from '$lib/api/schema';
-import { snmpCheckOf, type CredentialLookup } from '$lib/features/discovery/utils/snmpCheck';
+import warningCodes from '#lib/data/warning-codes.json';
+import warningRemedies from '#lib/data/warning-remedies.json';
+import discoveryIntegrations from '#lib/data/discovery-integrations.json';
+import claimSources from '#lib/data/claim-sources.json';
+import type { components } from '#lib/api/schema';
+import { snmpCheckOf, type CredentialLookup } from '#lib/features/discovery/utils/snmpCheck.ts';
 import {
 	buildWarningReport,
 	credentialIdsOf,
 	type DiscoveryWarning,
 	type EntityNameLookup
-} from '$lib/features/discovery/utils/warnings';
+} from '#lib/features/discovery/utils/warnings.ts';
 
 type Credential = components['schemas']['Credential'];
 
@@ -75,7 +75,22 @@ describe('discovery warning rendering', () => {
 			last_unsupported_daemon_version: '0.18.2',
 			guest: 'gitlab',
 			node: 'pve',
-			bridge: 'vmbr1'
+			bridge: 'vmbr1',
+			vm: 'DockerDesktop',
+			seconds: 330,
+			addresses_swept: 131072,
+			subnet_addresses: 1048576,
+			cutoff: 15,
+			addresses_pinged: 131072,
+			cidrs_left_out: ['10.64.0.0/12'],
+			minutes: 25,
+			fd_limit: 1024,
+			concurrency: 3,
+			expected_concurrency: 38,
+			reductions: 2,
+			lowest_batch_size: 50,
+			filters: ['eth9'],
+			interfaces: ['lo', 'eth0']
 		}) as unknown as DiscoveryWarning;
 
 	/**
@@ -106,7 +121,7 @@ describe('discovery warning rendering', () => {
 			{ type: 'ParsesCredentialType' },
 			{
 				type: 'UsesSnmpV3SecurityOptions',
-				details: { options: ['NoAuthNoPriv', 'AuthNoPriv', 'Md5Auth'] }
+				details: { options: ['NoAuthNoPriv', 'AuthNoPriv', 'Md5Auth', 'DesPrivacy'] }
 			},
 			{ type: 'TargetsContainerBridgeWithCredentials', details: { addresses: ['172.17.0.3'] } }
 		];
@@ -118,6 +133,25 @@ describe('discovery warning rendering', () => {
 
 		expect(rendered).toHaveLength(gaps.length);
 		for (const sentence of rendered) expect(sentence).not.toMatch(/\{\w+\}/);
+	});
+
+	/**
+	 * A run recorded before daemons sent their OS carries only the family. The daemon's own
+	 * reported OS names it then, and the family is the last resort.
+	 */
+	it("names the daemon's own OS where the warning carries only its family", () => {
+		const mismatch = {
+			...sample('CredentialDaemonOsMismatch'),
+			actual_os: null
+		} as DiscoveryWarning;
+		const named = (os: 'linux' | null) =>
+			buildWarningReport([mismatch], undefined, { name: 'HQ Daemon', os })
+				.flatMap((section) => section.entries)
+				.flatMap((entry) => entry.details)
+				.map((statement) => statement.sentence)[0];
+
+		expect(named('linux')).toContain('HQ Daemon runs Linux,');
+		expect(named(null)).toContain('HQ Daemon runs Linux, macOS or BSD,');
 	});
 
 	it('renders every code the backend can send, with no slot left unfilled', () => {
@@ -141,6 +175,12 @@ describe('discovery warning rendering', () => {
 					'src/lib/features/discovery/utils/warnings.ts.'
 			);
 		}
+	});
+
+	it('names the desktop VM a daemon runs in by its product name', () => {
+		const [sentence] = sentences([sample('DaemonInDesktopVm')]);
+		expect(sentence).toContain('Docker Desktop');
+		expect(sentence).not.toContain('{vm}');
 	});
 
 	it('groups warnings sharing a code into one sentence, naming every address', () => {
@@ -295,6 +335,17 @@ describe('discovery warning rendering', () => {
 		// Historical sessions hold bare sentences, and they have to keep reading exactly as they
 		// did before warnings were coded.
 		expect(sentences([legacy])).toEqual(['Scan hit its time limit (4h) — 12 host(s) not scanned.']);
+	});
+
+	it('renders a code from a newer daemon as a sentence naming it, not as its JSON', () => {
+		const newer = {
+			code: 'Unknown',
+			detail: JSON.stringify({ code: 'SomethingNewer', address: '10.0.0.1' })
+		} as unknown as DiscoveryWarning;
+
+		const [sentence] = sentences([newer]);
+		expect(sentence).toContain('SomethingNewer');
+		expect(sentence).not.toContain('{');
 	});
 
 	it('files every code under a rung the remedy registry defines', () => {

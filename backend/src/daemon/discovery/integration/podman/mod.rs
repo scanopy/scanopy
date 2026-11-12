@@ -15,7 +15,6 @@ use async_trait::async_trait;
 use crate::server::credentials::r#impl::mapping::{
     CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::ports::r#impl::base::PortType;
 
 use super::container::{self, CONTAINER_SCAN_TIMEOUT, ContainerRuntime};
 use super::{
@@ -76,13 +75,6 @@ impl DiscoveryIntegration for PodmanIntegration {
     /// The container probe retries its connection internally, well past the default budget.
     fn probe_timeout(&self) -> Duration {
         CONTAINER_SCAN_TIMEOUT
-    }
-
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::PodmanProxy(podman) => vec![PortType::new_tcp(podman.port)],
-            _ => vec![],
-        }
     }
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {

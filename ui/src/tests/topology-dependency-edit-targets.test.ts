@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { components } from '$lib/api/schema';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import { resolveEditDependencyTargets } from '$lib/features/topology/resolvers';
+import type { components } from '#lib/api/schema';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import { resolveEditDependencyTargets } from '#lib/features/topology/resolvers.ts';
 
 /**
  * Editing a dependency listed and saved only its stored members, so a node added

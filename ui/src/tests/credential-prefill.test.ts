@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { closeModal, initModalFromUrl, modalState } from '$lib/shared/stores/modal-registry';
+import { closeModal, initModalFromUrl, modalState } from '#lib/shared/stores/modal-registry.ts';
 import {
 	openCredentialCreate,
 	prefillCredentialName,
 	prefillFor,
 	typesForIntegration
-} from '$lib/features/credentials/utils/prefill';
-import type { CredentialTypeMetadata } from '$lib/shared/stores/metadata';
-import { attachUrlState } from '$lib/shared/stores/url-state';
+} from '#lib/features/credentials/utils/prefill.ts';
+import type { CredentialTypeMetadata } from '#lib/shared/stores/metadata.ts';
+import { attachUrlState } from '#lib/shared/stores/url-state.ts';
 
 const type = (
 	id: string,

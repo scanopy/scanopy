@@ -136,7 +136,7 @@ pub enum Attribution {
     Organization,
 }
 
-/// Identity scope for org-only events: `BillingOperation`, `OnboardingOperation`,
+/// Identity scope for org-only events: `BillingOperation`, `SetupOperation`,
 /// `AnalyticsOperation`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct OrgScope {
@@ -328,7 +328,7 @@ impl<Op: Operation> Event<Op> {
             scope,
             operation,
             flags: Op::Flags::default(),
-            timestamp: Utc::now(),
+            timestamp: crate::server::shared::clock::now(),
             authentication,
             log,
         }
@@ -429,7 +429,7 @@ pub trait SubscriberFilter<Op: Operation>: Default + Clone + Send + Sync + 'stat
     fn matches(&self, event: &Event<Op>) -> bool;
 }
 
-/// Default filter — used by Billing, Onboarding, Analytics, Auth, Discovery.
+/// Default filter — used by Billing, Setup, Analytics, Auth, Discovery.
 /// Restrict to a set of operation discriminants, or match all when `None`.
 #[derive(Debug, Clone)]
 pub struct EventFilter<Op: Operation> {

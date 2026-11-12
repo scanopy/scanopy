@@ -8,8 +8,8 @@
  */
 
 import { get } from 'svelte/store';
-import { VERSION } from '$lib/version';
-import { modalState } from '$lib/shared/stores/modal-registry';
+import { VERSION } from '#lib/version.ts';
+import { modalState } from '#lib/shared/stores/modal-registry.ts';
 
 /**
  * The server version the last automatic reload was for. If the reloaded bundle still doesn't

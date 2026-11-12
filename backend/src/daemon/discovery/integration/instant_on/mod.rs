@@ -49,7 +49,7 @@ use crate::server::services::r#impl::patterns::{ClientProbe, ManagedDevice};
 use super::controller::{self, MappedClient};
 use super::{
     Checkpoint, CollectionShortfall, Completeness, DiscoveryIntegration, IntegrationContext,
-    IntegrationFailure, InterfaceSource, ProbeContext, ProbeFailure, ProbeSuccess,
+    IntegrationFailure, InterfaceSource, ProbeContext, ProbeFailure, ProbeSuccess, ShortfallCause,
 };
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
@@ -75,12 +75,6 @@ impl DiscoveryIntegration for InstantOnIntegration {
 
     fn timeout(&self) -> Duration {
         Duration::from_secs(180)
-    }
-
-    /// Empty, and not an oversight: there is no port on the target host to gate on, because the
-    /// request goes to HPE's cloud rather than to the host at all.
-    fn probe_gate_ports(&self, _credential: &CredentialQueryPayload) -> Vec<PortType> {
-        vec![]
     }
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
@@ -122,7 +116,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
             .and_then(|h| h.downcast_ref::<InstantOnProbeHandle>())
             .ok_or_else(|| Error::msg("Instant On execute ran without a probe handle"))?;
 
-        ctx.ops.report_progress(5).await.ok();
+        ctx.report_progress(5).await;
 
         let sites = self.sites_to_read(handle).await?;
         if sites.is_empty() {
@@ -180,7 +174,6 @@ impl DiscoveryIntegration for InstantOnIntegration {
                 Err(e) => {
                     // One unreadable site must not discard the sites that did read. Report it and
                     // let `Completeness::Partial` carry the shortfall.
-                    tracing::warn!(site = %instant_on_site_id, error = %e, "Could not read Instant On site");
                     ctx.ops
                         .record_attempt_failure(
                             ctx.credential.into(),
@@ -198,7 +191,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
             }
 
             let percent = 10 + ((index + 1) * 80 / site_count) as u8;
-            ctx.ops.report_progress(percent.min(90)).await.ok();
+            ctx.report_progress(percent.min(90)).await;
         }
 
         // Anchoring on a host the account does not manage is a configuration mistake that would
@@ -230,11 +223,13 @@ impl DiscoveryIntegration for InstantOnIntegration {
         if read == site_count {
             Ok(Completeness::Complete)
         } else {
-            Ok(Completeness::Partial(CollectionShortfall {
-                what: "sites",
-                collected: read,
-                expected: site_count,
-            }))
+            // Each unreadable site was reported above with its own error.
+            Ok(Completeness::Partial(CollectionShortfall::new(
+                "sites",
+                read,
+                site_count,
+                ShortfallCause::ReadFailed,
+            )))
         }
     }
 }
@@ -326,13 +321,6 @@ impl InstantOnIntegration {
             // total case as the integration doing nothing at all. Same failure mode the UniFi
             // integration hit when a rescan scoped the subnet list too narrowly.
             let skipped = devices.len() - mapped.len();
-            tracing::warn!(
-                site = %instant_on_site_id,
-                skipped,
-                total = devices.len(),
-                "Skipped Instant On devices with no IP in a known subnet — host identity is \
-                 IP-based, so they cannot be deduplicated across scans"
-            );
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),

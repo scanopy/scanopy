@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { ChevronDown, X } from '@lucide/svelte';
-	import { createIconComponent } from '$lib/shared/utils/styling';
-	import Popover from '$lib/shared/components/data/Popover.svelte';
+	import { createIconComponent } from '#lib/shared/utils/styling.ts';
+	import Popover from '#lib/shared/components/data/Popover.svelte';
 	import {
 		common_close,
 		common_none,
 		common_noIconsMatch,
 		common_searchPlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/**
 	 * Pick one icon from a list of lucide icon names, or none.

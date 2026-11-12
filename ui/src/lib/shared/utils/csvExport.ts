@@ -2,10 +2,10 @@
  * CSV Export utility for downloading filtered entity data
  */
 
-import { getServerUrl } from '$lib/api/client';
-import { pushError } from '$lib/shared/stores/feedback';
-import { common_csvExportUnsupported, common_exportFailed } from '$lib/paraglide/messages';
-import { entityToExportPath, type EntityDiscriminants } from '$lib/api/entities';
+import { getServerUrl } from '#lib/api/client.ts';
+import { pushError } from '#lib/shared/stores/feedback.ts';
+import { common_csvExportUnsupported, common_exportFailed } from '#lib/paraglide/messages.js';
+import { entityToExportPath, type EntityDiscriminants } from '#lib/api/entities.ts';
 
 /**
  * Parameters for CSV export - matches backend query parameters

@@ -21,12 +21,12 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { Discovery } from '$lib/features/discovery/types/base';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
-	import { runOutcomeTag } from '$lib/features/discovery/utils/outcome';
+	import type { Discovery } from '#lib/features/discovery/types/base.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import { runOutcomeTag } from '#lib/features/discovery/utils/outcome.ts';
 
 	interface Props {
 		item: Discovery;

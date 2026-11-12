@@ -26,7 +26,7 @@ impl Storable for UserApiKey {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -109,8 +109,8 @@ impl Storable for UserApiKey {
                 last_used: row.get("last_used"),
                 expires_at: row.get("expires_at"),
                 is_enabled: row.get("is_enabled"),
-                tags: Vec::new(),     // Hydrated from entity_tags junction table
-                site_ids: Vec::new(), // Hydrated separately from junction table
+                tags: Vec::new(), // Hydrated from entity_tags junction table
+                site_ids: Some(Vec::new()), // Hydrated from site_assignments
             },
         })
     }
@@ -160,18 +160,6 @@ impl Entity for UserApiKey {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // key hash cannot be changed via update (use rotate endpoint instead)
-        self.base.key = existing.base.key.clone();
-        // last_used is server-set only
-        self.base.last_used = existing.base.last_used;
-        // user_id and organization_id cannot be changed
-        self.base.user_id = existing.base.user_id;
-        self.base.organization_id = existing.base.organization_id;
-        self.created_at = existing.created_at;
-        self.id = existing.id;
     }
 
     fn get_tags(&self) -> Option<&Vec<Uuid>> {

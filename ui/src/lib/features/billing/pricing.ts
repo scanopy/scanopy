@@ -5,10 +5,10 @@
  * anything that quotes an amount reads it through here rather than off
  * `plan.base_cents`.
  */
-import { billingPlans } from '$lib/shared/stores/metadata';
-import { formatLongDate } from '$lib/shared/utils/formatting';
+import { billingPlans } from '#lib/shared/stores/metadata.ts';
+import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 import type { BillingRate } from './types';
-import type { Organization } from '$lib/features/organizations/types';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 export interface SaveOfferDiscount {
 	percentOff: number;

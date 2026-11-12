@@ -1,39 +1,39 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import StripeCardForm from '$lib/features/billing/StripeCardForm.svelte';
-	import InvoiceBillingForm from '$lib/features/billing/InvoiceBillingForm.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { formatLongDate } from '$lib/shared/utils/formatting';
-	import { trialChargeDate } from '$lib/shared/utils/trial';
-	import { useDelayedFlag } from '$lib/shared/utils/delayed-flag.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import StripeCardForm from '#lib/features/billing/StripeCardForm.svelte';
+	import InvoiceBillingForm from '#lib/features/billing/InvoiceBillingForm.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
+	import { trialChargeDate } from '#lib/shared/utils/trial.ts';
+	import { useDelayedFlag } from '#lib/shared/utils/delayed-flag.svelte.ts';
 	import {
 		clearSetupIntent,
 		paymentDialogPreload,
 		takeSetupIntent
-	} from '$lib/features/billing/stripe.svelte';
+	} from '#lib/features/billing/stripe.svelte.ts';
 	import {
 		useCheckoutMutation,
 		useCreateSetupIntentMutation,
 		useFinalizePaymentMethodMutation,
 		useWrittenOffInvoice
-	} from '$lib/features/billing/queries';
-	import type { BillingPlan } from '$lib/features/billing/types';
-	import type { components } from '$lib/api/schema';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPaidSubscriptionActive, isPlanLapsed } from '$lib/features/organizations/types';
-	import { modalState, closeModal, openModal } from '$lib/shared/stores/modal-registry';
-	import { billingOverModal, reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
+	} from '#lib/features/billing/queries.ts';
+	import type { BillingPlan } from '#lib/features/billing/types.ts';
+	import type { components } from '#lib/api/schema';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPaidSubscriptionActive, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { modalState, closeModal, openModal } from '#lib/shared/stores/modal-registry.ts';
+	import { billingOverModal, reopenSettingsTabAfterPayment } from '#lib/features/billing/stores.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
 	import {
 		apiFailure,
 		trackPaymentFormFailed,
 		type PaymentFormFailure,
 		type PaymentFormSource
-	} from '$lib/shared/billing/setup-payment';
+	} from '#lib/shared/billing/setup-payment.ts';
 	import {
 		common_save,
 		billing_addPaymentMethod,
@@ -46,7 +46,7 @@
 		billing_invoice_termsUnavailableSettled,
 		billing_notChargedUntilTrialEnds,
 		billing_invoice_payOutstanding
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type InvoiceBillingMode = components['schemas']['InvoiceBillingMode'];
 

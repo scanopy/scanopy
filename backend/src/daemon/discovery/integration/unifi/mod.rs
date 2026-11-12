@@ -82,13 +82,6 @@ impl DiscoveryIntegration for UnifiIntegration {
         Duration::from_secs(180)
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::UnifiController(c) => vec![PortType::new_tcp(c.port)],
-            _ => vec![],
-        }
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let CredentialQueryPayload::UnifiController(credential) = ctx.credential else {
             return Err(ProbeFailure::malformed("Not a UniFi credential"));
@@ -135,11 +128,11 @@ impl DiscoveryIntegration for UnifiIntegration {
             .and_then(|h| h.downcast_ref::<UnifiProbeHandle>())
             .ok_or_else(|| Error::msg("UniFi execute ran without a probe handle"))?;
 
-        ctx.ops.report_progress(10).await.ok();
+        ctx.report_progress(10).await;
 
         let devices: Vec<UnifiDevice> = handle.client.get_site("stat/device").await?.data;
         tracing::info!(ip = %ctx.ip, devices = devices.len(), "Fetched UniFi device inventory");
-        ctx.ops.report_progress(30).await.ok();
+        ctx.report_progress(30).await;
 
         // The controller's networks become the site's VLANs and subnets before any device is
         // placed, so a device on a VLAN the daemon has no interface on still lands on a subnet.
@@ -149,7 +142,7 @@ impl DiscoveryIntegration for UnifiIntegration {
             Some(config) => record_networks(ctx, site_id, &config.networks).await,
             None => Vec::new(),
         };
-        ctx.ops.report_progress(40).await.ok();
+        ctx.report_progress(40).await;
 
         let subnets = collect_subnets(ctx, host_data, &recorded);
         let mut mapped = mapping::map_devices(&devices, site_id, &subnets);
@@ -161,16 +154,9 @@ impl DiscoveryIntegration for UnifiIntegration {
             // Silent truncation would read as "the controller only manages these devices", and
             // in the total case as the integration doing nothing at all — which is how it
             // presented when a rescan scoped the subnet list too narrowly and dropped every
-            // switch. An `info!` line was not enough: nobody reads the daemon log to find out
-            // why something they configured produced no visible effect.
+            // switch. Reported on the run: nobody reads the daemon log to find out why something
+            // they configured produced no visible effect.
             let skipped = devices.len() - mapped.len();
-            tracing::warn!(
-                ip = %ctx.ip,
-                skipped,
-                total = devices.len(),
-                "Skipped UniFi devices with no address in a subnet this site holds — service \
-                 matching has no subnet to evaluate against for them"
-            );
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),
@@ -220,7 +206,7 @@ impl DiscoveryIntegration for UnifiIntegration {
             .await;
 
         tracing::info!(created, "UniFi device sync complete");
-        ctx.ops.report_progress(70).await.ok();
+        ctx.report_progress(70).await;
 
         // Clients: the devices the controller sees but has not adopted. Their names live nowhere
         // else — a phone or a server has no LLDP, and its DHCP hostname is frequently all there
@@ -251,7 +237,7 @@ impl DiscoveryIntegration for UnifiIntegration {
         };
 
         tracing::info!(created = created_clients, "UniFi client sync complete");
-        ctx.ops.report_progress(90).await.ok();
+        ctx.report_progress(90).await;
         // No checkpoint: each device is committed server-side by `create_device_host` as it is
         // reached, so UniFi's progress never depended on `host_data` surviving a drop. The only
         // thing in the scratch buffer is the controller's own enrichment, which is all-or-nothing
@@ -300,7 +286,6 @@ async fn fetch_network_config(
     let networks = match client.get_site::<UnifiNetwork>("rest/networkconf").await {
         Ok(envelope) => envelope.data,
         Err(e) => {
-            tracing::warn!(ip = %ctx.ip, error = %e, "Could not read UniFi networks");
             ctx.ops
                 .record_attempt_failure(
                     ctx.credential.into(),
@@ -365,7 +350,8 @@ async fn record_networks(
         match ctx.ops.upsert_vlans(items, site_id, ctx.cancel).await {
             Ok(ids) => ids,
             Err(e) => {
-                tracing::warn!(ip = %ctx.ip, error = %e, "Failed to record UniFi VLANs");
+                // The warning names the device; this keeps the error, which it does not carry.
+                tracing::debug!(ip = %ctx.ip, error = %e, "UniFi VLAN upsert failed");
                 ctx.ops.record_vlan_recording_failure(ctx.ip).await;
                 std::collections::HashMap::new()
             }

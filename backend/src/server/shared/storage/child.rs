@@ -1,14 +1,13 @@
 use std::{collections::HashMap, fmt::Display};
 
 use anyhow::Result;
-use chrono::Utc;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres};
 use uuid::Uuid;
 
 use super::{
     filter::StorableFilter,
     generic::GenericPostgresStorage,
-    lock::{DEFAULT_LOCK_TIMEOUT, LockKey},
+    lock::{DEFAULT_LOCK_TIMEOUT, LockKey, xact_lock},
     snapshot::Snapshotable,
     traits::{Storable, Storage},
 };
@@ -107,6 +106,7 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
         );
 
         let rows = sqlx::query(&query_str)
+            .persistent(false)
             .bind(parent_id)
             .fetch_all(&self.pool)
             .await?;
@@ -130,6 +130,7 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
         );
 
         let rows = sqlx::query(&query_str)
+            .persistent(false)
             .bind(parent_ids)
             .fetch_all(&self.pool)
             .await?;
@@ -173,6 +174,32 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
             .await
     }
 
+    /// [`Self::save_for_parent`] inside the caller's transaction, which holds the `JunctionSync`
+    /// lock until it commits or rolls back.
+    pub async fn save_for_parent_in_tx(
+        &self,
+        parent: &ParentRef,
+        rows: &[T],
+        tx: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> Result<Vec<T>> {
+        xact_lock(tx, parent.lock_key(), DEFAULT_LOCK_TIMEOUT).await?;
+        GenericPostgresStorage::<T>::delete_by_filter_in_tx(T::parent_filter(parent), tx).await?;
+        let mut saved = Vec::with_capacity(rows.len());
+        for row in rows {
+            saved.push(GenericPostgresStorage::<T>::create_with_executor(row, &mut **tx).await?);
+        }
+        Ok(saved)
+    }
+
+    /// Add `row` to `parent`'s set, keeping the rest, under the same lock a replace holds.
+    pub async fn add_for_parent(&self, parent: &ParentRef, row: &T) -> Result<T> {
+        let mut tx = self.inner.begin_transaction().await?;
+        tx.lock(parent.lock_key(), DEFAULT_LOCK_TIMEOUT).await?;
+        let saved = tx.create(row).await?;
+        tx.commit().await?;
+        Ok(saved)
+    }
+
     /// Delete every row of `parent`.
     pub async fn delete_for_parent(&self, parent: &ParentRef) -> Result<usize> {
         self.inner.delete_by_filter(T::parent_filter(parent)).await
@@ -200,7 +227,7 @@ impl<T: ChildStorableEntity + Snapshotable + Display> GenericChildStorage<T> {
         let wanted: std::collections::HashSet<Uuid> = member_ids.iter().copied().collect();
         let held: std::collections::HashSet<Uuid> = existing.iter().map(&member_of).collect();
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for row in existing
             .iter()
             .filter(|row| !wanted.contains(&member_of(row)))
@@ -224,7 +251,7 @@ impl<T: ChildStorableEntity + Snapshotable + Display> GenericChildStorage<T> {
         if rows.is_empty() {
             return Ok(0);
         }
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for row in rows.iter_mut() {
             row.set_valid_to(Some(now));
         }

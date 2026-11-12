@@ -308,7 +308,7 @@ pub(crate) mod tests {
     /// An org that has paid: a card on file, out of trial, and paid-through
     /// past the trial end. That is what air-gapped keys require.
     fn paid_org(plan: BillingPlan) -> Organization {
-        let trial_end = Utc::now() - Duration::days(1);
+        let trial_end = crate::server::shared::clock::now() - Duration::days(1);
         let mut org = org(plan, Some(trial_end + Duration::days(365)));
         org.base.has_payment_method = true;
         org.base.plan_status = Some(PlanStatus::Active);
@@ -321,7 +321,9 @@ pub(crate) mod tests {
         let issuer = test_issuer();
         let org = org(get_self_hosted_standard_plan(), None);
 
-        let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+        let key = issuer
+            .mint_online_key(&org, crate::server::shared::clock::now())
+            .unwrap();
         let claims = issuer.decode_online_key(&key).unwrap();
 
         assert_eq!(claims.org_id, org.id.to_string());
@@ -332,7 +334,7 @@ pub(crate) mod tests {
     fn online_key_is_the_same_string_for_one_issued_at() {
         let issuer = test_issuer();
         let mut org = org(get_self_hosted_standard_plan(), None);
-        let issued_at = Utc::now();
+        let issued_at = crate::server::shared::clock::now();
 
         // What "Copy key" does twice: same stamp, same version, same string.
         let first = issuer.mint_online_key(&org, issued_at).unwrap();
@@ -349,10 +351,12 @@ pub(crate) mod tests {
     #[test]
     fn entitlement_validates_with_plan_and_paid_through_expiry() {
         let issuer = test_issuer();
-        let paid_through = Utc::now() + Duration::days(30);
+        let paid_through = crate::server::shared::clock::now() + Duration::days(30);
         let org = org(get_self_hosted_standard_plan(), Some(paid_through));
 
-        let entitlement = issuer.mint_entitlement(&org, Utc::now()).unwrap();
+        let entitlement = issuer
+            .mint_entitlement(&org, crate::server::shared::clock::now())
+            .unwrap();
         let LicenseStatus::Valid(claims) =
             LicenseKey::new(entitlement).validate_with(&test_decoding_key())
         else {
@@ -379,7 +383,7 @@ pub(crate) mod tests {
         let mut trialing = paid_org(plan);
         trialing.base.plan_status = Some(PlanStatus::Trialing);
         assert!(matches!(
-            issuer.mint_offline_key(&trialing, Utc::now(), None),
+            issuer.mint_offline_key(&trialing, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
@@ -387,7 +391,7 @@ pub(crate) mod tests {
         let mut no_card = paid_org(plan);
         no_card.base.has_payment_method = false;
         assert!(matches!(
-            issuer.mint_offline_key(&no_card, Utc::now(), None),
+            issuer.mint_offline_key(&no_card, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
@@ -395,13 +399,13 @@ pub(crate) mod tests {
         let mut unconverted = paid_org(plan);
         unconverted.base.license_paid_through = unconverted.base.trial_end_date;
         assert!(matches!(
-            issuer.mint_offline_key(&unconverted, Utc::now(), None),
+            issuer.mint_offline_key(&unconverted, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
         assert!(
             issuer
-                .mint_offline_key(&paid_org(plan), Utc::now(), None)
+                .mint_offline_key(&paid_org(plan), crate::server::shared::clock::now(), None)
                 .is_ok()
         );
     }
@@ -410,7 +414,7 @@ pub(crate) mod tests {
     fn offline_key_covers_only_the_paid_period_while_an_invoice_is_open() {
         let issuer = test_issuer();
         let plan = get_self_hosted_plus_plan();
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // First invoice after the trial is issued but unpaid: its provisional
         // date sits past the trial end, but nothing has been paid.
@@ -447,12 +451,14 @@ pub(crate) mod tests {
 
         let standard = paid_org(get_self_hosted_standard_plan());
         assert!(matches!(
-            issuer.mint_offline_key(&standard, Utc::now(), None),
+            issuer.mint_offline_key(&standard, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineNotIncluded)
         ));
 
         let plus = paid_org(get_self_hosted_plus_plan());
-        let key = issuer.mint_offline_key(&plus, Utc::now(), None).unwrap();
+        let key = issuer
+            .mint_offline_key(&plus, crate::server::shared::clock::now(), None)
+            .unwrap();
         let LicenseStatus::Valid(claims) = LicenseKey::new(key).validate_with(&test_decoding_key())
         else {
             panic!("offline key should validate");
@@ -463,20 +469,27 @@ pub(crate) mod tests {
     #[test]
     fn keys_refused_for_plans_without_a_license() {
         let issuer = test_issuer();
-        let cloud = org(get_enterprise_plan(), Some(Utc::now()));
+        let cloud = org(
+            get_enterprise_plan(),
+            Some(crate::server::shared::clock::now()),
+        );
 
         assert!(matches!(
-            issuer.mint_online_key(&cloud, Utc::now()),
+            issuer.mint_online_key(&cloud, crate::server::shared::clock::now()),
             Err(MintError::NotLicensed)
         ));
         assert!(matches!(
-            issuer.mint_entitlement(&cloud, Utc::now()),
+            issuer.mint_entitlement(&cloud, crate::server::shared::clock::now()),
             Err(MintError::NotLicensed)
         ));
         // Enterprise includes air-gapped deployment, and an org that moved
         // here from a license plan keeps its paid-through date. Still no key.
         assert!(matches!(
-            issuer.mint_offline_key(&paid_org(get_enterprise_plan()), Utc::now(), None),
+            issuer.mint_offline_key(
+                &paid_org(get_enterprise_plan()),
+                crate::server::shared::clock::now(),
+                None
+            ),
             Err(MintError::NotLicensed)
         ));
     }
@@ -487,7 +500,7 @@ pub(crate) mod tests {
         let org = org(get_self_hosted_plus_plan(), None);
 
         assert!(matches!(
-            issuer.mint_entitlement(&org, Utc::now()),
+            issuer.mint_entitlement(&org, crate::server::shared::clock::now()),
             Err(MintError::NoPaidThrough)
         ));
     }
@@ -503,13 +516,16 @@ pub(crate) mod tests {
 
         // Signed by the test key, verified against the production public key.
         let org = org(get_self_hosted_standard_plan(), None);
-        let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+        let key = issuer
+            .mint_online_key(&org, crate::server::shared::clock::now())
+            .unwrap();
         assert!(matches!(
             decode_online_key(&key, &test_keys::production_decoding_key()),
             Err(OnlineKeyError::Invalid(_))
         ));
 
-        let mut claims = online_key_claims(Utc::now(), org.id.to_string(), 0);
+        let mut claims =
+            online_key_claims(crate::server::shared::clock::now(), org.id.to_string(), 0);
         claims.sub = LICENSE_SUBJECT.to_string();
         let wrong_subject = sign_online_key(
             &claims,

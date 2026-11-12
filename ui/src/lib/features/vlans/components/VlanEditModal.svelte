@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
+	import TextArea from '#lib/shared/components/forms/input/TextArea.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import type { Vlan } from '../types/base';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_tags,
 		common_cancel,
@@ -22,7 +22,7 @@
 		common_update,
 		vlans_descriptionPlaceholder,
 		vlans_vlanTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		vlan = null,

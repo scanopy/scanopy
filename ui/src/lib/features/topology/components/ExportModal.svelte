@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import { toPng, toSvg } from 'html-to-image';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import {
@@ -14,13 +14,13 @@
 		Sun,
 		Moon
 	} from '@lucide/svelte';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
 	import { activeView, hiddenEdgeTypes } from '../queries';
 	import type { RenderableTopology } from '../types/base';
 	import { escapeXml } from '../diagram-export/xml';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans, containerTypes, views } from '$lib/shared/stores/metadata';
-	import { EXTERNAL_TITLE_OFFSET } from './visualization/ContainerHeader.svelte';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans, containerTypes, views } from '#lib/shared/stores/metadata.ts';
+	import { EXTERNAL_TITLE_OFFSET } from '../container-render-data';
 	import { isExporting } from '../interactions';
 	import {
 		topology_createdUsing,
@@ -49,23 +49,23 @@
 		topology_exportIncludeHeader,
 		topology_flowNotFound,
 		topology_noNodesToExport
-	} from '$lib/paraglide/messages';
-	import { getResolvedTheme } from '$lib/shared/stores/theme.svelte';
-	import { common_light, common_dark, common_export } from '$lib/paraglide/messages';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { downloadTopologyExport } from '$lib/shared/utils/csvExport';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { closeModal } from '$lib/shared/stores/modal-registry';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
-	import type { UpgradeFeature } from '$lib/shared/stores/metadata';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	} from '#lib/paraglide/messages.js';
+	import { getResolvedTheme } from '#lib/shared/stores/theme.svelte.ts';
+	import { common_light, common_dark, common_export } from '#lib/paraglide/messages.js';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { downloadTopologyExport } from '#lib/shared/utils/csvExport.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { closeModal } from '#lib/shared/stores/modal-registry.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { upgradeTagProps } from '#lib/features/billing/upgrade-tag.ts';
+	import type { UpgradeFeature } from '#lib/shared/stores/metadata.ts';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import type { ExportFeatures } from '$lib/features/shares/types/base';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import type { ExportFeatures } from '#lib/features/shares/types/base.ts';
 
 	// Same fallback used by LogoIcon.svelte when a logo fails to load
 	const LOGO_FALLBACK =
@@ -737,7 +737,7 @@
 
 	async function handleDiagramExport(format: 'drawio' | 'vsdx') {
 		await withExportCapture(
-			async ({ flowElement }) => {
+			async () => {
 				try {
 					const { buildDiagramExport } = await import('../diagram-export');
 					const blob = await buildDiagramExport({
@@ -746,7 +746,6 @@
 						nodes: getNodes(),
 						edges: getEdges(),
 						getInternalNode,
-						flowElement,
 						topology,
 						hiddenEdgeTypes: $hiddenEdgeTypes,
 						theme: exportTheme,

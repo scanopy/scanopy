@@ -1,28 +1,23 @@
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { entitySources } from '$lib/shared/stores/metadata';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
-import { tagNames } from '$lib/features/tags/columns';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import type { Site } from '$lib/features/sites/types';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { entitySources } from '#lib/shared/stores/metadata.ts';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
 import type { Vlan, VlanOrderField } from '../types/base';
-import type { operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import type { operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import {
-	common_created,
-	common_firstFoundBy,
-	common_lastFoundBy,
-	common_lastSeen,
 	common_site,
 	common_source,
 	common_tags,
 	common_unknownSite,
-	common_updated,
 	vlans_vlanNumber
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /** What the VLAN columns read from the tab, each as a getter so values stay live. */
 export interface VlanColumnsContext {
@@ -91,14 +86,13 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 				}
 			},
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				// Identity-like: one header per timestamp.
 				groupable: false,
 				display: { recency: true }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } }
 		},
 		[
 			{ key: 'description', searchable: true },
@@ -114,7 +108,6 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 			{ key: 'interface_ids' },
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -123,7 +116,6 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

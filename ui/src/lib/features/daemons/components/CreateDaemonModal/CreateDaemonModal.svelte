@@ -2,17 +2,17 @@
 	import { untrack, tick } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import { validateForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
-	import { common_failedToCopy } from '$lib/paraglide/messages';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
+	import { common_failedToCopy } from '#lib/paraglide/messages.js';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		Settings,
 		Terminal,
@@ -34,8 +34,8 @@
 		useProvisionEligibilityQuery,
 		type InstallCommandParams
 	} from '../../queries';
-	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { useTestReachabilityMutation } from '../../queries';
 	import { getVisibleFieldIds } from '../../config';
 	import {
@@ -46,28 +46,32 @@
 		slugifySiteName,
 		type DaemonOS
 	} from '../../utils';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
 	import AdvancedStep from './steps/AdvancedStep.svelte';
+	import ProvisionRefusedNotice from './ProvisionRefusedNotice.svelte';
 	import CredentialsStep, {
 		type PendingCredential
-	} from '$lib/features/credentials/components/CredentialsStep.svelte';
+	} from '#lib/features/credentials/components/CredentialsStep.svelte';
 	import {
 		isDaemonHostOnly as isDaemonHostOnlyTargets,
 		type Credential,
 		type IntegrationTarget
-	} from '$lib/features/credentials/types/base';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	} from '#lib/features/credentials/types/base.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
 	import {
 		integrationTargetFor,
 		isLockedOnly,
 		junctionHostIds,
 		junctionHostsOnSite
-	} from '$lib/features/credentials/utils/credentialTargets';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useDiscoveriesQuery, useUpdateDiscoveryMutation } from '$lib/features/discovery/queries';
+	} from '#lib/features/credentials/utils/credentialTargets.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import {
+		useDiscoveriesQuery,
+		useUpdateDiscoveryMutation
+	} from '#lib/features/discovery/queries.ts';
 	import {
 		common_close,
 		common_configure,
@@ -90,24 +94,20 @@
 		daemons_installCopiedToastWindows,
 		daemons_installBackToInstall,
 		daemons_installReturnToCommands,
-		daemons_testingConnectionTo,
-		daemons_verifyEmailForMoreDaemons,
-		daemons_planRequiredForMoreDaemons,
-		billing_lapsedBannerCta
-	} from '$lib/paraglide/messages';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import EmailVerificationNotice from '$lib/features/auth/components/EmailVerificationNotice.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+		daemons_testingConnectionTo
+	} from '#lib/paraglide/messages.js';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		isOpen?: boolean;
 		onClose: () => void;
 		onNavigate?: (tab: string) => void;
 		name?: string;
+		/** The site the wizard opens on, as when Home asks for a daemon on a site with none. */
+		siteId?: string | null;
 	}
 
-	let { isOpen = false, onClose, onNavigate, name = undefined }: Props = $props();
+	let { isOpen = false, onClose, onNavigate, name = undefined, siteId = null }: Props = $props();
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
@@ -117,7 +117,7 @@
 	// Derived data
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let org = $derived(organizationQuery.data);
-	let isFirstDaemon = $derived(!org?.onboarding?.includes('FirstDaemonRegistered'));
+	let isFirstDaemon = $derived(!org?.daemon_connected);
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
 	// Prevents reactivity from flipping showWaitingUI when FirstDaemonRegistered appears.
 	let startedAsFirstDaemon = $state(false);
@@ -230,9 +230,9 @@
 	const provisionEligibilityQuery = useProvisionEligibilityQuery({
 		enabled: () => isOpen && !provisionedDaemonId
 	});
-	let provisionNeedsPlan = $derived(provisionEligibilityQuery.data?.plan_required ?? false);
-	let provisionNeedsVerification = $derived(
-		provisionEligibilityQuery.data?.email_verification_required ?? false
+	let provisionRefused = $derived(
+		!!provisionEligibilityQuery.data?.plan_required ||
+			!!provisionEligibilityQuery.data?.email_verification_required
 	);
 
 	// Daemon identity (name + site) is frozen once Configure is left, so credentials — which
@@ -527,7 +527,7 @@
 	async function handleNext() {
 		if (activeTab === 'configure') {
 			// Provisioning would be refused; the notice above the form says why.
-			if (provisionNeedsPlan || provisionNeedsVerification) return;
+			if (provisionRefused) return;
 			const fields = getVisibleFieldIds(formValues);
 			const isValid = await validateForm(form, fields);
 
@@ -748,6 +748,7 @@
 		serverPollReachabilityResult = null;
 		configureCommitted = false;
 		hasCopied = false;
+		if (siteId) selectedSiteId = siteId;
 	}
 
 	let colorHelper = entities.getColorHelper('Daemon');
@@ -822,7 +823,7 @@
 							})
 						: common_next(),
 					onClick: handleNext,
-					disabled: isTestingReachability || provisionNeedsPlan || provisionNeedsVerification,
+					disabled: isTestingReachability || provisionRefused,
 					large: true,
 					busy: isTestingReachability
 				}
@@ -903,46 +904,31 @@
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
 				{#key activeTab}
 					{#if activeTab === 'configure'}
-						{#if provisionNeedsPlan}
-							<div class="mb-4">
-								<InlineWarning title="" body={daemons_planRequiredForMoreDaemons()}>
-									<button
-										type="button"
-										class="text-sm text-link hover:underline"
-										onclick={() =>
-											triggerUpgrade({
-												source: 'create_daemon_plan_required',
-												surface: 'sidebar',
-												gate_type: 'limit_hit',
-												beforeModal: () => onClose()
-											})}
-									>
-										{billing_lapsedBannerCta()}
-									</button>
-								</InlineWarning>
-							</div>
-						{:else if provisionNeedsVerification}
-							<div class="mb-4">
-								<EmailVerificationNotice body={daemons_verifyEmailForMoreDaemons()} />
-							</div>
+						{#if provisionRefused && provisionEligibilityQuery.data}
+							<!-- The configure fields stay hidden: none of the options uses them. -->
+							<ProvisionRefusedNotice
+								eligibility={provisionEligibilityQuery.data}
+								onClose={() => onClose()}
+							/>
+						{:else}
+							<ConfigureStep
+								{form}
+								{selectedOS}
+								onOsSelect={handleOsSelect}
+								osLocked={credentialIds.length > 0}
+								{formValues}
+								{selectedSiteId}
+								onSiteChange={(id) => (selectedSiteId = id)}
+								onNameInput={() => (nameManuallyEdited = true)}
+								identityLocked={configureCommitted}
+								{isFirstDaemon}
+								onReachabilityChange={(r) => {
+									serverPollReachable = r;
+									if (r === null) serverPollReachabilityResult = null;
+								}}
+								bind:reachabilityResult={serverPollReachabilityResult}
+							/>
 						{/if}
-						<ConfigureStep
-							{form}
-							{selectedOS}
-							onOsSelect={handleOsSelect}
-							osLocked={credentialIds.length > 0}
-							{formValues}
-							{selectedSiteId}
-							onSiteChange={(id) => (selectedSiteId = id)}
-							onNameInput={() => (nameManuallyEdited = true)}
-							identityLocked={configureCommitted}
-							{isFirstDaemon}
-							onReachabilityChange={(r) => {
-								serverPollReachable = r;
-								if (r === null) serverPollReachabilityResult = null;
-							}}
-							bind:reachabilityResult={serverPollReachabilityResult}
-						/>
 					{:else if activeTab === 'install' && currentInstallCommand}
 						<InstallStep
 							{selectedOS}

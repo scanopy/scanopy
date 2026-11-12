@@ -13,7 +13,7 @@
  */
 
 import { mount, unmount, type Component } from 'svelte';
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 export type CardGlyph =
 	| { type: 'mask'; key: string; svg: string; css: string }
@@ -95,9 +95,4 @@ export function cardGlyph(key: string, Icon: IconComponent): CardGlyph {
 	unmount(instance);
 	glyphs.set(key, glyph);
 	return glyph;
-}
-
-/** A glyph already drawn on a card, by the key on its `data-glyph`, for the diagram exports. */
-export function knownCardGlyph(key: string): CardGlyph | undefined {
-	return glyphs.get(key);
 }

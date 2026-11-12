@@ -1,9 +1,9 @@
 <script lang="ts">
 	import posthog from 'posthog-js';
-	import { dev } from '$app/environment';
+	import { dev } from '$app/env';
 	import { type CookiePreferences, COOKIE_NAME, getGdprPreferences } from './CookieConsent.svelte';
-	import { applyAttributionToPosthog } from '$lib/shared/utils/first-touch';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import { applyAttributionToPosthog } from '#lib/shared/utils/first-touch.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
 	import {
 		common_analytics,
 		common_marketing,
@@ -16,7 +16,7 @@
 		cookies_preferencesDesc,
 		cookies_rejectAll,
 		cookies_savePreferences
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { onSave, hidden = false }: { onSave?: () => void; hidden?: boolean } = $props();
 

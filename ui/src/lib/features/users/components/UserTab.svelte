@@ -1,41 +1,41 @@
 <script lang="ts">
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { userColumns } from './UserTab.columns';
 	import { Edit, UserX, Trash2 } from '@lucide/svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '#lib/shared/components/data/types.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import {
 		formatInviteUrl,
 		useBulkRevokeInvitesMutation,
 		useRevokeInviteMutation
-	} from '$lib/features/organizations/queries';
+	} from '#lib/features/organizations/queries.ts';
 	import { isUser, type User, type UserOrInvite } from '../types';
-	import type { OrganizationInvite } from '$lib/features/organizations/types';
+	import type { OrganizationInvite } from '#lib/features/organizations/types.ts';
 	import InviteModal from './InviteModal.svelte';
-	import { metadata, permissions } from '$lib/shared/stores/metadata';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { metadata, permissions } from '#lib/shared/stores/metadata.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import UserEditModal from './UserEditModal.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
 	import {
 		useMembersQuery,
 		useMembersListQuery,
 		useBulkDeleteUsersMutation,
 		useDeleteUserMutation
 	} from '../queries';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import type { components } from '$lib/api/schema';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import type { components } from '#lib/api/schema';
 
 	type MemberOrderField = components['schemas']['MemberOrderField'];
-	import type { TabProps } from '$lib/shared/types';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_edit,
 		common_confirmBulkDelete,
@@ -55,9 +55,12 @@
 		users_cantDeleteSelfBulk,
 		users_cantDeleteUngrantable,
 		users_cantDeleteUngrantableBulk
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { useCan } from '#lib/features/auth/access.ts';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Query
 	const currentUserQuery = useCurrentUserQuery();
@@ -130,12 +133,7 @@
 	}
 
 	// Check if user can invite
-	let canInviteUsers = $derived(
-		!isReadOnly && currentUser
-			? (permissions.getMetadata(currentUser.permissions)?.grantable_user_permissions?.length ??
-					0) > 0
-			: false
-	);
+	let canInviteUsers = $derived(can('Member', 'Write'));
 
 	async function handleBulkDelete(ids: string[]) {
 		if (confirm(common_confirmBulkDelete({ count: ids.length, entity: common_users() }))) {
@@ -232,9 +230,9 @@
 	}
 
 	/** Row actions. A user is edited or deleted; an invite is revoked. */
-	function userActions(item: UserOrInvite): CardAction[] {
+	function userActions(item: UserOrInvite): RowAction[] {
 		if (isUser(item)) {
-			const actions: CardAction[] = [
+			const actions: RowAction[] = [
 				{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditUser(item.data) }
 			];
 			if (managesUsers) {

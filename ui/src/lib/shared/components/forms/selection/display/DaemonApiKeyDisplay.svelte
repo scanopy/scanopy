@@ -18,18 +18,18 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { DaemonApiKey } from '$lib/features/daemon_api_keys/types/base';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { formatRelativeTime } from '$lib/shared/utils/formatting';
+	import type { DaemonApiKey } from '#lib/features/daemon_api_keys/types/base.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { formatRelativeTime } from '#lib/shared/utils/formatting.ts';
 	import {
 		common_disabled,
 		common_enabled,
 		common_lastUsedAgo,
 		common_neverUsed
-	} from '$lib/paraglide/messages';
-	import { toColor } from '$lib/shared/utils/styling';
+	} from '#lib/paraglide/messages.js';
+	import { toColor } from '#lib/shared/utils/styling.ts';
 
 	interface Props {
 		item: DaemonApiKey;

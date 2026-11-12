@@ -24,6 +24,15 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Organizations whose plan is in the given billing state.
+    pub fn plan_status(mut self, status: PlanStatus) -> Self {
+        let col = self.qualify_column("plan_status");
+        self.conditions
+            .push(format!("{} = ${}", col, self.values.len() + 1));
+        self.values.push(SqlValue::String(status.to_string()));
+        self
+    }
+
     /// Organizations whose licence is paid through a date inside the window
     /// `[after, before)`. Rows with no paid-through date are excluded, since
     /// nothing about them is expiring.

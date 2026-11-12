@@ -2,7 +2,7 @@
 //! and accept a quote, and keep the PO number current. Every endpoint reads
 //! and writes only the caller's own Stripe customer.
 
-use crate::server::auth::middleware::permissions::{Authorized, Owner};
+use crate::server::auth::middleware::permissions::{Authorized, Billing, Can, Read, Write};
 use crate::server::billing::types::api::{
     InvoiceBillingRequest, InvoiceBillingStatus, UpdatePoNumberRequest,
 };
@@ -47,7 +47,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn set_up_invoice_billing(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<InvoiceBillingRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
@@ -87,7 +87,7 @@ async fn set_up_invoice_billing(
 )]
 async fn get_invoice_billing_status(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Read>>,
 ) -> ApiResult<Json<ApiResponse<InvoiceBillingStatus>>> {
     let organization_id = auth
         .organization_id()
@@ -117,7 +117,7 @@ async fn get_invoice_billing_status(
 )]
 async fn cancel_quote(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth
         .organization_id()
@@ -149,7 +149,7 @@ async fn cancel_quote(
 )]
 async fn accept_quote(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -177,7 +177,7 @@ async fn accept_quote(
 )]
 async fn download_quote_pdf(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Read>>,
 ) -> ApiResult<impl IntoResponse> {
     let organization_id = auth
         .organization_id()
@@ -219,7 +219,7 @@ async fn download_quote_pdf(
 )]
 async fn update_po_number(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Billing, Write>>,
     ApiJson(request): ApiJson<UpdatePoNumberRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth

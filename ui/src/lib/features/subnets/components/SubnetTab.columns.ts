@@ -2,37 +2,31 @@ import type { Snippet } from 'svelte';
 import { utilizationRatio } from '../nesting';
 import { isUserManagedSubnet } from '../queries';
 import type { Subnet, SubnetResponse } from '../types/base';
-import { entityRef } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { tagNames } from '$lib/features/tags/columns';
-import { siteItems } from '$lib/features/sites/columns';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import type { Service } from '$lib/features/services/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
-import type { components, operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
+import type { components, operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
 import {
 	common_nested,
-	common_created,
-	common_lastSeen,
 	common_site,
 	common_source,
-	common_firstFoundBy,
-	common_lastFoundBy,
 	common_tags,
 	common_unknownSite,
 	common_unknownEntity,
-	common_updated,
-	subnets_allSites,
+	common_allSites,
 	subnets_managedBy,
-	subnets_subnetType,
-	common_utilization
-} from '$lib/paraglide/messages';
-import { concepts, entities, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
+	subnets_subnetType
+} from '#lib/paraglide/messages.js';
+import { concepts, entities, entitySources, subnetTypes } from '#lib/shared/stores/metadata.ts';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
 
 type SubnetOrderField = components['schemas']['SubnetOrderField'];
 /** The subnet list endpoint's query params, which the filters are sent and linked as. */
@@ -134,7 +128,7 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 				getValue: (item) =>
 					isUserManagedSubnet(item)
 						? ctx.sites().find((n) => n.id == item.site_id)?.name || common_unknownSite()
-						: subnets_allSites(),
+						: common_allSites(),
 				display: {
 					order: 2,
 					getItems: (item) =>
@@ -143,26 +137,23 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 							: [
 									{
 										id: item.site_id,
-										label: subnets_allSites(),
+										label: common_allSites(),
 										color: entities.getColorHelper('Site').color
 									}
 								]
 				}
 			},
 			created_at: {
-				label: common_created(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				// Identity-like: one header per timestamp.
 				groupable: false,
@@ -173,7 +164,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 				}
 			},
 			utilization: {
-				label: common_utilization(),
 				type: 'string',
 				// Ordered by the server, which derives it across the whole site; a share per row
 				// would group into a header per value.
@@ -235,7 +225,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -244,7 +233,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

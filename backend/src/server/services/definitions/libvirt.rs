@@ -3,7 +3,7 @@ use crate::server::services::definitions::{ServiceDefinitionFactory, create_serv
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::services::r#impl::definitions::DeviceTypeImplication;
 use crate::server::services::r#impl::definitions::ServiceDefinition;
-use crate::server::services::r#impl::patterns::Pattern;
+use crate::server::services::r#impl::patterns::{ClientProbe, Pattern};
 use crate::server::shared::logos::Logo;
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
@@ -23,12 +23,14 @@ impl ServiceDefinition for Libvirt {
         DeviceTypeImplication::Is(DeviceType::Hypervisor)
     }
 
-    /// Assigned by hand until the libvirt integration lands with `ClientResponse(ClientProbe::Libvirt)`.
+    /// `virsh` answering over SSH with the libvirt credential's connection, which is also what
+    /// lets the libvirt integration run on the host (`execute_integrations` requires this service
+    /// to be matched first). A person can still add it by hand to a host with no credential.
     ///
     /// libvirtd's TCP (16509) and TLS (16514) listeners are off by default, and a listener on
     /// either port alone is the bare-port evidence `proxmox.rs` dropped.
     fn discovery_pattern(&self) -> Pattern<'_> {
-        Pattern::None
+        Pattern::ClientResponse(ClientProbe::Libvirt)
     }
 
     fn logo(&self) -> Option<Logo> {

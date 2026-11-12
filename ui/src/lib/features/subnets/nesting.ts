@@ -5,9 +5,9 @@
  * one source and nothing to disagree. A parent missing from `subnets` (filtered out, or a synthetic
  * row the list hides) leaves its child at the top.
  */
-import type { CardFieldItem } from '$lib/shared/components/data/types';
-import { isProvisionalCidr } from '$lib/shared/utils/cidr-source';
-import { subnets_containsCount, subnets_containsDetail } from '$lib/paraglide/messages';
+import type { CardFieldItem } from '#lib/shared/components/data/types.ts';
+import { isProvisionalCidr } from '#lib/shared/utils/cidr-source.ts';
+import { subnets_containsCount, subnets_containsDetail } from '#lib/paraglide/messages.js';
 import type { SubnetResponse } from './types/base';
 
 /** Share of a subnet's usable addresses in use, 0 to 1. */

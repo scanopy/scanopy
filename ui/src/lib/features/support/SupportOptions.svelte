@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Bug, BookOpen, Mail, MessageCircle } from '@lucide/svelte';
-	import { logoPath } from '$lib/shared/utils/logos';
-	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { supportEmailAddress } from './support';
+	import { logoPath } from '#lib/shared/utils/logos.ts';
+	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { BUG_REPORT_URL, supportEmailAddress } from './support';
 	import {
 		common_email,
 		support_discordDesc,
@@ -13,7 +13,7 @@
 		support_reportBug,
 		support_reportBugDesc,
 		support_userGuide
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type SupportOption = {
 		title: string;
@@ -51,7 +51,7 @@
 				{
 					title: support_reportBug(),
 					description: support_reportBugDesc(),
-					url: 'https://github.com/scanopy/scanopy/issues/new?template=bug_report.md',
+					url: BUG_REPORT_URL,
 					color: 'Red',
 					icon: Bug
 				}

@@ -1,14 +1,20 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
 	import { AlertTriangle } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useHasPendingQuote } from '$lib/features/billing/queries';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useHasPendingQuote } from '#lib/features/billing/queries.ts';
+	import { useExtendTrial } from '#lib/features/billing/extend-trial.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import {
+		canExtendTrial,
+		getTrialDaysLeft,
+		isTrialingWithoutPayment
+	} from '#lib/shared/utils/trial.ts';
+	import { hasLicensedPlan } from '#lib/features/organizations/types.ts';
+	import { trackOncePerSession } from '#lib/shared/utils/analytics.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		billing_addPaymentMethod,
 		billing_trialBannerBody,
@@ -16,11 +22,14 @@
 		billing_trialBannerBodyToday,
 		billing_trialBannerBodyLicense,
 		billing_trialBannerBodyLicenseOneDay,
-		billing_trialBannerBodyLicenseToday
-	} from '$lib/paraglide/messages';
+		billing_trialBannerBodyLicenseToday,
+		billing_trialBannerExtend
+	} from '#lib/paraglide/messages.js';
 
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
+	const can = useCan();
+	const extendTrial = useExtendTrial();
 
 	let org = $derived(organizationQuery.data);
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
@@ -34,6 +43,10 @@
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 3
 	);
+
+	// The one self-serve extension, offered beside the card prompt to whoever
+	// can act on billing.
+	let showExtend = $derived(can('Billing', 'Write') && canExtendTrial(org, trialDaysLeft));
 
 	// A licensed trial ends in a stopped license key, not a downgraded cloud account.
 	let isLicensed = $derived(org != null && hasLicensedPlan(org));
@@ -73,6 +86,15 @@
 			>
 				{billing_addPaymentMethod()}
 			</button>
+			{#if showExtend}
+				<button
+					onclick={extendTrial.extend}
+					disabled={extendTrial.isPending}
+					class="ml-2 rounded-sm px-2 py-0.5 text-xs font-medium underline hover:no-underline disabled:opacity-50"
+				>
+					{billing_trialBannerExtend()}
+				</button>
+			{/if}
 		{/snippet}
 	</AppBanner>
 {/if}

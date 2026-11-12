@@ -7,9 +7,10 @@ use axum::response::Json;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Write};
 use crate::server::config::AppState;
 use crate::server::daemons::r#impl::base::{Daemon, DaemonMode};
+use crate::server::discovery::r#impl::base::Discovery;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
@@ -58,7 +59,7 @@ fn retry_refusal(daemon: &Daemon, site_ids: &[Uuid]) -> Option<ApiError> {
 )]
 async fn retry_connection(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let mut daemon = state
@@ -102,7 +103,7 @@ async fn retry_connection(
 )]
 async fn bulk_retry_connection(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if ids.is_empty() {

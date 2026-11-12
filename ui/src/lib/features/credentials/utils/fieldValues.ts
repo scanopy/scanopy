@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import type { FieldDefinition } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 import type { CredentialType } from '../types/base';
 
 export type ScriptSource = components['schemas']['ScriptSource'];

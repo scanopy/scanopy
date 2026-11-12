@@ -39,7 +39,7 @@ import {
 import { collapseLevel, collapsedContainers } from './collapse';
 import { activeView } from './queries';
 import { usedJSHeapMb, totalJSHeapMb } from './perf';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
 /** How many samples to keep. Enough to cover the runs leading into a blank, small enough to mail. */
 const HISTORY_LIMIT = 30;

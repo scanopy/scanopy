@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { AlertTriangle } from '@lucide/svelte';
-	import { useResendVerificationMutation } from '$lib/features/auth/queries';
+	import { useResendVerificationMutation } from '#lib/features/auth/queries.ts';
 	import AppBanner from './AppBanner.svelte';
 	import {
 		auth_verifyEmailBannerBody,
 		common_resend,
 		common_sending
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { email }: { email: string } = $props();
 

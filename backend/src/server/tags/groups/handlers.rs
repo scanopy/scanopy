@@ -1,8 +1,8 @@
-use crate::server::auth::middleware::permissions::{Admin, Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::extractors::Query;
-use crate::server::shared::handlers::list::{ListOrdering, PaginatedList, list_page};
+use crate::server::shared::handlers::list::{ListOrdering, ListRows, PaginatedList, list_page};
 use crate::server::shared::handlers::ordering::{OrderField, in_sql};
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams, deserialize_bool_values,
@@ -191,9 +191,10 @@ impl CrudHandlers for TagGroup {
     }
 }
 
-#[async_trait]
-impl PaginatedList for TagGroup {
+impl ListRows for TagGroup {
     type Item = TagGroup;
+    type Field = TagGroupOrderField;
+    type Query = TagGroupFilterQuery;
 
     fn ordering(query: &TagGroupFilterQuery) -> ListOrdering<TagGroupOrderField> {
         ListOrdering {
@@ -204,6 +205,13 @@ impl PaginatedList for TagGroup {
         }
     }
 
+    fn keep(query: &TagGroupFilterQuery, item: &TagGroup) -> bool {
+        query.applies_to_requested(item)
+    }
+}
+
+#[async_trait]
+impl PaginatedList for TagGroup {
     /// System groups first, then by type and name: the order every tag group picker uses.
     fn default_order() -> String {
         format!(
@@ -223,10 +231,6 @@ impl PaginatedList for TagGroup {
     fn filters_in_memory(query: &TagGroupFilterQuery) -> bool {
         query.entity_types.as_ref().is_some_and(|t| !t.is_empty())
             || query.include_every_entity_type.unwrap_or(false)
-    }
-
-    fn keep(query: &TagGroupFilterQuery, item: &TagGroup) -> bool {
-        query.applies_to_requested(item)
     }
 }
 
@@ -267,11 +271,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_tag_groups(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<TagGroup, Read>>,
     Query(query): Query<TagGroupFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<TagGroup>>> {
     // Tag groups are the organization's: `StorableFilter::new_for_access` scopes them to it.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<TagGroup>(&state, &scope, &query).await?))
 }
 
@@ -292,15 +296,10 @@ async fn get_all_tag_groups(
 )]
 async fn create_tag_group(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<TagGroup, Write>>,
     ApiJson(group): ApiJson<TagGroup>,
 ) -> ApiResult<Json<ApiResponse<TagGroup>>> {
-    create_handler::<TagGroup>(
-        State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(group),
-    )
-    .await
+    create_handler::<TagGroup>(State(state), auth, ApiJson(group)).await
 }
 
 /// Request body for setting a tag group's tag order
@@ -328,7 +327,7 @@ pub struct TagOrderRequest {
 )]
 async fn set_tag_order(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<TagGroup, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TagOrderRequest>,
 ) -> ApiResult<Json<ApiResponse<Vec<Tag>>>> {

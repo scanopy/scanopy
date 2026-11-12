@@ -1,7 +1,7 @@
 <script lang="ts">
 	// The blurred backdrop behind the sign-in, onboarding and verification
 	// screens. Place it first inside a `relative` container.
-	import { themeStore } from '$lib/shared/stores/theme.svelte';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 </script>
 
 <div class="absolute inset-0 z-0">

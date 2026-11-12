@@ -3,7 +3,7 @@ import { validate } from 'email-validator';
 import {
 	credentials_invalidProxmoxTokenId,
 	credentials_invalidSshPrivateKey
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 const { isValid, isValidCIDR, parse, parseCIDR } = pkg;
 

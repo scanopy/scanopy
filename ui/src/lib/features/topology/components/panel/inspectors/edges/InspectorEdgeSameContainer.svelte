@@ -1,18 +1,18 @@
 <script lang="ts">
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-	import { topologyReadOnly } from '$lib/features/topology/queries';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+	import { topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
 	import { SvelteMap } from 'svelte/reactivity';
-	import type { Subnet } from '$lib/features/subnets/types/base';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { entities, subnetTypes } from '$lib/shared/stores/metadata';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_containerizedService,
 		topology_containerBridgeSubnets
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { serviceId }: { serviceId: string } = $props();

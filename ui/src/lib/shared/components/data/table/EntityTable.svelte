@@ -17,7 +17,8 @@
 	import { createSvelteTable, type EntityTableFeatures } from './createSvelteTable.svelte';
 	import type { Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import ActionMenu from '../controls/ActionMenu.svelte';
+	import RowActions from './RowActions.svelte';
+	import GroupHeading from './GroupHeading.svelte';
 	import {
 		clampColumnWidth,
 		columnWidth,
@@ -26,16 +27,14 @@
 		UNSIZED_COLUMN_MAX,
 		type EntityColumn
 	} from './columns';
-	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+	import { displaySettings } from '#lib/shared/stores/display-settings.svelte.ts';
 	import FieldValue from '../FieldValue.svelte';
 	import TreeGuides from '../TreeGuides.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import { getFieldValue } from '../controls/fieldValues';
-	import { iconButtonClass, resolveTooltip, shownActions } from '../controls/actionShortcuts';
 	import type { RenderGroup, TreeCell, TreeContinuation, TreeEntry } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
-	import type { CardAction, GroupSlice, TagProps } from '../types';
+	import type { RowAction, GroupSlice, TagProps } from '../types';
 	import Tag from '../Tag.svelte';
 	import {
 		common_actions,
@@ -47,7 +46,7 @@
 		common_resizeColumn,
 		common_expand,
 		common_collapse
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		items,
@@ -93,7 +92,7 @@
 		allSelected: boolean;
 		someSelected: boolean;
 		getItemId: (item: T) => string;
-		getActions: ((item: T) => CardAction[]) | null;
+		getActions: ((item: T) => RowAction[]) | null;
 		/**
 		 * Icon-only status badges drawn ahead of the row's name (Stale, Unconfirmed), whatever columns
 		 * are shown. Each badge says what it means in its tooltip.
@@ -433,9 +432,6 @@
 	$effect(() => (selectHeader ? trackWidth(selectHeader, (w) => (selectWidth = w)) : undefined));
 	$effect(() => (actionsHeader ? trackWidth(actionsHeader, (w) => (actionsWidth = w)) : undefined));
 
-	// Below `md` a row's actions fold into one menu, so the row keeps room for its columns.
-	const narrowViewport = new MediaQuery('max-width: 767px');
-
 	function ariaSort(columnId: string): 'ascending' | 'descending' | 'none' {
 		if (sortState.field !== columnId) return 'none';
 		return sortState.direction === 'asc' ? 'ascending' : 'descending';
@@ -574,30 +570,13 @@
 							colspan={spannedColumns}
 							class="bg-black/[0.07] px-(--cell-px) py-(--cell-py) text-left dark:bg-white/8"
 						>
-							<button
-								type="button"
-								onclick={() => onToggleCollapse(group.key)}
-								aria-expanded={!isCollapsed}
-								class="pin-content flex w-max items-center gap-2 text-sm font-semibold text-primary"
-							>
-								{#if isCollapsed}
-									<ChevronRight class="h-4 w-4" aria-hidden="true" />
-								{:else}
-									<ChevronDown class="h-4 w-4" aria-hidden="true" />
-								{/if}
-								<span>{group.name}</span>
-								<span class="text-xs font-normal text-tertiary">
-									{#if group.range}
-										{common_groupTotalShowing({
-											total: group.range.total,
-											start: group.range.start,
-											end: group.range.end
-										})}
-									{:else}
-										({group.items.length})
-									{/if}
-								</span>
-							</button>
+							<GroupHeading
+								name={group.name}
+								count={group.items.length}
+								range={group.range}
+								collapsed={isCollapsed}
+								onToggle={() => onToggleCollapse(group.key)}
+							/>
 						</th>
 					</tr>
 
@@ -831,37 +810,8 @@
 		{/each}
 
 		{#if rowActions}
-			{@const actions = shownActions(rowActions)}
 			<td class="pin-right px-(--cell-px) py-(--cell-py) text-right align-middle">
-				{#if narrowViewport.current}
-					{#if actions.length > 0}
-						<ActionMenu {actions} label={common_actions()} />
-					{/if}
-				{:else}
-					<div class="flex items-center justify-end gap-1">
-						{#each actions as action (action.label)}
-							{@const tip = resolveTooltip(action) ?? action.label}
-							<!--
-									The label floats in a tooltip rather than growing inside the
-									button. An in-flow label has to span its neighbours to fit its
-									text, which is what let one action cover the rest of the row.
-								-->
-							<button
-								type="button"
-								onclick={action.onClick}
-								disabled={!!action.unavailable}
-								use:tooltip
-								data-tooltip={tip}
-								aria-label={action.label}
-								class="{iconButtonClass(
-									action.tone
-								)} disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<action.icon size={16} class={action.animation || ''} />
-							</button>
-						{/each}
-					</div>
-				{/if}
+				<RowActions actions={rowActions} />
 			</td>
 		{/if}
 	</tr>

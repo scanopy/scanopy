@@ -1,4 +1,5 @@
 //! Live session access, snapshot-coordination acquire/release, state transitions, and cancellation pull.
+use super::state;
 use super::*;
 
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
@@ -20,29 +21,39 @@ impl DiscoveryService {
         let all_sessions = self.sessions.read().await;
         all_sessions
             .values()
-            .filter(|v| site_ids.contains(&v.site_id) && !v.phase.is_terminal())
+            .filter(|v| {
+                site_ids.contains(&v.site_id)
+                    && !v.phase.is_terminal()
+                    && v.discovery_type.records_history()
+            })
             .cloned()
             .collect()
+    }
+
+    /// Send a session's state to the live stream, unless its type is kept out of view.
+    pub(super) fn send_session_update(&self, session: &DiscoveryUpdatePayload) {
+        if session.discovery_type.records_history() {
+            let _ = self.update_tx.send(session.clone());
+        }
+    }
+
+    /// Publish a session's phase event, unless its type is kept out of view. Metrics, analytics
+    /// and failure emails all read these, and an interface refresh is none of their business.
+    pub(super) async fn publish_session_event(
+        &self,
+        event: crate::server::shared::events::traits::Event<DiscoveryPhase>,
+    ) {
+        if event.scope.discovery_type.records_history() {
+            self.event_bus().publish(event).await;
+        }
     }
 
     pub async fn get_sessions_for_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
         // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
         let all_sessions = self.sessions.read().await;
-        let session_ids = self
-            .daemon_sessions
-            .read()
-            .await
-            .get(daemon_id)
-            .cloned()
-            .unwrap_or_default();
-
-        // Preserve order from daemon_sessions Vec (not HashMap iteration order)
-        // Only return Pending sessions - once dispatched, they transition to Starting
-        session_ids
-            .iter()
-            .filter_map(|session_id| all_sessions.get(session_id).cloned())
-            .filter(|session| session.phase == DiscoveryPhase::Pending)
-            .collect()
+        let daemon_sessions = self.daemon_sessions.read().await;
+        // Only Pending: once dispatched, a session moves to Starting.
+        state::pending_sessions_for_daemon(&all_sessions, &daemon_sessions, *daemon_id)
     }
 
     /// Every session the server is tracking on a daemon, in any phase.
@@ -81,24 +92,8 @@ impl DiscoveryService {
     pub async fn has_active_session_for_daemon(&self, daemon_id: &Uuid) -> bool {
         // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
         let all_sessions = self.sessions.read().await;
-        let session_ids = self
-            .daemon_sessions
-            .read()
-            .await
-            .get(daemon_id)
-            .cloned()
-            .unwrap_or_default();
-
-        session_ids.iter().any(|session_id| {
-            all_sessions
-                .get(session_id)
-                .map(|s| {
-                    !s.phase.is_terminal()
-                        && s.phase != DiscoveryPhase::Queued
-                        && s.phase != DiscoveryPhase::Pending
-                })
-                .unwrap_or(false)
-        })
+        let daemon_sessions = self.daemon_sessions.read().await;
+        state::daemon_has_dispatched_session(&all_sessions, &daemon_sessions, *daemon_id)
     }
 
     /// Check if a discovery has an active session (any non-terminal phase).
@@ -118,7 +113,7 @@ impl DiscoveryService {
                     self.session_last_updated
                         .write()
                         .await
-                        .insert(session_id, Utc::now());
+                        .insert(session_id, crate::server::shared::clock::now());
                     Some(session.clone())
                 }
                 _ => None,
@@ -129,7 +124,7 @@ impl DiscoveryService {
         if let Some(session) = starting {
             let mut event = session.into_discovery_event();
             event.scope.previous_phase = Some(DiscoveryPhase::Pending);
-            self.event_bus().publish(event).await;
+            self.publish_session_event(event).await;
         }
     }
 
@@ -253,10 +248,10 @@ impl DiscoveryService {
                     session.phase = DiscoveryPhase::Queued;
                 } else {
                     session.phase = DiscoveryPhase::Pending;
-                    last_updated.insert(session_id, Utc::now());
+                    last_updated.insert(session_id, crate::server::shared::clock::now());
                     to_publish.push(session.clone());
                 }
-                let _ = self.update_tx.send(session.clone());
+                self.send_session_update(session);
             }
         }
 
@@ -265,8 +260,7 @@ impl DiscoveryService {
         drop(sessions);
 
         for payload in to_publish {
-            self.event_bus()
-                .publish(payload.into_discovery_event())
+            self.publish_session_event(payload.into_discovery_event())
                 .await;
         }
     }
@@ -361,11 +355,12 @@ impl DiscoveryService {
             .unwrap_or_default()
     }
 
-    pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> (bool, Uuid) {
-        let mut daemon_cancellation_ids = self.daemon_pull_cancellations.write().await;
-        daemon_cancellation_ids
-            .remove(daemon_id)
-            .unwrap_or((false, Uuid::nil()))
+    /// The session a polling daemon is told to cancel; see [`state::cancellation_to_deliver`].
+    pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> Option<Uuid> {
+        // `sessions` before `daemon_pull_cancellations`: see the lock order on `DiscoveryService`.
+        let sessions = self.sessions.read().await;
+        let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+        state::cancellation_to_deliver(&sessions, &mut pull_cancellations, *daemon_id)
     }
 }
 

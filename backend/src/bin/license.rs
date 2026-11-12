@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use clap::{Parser, Subcommand};
 use scanopy::server::license::{
     crypto::encoding_key_from_env,
@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Create { days, plan } => {
-            let now = Utc::now();
+            let now = scanopy::server::shared::clock::now();
             // `intended_exp` is the user-visible expiry. `exp` is the hard
             // enforcement boundary, 7 days later — a silent grace window.
             let intended_exp = now + Duration::days(days as i64);

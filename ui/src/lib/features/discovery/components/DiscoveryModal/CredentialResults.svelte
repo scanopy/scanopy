@@ -8,12 +8,12 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { entities } from '$lib/shared/stores/metadata';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_credential,
 		common_moreItems,
@@ -24,20 +24,20 @@
 		discovery_credentialWokeHosts,
 		discovery_noCredentialResults,
 		discovery_noCredentialResultsSubtitle
-	} from '$lib/paraglide/messages';
-	import type { EntityDiscriminants } from '$lib/api/entities';
+	} from '#lib/paraglide/messages.js';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { credentialResultRows } from '../../utils/credentialResults';
-	import { buildWarningReport, integration } from '../../utils/warnings';
+	import { buildWarningReport, integration, type WarningDaemon } from '../../utils/warnings';
 	import SshScriptRuns from './SshScriptRuns.svelte';
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;
-		/** The daemon that ran the scan, named by the daemon-OS warning. */
-		daemonName: string | null;
+		/** The daemon that ran the scan, which the daemon-OS and TLS warnings name. */
+		daemon: WarningDaemon | null;
 	}
 
-	let { payload, daemonName }: Props = $props();
+	let { payload, daemon }: Props = $props();
 
 	/** Addresses shown on a collapsed row before the rest fold into "+N more". */
 	const MAX_ADDRESSES = 5;
@@ -119,7 +119,7 @@
 
 				{#if open}
 					<div class="space-y-2 pb-2 pl-6">
-						{#each buildWarningReport(row.warnings, nameOfEntity, daemonName) as section (section.remedy)}
+						{#each buildWarningReport(row.warnings, nameOfEntity, daemon) as section (section.remedy)}
 							{#each section.entries as entry (entry.code)}
 								<div class="space-y-1">
 									<p class="text-sm text-primary">{entry.title}</p>

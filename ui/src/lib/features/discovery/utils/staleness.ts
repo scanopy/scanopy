@@ -1,4 +1,5 @@
 import { derived, readable, writable } from 'svelte/store';
+import type { DiscoveryUpdatePayload } from '../types/api';
 
 /**
  * How long a scanning session may go without a message before the UI says so. A live daemon
@@ -8,11 +9,25 @@ import { derived, readable, writable } from 'svelte/store';
 export const STALL_THRESHOLD_MS = 90_000;
 
 /**
+ * How long a scanning session may go without advancing (a progress rise, a host created, a deep
+ * scan or an integration finished) while its daemon still reports, before the UI says so. A
+ * healthy scan can work through a large subnet for minutes without any of these. The daemon ends
+ * a session after 20 minutes without one.
+ */
+export const ACTIVITY_STALL_THRESHOLD_MS = 5 * 60_000;
+
+/**
  * When each active session's last stream message arrived, by session id. Keyed on arrival rather
  * than on a change in progress: a healthy scan can hold one progress value for minutes while it
  * works through a large subnet, and still reports every 30s.
  */
 export const sessionLastMessageAt = writable<Map<string, number>>(new Map());
+
+/**
+ * When each active session last advanced on its daemon, by session id, from the session's
+ * `last_activity_at`. Daemons that predate the field leave a session out.
+ */
+export const sessionLastActivityAt = writable<Map<string, number>>(new Map());
 
 /**
  * Whether the discovery stream is open. While it is down, silence says nothing about the daemon,
@@ -31,42 +46,104 @@ export function recordSessionMessage(sessionId: string, at: number): void {
 	sessionLastMessageAt.update((m) => new Map(m).set(sessionId, at));
 }
 
+/** Records when a session last advanced, if its payload says. */
+export function recordSessionActivity(
+	session: Pick<DiscoveryUpdatePayload, 'session_id' | 'last_activity_at'>
+): void {
+	if (!session.last_activity_at) return;
+	const at = Date.parse(session.last_activity_at);
+	if (Number.isNaN(at)) return;
+	sessionLastActivityAt.update((m) =>
+		m.get(session.session_id) === at ? m : new Map(m).set(session.session_id, at)
+	);
+}
+
 /**
  * Starts the clock for sessions the page learned about from the session list rather than the
- * stream, so a session already silent when the page loads is still flagged. Leaves any session
- * with a recorded message alone.
+ * stream, from when the server last heard from the daemon (`last_update_at`). A session that went
+ * quiet while the page was closed or the tab hidden is flagged as soon as it is seen. A session
+ * without that time starts at `at`. A later message the stream already recorded is kept.
  */
-export function observeSessions(sessionIds: string[], at: number): void {
+export function observeSessions(
+	sessions: Pick<DiscoveryUpdatePayload, 'session_id' | 'last_update_at'>[],
+	at: number
+): void {
 	sessionLastMessageAt.update((m) => {
-		const missing = sessionIds.filter((id) => !m.has(id));
-		if (missing.length === 0) return m;
-		const next = new Map(m);
-		for (const id of missing) next.set(id, at);
-		return next;
+		let next: Map<string, number> | null = null;
+		for (const { session_id, last_update_at } of sessions) {
+			const heard = last_update_at ? Date.parse(last_update_at) : NaN;
+			const known = m.get(session_id);
+			const value = Number.isNaN(heard) ? (known ?? at) : Math.max(known ?? heard, heard);
+			if (value === known) continue;
+			next ??= new Map(m);
+			next.set(session_id, value);
+		}
+		return next ?? m;
 	});
 }
 
 export function forgetSession(sessionId: string): void {
-	sessionLastMessageAt.update((m) => {
-		if (!m.has(sessionId)) return m;
-		const next = new Map(m);
-		next.delete(sessionId);
-		return next;
-	});
+	for (const store of [sessionLastMessageAt, sessionLastActivityAt]) {
+		store.update((m) => {
+			if (!m.has(sessionId)) return m;
+			const next = new Map(m);
+			next.delete(sessionId);
+			return next;
+		});
+	}
 }
 
 /**
- * Minutes since a stalled session's last message, or `null` while it is not stalled. A store of a
- * function, so a component re-renders as messages arrive and the clock advances.
+ * A stalled session: how many minutes it has gone quiet, and on what. `messages` means the
+ * daemon stopped reporting the session at all. `activity` means it still reports, but the scan
+ * stopped advancing.
  */
-export const sessionStallMinutes = derived(
-	[sessionLastMessageAt, discoveryStreamConnected, now],
-	([lastMessageAt, connected, current]) =>
-		(sessionId: string, phase: string): number | null => {
-			const lastAt = lastMessageAt.get(sessionId);
-			if (!isStalled(phase, lastAt, connected, current) || lastAt === undefined) return null;
-			return Math.floor((current - lastAt) / 60_000);
-		}
+export interface SessionStall {
+	minutes: number;
+	source: 'messages' | 'activity';
+}
+
+/**
+ * Whether a session has stalled, and how. Silence comes first: a daemon that stopped reporting
+ * also stopped advancing, and the silence is what to tell the user. A session from a daemon that
+ * sends no activity (`lastActivityAt` undefined) is judged on silence alone.
+ */
+export function sessionStallOf(
+	phase: string,
+	lastMessageAt: number | undefined,
+	lastActivityAt: number | undefined,
+	connected: boolean,
+	now: number
+): SessionStall | null {
+	if (isStalled(phase, lastMessageAt, connected, now) && lastMessageAt !== undefined) {
+		return { minutes: Math.floor((now - lastMessageAt) / 60_000), source: 'messages' };
+	}
+	if (
+		phase === 'Scanning' &&
+		connected &&
+		lastActivityAt !== undefined &&
+		now - lastActivityAt > ACTIVITY_STALL_THRESHOLD_MS
+	) {
+		return { minutes: Math.floor((now - lastActivityAt) / 60_000), source: 'activity' };
+	}
+	return null;
+}
+
+/**
+ * A stalled session's [`SessionStall`], or `null` while it is not stalled. A store of a function,
+ * so a component re-renders as messages arrive and the clock advances.
+ */
+export const sessionStall = derived(
+	[sessionLastMessageAt, sessionLastActivityAt, discoveryStreamConnected, now],
+	([lastMessageAt, lastActivityAt, connected, current]) =>
+		(sessionId: string, phase: string): SessionStall | null =>
+			sessionStallOf(
+				phase,
+				lastMessageAt.get(sessionId),
+				lastActivityAt.get(sessionId),
+				connected,
+				current
+			)
 );
 
 /**

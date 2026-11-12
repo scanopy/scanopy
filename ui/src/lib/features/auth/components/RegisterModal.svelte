@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import {
 		required,
 		email as emailValidator,
 		password as passwordValidator,
 		confirmPasswordMatch
-	} from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import Password from '$lib/shared/components/forms/input/Password.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
+	} from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import Password from '#lib/shared/components/forms/input/Password.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
 	import { useCheckEmailMutation } from '../queries';
 	import type { RegisterRequest } from '../types/base';
 	import AuthMethodSelector from './AuthMethodSelector.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_continueWithEmail,
 		auth_createAccount,
@@ -38,7 +38,7 @@
 		common_continue,
 		common_email,
 		common_somethingWentWrong
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		orgName = null,

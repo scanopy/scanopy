@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use chrono::{Days, Utc};
+use chrono::Days;
 use email_address::EmailAddress;
 use governor::{DefaultDirectRateLimiter, RateLimiter};
 use uuid::Uuid;
@@ -23,7 +23,7 @@ use crate::server::users::r#impl::base::User;
 
 /// One update, written today and taking effect in 40 days.
 fn catalog() -> TermsCatalog {
-    let today = Utc::now().date_naive();
+    let today = crate::server::shared::clock::now().date_naive();
     let effective = today + Days::new(40);
     TermsCatalog::from_files([terms_file(&effective.to_string(), &today.to_string())])
 }
@@ -68,7 +68,7 @@ async fn each_verified_user_is_sent_an_update_once() {
 
     let email = email_service_for(&state, dir.path(), DeploymentType::Cloud);
     let catalog = catalog();
-    let today = Utc::now().date_naive();
+    let today = crate::server::shared::clock::now().date_naive();
     for _ in 0..2 {
         email
             .send_terms_notices_from(&catalog, today, &bulk())
@@ -111,7 +111,7 @@ async fn concurrent_sweeps_send_once() {
         .map(|_| email_service_for(&state, dir.path(), DeploymentType::Cloud))
         .collect();
     let catalog = catalog();
-    let today = Utc::now().date_naive();
+    let today = crate::server::shared::clock::now().date_naive();
     let bulk = bulk();
     let results = futures::future::join_all(
         services
@@ -136,7 +136,11 @@ async fn a_licensee_locked_out_of_the_cloud_app_is_sent_the_notice() {
     create_user(&state, org.id, "licensee@example.test", true).await;
 
     email_service_for(&state, dir.path(), DeploymentType::Cloud)
-        .send_terms_notices_from(&catalog(), Utc::now().date_naive(), &bulk())
+        .send_terms_notices_from(
+            &catalog(),
+            crate::server::shared::clock::now().date_naive(),
+            &bulk(),
+        )
         .await
         .unwrap();
 
@@ -153,7 +157,11 @@ async fn a_self_hosted_server_sends_no_notice() {
 
     for deployment in [DeploymentType::Commercial, DeploymentType::Community] {
         email_service_for(&state, dir.path(), deployment)
-            .send_terms_notices_from(&catalog(), Utc::now().date_naive(), &bulk())
+            .send_terms_notices_from(
+                &catalog(),
+                crate::server::shared::clock::now().date_naive(),
+                &bulk(),
+            )
             .await
             .unwrap();
     }

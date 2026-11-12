@@ -15,7 +15,6 @@ use crate::server::tags::r#impl::base::{Tag, TagBase};
 use crate::server::topology::service::context::TopologyContext;
 use crate::server::topology::types::base::TopologyOptions;
 use crate::server::topology::types::grouping::{ElementRule, IdentifiedRule};
-use chrono::Utc;
 
 /// Test service definition that returns ReverseProxy category
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -42,8 +41,8 @@ impl ServiceDefinition for ReverseProxyServiceDef {
 fn make_host(name: &str, tags: Vec<Uuid>) -> Host {
     Host {
         id: Uuid::new_v4(),
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
+        created_at: crate::server::shared::clock::now(),
+        updated_at: crate::server::shared::clock::now(),
         base: HostBase {
             name: HostName::manual(name.to_string()),
             tags,
@@ -64,8 +63,8 @@ fn make_service_with_tags(
 ) -> Service {
     Service {
         id: Uuid::new_v4(),
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
+        created_at: crate::server::shared::clock::now(),
+        updated_at: crate::server::shared::clock::now(),
         base: ServiceBase {
             host_id,
             service_definition: def,
@@ -79,8 +78,8 @@ fn make_service_with_tags(
 fn make_tag(name: &str) -> Tag {
     Tag {
         id: Uuid::new_v4(),
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
+        created_at: crate::server::shared::clock::now(),
+        updated_at: crate::server::shared::clock::now(),
         base: TagBase {
             name: name.to_string(),
             description: None,
@@ -89,6 +88,7 @@ fn make_tag(name: &str) -> Tag {
             tag_group_id: None,
             position: None,
             icon: None,
+            source: crate::server::shared::types::entities::EntitySource::Manual,
         },
         ..Default::default()
     }

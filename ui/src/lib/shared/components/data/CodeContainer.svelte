@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
+	import { pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
 	import { Braces, X } from '@lucide/svelte';
 	import Prism from '@magidoc/plugin-svelte-prismjs';
 	import 'prismjs/components/prism-yaml';
@@ -13,8 +13,8 @@
 		common_copied,
 		common_copy,
 		common_failedToCopy
-	} from '$lib/paraglide/messages';
-	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
+	} from '#lib/paraglide/messages.js';
+	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
 
 	let {
 		code,

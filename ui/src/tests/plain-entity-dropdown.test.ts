@@ -50,8 +50,8 @@ const ALLOWED_PLAIN_DROPDOWNS = new Map<string, string>([
 		'lib/features/settings/SystemTab.svelte',
 		'Display preferences: short static lists and timezone.'
 	],
-	['lib/features/home/components/ReferralSourcePrompt.svelte', 'Survey answer: short static list.'],
-	['lib/features/home/components/ProfilePrompt.svelte', 'Survey answers: short static lists.'],
+	['lib/features/home/components/ReferralSourceModal.svelte', 'Survey answer: short static list.'],
+	['lib/features/home/components/ProfileModal.svelte', 'Survey answers: short static lists.'],
 	[
 		'lib/features/billing/CancelSubscriptionModal.svelte',
 		'Cancellation reason: short static list.'

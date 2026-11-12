@@ -5,16 +5,16 @@
 	recorded.
 -->
 <script lang="ts">
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import type { components } from '$lib/api/schema';
-	import { formatMillisAsSeconds } from '$lib/shared/utils/formatting';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import type { components } from '#lib/api/schema';
+	import { formatMillisAsSeconds } from '#lib/shared/utils/formatting.ts';
 	import {
 		common_details,
 		common_duration,
 		discovery_sshScriptAppliedKeys,
 		discovery_sshScriptExitCode,
 		discovery_sshScriptRejectedKeys
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type SshScriptRun = components['schemas']['SshScriptRun'];
 

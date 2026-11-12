@@ -1,18 +1,18 @@
 <script lang="ts">
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import TroubleshootingChecklist from './TroubleshootingChecklist.svelte';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
 	import type { InstallArtifacts } from '../../../types/base';
 	import type { DaemonMode } from '../../../types/base';
-	import { trackEvent } from '$lib/shared/utils/analytics';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useTestReachabilityMutation, useRetryDaemonConnectionMutation } from '../../../queries';
-	import AnimatedProgressBar from '$lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
+	import AnimatedProgressBar from '#lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
+	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
 	import OsSelector from '../../OsSelector.svelte';
 	import {
 		Download,
@@ -22,7 +22,7 @@
 		SlidersHorizontal
 	} from '@lucide/svelte';
 	import type { DaemonConnectionStatus } from '../../../stores/daemon-setup';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		common_advanced,
 		daemons_advancedTooltip,
@@ -54,7 +54,7 @@
 		daemons_troubleshoot_healthPartialDesc,
 		daemons_troubleshoot_healthUnreachable,
 		daemons_troubleshoot_healthUnreachableDesc
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type LinuxMethod = 'binary' | 'docker';
 	type WindowsMethod = 'exe' | 'msi';

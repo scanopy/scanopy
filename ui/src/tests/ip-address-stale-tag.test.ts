@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-import { displayTags } from '$lib/shared/components/forms/selection/display-tags';
-import type { IPAddress } from '$lib/features/hosts/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import { common_stale } from '$lib/paraglide/messages';
+import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+import { displayTags } from '#lib/shared/components/forms/selection/display-tags.ts';
+import type { IPAddress } from '#lib/features/hosts/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import { common_stale } from '#lib/paraglide/messages.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = new Date('2026-10-04T12:00:00Z').getTime();

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
-import { computeElkLayout, type ElkLayoutInput } from '$lib/features/topology/layout/elk-layout';
+import { LayoutGraph } from '#lib/features/topology/layout/layout-graph.ts';
+import { computeElkLayout, type ElkLayoutInput } from '#lib/features/topology/layout/elk-layout.ts';
 import {
 	computeOptimalHandles,
 	type ObstacleRect
-} from '$lib/features/topology/layout/handle-picking';
+} from '#lib/features/topology/layout/handle-picking.ts';
 import {
 	isDisabledEdge,
 	isDottedEdge,
@@ -12,9 +12,9 @@ import {
 	affectsLayout,
 	isHiddenByDefault,
 	getDefaultHiddenEdgeTypes
-} from '$lib/features/topology/layout/edge-classification';
-import { elevateEdgesToContainers } from '$lib/features/topology/layout/edge-elevation';
-import type { components } from '$lib/api/schema';
+} from '#lib/features/topology/layout/edge-classification.ts';
+import { elevateEdgesToContainers } from '#lib/features/topology/layout/edge-elevation.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyNode = components['schemas']['Node'];
 type TopologyEdge = components['schemas']['Edge'];

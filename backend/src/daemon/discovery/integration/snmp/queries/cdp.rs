@@ -85,12 +85,6 @@ pub async fn query_cdp_neighbors<T: SnmpWalkTransport>(
     });
     if result.len() != before {
         shortfall.complete = false;
-        warn!(
-            ip = %ip,
-            dropped = before - result.len(),
-            reason = ?discard_reason,
-            "CDP neighbours missing a device id; discarding them and marking the walk partial"
-        );
     }
     let unsupported = all_columns_unsupported && result.is_empty();
     debug!(

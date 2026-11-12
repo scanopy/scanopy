@@ -2,7 +2,6 @@
 //! scope. An application tag left on a subnet from before the Application group was limited to
 //! hosts and services stays through later saves, and can't be given to another subnet.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use super::{organization, site, subnet, test_services};
@@ -28,7 +27,7 @@ async fn a_held_out_of_scope_tag_survives_a_save_but_cannot_be_added() {
     let fresh = subnet(&s.id);
     storage.subnets.create(&fresh).await.unwrap();
 
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let group = TagGroup {
         id: Uuid::new_v4(),
         created_at: now,
