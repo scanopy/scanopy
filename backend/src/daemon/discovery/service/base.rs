@@ -228,7 +228,9 @@ impl DiscoverySession {
             progress_range_end: Arc::new(AtomicU8::new(100)),
             consecutive_report_failures: Arc::new(AtomicU32::new(0)),
             network_phase_started: Arc::new(std::sync::OnceLock::new()),
-            last_activity_ms: Arc::new(AtomicI64::new(crate::server::shared::clock::now().timestamp_millis())),
+            last_activity_ms: Arc::new(AtomicI64::new(
+                crate::server::shared::clock::now().timestamp_millis(),
+            )),
             in_flight_deep_scans: Arc::new(std::sync::Mutex::new(Default::default())),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),

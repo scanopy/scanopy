@@ -223,7 +223,12 @@ impl DaemonDiscoverySessionManager {
                     return;
                 };
                 if !manager
-                    .sweep(session_id, cap, Instant::now(), crate::server::shared::clock::now())
+                    .sweep(
+                        session_id,
+                        cap,
+                        Instant::now(),
+                        crate::server::shared::clock::now(),
+                    )
                     .await
                 {
                     return;
@@ -830,13 +835,27 @@ mod tests {
 
         assert!(
             manager
-                .sweep(session_id, cap, Instant::now(), crate::server::shared::clock::now())
+                .sweep(
+                    session_id,
+                    cap,
+                    Instant::now(),
+                    crate::server::shared::clock::now()
+                )
                 .await
         );
         assert!(manager.slot.running().await.is_some());
 
         let past_grace = Instant::now() + CANCEL_GRACE + Duration::from_secs(1);
-        assert!(!manager.sweep(session_id, cap, past_grace, crate::server::shared::clock::now()).await);
+        assert!(
+            !manager
+                .sweep(
+                    session_id,
+                    cap,
+                    past_grace,
+                    crate::server::shared::clock::now()
+                )
+                .await
+        );
 
         assert!(manager.slot.running().await.is_none());
         let terminal = terminal(&manager).await.expect("the cancel was reported");
