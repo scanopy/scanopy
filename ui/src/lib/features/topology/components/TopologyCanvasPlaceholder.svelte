@@ -16,7 +16,7 @@
 	});
 </script>
 
-<div class="relative h-[calc(100vh-120px)] w-full">
+<div class="relative h-[calc(100dvh_-_var(--app-banner-height,0px)_-_120px)] w-full">
 	<div class="card card-static topology-canvas-placeholder h-full w-full overflow-hidden p-0!">
 		<div class="topology-status-pill">
 			<span class="topology-status-row"><TopologyLoadProgress /></span>

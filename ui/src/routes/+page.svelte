@@ -191,6 +191,8 @@
 	let activeTab = $state(initialHash);
 	let appInitialized = $state(false);
 	let sidebarCollapsed = $state(false);
+	/** The banner stack's height, published as `--app-banner-height` for pages sized to the screen. */
+	let bannerHeight = $state(0);
 	let dataLoadingStarted = $state(false);
 	let showSettings = $state(false);
 	// Billing-blocking states force the Settings modal open and make it
@@ -470,14 +472,16 @@
 		<EmailVerificationGate isOpen={true} />
 	</div>
 {:else if appInitialized && shellReady}
-	<div class="flex h-dvh flex-col">
+	<!-- A page that sizes itself to the screen, the topology canvas, subtracts the banners'
+	     height through this variable, so it fits below them instead of scrolling under them. -->
+	<div class="flex h-dvh flex-col" style="--app-banner-height: {bannerHeight}px">
 		<!-- Banners span the full width, sidebar included.
 		     Only while the main app is reachable. When it is gated, or the org is on
 		     a licensed plan, the Settings modal carries the same stack in its frame
 		     instead, so exactly one copy is ever mounted: AppBanner holds its
 		     dismissed state locally, and a second copy behind the overlay would not
 		     follow a dismissal. -->
-		<div class="shrink-0">
+		<div class="shrink-0" bind:clientHeight={bannerHeight}>
 			{#if !isBillingBlocking && !isSelfHostedPlanLocked}
 				<AppBanners />
 			{/if}

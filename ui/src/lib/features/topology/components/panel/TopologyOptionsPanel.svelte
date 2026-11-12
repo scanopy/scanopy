@@ -125,7 +125,7 @@
 			<!-- Content area -->
 			<div
 				class="overflow-y-auto p-3"
-				style="max-height: calc(100vh - {isTutorial
+				style="max-height: calc(100dvh - var(--app-banner-height, 0px) - {isTutorial
 					? 180
 					: $topologyOptions.local.show_minimap
 						? 350
