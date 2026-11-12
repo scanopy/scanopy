@@ -707,3 +707,85 @@ fn test_v3_pdu_to_bytes() {
     assert_eq!(pdu2.req_id, 12345);
     assert_eq!(pdu2.version().unwrap(), Version::V3);
 }
+
+/// SCANOPY LOCAL PATCH (GH #848) — see vendor/snmp2/README.md.
+///
+/// A session passes over an answer to a request it issued earlier. These hold the two halves of
+/// that judgement: which request a datagram answers, and whether that request was an earlier one.
+#[cfg(feature = "tokio")]
+mod late_answers {
+    use super::*;
+    use crate::pdu::{is_earlier_request, peek_response_id};
+
+    #[test]
+    fn the_id_of_a_community_message_is_its_request_id() {
+        let mut buf = pdu::Buf::default();
+        pdu::build_get(
+            Version::V2C,
+            b"public",
+            -77,
+            &Oid::from(&[1, 3, 6, 1, 2, 1, 1, 1, 0]).unwrap(),
+            &mut buf,
+            #[cfg(feature = "v3")]
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(peek_response_id(&buf), Some(-77));
+    }
+
+    /// An encrypted message, read by a caller holding no key: the id comes from the plaintext
+    /// header, so nothing has to be authenticated or decrypted to learn whose answer this is.
+    #[cfg(feature = "v3")]
+    #[test]
+    fn the_id_of_an_encrypted_v3_message_is_read_without_its_keys() {
+        use crate::v3;
+
+        let sender = v3::Security::new(b"scanopyv3", b"authpass12345")
+            .with_auth_protocol(v3::AuthProtocol::Sha1)
+            .with_auth(v3::Auth::AuthPriv {
+                cipher: v3::Cipher::Aes128,
+                privacy_password: b"privpass12345".to_vec(),
+            })
+            .with_engine_id(&[0x80, 0x00, 0x3a, 0x8c, 0x04, 0x01])
+            .unwrap()
+            .with_engine_boots_and_time(1, 1000);
+        let mut buf = pdu::Buf::default();
+        v3::build(snmp::MSG_GET, 4242, &[], 0, 0, &mut buf, Some(&sender)).unwrap();
+
+        assert_eq!(peek_response_id(&buf), Some(4242));
+    }
+
+    #[test]
+    fn a_datagram_that_is_not_snmp_names_no_request() {
+        assert_eq!(peek_response_id(&[]), None);
+        assert_eq!(peek_response_id(b"not a message"), None);
+    }
+
+    /// A session that started at 100 and is waiting on 103 has 100, 101 and 102 behind it. Its own
+    /// id, the ids ahead of it and the ids before its first were never earlier requests of its.
+    #[test]
+    fn only_the_ids_between_the_first_and_the_current_are_earlier_requests() {
+        for id in [100, 101, 102] {
+            assert!(is_earlier_request(100, 103, id), "{id}");
+        }
+        for id in [99, 103, 104, i32::MIN, i32::MAX] {
+            assert!(!is_earlier_request(100, 103, id), "{id}");
+        }
+    }
+
+    /// Ids wrap from `i32::MAX` to `i32::MIN`, and a session that has wrapped still knows what it
+    /// sent before the wrap.
+    #[test]
+    fn earlier_requests_are_recognised_across_the_wrap() {
+        let first = i32::MAX - 1;
+        let current = i32::MIN + 1;
+
+        for id in [i32::MAX - 1, i32::MAX, i32::MIN] {
+            assert!(is_earlier_request(first, current, id), "{id}");
+        }
+        for id in [i32::MAX - 2, i32::MIN + 1, i32::MIN + 2, 0] {
+            assert!(!is_earlier_request(first, current, id), "{id}");
+        }
+    }
+}

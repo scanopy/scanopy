@@ -21,6 +21,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use secrecy::ExposeSecret;
 use snmp2::v3::{Auth, Security};
@@ -31,6 +32,10 @@ use tokio::task::JoinHandle;
 use super::transport::SimAgent;
 use super::{CommunityVersions, SimDevice};
 use crate::daemon::discovery::integration::snmp::oids::{oid_parts, system};
+use crate::daemon::discovery::integration::snmp::session::{
+    SnmpContext, SnmpSession, create_session,
+};
+use crate::server::credentials::r#impl::mapping::CredentialQueryPayload;
 use crate::server::credentials::r#impl::types::{CredentialType, SecretValue, SnmpV3Security};
 
 /// The agent's engine id: enterprise 8072 (net-snmp) in the RFC 3411 text format, then a name.
@@ -61,11 +66,20 @@ const LAB_CLOCK: EngineClock = EngineClock {
     discovery_carries_clock: true,
 };
 
+/// How long every answer takes to come back.
+///
+/// GH #848's switch answered each request in 5 to 10ms, and that gap is what the defect needs: an
+/// answer still on its way when the client sends its next request is read by that request. On
+/// loopback an answer arrives before the client has built the next request, so the session's
+/// pre-send drain removes it and the fault never shows.
+const ANSWER_LATENCY: Duration = Duration::from_millis(5);
+
 /// A running agent. Stops when dropped.
 pub struct UdpAgent {
     addr: SocketAddr,
     task: JoinHandle<()>,
     discoveries: Arc<AtomicUsize>,
+    slow_rows_served: Arc<AtomicUsize>,
 }
 
 impl Drop for UdpAgent {
@@ -94,21 +108,32 @@ impl UdpAgent {
             CredentialType::SnmpV3 { .. } => Front::Usm(Box::new(agent_security(device, clock))),
             other => panic!("{} has a non-SNMP credential: {other:?}", device.name),
         };
+        let slow_rows_served = Arc::new(AtomicUsize::new(0));
         let responder = Responder {
             front,
             clock,
             agent: device.agent(),
             device: device.clone(),
+            slow_rows_served: slow_rows_served.clone(),
         };
         let discoveries = Arc::new(AtomicUsize::new(0));
         let counted = discoveries.clone();
         let task = tokio::spawn(async move {
             let mut buf = vec![0u8; 65_535];
+            // One request at a time, the next one waiting in the socket: GH #848's capture shows
+            // the retry answered only after the slow answer it was sent behind.
             while let Ok((len, peer)) = socket.recv_from(&mut buf).await {
                 if request_engine(&buf[..len]).is_some_and(|(engine_id, ..)| engine_id.is_empty()) {
                     counted.fetch_add(1, Ordering::Relaxed);
                 }
+                let slow_before = responder.slow_rows_served.load(Ordering::Relaxed);
                 if let Some(reply) = responder.respond(&buf[..len]) {
+                    let slow_rows =
+                        responder.slow_rows_served.load(Ordering::Relaxed) - slow_before;
+                    tokio::time::sleep(
+                        ANSWER_LATENCY + responder.agent.row_cost() * slow_rows as u32,
+                    )
+                    .await;
                     let _ = socket.send_to(&reply, peer).await;
                 }
             }
@@ -117,7 +142,27 @@ impl UdpAgent {
             addr,
             task,
             discoveries,
+            slow_rows_served,
         }
+    }
+
+    /// How many rows the device was slow to answer have gone out. Zero on a scan that never asked
+    /// for a page reaching them.
+    pub fn slow_rows_served(&self) -> usize {
+        self.slow_rows_served.load(Ordering::Relaxed)
+    }
+
+    /// A session to this agent holding `credential`, opened the way a collection opens one.
+    pub async fn session(&self, credential: &CredentialType) -> SnmpSession {
+        let CredentialQueryPayload::Snmp(snmp) = credential
+            .to_query_payload(None)
+            .expect("an SNMP credential has a query payload")
+        else {
+            panic!("not an SNMP credential");
+        };
+        create_session(self.ip(), &snmp, self.port(), SnmpContext::Default, None)
+            .await
+            .expect("the agent answers its own credential")
     }
 
     /// How many engine-discovery requests the agent has received: one per v3 handshake a client
@@ -216,6 +261,7 @@ struct Responder {
     clock: EngineClock,
     agent: SimAgent,
     device: SimDevice,
+    slow_rows_served: Arc<AtomicUsize>,
 }
 
 impl Responder {
@@ -375,9 +421,10 @@ impl Responder {
     }
 
     fn page(&self, from: &[u64], max_repetitions: u32) -> Vec<(Vec<u64>, Vec<u8>)> {
-        self.agent
-            .page(from, max_repetitions)
-            .into_iter()
+        let page = self.agent.page(from, max_repetitions);
+        self.slow_rows_served
+            .fetch_add(self.agent.slow_rows_on(&page) as usize, Ordering::Relaxed);
+        page.into_iter()
             .map(|(oid, value)| (oid, value_tlv(&value)))
             .collect()
     }
@@ -404,7 +451,16 @@ impl Responder {
                 .sys_services
                 .map(|services| tlv(0x02, &signed(i64::from(services))))
         } else {
-            None
+            // A scalar the device serves from a `pass` file, such as `lldpLocChassisId.0`: the
+            // row at exactly this OID, which is the first one after the object it is an
+            // instance of.
+            oid.split_last().and_then(|(_, object)| {
+                self.agent
+                    .page(object, 1)
+                    .into_iter()
+                    .find(|(row, _)| row.as_slice() == oid)
+                    .map(|(_, value)| value_tlv(&value))
+            })
         };
         // noSuchObject
         found.unwrap_or_else(|| tlv(0x80, &[]))
@@ -441,7 +497,7 @@ fn oid_vec(oid: &snmp2::Oid) -> Vec<u64> {
 // these back, on both ends of the session.
 // ============================================================================
 
-fn encode_varbinds(varbinds: &[(Vec<u64>, Vec<u8>)]) -> Vec<u8> {
+pub(crate) fn encode_varbinds(varbinds: &[(Vec<u64>, Vec<u8>)]) -> Vec<u8> {
     varbinds
         .iter()
         .flat_map(|(oid, value)| {
@@ -472,7 +528,7 @@ fn value_tlv(value: &Value) -> Vec<u8> {
     }
 }
 
-fn tlv(tag: u8, content: &[u8]) -> Vec<u8> {
+pub(crate) fn tlv(tag: u8, content: &[u8]) -> Vec<u8> {
     let mut out = vec![tag];
     let len = content.len();
     if len < 0x80 {
@@ -535,13 +591,9 @@ fn oid_content(arcs: &[u64]) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use super::*;
     use crate::daemon::discovery::integration::snmp::queries::SnmpWalkTransport as _;
-    use crate::daemon::discovery::integration::snmp::session::{SnmpContext, create_session};
     use crate::daemon::discovery::integration::snmp::sim;
-    use crate::server::credentials::r#impl::mapping::CredentialQueryPayload;
     use crate::server::credentials::r#impl::types::{SnmpV3AuthProtocol, SnmpV3PrivProtocol};
 
     /// What a daemon holding `credential` reads as the agent's `sysName`, or the error it got.

@@ -45,6 +45,17 @@ Local patches (all marked in-source with `SCANOPY LOCAL PATCH`):
     AES-256 under MD5 or SHA-1 has two key derivations (Blumenthal, Reeder); the
     daemon tries the second when an engine answers discovery and then cannot read
     the first encrypted request, which needs the two steps timed apart.
+  * src/asyncsession.rs `send_and_recv`, src/pdu.rs `peek_response_id` and
+    `is_earlier_request` — GH #848. After sending, the session reads until a
+    datagram arrives that does not answer one of its own earlier requests, and
+    passes over the ones that do. `drain_stale` removes only what arrived before
+    the send; an agent that answered request N just after N+1 went out had that
+    answer read as N+1's, failed with `RequestIdMismatch`, and left every later
+    request reading the answer to the one before it. The id is the request-id for
+    v1 and v2c and the plaintext msgID for v3, read before the message is
+    authenticated. An id the session never issued is still `RequestIdMismatch`.
+    The loop has no deadline of its own: the caller's timeout drops the future,
+    as it always did. Async session only; the daemon does not use the sync one.
 
 The first is the only one that blocks compilation. The others are behaviour
 upstream does not offer, so returning to crates.io means re-applying them or

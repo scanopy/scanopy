@@ -23,7 +23,9 @@ the only device here that serves different data per SNMPv3 context; `switch-mcas
 `switch-mcast-src-01`/`switch-segment-gw-01` are the shared L2 segment from #701, where every
 uplink hears two neighbours on one port; `switch-fdb-only-01` serves a bridge forwarding database
 and no LLDP remote table at all (#709); `switch-ocnos-01` serves its neighbours only under the
-LLDP-V2-MIB (#688).
+LLDP-V2-MIB (#688); `switch-omada-02` is the TP-Link from #848, whose enterprise tree holds ten
+rows that take half a second each, so a bulk page reaching all ten is answered after the daemon's
+5s timeout.
 
 Addresses below are current as of the last `make snmp-fixtures` run — look them up here, not in the
 prose above or elsewhere in this document, which names devices by identity rather than address for
@@ -74,6 +76,7 @@ exactly this reason: the lab has been renumbered before and will be again.
 | 192.168.7.231 | switch-bulkdrop-01 | v2c | community `netdefault` |
 | 192.168.7.232 | secure-switch-05 | v3 | user `scanopyreeder` |
 | 192.168.7.233 | secure-switch-06 | v3 | user `scanopydes` |
+| 192.168.7.234 | switch-omada-02 | v2c | community `public` |
 <!-- END GENERATED DEVICE TABLE -->
 
 **LLDP local-port remap (`.238`/`.239`).** ExtremeXOS reports its `lldpRemTable` local-port index as an `lldpLocPortNum` (1..N) that is a **separate namespace from `ifIndex`** (switch-exos-01 uses ifIndex 1001+, ifName `1:N`), so neighbours only resolve if the daemon walks `lldpLocPortTable` (`1.0.8802.1.1.2.1.3.7`) and suffix-matches `lldpLocPortId` against `ifName`. Before the Issue 2 fix, switch-exos-01 yields **zero** LLDP neighbours. Extreme VOSS (switch-voss-01) reports local-port == ifIndex with `lldpLocPortId` matching `ifName` exactly, so it stays correct on both old and new code — the regression guard for the fix.

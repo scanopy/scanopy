@@ -38,6 +38,9 @@ pub fn oid_parts(oid_str: &str) -> Vec<u64> {
         .collect()
 }
 
+/// `enterprises`: the root every vendor's private MIBs sit under, one arc per vendor.
+pub const ENTERPRISES: &str = "1.3.6.1.4.1";
+
 /// System MIB OIDs (RFC 3418)
 pub mod system {
     /// sysDescr.0 - Full textual description of the entity
