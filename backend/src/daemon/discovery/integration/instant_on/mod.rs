@@ -49,7 +49,7 @@ use crate::server::services::r#impl::patterns::{ClientProbe, ManagedDevice};
 use super::controller::{self, MappedClient};
 use super::{
     Checkpoint, CollectionShortfall, Completeness, DiscoveryIntegration, IntegrationContext,
-    IntegrationFailure, InterfaceSource, ProbeContext, ProbeFailure, ProbeSuccess,
+    IntegrationFailure, InterfaceSource, ProbeContext, ProbeFailure, ProbeSuccess, ShortfallCause,
 };
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
@@ -223,11 +223,13 @@ impl DiscoveryIntegration for InstantOnIntegration {
         if read == site_count {
             Ok(Completeness::Complete)
         } else {
-            Ok(Completeness::Partial(CollectionShortfall {
-                what: "sites",
-                collected: read,
-                expected: site_count,
-            }))
+            // Each unreadable site was reported above with its own error.
+            Ok(Completeness::Partial(CollectionShortfall::new(
+                "sites",
+                read,
+                site_count,
+                ShortfallCause::ReadFailed,
+            )))
         }
     }
 }

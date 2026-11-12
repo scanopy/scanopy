@@ -35,7 +35,7 @@ use super::ssh::client::{Session, SessionError};
 use super::ssh::connect_trusted;
 use super::{
     Checkpoint, CollectionShortfall, Completeness, DiscoveryIntegration, IntegrationContext,
-    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, merge_subnets,
+    IntegrationFailure, ProbeContext, ProbeFailure, ProbeSuccess, ShortfallCause, merge_subnets,
 };
 use crate::daemon::discovery::integration::controller::ControllerIdentity;
 use crate::daemon::discovery::service::ops::HostData;
@@ -289,11 +289,14 @@ impl DiscoveryIntegration for LibvirtIntegration {
                 .iter()
                 .filter(|d| !d.state.is_empty())
                 .count();
-            return Ok(Completeness::Partial(CollectionShortfall {
-                what: "libvirt domains",
-                collected: read,
-                expected: inventory.domains.len().max(read + 1),
-            }));
+            // The script returned before its end marker without timing out (a timeout returns
+            // above), so the rest of the output is what failed.
+            return Ok(Completeness::Partial(CollectionShortfall::new(
+                "libvirt domains",
+                read,
+                inventory.domains.len().max(read + 1),
+                ShortfallCause::ReadFailed,
+            )));
         }
         Ok(Completeness::Complete)
     }

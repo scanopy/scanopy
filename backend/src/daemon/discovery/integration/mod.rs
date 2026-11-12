@@ -97,6 +97,41 @@ pub struct CollectionShortfall {
     pub what: &'static str,
     pub collected: usize,
     pub expected: usize,
+    /// Why the rest are missing, which decides whether the warning is a timeout or a failure.
+    pub cause: ShortfallCause,
+    /// What the operator changes to collect the rest, where the integration knows it.
+    pub remedy: Option<&'static str>,
+}
+
+/// Why a collection recorded fewer than it set out to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShortfallCause {
+    /// The integration stopped at its time limit, so the rest were never read.
+    TimeLimit,
+    /// The rest were read, and the server did not accept them.
+    NotRecorded,
+    /// The source returned an error for the rest.
+    ReadFailed,
+    /// The rest have no address on a subnet this site holds, so they could not be placed.
+    NoKnownAddress,
+}
+
+impl CollectionShortfall {
+    /// A shortfall with no remedy of its own to add.
+    pub fn new(
+        what: &'static str,
+        collected: usize,
+        expected: usize,
+        cause: ShortfallCause,
+    ) -> Self {
+        Self {
+            what,
+            collected,
+            expected,
+            cause,
+            remedy: None,
+        }
+    }
 }
 
 /// A commit point for an integration that deliberately persists mid-flight.
@@ -652,24 +687,56 @@ fn surviving_collection(
 /// reverse.
 ///
 /// Says **recorded**, not "read": a shortfall means the collection stopped at a coherent boundary
-/// and what it got was kept. The hard-cap message is the one that reports nothing landing. Both
-/// share [`AttemptOutcome::CollectionTimedOut`]'s advice, so the advice stays silent on what was
-/// persisted and each message states its own outcome — otherwise a partial scan reads
-/// "this host's data was not recorded (read 27 of 32 containers)", which contradicts itself.
+/// and what it got was kept. The hard-cap message is the one that reports nothing landing. The
+/// sentence each outcome renders into stays silent on what was persisted and the detail states
+/// it — otherwise a partial scan reads "this host's data was not recorded (read 27 of 32
+/// containers)", which contradicts itself.
 async fn report_shortfall(ctx: &IntegrationContext<'_>, shortfall: &CollectionShortfall) {
+    let (outcome, detail) = shortfall_attempt(shortfall);
     ctx.ops
         .record_attempt_failure(
             ctx.credential.into(),
             ctx.ip,
-            AttemptOutcome::CollectionTimedOut,
-            format!(
-                "recorded {} of {} {} before the time limit; the rest were not read",
-                shortfall.collected, shortfall.expected, shortfall.what
-            ),
+            outcome,
+            detail,
             true,
             ctx.credential_id,
         )
         .await;
+}
+
+/// The attempt outcome and detail a shortfall is reported as. Only running out of time is a
+/// timeout; a server that refused what was read, a source that errored, and an address the site
+/// cannot place are collection failures, with advice that a time limit does not explain.
+fn shortfall_attempt(shortfall: &CollectionShortfall) -> (AttemptOutcome, String) {
+    let recorded = format!(
+        "recorded {} of {} {}",
+        shortfall.collected, shortfall.expected, shortfall.what
+    );
+    let (outcome, rest) = match shortfall.cause {
+        ShortfallCause::TimeLimit => (
+            AttemptOutcome::CollectionTimedOut,
+            "before the time limit; the rest were not read",
+        ),
+        ShortfallCause::NotRecorded => (
+            AttemptOutcome::CollectionFailed,
+            "; the server did not accept the rest",
+        ),
+        ShortfallCause::ReadFailed => (
+            AttemptOutcome::CollectionFailed,
+            "; the rest could not be read",
+        ),
+        ShortfallCause::NoKnownAddress => (
+            AttemptOutcome::CollectionFailed,
+            "; the rest have no address on a subnet this site holds",
+        ),
+    };
+    let separator = if rest.starts_with(';') { "" } else { " " };
+    let detail = match shortfall.remedy {
+        Some(remedy) => format!("{recorded}{separator}{rest}. {remedy}"),
+        None => format!("{recorded}{separator}{rest}"),
+    };
+    (outcome, detail)
 }
 
 /// GH #650. What an integration leaves behind when it does not finish.
@@ -805,11 +872,12 @@ mod partial_result_tests {
         scratch.add_subnet(bridge_subnet());
 
         let surviving = surviving_collection(
-            ExecuteOutcome::Finished(Completeness::Partial(CollectionShortfall {
-                what: "containers",
-                collected: 250,
-                expected: 300,
-            })),
+            ExecuteOutcome::Finished(Completeness::Partial(CollectionShortfall::new(
+                "containers",
+                250,
+                300,
+                ShortfallCause::TimeLimit,
+            ))),
             scratch,
             None,
         );
@@ -836,6 +904,45 @@ mod partial_result_tests {
 
         let failure = surviving.result.expect_err("a timeout is a failure");
         assert_eq!(failure.outcome(), AttemptOutcome::CollectionTimedOut);
+    }
+
+    /// Only a shortfall the time limit caused reads as a timeout. A server that refused what was
+    /// read, or a source that errored, used to say "before the time limit" too.
+    #[test]
+    fn only_a_time_limit_shortfall_is_reported_as_a_timeout() {
+        let outcome = |cause| shortfall_attempt(&CollectionShortfall::new("items", 2, 3, cause)).0;
+
+        assert_eq!(
+            outcome(ShortfallCause::TimeLimit),
+            AttemptOutcome::CollectionTimedOut
+        );
+        for cause in [
+            ShortfallCause::NotRecorded,
+            ShortfallCause::ReadFailed,
+            ShortfallCause::NoKnownAddress,
+        ] {
+            assert_eq!(
+                outcome(cause),
+                AttemptOutcome::CollectionFailed,
+                "{cause:?}"
+            );
+        }
+    }
+
+    /// The detail carries the integration's own remedy when it has one, so the reader of a
+    /// generic collection failure learns the specific fix.
+    #[test]
+    fn a_shortfall_remedy_reaches_the_detail() {
+        let mut shortfall = CollectionShortfall::new("nodes", 1, 2, ShortfallCause::NoKnownAddress);
+        shortfall.remedy = Some("Grant the token Sys.Audit");
+
+        assert!(
+            shortfall_attempt(&shortfall)
+                .1
+                .ends_with("Grant the token Sys.Audit")
+        );
+        shortfall.remedy = None;
+        assert!(!shortfall_attempt(&shortfall).1.contains("Sys.Audit"));
     }
 }
 
