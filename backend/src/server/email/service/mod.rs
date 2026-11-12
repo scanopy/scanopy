@@ -391,6 +391,7 @@ impl EmailService {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn send_trial_ending_email(
         &self,
         to: EmailAddress,

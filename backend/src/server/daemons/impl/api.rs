@@ -878,9 +878,13 @@ pub struct ProvisionEligibility {
 /// A daemon that has never checked in, as the create wizard lists it.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct UnconnectedDaemon {
+    /// The daemon's id.
     pub id: Uuid,
+    /// The daemon's name, as set when it was created.
     pub name: String,
+    /// The site the daemon was created on.
     pub site_id: Uuid,
+    /// When the daemon was created.
     pub created_at: DateTime<Utc>,
 }
 

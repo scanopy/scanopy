@@ -213,7 +213,7 @@ impl SetupService {
                 .credential_service
                 .has_manual_interface_credential(org_id)
                 .await?,
-            plan: org.base.plan.clone(),
+            plan: org.base.plan,
             cloud: self.deployment_type == DeploymentType::Cloud,
             can_write: entity.map(|e| {
                 Resource::iter()

@@ -65,7 +65,7 @@ impl SetupService {
             return Ok(0);
         };
         let before = locked.org.base.notifications.clone();
-        let plan = locked.org.base.plan.clone();
+        let plan = locked.org.base.plan;
         let operations = sweep(
             &mut locked.org.base.notifications,
             &listed,
@@ -143,7 +143,7 @@ pub(crate) fn sweep(
             operations.push(SetupOperation::Stuck {
                 key: open.key.clone(),
                 tier: open.key.item_type().tier(),
-                plan: plan.clone(),
+                plan: *plan,
                 trial_end,
                 hours_open: hours_open(open.open_since),
             });
