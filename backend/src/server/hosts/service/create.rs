@@ -960,12 +960,16 @@ impl HostService {
         let mut site_live_subnets: Option<Vec<Subnet>> = None;
 
         let mut created_ip_addresses = Vec::new();
+        // The submitted id each entry of `created_ip_addresses` came from, pushed with it. An
+        // address the loop drops pushes neither, so the pairing never shifts.
+        let mut stored_from: Vec<Uuid> = Vec::new();
         // Matched-existing ip_addresses are pushed unchanged below; collect them to
         // advance last_seen_at (see the ports loop for rationale) and persist in one write.
         let mut ip_addresses_to_refresh: Vec<IPAddress> = Vec::new();
         // Rows that moved to a new address: a real change, written with an event per row.
         let mut ip_addresses_rehomed: Vec<IPAddress> = Vec::new();
         for mut ip_address in ip_addresses {
+            let original_id = ip_address.id;
             ip_address.base.host_id = created_host.id;
             // Force onto the host's site (see subnet loop above): the payload
             // site_id is caller-supplied and must not be trusted.
@@ -1009,6 +1013,11 @@ impl HostService {
                     && live_subnets
                         .iter()
                         .any(|s| s.id == ip_address.base.subnet_id && s.is_organizational_subnet());
+                // A subnet id that is deleted, or on another site, fails the foreign key or files
+                // the address on another tenant's subnet if it reaches the insert.
+                let names_a_live_subnet = live_subnets
+                    .iter()
+                    .any(|s| s.id == ip_address.base.subnet_id);
 
                 if needs_placement(live_subnets, &ip_address) || names_a_catch_all {
                     match self
@@ -1026,12 +1035,36 @@ impl HostService {
                             ip_address.base.subnet_id = subnet_id;
                             placed_subnet_ids.insert(subnet_id);
                         }
-                        // A public address, or IPv6 global unicast — not a segment of this network
-                        // to invent. Leave the reference as it came and let the FK insert say so.
-                        Placement::Unplaceable => tracing::warn!(
+                        // Loopback, a public address or IPv6 global unicast: no subnet of this
+                        // site may hold it. A live subnet named for it stays as named.
+                        Placement::Unplaceable if names_a_live_subnet => tracing::warn!(
                             ip = %ip_address.base.ip_address,
                             "No subnet holds this address and none may be inferred for it"
                         ),
+                        // Named by a subnet id that is gone or on another site.
+                        Placement::Unplaceable => match conflict_behavior {
+                            // A daemon learned the id earlier (a subnet POST, the loopback seeded
+                            // at registration) and the subnet was deleted since. The address is
+                            // dropped, as a rescan would not send it, and the rest of the host
+                            // lands. Same for an id on another site.
+                            ConflictBehavior::Upsert => {
+                                tracing::debug!(
+                                    ip = %ip_address.base.ip_address,
+                                    subnet_id = %ip_address.base.subnet_id,
+                                    "Discovered address names no subnet on this site and none \
+                                     holds it; dropping the address"
+                                );
+                                continue;
+                            }
+                            ConflictBehavior::Error => {
+                                return Err(ValidationError::new(format!(
+                                    "subnet_id {} names no subnet on this host's site, and no \
+                                     subnet holds {}",
+                                    ip_address.base.subnet_id, ip_address.base.ip_address
+                                ))
+                                .into());
+                            }
+                        },
                     }
                 }
             }
@@ -1058,6 +1091,7 @@ impl HostService {
                     existing_iface.base.merge_discovered(&ip_address.base);
                     existing_iface.set_last_seen_at(ip_address.last_seen_at);
                     ip_addresses_to_refresh.push(existing_iface.clone());
+                    stored_from.push(original_id);
                     created_ip_addresses.push(existing_iface);
                     continue;
                 }
@@ -1078,6 +1112,7 @@ impl HostService {
                     existing_iface.base.merge_discovered(&ip_address.base);
                     existing_iface.set_last_seen_at(ip_address.last_seen_at);
                     ip_addresses_to_refresh.push(existing_iface.clone());
+                    stored_from.push(original_id);
                     created_ip_addresses.push(existing_iface);
                     continue;
                 }
@@ -1143,6 +1178,7 @@ impl HostService {
                             existing_iface.base.merge_discovered(&ip_address.base);
                             existing_iface.set_last_seen_at(ip_address.last_seen_at);
                             ip_addresses_rehomed.push(existing_iface.clone());
+                            stored_from.push(original_id);
                             created_ip_addresses.push(existing_iface);
                             continue;
                         }
@@ -1159,6 +1195,7 @@ impl HostService {
                 .ip_address_service
                 .create(ip_address, authentication.clone())
                 .await?;
+            stored_from.push(original_id);
             created_ip_addresses.push(created);
         }
         // Persist refreshed last_seen_at for matched ip_addresses (storage-level, no event).
@@ -1177,14 +1214,13 @@ impl HostService {
             )
             .await?;
 
-        // Build scanner→DB ip_address ID mapping using positional correspondence.
-        // original_ip_addresses and created_ip_addresses are 1:1 in order (the ip_address
-        // creation loop produces exactly one entry per input ip_address).
-        let ip_address_id_remap: std::collections::HashMap<Uuid, Uuid> = original_ip_addresses
+        // Scanner→DB ip_address id mapping. A dropped address has no entry, so a binding naming
+        // it is dropped or widened by `reassign_service_interface_bindings`.
+        let ip_address_id_remap: std::collections::HashMap<Uuid, Uuid> = stored_from
             .iter()
             .zip(created_ip_addresses.iter())
-            .filter(|(orig, created)| orig.id != created.id)
-            .map(|(orig, created)| (orig.id, created.id))
+            .filter(|(orig, created)| **orig != created.id)
+            .map(|(orig, created)| (*orig, created.id))
             .collect();
 
         // Create services with bindings reassigned (for discovery where IDs may change)
@@ -1686,7 +1722,7 @@ impl HostService {
         // Binding fixup: remap provisional daemon interface/port IDs to server-assigned IDs.
         // This handles the case where interface or port UUIDs changed during dedup (upsert).
         // Idempotent — no-op if no IDs changed.
-        // Reuse the zip-based ip_address_id_remap built before service creation.
+        // Reuse the ip_address_id_remap built before service creation.
         // The old structural-matching approach (ip_address + subnet_id) failed on second
         // scan because original_ip_addresses retain scanner subnet_ids while created_ip_addresses
         // have DB subnet_ids.
@@ -1780,9 +1816,32 @@ impl HostService {
         let mut created_interfaces = Vec::new();
         let mut skipped_interfaces = 0usize;
         let mut claimed: HashSet<Uuid> = HashSet::new();
+        // A native VLAN id comes from the daemon, which learned it from its VLAN batch. One deleted
+        // since fails `interfaces_native_vlan_id_fkey`, and one on another site would link this
+        // site's subnets to it. Both are cleared.
+        let mut live_vlan_ids: Vec<Uuid> = interfaces
+            .iter()
+            .filter_map(|i| i.base.native_vlan_id)
+            .collect::<HashSet<Uuid>>()
+            .into_iter()
+            .collect();
+        self.vlan_service
+            .retain_on_site(&mut live_vlan_ids, created_host.base.site_id)
+            .await?;
         for mut entry in interfaces {
             entry.base.host_id = created_host.id;
             entry.base.site_id = created_host.base.site_id;
+            if let Some(vlan_id) = entry.base.native_vlan_id
+                && !live_vlan_ids.contains(&vlan_id)
+            {
+                tracing::debug!(
+                    host_id = %created_host.id,
+                    if_index = entry.base.if_index,
+                    %vlan_id,
+                    "Discovered interface names a native VLAN not on this site; clearing it"
+                );
+                entry.base.native_vlan_id = None;
+            }
             // A daemon that knows which of its submitted addresses an interface carries names it by
             // the id it submitted: a gateway's per-network interfaces share one MAC, so MAC
             // matching (`link_interfaces_to_ip_addresses`) cannot pair them. Point the link at the
@@ -1888,6 +1947,39 @@ impl HostService {
         let mut remapped_assignments = original_host.base.credential_assignments.clone();
         for assignment in &mut remapped_assignments {
             remap_assignment_ip_ids(assignment, &daemon_ip_address_ips, &created_ip_addresses);
+        }
+        // The credential ids come from the payload. One deleted since fails the junction's foreign
+        // key and takes every assignment of this write with it; one from another organization
+        // would be stored as a cross-tenant assignment. Both are dropped.
+        if !remapped_assignments.is_empty() {
+            let organization_id = self
+                .site_service
+                .get_by_id(&created_host.base.site_id)
+                .await?
+                .map(|site| site.base.organization_id);
+            let mut usable: Vec<Uuid> = remapped_assignments
+                .iter()
+                .map(|a| a.credential_id)
+                .collect();
+            match organization_id {
+                Some(org_id) => {
+                    self.credential_service
+                        .retain_in_org(&mut usable, org_id)
+                        .await?
+                }
+                None => usable.clear(),
+            }
+            remapped_assignments.retain(|assignment| {
+                let keep = usable.contains(&assignment.credential_id);
+                if !keep {
+                    tracing::debug!(
+                        host_id = %created_host.id,
+                        credential_id = %assignment.credential_id,
+                        "Credential assignment names no credential in this organization; dropping it"
+                    );
+                }
+                keep
+            });
         }
         // MERGE (not replace): discovery self-reports only credentials that probed successfully,
         // so replacing would prune user/init-assigned daemon-host creds that didn't probe this
