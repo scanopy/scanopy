@@ -71,15 +71,15 @@ export interface SetupLookups {
 }
 
 /**
- * One chip beside a row's title: the entity the item is about, which the title doesn't name,
- * with `+N` when it stands for several. Its own tooltip and click open that entity.
+ * One chip beside a row's title: an entity the item is about, which the title doesn't name. A
+ * chip names exactly one entity, so an item about several has one chip each. Its own tooltip
+ * and click open that entity.
  */
 export interface SetupSubject {
 	type: EntityDiscriminants;
 	id: string;
 	label: string;
 	data: object | undefined;
-	badge?: string;
 }
 
 /** What a Setup list row says and does. */
@@ -106,23 +106,16 @@ function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1])
 	if (modal) openModal(modal, opts);
 }
 
-/** The first of `ids` as a chip, with `+N` for the rest. Empty when there are none. */
-function firstOf(
+/** A chip for each of `ids` that resolves. The row truncates them for display. */
+function allOf(
 	type: EntityDiscriminants,
 	ids: string[],
 	resolve: (id: string) => { label: string; data: object | undefined } | undefined
 ): SetupSubject[] {
-	const [first] = ids;
-	const resolved = first ? resolve(first) : undefined;
-	if (!first || !resolved) return [];
-	return [
-		{
-			type,
-			id: first,
-			...resolved,
-			badge: ids.length > 1 ? `+${ids.length - 1}` : undefined
-		}
-	];
+	return ids.flatMap((id) => {
+		const resolved = resolve(id);
+		return resolved ? [{ type, id, ...resolved }] : [];
+	});
 }
 
 /**
@@ -137,12 +130,12 @@ function reviewInferred(tab: string, siteId: string) {
 export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowView {
 	const { setup, lookups, onAnswer, onTroubleshoot } = ctx;
 	const hostSubjects = (ids: string[]) =>
-		firstOf('Host', ids, (id) => {
+		allOf('Host', ids, (id) => {
 			const host = lookups.host(id);
 			return host ? { label: hostDisplayName(host), data: host } : undefined;
 		});
 	const credentialSubjects = (ids: string[]) =>
-		firstOf('Credential', ids, (id) => {
+		allOf('Credential', ids, (id) => {
 			const credential = lookups.credential(id);
 			return credential ? { label: credential.name, data: credential } : undefined;
 		});
