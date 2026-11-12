@@ -435,6 +435,7 @@
 
 	// Record ExploreViews once the user views another view: each view shown on the tab is sent
 	// once with mark_viewed=true, and the server records ExploreViews for any but the default.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	let viewsMarked = new Set<string>();
 	$effect(() => {
 		const view = $activeView;

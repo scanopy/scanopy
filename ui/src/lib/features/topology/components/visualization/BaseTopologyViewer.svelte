@@ -518,6 +518,7 @@
 	// Pipeline state
 	const layoutState = createInitialState();
 	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const distrustedLayoutKeys = new Set<string>();
 
 	/**

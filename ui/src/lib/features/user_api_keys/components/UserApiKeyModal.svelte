@@ -285,18 +285,16 @@
 					</form.Field>
 
 					<form.Field name="site_ids">
-						{#snippet children()}
-							<SiteAccessSelect
-								selectedSiteIds={siteIdsValue ?? []}
-								onChange={handleSiteChange}
-								allSites={siteIdsValue === null}
-								onAllSitesChange={handleAllSitesChange}
-								permissionLevel={permissionsValue}
-								helpText=""
-								alwaysShowSelection={true}
-								required={false}
-							/>
-						{/snippet}
+						<SiteAccessSelect
+							selectedSiteIds={siteIdsValue ?? []}
+							onChange={handleSiteChange}
+							allSites={siteIdsValue === null}
+							onAllSitesChange={handleAllSitesChange}
+							permissionLevel={permissionsValue}
+							helpText=""
+							alwaysShowSelection={true}
+							required={false}
+						/>
 					</form.Field>
 
 					{#if permissionsValue}

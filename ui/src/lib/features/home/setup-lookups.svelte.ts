@@ -9,17 +9,19 @@ import { entryId, type SetupListEntry } from './setup-list';
 
 /**
  * The loaded entities Setup list rows name and open. Hosts load for the rows given: an uncovered
- * integration's first host, and the hosts a scan warning concerns. Call during component init.
+ * integration's hosts, and the hosts a scan warning concerns, one chip each. Call during
+ * component init.
  */
 export function setupLookups(entries: () => SetupListEntry[]): SetupLookups {
 	const daemonsQuery = useDaemonsQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const sitesQuery = useSitesQuery();
 	const hostIds = $derived([
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		...new Set(
 			entries().flatMap(({ item }) =>
 				item.type === 'UncoveredIntegration'
-					? item.host_ids.slice(0, 1)
+					? item.host_ids
 					: item.type === 'RunWarnings'
 						? hostIdsOf(item)
 						: []
@@ -36,6 +38,7 @@ export function setupLookups(entries: () => SetupListEntry[]): SetupLookups {
 }
 
 /** Keys `setup_issue_shown` has fired for since the page loaded. */
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
 const shownKeys = new Set<string>();
 
 /**
