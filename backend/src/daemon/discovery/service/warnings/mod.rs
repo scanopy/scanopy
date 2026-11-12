@@ -19,7 +19,7 @@ pub use coding::{
     warn_contradicted_claims, warn_credential_issues, warn_equal_reach_integrations,
     warn_incomplete_interface_walks, warn_incomplete_snmp_walks, warn_malformed_neighbours,
     warn_snmp_collected_nothing, warn_unreached_guests, warn_unresolved_lldp_ports,
-    warn_vlan_recording_failures,
+    warn_vlan_ports_unresolved, warn_vlan_recording_failures,
 };
 
 use std::net::IpAddr;
@@ -250,6 +250,21 @@ pub enum MalformedNeighbourReason {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VlanRecordingFailed {
     pub ip: IpAddr,
+}
+
+/// A device whose VLAN tables name member ports that match none of its interfaces.
+///
+/// TP-Link's VLAN table lists members by name. A link aggregation group has no row in the port
+/// table that maps names to interfaces, so its membership cannot be placed (GH #847). The ports
+/// that did match keep theirs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VlanPortsUnresolved {
+    pub ip: IpAddr,
+    /// Distinct member names that matched no interface.
+    pub unresolved: usize,
+    pub credential_id: Option<Uuid>,
+    /// The SNMP version the device answered on.
+    pub snmp_version: Option<SnmpVersion>,
 }
 
 /// A running hypervisor guest at addresses no subnet this scan covers, recorded without ports or

@@ -1015,6 +1015,9 @@ impl DiscoveryOps {
         if let Ok(records) = session.vlan_recording_failures.lock() {
             warnings.extend(warnings::warn_vlan_recording_failures(&records));
         }
+        if let Ok(records) = session.vlan_ports_unresolved.lock() {
+            warnings.extend(warnings::warn_vlan_ports_unresolved(&records));
+        }
         if let Ok(records) = session.equal_reach_integrations.lock() {
             warnings.extend(warnings::warn_equal_reach_integrations(&records));
         }
@@ -1422,6 +1425,19 @@ impl DiscoveryOps {
     pub async fn record_unreached_guest(&self, record: warnings::UnreachedHypervisorGuest) {
         if let Ok(session) = self.get_session().await
             && let Ok(mut buffer) = session.unreached_guests.lock()
+        {
+            buffer.push(record);
+        }
+    }
+
+    /// Record a device whose VLAN tables name member ports that match none of its interfaces.
+    /// A record with nothing unresolved is dropped, so callers pass the count as they have it.
+    pub async fn record_vlan_ports_unresolved(&self, record: warnings::VlanPortsUnresolved) {
+        if record.unresolved == 0 {
+            return;
+        }
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut buffer) = session.vlan_ports_unresolved.lock()
         {
             buffer.push(record);
         }

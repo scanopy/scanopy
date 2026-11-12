@@ -129,6 +129,25 @@ pub(super) async fn walk_subtree<T, F>(
     session: &mut T,
     ip: IpAddr,
     base_oid_str: &str,
+    on_entry: F,
+) -> Result<WalkStop>
+where
+    T: SnmpWalkTransport,
+    F: FnMut(&[u64], &Value),
+{
+    walk_subtree_paged(session, ip, base_oid_str, BULK_MAX_REPETITIONS, on_entry).await
+}
+
+/// [`walk_subtree`], starting from a page of `max_repetitions` rather than the default.
+///
+/// For a subtree whose neighbours are expensive to read. A GETBULK that runs off the end of a
+/// table returns whatever follows it, so the page size bounds how far past the end one request
+/// reaches (GH #848).
+pub(super) async fn walk_subtree_paged<T, F>(
+    session: &mut T,
+    ip: IpAddr,
+    base_oid_str: &str,
+    max_repetitions: u32,
     mut on_entry: F,
 ) -> Result<WalkStop>
 where
@@ -154,7 +173,7 @@ where
     // Repetitions asked for per getbulk round. Walk-local rather than the constant because it only
     // ever shrinks: an agent that could not fit 20 varbinds will not fit them on the next page
     // either, so re-escalating would just re-earn the same failure.
-    let mut max_reps = BULK_MAX_REPETITIONS;
+    let mut max_reps = max_repetitions;
     // Every in-subtree OID already handed to `on_entry`. This is what tells the two devices that
     // used to look identical apart: an OID below where we asked from is the GH #674 firmware bug
     // when it names a row we have not seen, and an agent going in circles when it does not.
@@ -471,7 +490,31 @@ where
     T: SnmpWalkTransport,
     F: FnMut(&[u64], &Value),
 {
-    let stop = walk_subtree(session, ip, base_oid_str, on_entry)
+    walk_column_paged(
+        session,
+        ip,
+        base_oid_str,
+        BULK_MAX_REPETITIONS,
+        shortfall,
+        on_entry,
+    )
+    .await
+}
+
+/// [`walk_column`], starting from a page of `max_repetitions`. See [`walk_subtree_paged`].
+pub(super) async fn walk_column_paged<T, F>(
+    session: &mut T,
+    ip: IpAddr,
+    base_oid_str: &str,
+    max_repetitions: u32,
+    shortfall: &mut Shortfall,
+    on_entry: F,
+) -> WalkStop
+where
+    T: SnmpWalkTransport,
+    F: FnMut(&[u64], &Value),
+{
+    let stop = walk_subtree_paged(session, ip, base_oid_str, max_repetitions, on_entry)
         .await
         .unwrap_or(WalkStop::Failed(SnmpWalkCause::UnreadableResponse));
     shortfall.record(stop);

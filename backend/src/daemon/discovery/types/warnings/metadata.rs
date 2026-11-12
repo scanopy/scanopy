@@ -81,6 +81,7 @@ impl DiscoveryWarningCode {
                 &["addresses", "dropped", "total"]
             }
             Self::LldpLocalPortMisplaced => &["addresses", "misplaced"],
+            Self::VlanPortsUnresolved => &["addresses", "unresolved"],
 
             Self::MalformedNeighboursWalkCutShort
             | Self::MalformedNeighboursGhostRows
@@ -207,6 +208,7 @@ impl DiscoveryWarningCode {
             | Self::ClaimedCapabilityReadCutShort
             | Self::ClaimedCapabilityEmpty
             | Self::LldpLocalPortMisplaced
+            | Self::VlanPortsUnresolved
             | Self::SnmpCollectedNothing
             | Self::LldpNeighbourNotFound
             | Self::LldpNeighbourAmbiguous
@@ -332,6 +334,7 @@ impl DiscoveryWarningCode {
             | Self::SnmpWalkBridgeMibAbsent
             | Self::LldpLocalPortDropped
             | Self::LldpLocalPortMisplaced
+            | Self::VlanPortsUnresolved
             | Self::MalformedNeighboursGhostRows
             | Self::MalformedNeighboursIncompleteRecords
             | Self::MalformedNeighboursUnexpectedType
@@ -421,6 +424,7 @@ impl DiscoveryWarningCode {
             | Self::MalformedNeighboursUnexpectedType
             | Self::MalformedNeighboursUnreadableIndex
             | Self::VlanRecordingFailed
+            | Self::VlanPortsUnresolved
             | Self::EqualReachIntegrationsMerged
             | Self::DcpSweepTimedOut
             | Self::IcmpSweepTimedOut
@@ -485,6 +489,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::MalformedNeighboursUnreadableIndex => "Neighbour position unreadable",
             Self::SnmpCollectedNothing => "SNMP answered but returned nothing",
             Self::VlanRecordingFailed => "VLANs could not be saved",
+            Self::VlanPortsUnresolved => "VLAN members without an interface",
             Self::EqualReachIntegrationsMerged => "Interfaces merged from two integrations",
             Self::CredentialTargetNotScanned => "Credential target outside the scan",
             Self::CredentialTargetNotResponding => "Credential target did not respond",
@@ -604,6 +609,9 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             }
             Self::VlanRecordingFailed => {
                 "The VLANs reported by {addresses} could not be saved, so VLAN membership is missing from their interfaces. The devices answered correctly — this is a failure recording the result, and the daemon log has the underlying error."
+            }
+            Self::VlanPortsUnresolved => {
+                "{addresses} listed VLAN members that match no interface on the device ({unresolved} in total), so those members have no VLAN membership. They are link aggregation groups, or port names missing from the device's port table. Every other port on the device has its VLANs."
             }
             Self::EqualReachIntegrationsMerged => {
                 "{addresses} answered both {first} and {second}, and both integrations reported a full interface table. Scanopy merged the two sets. On a port both describe, {first} answered first, so Scanopy used its row and its neighbours. Running both is supported."
@@ -817,6 +825,7 @@ impl DiscoveryWarningCode {
             | Self::SnmpWalkUnsupported
             | Self::Unknown
             | Self::VlanRecordingFailed
+            | Self::VlanPortsUnresolved
             | Self::WarningsTruncated => false,
         }
     }
@@ -895,6 +904,7 @@ impl DiscoveryWarningCode {
             | Self::ScanTimeLimitWithEstimate
             | Self::Unknown
             | Self::VlanRecordingFailed
+            | Self::VlanPortsUnresolved
             | Self::WarningsTruncated => None,
         }
     }

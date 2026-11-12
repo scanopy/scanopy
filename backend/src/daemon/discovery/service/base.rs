@@ -9,7 +9,7 @@ use std::{
 use crate::daemon::discovery::service::warnings::{
     ContradictedClaim, CredentialIssue, EqualReachIntegrations, IncompleteInterfaceWalk,
     IncompleteSnmpWalk, MalformedNeighbours, SnmpCollectedNothing, UnreachedHypervisorGuest,
-    UnresolvedLldpPorts, VlanRecordingFailed,
+    UnresolvedLldpPorts, VlanPortsUnresolved, VlanRecordingFailed,
 };
 use crate::daemon::discovery::types::base::DiscoverySessionInfo;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
@@ -197,6 +197,8 @@ pub struct DiscoverySession {
     pub(super) snmp_collected_nothing: Arc<std::sync::Mutex<Vec<SnmpCollectedNothing>>>,
     /// Devices whose VLAN table was read and could not be saved.
     pub(super) vlan_recording_failures: Arc<std::sync::Mutex<Vec<VlanRecordingFailed>>>,
+    /// Devices whose VLAN tables name member ports that match none of their interfaces.
+    pub(super) vlan_ports_unresolved: Arc<std::sync::Mutex<Vec<VlanPortsUnresolved>>>,
     /// Hosts whose interfaces two full-ifTable integrations both collected.
     pub(super) equal_reach_integrations: Arc<std::sync::Mutex<Vec<EqualReachIntegrations>>>,
     /// Running hypervisor guests at addresses no subnet this scan covers.
@@ -228,7 +230,9 @@ impl DiscoverySession {
             progress_range_end: Arc::new(AtomicU8::new(100)),
             consecutive_report_failures: Arc::new(AtomicU32::new(0)),
             network_phase_started: Arc::new(std::sync::OnceLock::new()),
-            last_activity_ms: Arc::new(AtomicI64::new(crate::server::shared::clock::now().timestamp_millis())),
+            last_activity_ms: Arc::new(AtomicI64::new(
+                crate::server::shared::clock::now().timestamp_millis(),
+            )),
             in_flight_deep_scans: Arc::new(std::sync::Mutex::new(Default::default())),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
@@ -238,6 +242,7 @@ impl DiscoverySession {
             malformed_neighbours: Arc::new(std::sync::Mutex::new(Vec::new())),
             snmp_collected_nothing: Arc::new(std::sync::Mutex::new(Vec::new())),
             vlan_recording_failures: Arc::new(std::sync::Mutex::new(Vec::new())),
+            vlan_ports_unresolved: Arc::new(std::sync::Mutex::new(Vec::new())),
             equal_reach_integrations: Arc::new(std::sync::Mutex::new(Vec::new())),
             unreached_guests: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),

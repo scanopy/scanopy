@@ -76,7 +76,8 @@ impl DiscoveryWarning {
             | Self::ClaimedCapabilityEmpty { credential_id, .. }
             | Self::LldpLocalPortDropped { credential_id, .. }
             | Self::LldpLocalPortDroppedReadCutShort { credential_id, .. }
-            | Self::LldpLocalPortMisplaced { credential_id, .. } => {
+            | Self::LldpLocalPortMisplaced { credential_id, .. }
+            | Self::VlanPortsUnresolved { credential_id, .. } => {
                 slots.credential_id = Some(credential_id);
             }
 

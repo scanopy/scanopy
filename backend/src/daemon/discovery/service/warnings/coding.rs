@@ -23,7 +23,7 @@ use super::{
     EqualReachIntegrations, IncompleteInterfaceWalk, IncompleteSnmpWalk, LocalPortPlacementReason,
     MalformedNeighbourReason, MalformedNeighbours, ShortfallReason, SnmpCollectedNothing,
     SnmpWalkCause, UnreachedGuestReason, UnreachedHypervisorGuest, UnresolvedLldpPorts,
-    VlanRecordingFailed,
+    VlanPortsUnresolved, VlanRecordingFailed,
 };
 use crate::daemon::discovery::types::warnings::{
     CredentialAttempt, DiscoveryWarning, MalformedNeighbourConsequence,
@@ -313,6 +313,18 @@ pub fn warn_snmp_collected_nothing(records: &[SnmpCollectedNothing]) -> Vec<Disc
             credential_id: record.credential_id,
             snmp_version: record.snmp_version,
             failures: Some(record.failures.clone()),
+        })
+        .collect()
+}
+
+pub fn warn_vlan_ports_unresolved(records: &[VlanPortsUnresolved]) -> Vec<DiscoveryWarning> {
+    records
+        .iter()
+        .map(|record| DiscoveryWarning::VlanPortsUnresolved {
+            address: record.ip,
+            unresolved: count(record.unresolved),
+            credential_id: record.credential_id,
+            snmp_version: record.snmp_version,
         })
         .collect()
 }

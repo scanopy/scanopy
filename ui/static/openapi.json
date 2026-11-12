@@ -35755,6 +35755,55 @@
           },
           {
             "type": "object",
+            "title": "VlanPortsUnresolved",
+            "description": "The device's VLAN tables name member ports that match none of its interfaces, so those\nmembers carry no VLAN membership. The ports that matched keep theirs.",
+            "required": [
+              "address",
+              "unresolved",
+              "credential_id",
+              "snmp_version",
+              "code"
+            ],
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "The device that reported the VLANs."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "VlanPortsUnresolved"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential the device was read with."
+              },
+              "snmp_version": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SnmpVersion",
+                    "description": "The SNMP version the device answered on."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unresolved": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Member names that matched no interface: link aggregation groups, and port names the\ndevice's port table does not list.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "EqualReachIntegrationsMerged",
             "description": "Two integrations that each read the device's full interface table both collected it, and\ntheir interface sets were merged.\n\nA supported configuration, not a fault. It is reported because the merge keeps one row\nper port: where both describe a port, the first to answer supplies the row and its\nneighbours, and the second's are dropped. Someone chasing a missing link needs to know\nthat happened.",
             "required": [
@@ -36892,6 +36941,7 @@
           "MalformedNeighboursUnreadableIndex",
           "SnmpCollectedNothing",
           "VlanRecordingFailed",
+          "VlanPortsUnresolved",
           "EqualReachIntegrationsMerged",
           "CredentialTargetNotScanned",
           "CredentialTargetNotResponding",

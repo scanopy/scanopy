@@ -32,6 +32,7 @@ mod cdp;
 mod entity;
 mod lldp;
 mod system;
+mod tplink;
 mod walk;
 
 pub use arp::query_arp_table;
@@ -45,11 +46,19 @@ pub use lldp::{
     query_lldp_neighbors, query_lldp_neighbors_for,
 };
 pub use system::{query_ip_addr_table, query_system_info, walk_if_table};
+pub use tplink::{TplinkPortItem, TplinkPortList, is_tplink_agent};
 pub use walk::{AgentErrorStatus, MAX_TRANSPORT_RETRIES, RequestTimedOut, cause_of};
 use walk::{walk_column, walk_subtree};
 
 /// Varbinds requested per getbulk round when walking a table subtree.
 pub const BULK_MAX_REPETITIONS: u32 = 20;
+
+/// Varbinds requested per getbulk round when walking a table in a vendor's private tree.
+///
+/// A column walk reads at most this many OIDs past the column's end. On TP-Link firmware the
+/// private tree holds per-port utilization values that take seconds to compute, and a
+/// 20-repetition page that reached them outlasted the request timeout (GH #848).
+pub const VENDOR_WALK_MAX_REPETITIONS: u32 = 5;
 
 /// A single `getbulk` round-trip's non-error outcome. Transport failures (timeouts,
 /// session errors) are the `Err` arm of the returned `Result`; the legitimate non-error
@@ -318,7 +327,8 @@ pub struct SnmpCollection<T> {
     /// reads to an operator as a transient (GH #668).
     ///
     /// Set by both neighbour tables: LLDP discards a record with no chassis ID, CDP one with no
-    /// device id, for the same reason in both cases.
+    /// device id, for the same reason in both cases. Set by the TP-Link VLAN membership read too,
+    /// as the count of VLAN member ports it could match to no interface (GH #847).
     pub discarded: usize,
     /// What the device led us to expect here, when it published anything.
     ///
@@ -598,3 +608,7 @@ mod out_of_order_tests;
 #[cfg(test)]
 #[path = "tests/lldp_v2_tests.rs"]
 mod lldp_v2_tests;
+
+#[cfg(test)]
+#[path = "tests/tplink_tests.rs"]
+mod tplink_tests;

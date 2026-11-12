@@ -404,6 +404,10 @@ const WARNING_PARAMS = {
 		failures: failuresOf(w[0].failures)
 	}),
 	VlanRecordingFailed: (w) => ({ addresses: addressesOf(w) }),
+	VlanPortsUnresolved: (w) => ({
+		addresses: addressesOf(w),
+		unresolved: sum(w.map((x) => x.unresolved))
+	}),
 	// One per host, like the credential codes. The two integrations identify the statement, so hosts
 	// read by the same pair in the same order share a sentence and a different pair stays apart.
 	EqualReachIntegrationsMerged: (w) => ({

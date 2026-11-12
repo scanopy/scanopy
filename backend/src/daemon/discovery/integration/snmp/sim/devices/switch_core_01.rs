@@ -306,6 +306,46 @@ mod tests {
         );
     }
 
+    /// VLAN names and native VLANs read from Q-BRIDGE, with nothing asked of TP-Link's tree.
+    #[tokio::test]
+    async fn its_vlans_come_from_q_bridge_and_no_tplink_walk_is_sent() {
+        use crate::daemon::discovery::integration::snmp::oids::vlan;
+
+        let (scan, requests) = harness::recorded_scan("switch-core-01").await;
+
+        let vlans: Vec<(u16, &str)> = scan
+            .vlans
+            .iter()
+            .map(|v| (v.vlan_id, v.name.as_str()))
+            .collect();
+        assert_eq!(vlans, vec![(10, "DATA"), (20, "VOICE")]);
+
+        let mut native: Vec<(i32, Option<u16>)> = scan
+            .vlan_membership
+            .iter()
+            .map(|m| (m.if_index, m.native_vlan))
+            .collect();
+        native.sort();
+        let mut expected: Vec<(i32, Option<u16>)> = [(1, 10), (2, 10), (3, 20)]
+            .into_iter()
+            .map(|(bridge_port, vlan_id)| (scan.bridge_ports[&bridge_port], Some(vlan_id)))
+            .collect();
+        expected.sort();
+        assert_eq!(native, expected);
+        assert!(
+            scan.vlan_membership
+                .iter()
+                .all(|m| m.tagged_vlans.is_empty())
+        );
+
+        assert!(
+            !requests
+                .iter()
+                .any(|r| r.is_under(vlan::tplink::TPLINK_DOT1Q_VLAN_MIB)),
+            "a Cisco agent was asked for TP-Link's VLAN tables"
+        );
+    }
+
     /// Its neighbours are advertised with padded-ASCII chassis ids, which is the lab's most common
     /// encoding and one `parse_mac_id` accepts by design.
     #[tokio::test]

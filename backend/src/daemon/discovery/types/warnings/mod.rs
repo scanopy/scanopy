@@ -410,6 +410,25 @@ pub enum DiscoveryWarning {
         #[schema(value_type = String)]
         address: IpAddr,
     },
+    /// The device's VLAN tables name member ports that match none of its interfaces, so those
+    /// members carry no VLAN membership. The ports that matched keep theirs.
+    #[schema(title = "VlanPortsUnresolved")]
+    VlanPortsUnresolved {
+        /// The device that reported the VLANs.
+        #[schema(value_type = String)]
+        address: IpAddr,
+        /// Member names that matched no interface: link aggregation groups, and port names the
+        /// device's port table does not list.
+        unresolved: u32,
+        /// The stored credential the device was read with.
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+        /// The SNMP version the device answered on.
+        #[serde(default)]
+        #[schema(required)]
+        snmp_version: Option<SnmpVersion>,
+    },
     /// Two integrations that each read the device's full interface table both collected it, and
     /// their interface sets were merged.
     ///
@@ -977,6 +996,7 @@ pub enum DiscoveryWarningCode {
     MalformedNeighboursUnreadableIndex,
     SnmpCollectedNothing,
     VlanRecordingFailed,
+    VlanPortsUnresolved,
     EqualReachIntegrationsMerged,
     CredentialTargetNotScanned,
     CredentialTargetNotResponding,
@@ -1067,6 +1087,7 @@ impl DiscoveryWarning {
             }
             Self::SnmpCollectedNothing { .. } => DiscoveryWarningCode::SnmpCollectedNothing,
             Self::VlanRecordingFailed { .. } => DiscoveryWarningCode::VlanRecordingFailed,
+            Self::VlanPortsUnresolved { .. } => DiscoveryWarningCode::VlanPortsUnresolved,
             Self::EqualReachIntegrationsMerged { .. } => {
                 DiscoveryWarningCode::EqualReachIntegrationsMerged
             }
@@ -1162,7 +1183,8 @@ impl DiscoveryWarning {
             | Self::MalformedNeighboursUnexpectedType(_)
             | Self::MalformedNeighboursUnreadableIndex(_)
             | Self::SnmpCollectedNothing { .. }
-            | Self::VlanRecordingFailed { .. } => Some(CredentialQueryPayloadDiscriminants::Snmp),
+            | Self::VlanRecordingFailed { .. }
+            | Self::VlanPortsUnresolved { .. } => Some(CredentialQueryPayloadDiscriminants::Snmp),
 
             Self::CredentialTargetNotScanned { integration, .. }
             | Self::CredentialTargetNotResponding { integration, .. }
@@ -1252,7 +1274,8 @@ impl DiscoveryWarning {
             | Self::ClaimedCapabilityEmpty { credential_id, .. }
             | Self::LldpLocalPortDropped { credential_id, .. }
             | Self::LldpLocalPortDroppedReadCutShort { credential_id, .. }
-            | Self::LldpLocalPortMisplaced { credential_id, .. } => *credential_id,
+            | Self::LldpLocalPortMisplaced { credential_id, .. }
+            | Self::VlanPortsUnresolved { credential_id, .. } => *credential_id,
 
             Self::MalformedNeighboursWalkCutShort(m)
             | Self::MalformedNeighboursGhostRows(m)
