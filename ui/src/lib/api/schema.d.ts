@@ -1551,7 +1551,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the dashboard's Issues
+         * List dashboard Issues
          * @description One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
          *     summary.
          */

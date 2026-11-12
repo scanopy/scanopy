@@ -6391,7 +6391,7 @@
         "tags": [
           "internal"
         ],
-        "summary": "List the dashboard's Issues",
+        "summary": "List dashboard Issues",
         "description": "One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the\nsummary.",
         "operationId": "get_dashboard_issues",
         "parameters": [

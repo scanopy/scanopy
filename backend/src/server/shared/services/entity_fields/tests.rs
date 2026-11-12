@@ -415,6 +415,8 @@ const HANDLER_CHECKED: &[(&str, &str, &str)] = &[
         "scope_discovery_report",
     ),
     ("DiscoveryType", "subnet_ids", "scope_discovery_report"),
+    // Cleared unless the subnet is on the daemon's site, before the foreign-key insert.
+    ("DiscoveryWarning", "subnet_id", "scope_discovery_report"),
     (
         "CredentialRunResult",
         "credential_id",
