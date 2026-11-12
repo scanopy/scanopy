@@ -15,6 +15,7 @@ use super::types::{
 };
 use regex::Regex;
 use scanopy::server::auth::middleware::fixture_capture::FIXTURE_REPLAY_HEADER;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 /// Context for replaying requests with substituted IDs.
@@ -296,6 +297,12 @@ pub async fn replay_manifest(
     is_daemon_test: bool,
 ) -> Vec<Result<ReplayResult, String>> {
     let mut results = Vec::new();
+    // Recorded entity id -> the id this replay's server returned for the same entity. A daemon
+    // uses the id the server answers with, which can differ from the one it sent: a subnet the
+    // server already held (the daemon host's loopback, created at registration) comes back under
+    // the existing id. The replay starts from cleared data, so later requests that name the
+    // recorded id must name the replay's instead.
+    let mut ids: HashMap<String, String> = HashMap::new();
 
     for exchange in &manifest.exchanges {
         // Skip exchanges that originally failed - these are expected failure cases
@@ -309,15 +316,44 @@ pub async fn replay_manifest(
             continue;
         }
 
+        let mut exchange = exchange.clone();
+        remap_ids(&mut exchange.request_body, &ids);
+
         // Against the server, replay as the daemon that recorded the fixture, so the response is
         // shaped for that version.
         let daemon_version = (!is_daemon_test).then_some(manifest.version.as_str());
         let result =
-            replay_exchange(client, base_url, exchange, ctx, openapi, daemon_version).await;
+            replay_exchange(client, base_url, &exchange, ctx, openapi, daemon_version).await;
+        if let Ok(replayed) = &result
+            && let (Some(recorded), Some(actual)) = (
+                exchange.response_body["data"]["id"].as_str(),
+                replayed.actual_body["data"]["id"].as_str(),
+            )
+            && recorded != actual
+        {
+            ids.insert(recorded.to_string(), actual.to_string());
+        }
         results.push(result);
     }
 
     results
+}
+
+/// Replace every string in `value` that is a recorded id with the replay's id for it.
+fn remap_ids(value: &mut serde_json::Value, ids: &HashMap<String, String>) {
+    if ids.is_empty() {
+        return;
+    }
+    match value {
+        serde_json::Value::String(s) => {
+            if let Some(actual) = ids.get(s.as_str()) {
+                *s = actual.clone();
+            }
+        }
+        serde_json::Value::Array(items) => items.iter_mut().for_each(|v| remap_ids(v, ids)),
+        serde_json::Value::Object(map) => map.values_mut().for_each(|v| remap_ids(v, ids)),
+        _ => {}
+    }
 }
 
 /// Run server compatibility tests - replays old daemon requests against current server.
