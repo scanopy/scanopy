@@ -3139,6 +3139,8 @@
 	"meta_warning_codes_UnconfirmedHostInferred_name": "Host known only from another device, please confirm",
 	"meta_warning_codes_Unknown_description": "{detail}",
 	"meta_warning_codes_Unknown_name": "Warning from another version",
+	"meta_warning_codes_VlanPortsUnresolved_description": "{addresses} listed VLAN members that match no interface on the device ({unresolved} in total), so those members have no VLAN membership. They are link aggregation groups, or port names missing from the device's port table. Every other port on the device has its VLANs.",
+	"meta_warning_codes_VlanPortsUnresolved_name": "VLAN members without an interface",
 	"meta_warning_codes_VlanRecordingFailed_description": "The VLANs reported by {addresses} could not be saved, so VLAN membership is missing from their interfaces. The devices answered correctly and saving the result failed. The next scan tries again. If it repeats, report a bug.",
 	"meta_warning_codes_VlanRecordingFailed_name": "VLANs could not be saved",
 	"meta_warning_codes_WarningsTruncated_description": "{elided} further warnings from this scan were not recorded, because it produced more than the scan record holds. Fix the warnings shown, and the rest appear on the next scan.",

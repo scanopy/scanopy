@@ -311,6 +311,29 @@ pub const REQUESTED_MIBS: &[SnmpMib] = &[
         standard: "Cisco",
         objects: &[walk("vtpVlanName", oids::vlan::cisco_vtp::VTP_VLAN_NAME)],
     },
+    SnmpMib {
+        name: "TPLINK-DOT1Q-VLAN-MIB",
+        standard: "TP-Link",
+        objects: &[
+            walk(
+                "dot1qVlanDescription",
+                oids::vlan::tplink::DOT1Q_VLAN_DESCRIPTION,
+            ),
+            walk("dot1qVlanStatus", oids::vlan::tplink::DOT1Q_VLAN_STATUS),
+            walk(
+                "vlanPortConfigTable port name",
+                oids::vlan::tplink::VLAN_PORT_CONFIG_NAME,
+            ),
+            walk(
+                "vlanPortConfigTable PVID",
+                oids::vlan::tplink::VLAN_PORT_CONFIG_PVID,
+            ),
+            walk(
+                "vlanTagPortMemberAdd",
+                oids::vlan::tplink::VLAN_TAG_PORT_MEMBER_ADD,
+            ),
+        ],
+    },
 ];
 
 /// One timeout or limit the integration runs under.
@@ -405,66 +428,19 @@ mod tests {
     use std::collections::BTreeSet;
     use std::net::IpAddr;
 
-    use anyhow::Result;
-    use snmp2::Value;
-
     use super::*;
-    use crate::daemon::discovery::integration::snmp::queries::{
-        SnmpWalkTransport, Varbinds, WalkPage,
-    };
-    use crate::daemon::discovery::integration::snmp::sim::{devices, transport::SimAgent};
+    use crate::daemon::discovery::integration::snmp::sim::devices;
+    use crate::daemon::discovery::integration::snmp::sim::harness::{Recorded, Recording};
     use crate::daemon::discovery::integration::snmp::*;
-
-    /// A sim agent that remembers the OID of every request made of it.
-    struct Recording {
-        inner: SimAgent,
-        requests: Vec<(Vec<u64>, SnmpRequest)>,
-    }
-
-    #[async_trait::async_trait]
-    impl SnmpWalkTransport for Recording {
-        fn getbulk_unusable(&self) -> bool {
-            self.inner.getbulk_unusable()
-        }
-
-        fn note_getbulk_unusable(&mut self) {
-            self.inner.note_getbulk_unusable()
-        }
-
-        async fn walk_getbulk<'a>(
-            &'a mut self,
-            from: &[u64],
-            max_repetitions: u32,
-        ) -> Result<WalkPage<'a>> {
-            self.requests.push((from.to_vec(), SnmpRequest::Walk));
-            self.inner.walk_getbulk(from, max_repetitions).await
-        }
-
-        async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
-            self.requests.push((from.to_vec(), SnmpRequest::Walk));
-            self.inner.walk_getnext(from).await
-        }
-
-        async fn get_scalar<'a>(&'a mut self, oid: &[u64]) -> Result<Option<Value<'a>>> {
-            self.requests.push((oid.to_vec(), SnmpRequest::Get));
-            self.inner.get_scalar(oid).await
-        }
-    }
 
     /// Every request the queries make of every simulated device, in the order `execute` runs
     /// them, with bridge and VLAN queries sent to the bridge context where the device has one.
     async fn requests_across_sim_devices() -> Vec<(Vec<u64>, SnmpRequest)> {
-        let mut all = Vec::new();
+        let mut all: Vec<Recorded> = Vec::new();
         for device in devices::all() {
             let ip: IpAddr = device.ip.into();
-            let mut session = Recording {
-                inner: device.agent(),
-                requests: Vec::new(),
-            };
-            let mut context = device.context_agent().map(|inner| Recording {
-                inner,
-                requests: Vec::new(),
-            });
+            let mut session = Recording::new(device.agent());
+            let mut context = device.context_agent().map(Recording::new);
 
             let _ = query_system_info(&mut session, ip).await;
             let _ = walk_if_table(&mut session, ip).await;
@@ -480,15 +456,16 @@ mod tests {
                 .await
                 .unwrap_or_default();
             let _ = query_bridge_fdb(bridge, ip, &ports).await;
-            let _ = query_vlan_table(bridge, ip).await;
-            let _ = query_port_vlan_membership(bridge, ip, &ports).await;
+            let sys_object_id = device.system.sys_object_id.as_deref();
+            let _ = query_vlan_table(bridge, ip, sys_object_id).await;
+            let _ = query_port_vlan_membership(bridge, ip, &ports, sys_object_id).await;
 
             let _ = query_lldp_local(&mut session, ip).await;
 
             all.extend(session.requests);
             all.extend(context.into_iter().flat_map(|c| c.requests));
         }
-        all
+        all.into_iter().map(|r| (r.oid, r.request)).collect()
     }
 
     fn catalog_objects() -> impl Iterator<Item = (&'static SnmpMib, &'static SnmpObject)> {

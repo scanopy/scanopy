@@ -32,6 +32,7 @@ mod cdp;
 mod entity;
 mod lldp;
 mod system;
+mod tplink;
 mod walk;
 
 pub use arp::query_arp_table;
@@ -45,6 +46,7 @@ pub use lldp::{
     query_lldp_neighbors, query_lldp_neighbors_for,
 };
 pub use system::{query_ip_addr_table, query_system_info, walk_if_table};
+pub use tplink::{TplinkPortItem, TplinkPortList, is_tplink_agent};
 pub use walk::{AgentErrorStatus, MAX_TRANSPORT_RETRIES, RequestTimedOut, cause_of};
 use walk::{walk_column, walk_subtree};
 
@@ -356,7 +358,8 @@ pub struct SnmpCollection<T> {
     /// reads to an operator as a transient (GH #668).
     ///
     /// Set by both neighbour tables: LLDP discards a record with no chassis ID, CDP one with no
-    /// device id, for the same reason in both cases.
+    /// device id, for the same reason in both cases. Set by the TP-Link VLAN membership read too,
+    /// as the count of VLAN member ports it could match to no interface (GH #847).
     pub discarded: usize,
     /// What the device led us to expect here, when it published anything.
     ///
@@ -636,3 +639,7 @@ mod out_of_order_tests;
 #[cfg(test)]
 #[path = "tests/lldp_v2_tests.rs"]
 mod lldp_v2_tests;
+
+#[cfg(test)]
+#[path = "tests/tplink_tests.rs"]
+mod tplink_tests;

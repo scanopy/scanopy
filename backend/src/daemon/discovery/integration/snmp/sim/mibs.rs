@@ -637,3 +637,155 @@ mod tests {
         assert_eq!(port.oid[port.oid.len() - 7..], [20, 0, 26, 43, 0, 16, 1]);
     }
 }
+
+/// One `vlanPortConfigTable` row of TPLINK-DOT1Q-VLAN-MIB, indexed by ifIndex.
+#[derive(Debug, Clone)]
+pub struct TplinkPortRow {
+    pub if_index: i32,
+    /// Column 1: the port as the VLAN table's member strings name it, such as `1/0/1`.
+    pub name: &'static str,
+    /// Column 2: the port's native VLAN.
+    pub pvid: u16,
+}
+
+/// One `vlanConfigTable` row of TPLINK-DOT1Q-VLAN-MIB, indexed by VLAN ID.
+#[derive(Debug, Clone)]
+pub struct TplinkVlanRow {
+    pub vlan_id: u16,
+    pub name: &'static str,
+    /// Member ports as the switch writes them: `1/0/4-6,1/0/8`.
+    pub tagged: &'static str,
+    pub untagged: &'static str,
+    /// `dot1qVlanStatus`. 1 is active.
+    pub status: i64,
+}
+
+impl TplinkVlanRow {
+    pub fn active(
+        vlan_id: u16,
+        name: &'static str,
+        tagged: &'static str,
+        untagged: &'static str,
+    ) -> Self {
+        Self {
+            vlan_id,
+            name,
+            tagged,
+            untagged,
+            status: 1,
+        }
+    }
+
+    pub fn status(mut self, status: i64) -> Self {
+        self.status = status;
+        self
+    }
+}
+
+/// TPLINK-DOT1Q-VLAN-MIB: where a TP-Link switch with no Q-BRIDGE VLAN group keeps its VLANs
+/// (GH #847).
+#[derive(Debug, Clone, Default)]
+pub struct TplinkVlanTable {
+    pub ports: Vec<TplinkPortRow>,
+    pub vlans: Vec<TplinkVlanRow>,
+}
+
+impl TplinkVlanTable {
+    pub fn is_empty(&self) -> bool {
+        self.ports.is_empty() && self.vlans.is_empty()
+    }
+
+    /// Every column the reporter's SG3210X-M2 served, including the ones the daemon never asks
+    /// for: a GETBULK that runs off the end of a column lands on them, as it does on the switch.
+    pub fn wire_rows(&self) -> Vec<Row> {
+        const PORT_ENTRY: &str = "1.3.6.1.4.1.11863.6.14.1.1.1.1";
+        const VLAN_ENTRY: &str = "1.3.6.1.4.1.11863.6.14.1.2.1.1";
+        let column = |entry: &str, column: u64| format!("{entry}.{column}");
+
+        let mut rows = Vec::new();
+        for port in &self.ports {
+            let index = [port.if_index as u64];
+            rows.push(Row::at(
+                vlan::tplink::VLAN_PORT_CONFIG_NAME,
+                &index,
+                PassValue::Str(port.name.to_string()),
+            ));
+            rows.push(Row::at(
+                vlan::tplink::VLAN_PORT_CONFIG_PVID,
+                &index,
+                PassValue::Integer(port.pvid as i64),
+            ));
+            // Columns 3 to 5 as the switch answered them on every port: 1, 0 and "N/A".
+            rows.push(Row::at(
+                &column(PORT_ENTRY, 3),
+                &index,
+                PassValue::Integer(1),
+            ));
+            rows.push(Row::at(
+                &column(PORT_ENTRY, 4),
+                &index,
+                PassValue::Integer(0),
+            ));
+            rows.push(Row::at(
+                &column(PORT_ENTRY, 5),
+                &index,
+                PassValue::Str("N/A".to_string()),
+            ));
+        }
+        for row in &self.vlans {
+            let index = [row.vlan_id as u64];
+            rows.push(Row::at(
+                &column(VLAN_ENTRY, 1),
+                &index,
+                PassValue::Integer(row.vlan_id as i64),
+            ));
+            rows.push(Row::at(
+                vlan::tplink::DOT1Q_VLAN_DESCRIPTION,
+                &index,
+                PassValue::Str(row.name.to_string()),
+            ));
+            rows.push(Row::at(
+                vlan::tplink::VLAN_TAG_PORT_MEMBER_ADD,
+                &index,
+                PassValue::Str(row.tagged.to_string()),
+            ));
+            rows.push(Row::at(
+                &column(VLAN_ENTRY, 4),
+                &index,
+                PassValue::Str(row.untagged.to_string()),
+            ));
+            rows.push(Row::at(
+                vlan::tplink::DOT1Q_VLAN_STATUS,
+                &index,
+                PassValue::Integer(row.status),
+            ));
+        }
+        rows
+    }
+}
+
+/// CISCO-VTP-MIB `vtpVlanName`, indexed by management domain then VLAN ID.
+#[derive(Debug, Clone, Default)]
+pub struct VtpTable {
+    pub vlans: Vec<VlanInfo>,
+}
+
+impl VtpTable {
+    pub fn is_empty(&self) -> bool {
+        self.vlans.is_empty()
+    }
+
+    pub fn wire_rows(&self) -> Vec<Row> {
+        self.vlans
+            .iter()
+            .map(|info| {
+                Row::at(
+                    vlan::cisco_vtp::VTP_VLAN_NAME,
+                    // Management domain 1, the only one a switch outside a VTP domain has.
+                    &[1, info.vlan_id as u64],
+                    PassValue::Str(info.name.clone()),
+                )
+            })
+            .collect()
+    }
+}

@@ -89,7 +89,7 @@ pub use crate::daemon::discovery::service::warnings::LocalPortPlacementReason;
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, ClaimSource, DeviceClaim, IncompleteInterfaceWalk, MalformedNeighbours,
     SnmpCollectionOutcome, SnmpGroupOutcome, SnmpWalkCause, SnmpWalkGroup, UnresolvedLldpPorts,
-    contradicted_claims, snmp_device_findings,
+    VlanPortsUnresolved, contradicted_claims, snmp_device_findings,
 };
 use queries::FailedQuery;
 
@@ -757,8 +757,16 @@ impl DiscoveryIntegration for SnmpIntegration {
         );
 
         // Query VLAN table for VLAN names and persist as VLAN entities
-        let vlan_table =
-            query_or_failed(ip, "vlan_table", query_vlan_table(bridge_session, ip)).await;
+        // Decides whether the VLAN queries may ask for TP-Link's private tables.
+        let sys_object_id = system_info
+            .as_ref()
+            .and_then(|info| info.sys_object_id.as_deref());
+        let vlan_table = query_or_failed(
+            ip,
+            "vlan_table",
+            query_vlan_table(bridge_session, ip, sys_object_id),
+        )
+        .await;
         let vlan_names_outcome = SnmpGroupOutcome {
             complete: vlan_table.complete,
             observed: vlan_table.records.len(),
@@ -801,9 +809,17 @@ impl DiscoveryIntegration for SnmpIntegration {
         let port_vlan_membership = query_or_failed(
             ip,
             "port_vlan_membership",
-            query_port_vlan_membership(bridge_session, ip, &bridge_ports),
+            query_port_vlan_membership(bridge_session, ip, &bridge_ports, sys_object_id),
         )
         .await;
+        ctx.ops
+            .record_vlan_ports_unresolved(VlanPortsUnresolved {
+                ip,
+                unresolved: port_vlan_membership.discarded,
+                credential_id: ctx.credential_id,
+                snmp_version: Some(credential.version),
+            })
+            .await;
         let vlan_membership_complete = port_vlan_membership.complete;
         let vlan_membership_reason = port_vlan_membership.reason;
         let port_vlan_membership = port_vlan_membership.records;

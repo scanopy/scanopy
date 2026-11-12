@@ -26,7 +26,7 @@ use transport::{BulkRejection, Handler, Registration, SimAgent};
 use wire::{DataFile, Ordering};
 
 use crate::daemon::discovery::integration::snmp::oids::{
-    arp, bridge, cdp, entity, if_mib, ip_mib, lldp as lldp_oids, oid_parts,
+    arp, bridge, cdp, entity, if_mib, ip_mib, lldp as lldp_oids, oid_parts, vlan,
 };
 use crate::daemon::discovery::integration::snmp::types::SystemInfo;
 use crate::server::credentials::r#impl::types::CredentialType;
@@ -65,6 +65,10 @@ pub struct Tables {
     pub own_address: mibs::OwnAddress,
     pub entity: mibs::EntityTable,
     pub cdp: mibs::CdpTable,
+    /// TP-Link's private VLAN MIB, on the devices that keep their VLANs there (GH #847).
+    pub tplink_vlan: mibs::TplinkVlanTable,
+    /// Cisco VTP VLAN names, on a device that serves them in place of Q-BRIDGE's.
+    pub vtp: mibs::VtpTable,
     /// Rows from the vendor's enterprise subtree. Only `switch-omada-02` (GH #848).
     pub vendor: mibs::VendorTree,
     /// Alternative LLDP files written alongside the active one and swapped in by hand. Only
@@ -167,6 +171,8 @@ const ARP: &str = "arp";
 const IPADDR: &str = "ipaddr";
 const ENTITY: &str = "entity";
 const CDP: &str = "cdp";
+const TPLINK_VLAN: &str = "tplinkvlan";
+const VTP: &str = "vtp";
 const VENDOR: &str = "vendor";
 pub(crate) const VLAN20: &str = "vlan20";
 /// `lldpLocPortTable`, split out for a device that serves it through a handler of its own.
@@ -335,6 +341,13 @@ impl SimDevice {
         if !self.tables.cdp.is_empty() {
             files.push(self.file(CDP, Ordering::Ascending, self.tables.cdp.wire_rows()));
         }
+        if !self.tables.tplink_vlan.is_empty() {
+            let rows = self.tables.tplink_vlan.wire_rows();
+            files.push(self.file(TPLINK_VLAN, Ordering::Ascending, rows));
+        }
+        if !self.tables.vtp.is_empty() {
+            files.push(self.file(VTP, Ordering::Ascending, self.tables.vtp.wire_rows()));
+        }
         if !self.tables.vendor.is_empty() {
             let rows = self.tables.vendor.rows.clone();
             files.push(self.file(VENDOR, Ordering::Ascending, rows));
@@ -459,6 +472,8 @@ impl SimDevice {
             (BRIDGE, bridge::BRIDGE_MIB),
             (ENTITY, entity::ENTITY_MIB),
             (CDP, cdp::CDP_MIB),
+            (TPLINK_VLAN, vlan::tplink::TPLINK_DOT1Q_VLAN_MIB),
+            (VTP, vlan::cisco_vtp::VTP_VLAN_NAME),
         ] {
             if let Some(file) = index(suffix) {
                 registrations.push(Registration {

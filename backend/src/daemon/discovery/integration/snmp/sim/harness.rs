@@ -13,9 +13,15 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 
+use anyhow::Result;
+use snmp2::Value;
+
 use super::SimDevice;
+use super::transport::SimAgent;
+use crate::daemon::discovery::integration::snmp::catalog::SnmpRequest;
+use crate::daemon::discovery::integration::snmp::oids::oid_parts;
 use crate::daemon::discovery::integration::snmp::queries::{
-    IfTableWalk, SnmpCollection, SnmpWalkTransport, query_lldp_local,
+    IfTableWalk, SnmpCollection, SnmpWalkTransport, Varbinds, WalkPage, query_lldp_local,
 };
 use crate::daemon::discovery::integration::snmp::types::{
     ArpEntry, BridgeFdbEntry, CdpNeighbor, DeviceInventory, IfTableEntry, IpAddrEntry,
@@ -71,6 +77,9 @@ pub struct Collected {
     /// The device's own LLDP chassis ID, the last read `execute` makes and the one that gives the
     /// device an identity other devices' neighbour tables can resolve to.
     pub lldp_local: Option<LldpLocalInfo>,
+    /// VLAN member ports the device named that matched no interface, which `execute` reports as
+    /// a warning.
+    pub vlan_ports_unresolved: usize,
     /// Every group's outcome, built from the reads above as `SnmpIntegration::execute` builds it,
     /// so a device test can run the same warning derivation the daemon runs.
     pub outcome: SnmpCollectionOutcome,
@@ -127,9 +136,89 @@ impl Collected {
     }
 }
 
+/// One request a collection made of a device.
+#[derive(Debug, Clone)]
+pub struct Recorded {
+    pub oid: Vec<u64>,
+    pub request: SnmpRequest,
+    /// The page size asked for, on a GETBULK.
+    pub max_repetitions: Option<u32>,
+}
+
+impl Recorded {
+    pub fn is_under(&self, subtree: &str) -> bool {
+        self.oid.starts_with(&oid_parts(subtree))
+    }
+}
+
+/// A sim agent that remembers every request made of it.
+pub struct Recording {
+    inner: SimAgent,
+    pub requests: Vec<Recorded>,
+}
+
+impl Recording {
+    pub fn new(inner: SimAgent) -> Self {
+        Self {
+            inner,
+            requests: Vec::new(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl SnmpWalkTransport for Recording {
+    fn getbulk_unusable(&self) -> bool {
+        self.inner.getbulk_unusable()
+    }
+
+    fn note_getbulk_unusable(&mut self) {
+        self.inner.note_getbulk_unusable()
+    }
+
+    async fn walk_getbulk<'a>(
+        &'a mut self,
+        from: &[u64],
+        max_repetitions: u32,
+    ) -> Result<WalkPage<'a>> {
+        self.requests.push(Recorded {
+            oid: from.to_vec(),
+            request: SnmpRequest::Walk,
+            max_repetitions: Some(max_repetitions),
+        });
+        self.inner.walk_getbulk(from, max_repetitions).await
+    }
+
+    async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
+        self.requests.push(Recorded {
+            oid: from.to_vec(),
+            request: SnmpRequest::Walk,
+            max_repetitions: None,
+        });
+        self.inner.walk_getnext(from).await
+    }
+
+    async fn get_scalar<'a>(&'a mut self, oid: &[u64]) -> Result<Option<Value<'a>>> {
+        self.requests.push(Recorded {
+            oid: oid.to_vec(),
+            request: SnmpRequest::Get,
+            max_repetitions: None,
+        });
+        self.inner.get_scalar(oid).await
+    }
+}
+
 /// Run a full collection against a device.
 pub async fn collect(device: &SimDevice) -> Collected {
     collect_over(&mut device.agent(), device).await
+}
+
+/// Collect one device by name, returning every request the collection sent with what it read.
+pub async fn recorded_scan(name: &str) -> (Collected, Vec<Recorded>) {
+    let device = super::device(name);
+    let mut agent = Recording::new(device.agent());
+    let collected = collect_over(&mut agent, &device).await;
+    (collected, agent.requests)
 }
 
 /// Run a full collection of `device` over `agent`: its [`super::transport::SimAgent`], or a real
@@ -172,10 +261,16 @@ pub async fn collect_over<T: SnmpWalkTransport>(agent: &mut T, device: &SimDevic
     let fdb = query_bridge_fdb(agent, ip, &bridge_mapping)
         .await
         .unwrap_or_default();
-    let vlan_names = query_vlan_table(agent, ip).await.unwrap_or_default();
-    let vlan_membership = query_port_vlan_membership(agent, ip, &bridge_mapping)
+    // From the definition, not from `system`: snmpd answers the system group itself and the
+    // in-process agent models only the `pass` tables, so the scalars above come back empty here.
+    let sys_object_id = device.system.sys_object_id.as_deref();
+    let vlan_names = query_vlan_table(agent, ip, sys_object_id)
         .await
         .unwrap_or_default();
+    let vlan_membership = query_port_vlan_membership(agent, ip, &bridge_mapping, sys_object_id)
+        .await
+        .unwrap_or_default();
+    let vlan_ports_unresolved = vlan_membership.discarded;
     let lldp_local = query_lldp_local(agent, ip).await.unwrap_or_default();
 
     // `execute` reads the local port table only when there are classic neighbours to place, and
@@ -248,6 +343,7 @@ pub async fn collect_over<T: SnmpWalkTransport>(agent: &mut T, device: &SimDevic
         vlans: vlan_names.records,
         vlan_membership: vlan_membership.records,
         lldp_local,
+        vlan_ports_unresolved,
         outcome,
     }
 }
