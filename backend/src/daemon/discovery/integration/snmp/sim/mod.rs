@@ -71,6 +71,14 @@ pub struct Tables {
     pub vtp: mibs::VtpTable,
     /// Rows from the vendor's enterprise subtree. Only `switch-omada-02` (GH #848).
     pub vendor: mibs::VendorTree,
+    /// Keep net-snmp's own enterprise MIBs (UCD-SNMP, NET-SNMP-AGENT) out of the device's view.
+    ///
+    /// snmpd on the lab VM serves both, and they sort between Cisco's tree and every vendor
+    /// above 8072. A device whose defect depends on what a walk reaches past a missing Cisco
+    /// table would reach those rows instead, which no real switch serves. The model never serves
+    /// them, so this only changes the lab twin. `pass` lines cannot hide them: net-snmp registers
+    /// them column by column, and the longest registration wins whatever its priority.
+    pub hides_agent_mibs: bool,
     /// Alternative LLDP files written alongside the active one and swapped in by hand. Only
     /// `switch-flaky-01` has these; each drives a different discard counter.
     pub lldp_variants: Vec<(&'static str, lldp::LldpTable)>,

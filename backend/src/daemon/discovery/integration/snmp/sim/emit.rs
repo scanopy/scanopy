@@ -80,8 +80,24 @@ fn pass_line(device: &SimDevice, registration: &Registration, files: &[String]) 
     )
 }
 
+/// net-snmp's own enterprise MIBs, which every lab agent serves: UCD-SNMP and NET-SNMP-AGENT.
+/// See [`super::Tables::hides_agent_mibs`].
+const AGENT_MIBS: [&str; 2] = ["1.3.6.1.4.1.2021", "1.3.6.1.4.1.8072"];
+
 /// How a credential is expressed in an `snmpd.conf`.
 fn access_lines(device: &SimDevice) -> Vec<String> {
+    assert!(
+        !device.tables.hides_agent_mibs
+            || matches!(
+                (&device.credential, device.community_versions),
+                (
+                    CredentialType::SnmpCommunity { .. },
+                    CommunityVersions::Both
+                )
+            ),
+        "{}: hides_agent_mibs is emitted only for a community device answering v1 and v2c",
+        device.name
+    );
     match &device.credential {
         CredentialType::SnmpCommunity { community } => {
             // VACM rather than `rocommunity`, which answers both v1 and v2c. Locked to one
@@ -96,6 +112,19 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
                 ]
             };
             match device.community_versions {
+                CommunityVersions::Both if device.tables.hides_agent_mibs => {
+                    let mut lines = vec!["view devview included .1".to_string()];
+                    lines.extend(
+                        AGENT_MIBS.iter().map(|mib| {
+                            format!("view devview excluded {}", dotted(&oid_parts(mib)))
+                        }),
+                    );
+                    lines.push(format!(
+                        "rocommunity {} default -V devview",
+                        expose(community)
+                    ));
+                    lines
+                }
                 CommunityVersions::Both => vec![format!("rocommunity {}", expose(community))],
                 CommunityVersions::V1Only => locked_to("v1"),
                 CommunityVersions::V2cOnly => locked_to("v2c"),
