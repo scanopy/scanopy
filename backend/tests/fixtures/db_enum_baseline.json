@@ -150,7 +150,8 @@
     "Lpd",
     "Smux",
     "Rpcbind",
-    "Llmnr"
+    "Llmnr",
+    "Libvirt"
   ],
   "ContainerNetworkType": [
     "MacVlan",
@@ -168,7 +169,8 @@
     "Gnmi",
     "Ssh",
     "WakeOnLan",
-    "Proxmox"
+    "Proxmox",
+    "Libvirt"
   ],
   "CredentialType": [
     "SnmpCommunity",
@@ -184,7 +186,9 @@
     "SshPassword",
     "SshKey",
     "WakeOnLan",
-    "ProxmoxApiToken"
+    "ProxmoxApiToken",
+    "SshScript",
+    "Libvirt"
   ],
   "DaemonMode": [
     "ServerPoll",
@@ -265,7 +269,11 @@
     "ProxmoxGuestOutsideScan",
     "ProxmoxGuestBehindNode",
     "ProxmoxGuestIsolated",
-    "UnconfirmedHostInferred"
+    "UnconfirmedHostInferred",
+    "CredentialLoginUnavailable",
+    "GuestOutsideScan",
+    "GuestBehindHypervisor",
+    "GuestIsolated"
   ],
   "EdgeStyle": [
     "Straight",
