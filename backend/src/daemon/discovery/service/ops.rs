@@ -986,11 +986,10 @@ impl DiscoveryOps {
         // warning per occurrence for each type that fires per host — see
         // `crate::daemon::discovery::service::warnings` for why those are recorded typed and coded
         // here rather than pushed as sentences when they happen.
-        let mut warnings = session
-            .warnings
-            .lock()
-            .map(|w| w.clone())
-            .unwrap_or_default();
+        let mut warnings = session.pushed_warnings();
+        // Those were logged as they were pushed. The ones coded below are built here, so this
+        // is where they are logged.
+        let already_logged = warnings.len();
 
         if let Ok(records) = session.incomplete_interface_walks.lock() {
             warnings.extend(warnings::warn_incomplete_interface_walks(&records));
@@ -1023,6 +1022,9 @@ impl DiscoveryOps {
         }
         if let Ok(issues) = session.credential_issues.lock() {
             warnings.extend(warnings::warn_credential_issues(&issues));
+        }
+        for warning in &warnings[already_logged..] {
+            warning.log();
         }
 
         truncate_warnings(&mut warnings);

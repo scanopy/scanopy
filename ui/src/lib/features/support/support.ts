@@ -3,6 +3,10 @@ import type { BillingPlanFeatures } from '#lib/shared/stores/metadata.ts';
 /** Booking page for demos and plan onboarding calls. */
 export const BOOK_CALL_URL = 'https://cal.com/mferrandiz/scanopy-demo';
 
+/** The bug report form on GitHub. */
+export const BUG_REPORT_URL =
+	'https://github.com/scanopy/scanopy/issues/new?template=bug_report.md';
+
 /** A mailto link to billing@ with the subject and body filled in. */
 export function billingMailto(subject: string, body: string): string {
 	return `mailto:billing@scanopy.net?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

@@ -270,10 +270,6 @@ impl ContainerScanner<'_> {
                 return Err(Error::msg("Discovery was cancelled"));
             }
             if tokio::time::Instant::now() >= deadline {
-                tracing::warn!(
-                    runtime = self.runtime.label(),
-                    "Container scan hit its soft deadline before every container host was recorded"
-                );
                 break;
             }
 

@@ -163,7 +163,10 @@ pub struct DiscoverySession {
     /// fires per host belongs in one of the typed accumulators below, which are
     /// rendered to a single line at finalize — a `Vec<String>` written per host
     /// multiplies by the host count and drowns the notification.
-    pub warnings: Arc<std::sync::Mutex<Vec<DiscoveryWarning>>>,
+    ///
+    /// Private, so the only way in is [`DiscoverySession::push_warning`], which writes the
+    /// warning's log line as it records it.
+    warnings: Arc<std::sync::Mutex<Vec<DiscoveryWarning>>>,
     // The three typed accumulators are `pub(super)` — visible throughout `service`, and to
     // nothing outside it. That is deliberate and load-bearing rather than tidiness.
     //
@@ -245,6 +248,30 @@ impl DiscoverySession {
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_results: Arc::new(std::sync::Mutex::new(Default::default())),
         }
+    }
+
+    /// Record a warning on the run and write its log line.
+    pub fn push_warning(&self, warning: DiscoveryWarning) {
+        self.push_warnings([warning]);
+    }
+
+    /// Record several warnings on the run, writing each one's log line.
+    pub fn push_warnings(&self, new: impl IntoIterator<Item = DiscoveryWarning>) {
+        let new: Vec<DiscoveryWarning> = new.into_iter().collect();
+        for warning in &new {
+            warning.log();
+        }
+        if let Ok(mut warnings) = self.warnings.lock() {
+            warnings.extend(new);
+        }
+    }
+
+    /// The warnings recorded on the run so far.
+    pub fn pushed_warnings(&self) -> Vec<DiscoveryWarning> {
+        self.warnings
+            .lock()
+            .map(|warnings| warnings.clone())
+            .unwrap_or_default()
     }
 
     pub fn set_progress_range(&self, start: u8, end: u8) {

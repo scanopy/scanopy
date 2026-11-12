@@ -27,10 +27,12 @@ pub(super) fn generate_discoveries(
 ) -> Vec<Discovery> {
     let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_daemon = |name: &str| daemons.iter().find(|d| d.base.name.contains(name));
+    // The subnets a site's scan targets. Container bridges are left out, as the target picker
+    // leaves them out: the Docker integration reads their containers from the runtime.
     let find_subnets_for_site = |site_id: Uuid| -> Vec<Uuid> {
         subnets
             .iter()
-            .filter(|s| s.base.site_id == site_id)
+            .filter(|s| s.base.site_id == site_id && !s.is_container_bridge_subnet())
             .map(|s| s.id)
             .collect()
     };

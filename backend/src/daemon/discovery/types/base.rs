@@ -480,7 +480,7 @@ impl Display for DiscoveryCriticalError {
             DiscoveryCriticalError::ResourceExhaustion => {
                 write!(
                     f,
-                    "Resource exhaustion during scan: too many open files - CONCURRENT_SCANS is likely too high for this system. Check readme for troubleshooting."
+                    "The scan ran out of file descriptors (too many open files). Raise the daemon's hard file-descriptor limit and restart it: https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error"
                 )
             }
         }

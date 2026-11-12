@@ -673,6 +673,94 @@ pub enum DiscoveryWarning {
         /// How many lookups went unanswered.
         count: u32,
     },
+    /// An interfaced subnet holds more addresses than the ARP Scan Cutoff allows, so the ARP sweep
+    /// covered only the first part of it.
+    #[schema(title = "ArpSweepTruncated")]
+    ArpSweepTruncated {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+        /// Addresses the sweep covered.
+        addresses_swept: u64,
+        /// Addresses the subnet holds.
+        subnet_addresses: u64,
+        /// The ARP Scan Cutoff in force, as a prefix length.
+        cutoff: u8,
+    },
+    /// The ping sweep's target list reached the ARP Scan Cutoff before it covered every subnet.
+    #[schema(title = "IcmpSweepTruncated")]
+    IcmpSweepTruncated {
+        /// Addresses the sweep pinged.
+        addresses_pinged: u64,
+        /// The ARP Scan Cutoff in force, as a prefix length.
+        cutoff: u8,
+        /// The subnets the sweep cut short or never reached, in CIDR notation.
+        cidrs_left_out: Vec<String>,
+    },
+    /// A subnet the daemon has no interface on took a long time to probe address by address,
+    /// counting only the addresses that turned out to hold nothing.
+    #[schema(title = "SubnetProbedWithoutInterface")]
+    SubnetProbedWithoutInterface {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+        /// Addresses probed in it that held nothing.
+        addresses: u64,
+        /// The share of the run those probes took, in minutes.
+        minutes: u32,
+    },
+    /// A container bridge network was scanned over the network, which the container runtime's
+    /// own listing makes redundant.
+    #[schema(title = "ContainerSubnetScanned")]
+    ContainerSubnetScanned {
+        /// The subnet, so the UI can link it. `None` once that subnet has been deleted.
+        #[serde(default)]
+        #[schema(required)]
+        subnet_id: Option<Uuid>,
+        /// The subnet, in CIDR notation.
+        cidr: String,
+    },
+    /// The daemon's file-descriptor limit let it deep-scan fewer hosts at once than it otherwise
+    /// would.
+    #[schema(title = "DeepScanConcurrencyReduced")]
+    DeepScanConcurrencyReduced {
+        /// The daemon process's file-descriptor limit.
+        fd_limit: u64,
+        /// Hosts deep-scanned at once under that limit.
+        concurrency: u32,
+        /// Hosts it deep-scans at once when the limit is not the constraint.
+        expected_concurrency: u32,
+    },
+    /// The port scan ran out of file descriptors mid-run, so some ports were never probed.
+    #[schema(title = "PortScanDescriptorsExhausted")]
+    PortScanDescriptorsExhausted {
+        /// Times the scan shrank its batch after running out.
+        reductions: u32,
+        /// The smallest port batch it fell back to.
+        lowest_batch_size: u32,
+    },
+    /// The daemon's interface filter names no interface on its host, so it had no subnet of its
+    /// own to scan.
+    #[schema(title = "InterfaceFilterMatchedNothing")]
+    InterfaceFilterMatchedNothing {
+        /// The filter values configured on the daemon.
+        filters: Vec<String>,
+        /// The interfaces the host has.
+        interfaces: Vec<String>,
+    },
+    /// The daemon could not send ARP, so it found hosts by probing ports and recorded no MAC
+    /// addresses.
+    #[schema(title = "ArpSweepUnavailable")]
+    ArpSweepUnavailable,
+    /// The daemon could not send pings, so hosts that answer only to ping were not found.
+    #[schema(title = "IcmpSweepUnavailable")]
+    IcmpSweepUnavailable,
 
     // ---- Server-side LLDP/CDP resolution ---------------------------------
     /// The advertised identifier matches no host on this site.
@@ -1006,6 +1094,15 @@ pub enum DiscoveryWarningCode {
     DcpSweepTimedOut,
     IcmpSweepTimedOut,
     ReverseDnsTimedOut,
+    ArpSweepTruncated,
+    IcmpSweepTruncated,
+    SubnetProbedWithoutInterface,
+    ContainerSubnetScanned,
+    DeepScanConcurrencyReduced,
+    PortScanDescriptorsExhausted,
+    InterfaceFilterMatchedNothing,
+    ArpSweepUnavailable,
+    IcmpSweepUnavailable,
     LldpNeighbourNotFound,
     LldpNeighbourAmbiguous,
     LldpPortNoStrategy,
@@ -1113,6 +1210,23 @@ impl DiscoveryWarning {
             Self::DcpSweepTimedOut { .. } => DiscoveryWarningCode::DcpSweepTimedOut,
             Self::IcmpSweepTimedOut { .. } => DiscoveryWarningCode::IcmpSweepTimedOut,
             Self::ReverseDnsTimedOut { .. } => DiscoveryWarningCode::ReverseDnsTimedOut,
+            Self::ArpSweepTruncated { .. } => DiscoveryWarningCode::ArpSweepTruncated,
+            Self::IcmpSweepTruncated { .. } => DiscoveryWarningCode::IcmpSweepTruncated,
+            Self::SubnetProbedWithoutInterface { .. } => {
+                DiscoveryWarningCode::SubnetProbedWithoutInterface
+            }
+            Self::ContainerSubnetScanned { .. } => DiscoveryWarningCode::ContainerSubnetScanned,
+            Self::DeepScanConcurrencyReduced { .. } => {
+                DiscoveryWarningCode::DeepScanConcurrencyReduced
+            }
+            Self::PortScanDescriptorsExhausted { .. } => {
+                DiscoveryWarningCode::PortScanDescriptorsExhausted
+            }
+            Self::InterfaceFilterMatchedNothing { .. } => {
+                DiscoveryWarningCode::InterfaceFilterMatchedNothing
+            }
+            Self::ArpSweepUnavailable => DiscoveryWarningCode::ArpSweepUnavailable,
+            Self::IcmpSweepUnavailable => DiscoveryWarningCode::IcmpSweepUnavailable,
             Self::LldpNeighbourNotFound(_) => DiscoveryWarningCode::LldpNeighbourNotFound,
             Self::LldpNeighbourAmbiguous(_) => DiscoveryWarningCode::LldpNeighbourAmbiguous,
             Self::LldpPortNoStrategy(_) => DiscoveryWarningCode::LldpPortNoStrategy,
@@ -1129,6 +1243,19 @@ impl DiscoveryWarning {
             Self::WarningsTruncated { .. } => DiscoveryWarningCode::WarningsTruncated,
             Self::Unknown { .. } => DiscoveryWarningCode::Unknown,
         }
+    }
+
+    /// The daemon's log line for this warning, written where the warning is raised.
+    ///
+    /// The one place a warning's condition is logged on the daemon: the line carries the code and
+    /// the warning's own fields, so the log and the scan record cannot say different things, and
+    /// no raise site writes a sentence of its own beside the push.
+    pub fn log(&self) {
+        tracing::warn!(
+            code = %self.code(),
+            warning = %serde_json::to_string(self).unwrap_or_default(),
+            "Scan warning raised"
+        );
     }
 
     /// The integration this warning came from, for the metric's second label.
@@ -1198,6 +1325,15 @@ impl DiscoveryWarning {
             | Self::DcpSweepTimedOut { .. }
             | Self::IcmpSweepTimedOut { .. }
             | Self::ReverseDnsTimedOut { .. }
+            | Self::ArpSweepTruncated { .. }
+            | Self::IcmpSweepTruncated { .. }
+            | Self::SubnetProbedWithoutInterface { .. }
+            | Self::ContainerSubnetScanned { .. }
+            | Self::DeepScanConcurrencyReduced { .. }
+            | Self::PortScanDescriptorsExhausted { .. }
+            | Self::InterfaceFilterMatchedNothing { .. }
+            | Self::ArpSweepUnavailable
+            | Self::IcmpSweepUnavailable
             | Self::LldpNeighbourNotFound(_)
             | Self::LldpNeighbourAmbiguous(_)
             | Self::LldpPortNoStrategy(_)
@@ -1272,6 +1408,15 @@ impl DiscoveryWarning {
             | Self::DcpSweepTimedOut { .. }
             | Self::IcmpSweepTimedOut { .. }
             | Self::ReverseDnsTimedOut { .. }
+            | Self::ArpSweepTruncated { .. }
+            | Self::IcmpSweepTruncated { .. }
+            | Self::SubnetProbedWithoutInterface { .. }
+            | Self::ContainerSubnetScanned { .. }
+            | Self::DeepScanConcurrencyReduced { .. }
+            | Self::PortScanDescriptorsExhausted { .. }
+            | Self::InterfaceFilterMatchedNothing { .. }
+            | Self::ArpSweepUnavailable
+            | Self::IcmpSweepUnavailable
             | Self::LldpNeighbourNotFound(_)
             | Self::LldpNeighbourAmbiguous(_)
             | Self::LldpPortNoStrategy(_)

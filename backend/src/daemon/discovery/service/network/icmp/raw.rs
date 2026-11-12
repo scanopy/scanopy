@@ -67,12 +67,9 @@ pub fn is_available() -> bool {
     match transport_channel(64, Layer4(Ipv4(IpNextHeaderProtocols::Icmp))) {
         Ok(_) => true,
         Err(e) => {
-            tracing::warn!(
-                error = %e,
-                "ICMP echo unavailable: could not open a raw ICMP socket. Hosts that answer ping \
-                 but not ARP will not be discovered. On Linux this needs NET_RAW (the same \
-                 capability ARP scanning already requires); on macOS and BSD it needs root."
-            );
+            // Reported on the run as `IcmpSweepUnavailable`. This keeps the OS error, which the
+            // warning does not carry.
+            tracing::debug!(error = %e, "Could not open a raw ICMP socket");
             false
         }
     }

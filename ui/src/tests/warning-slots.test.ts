@@ -76,7 +76,21 @@ describe('discovery warning rendering', () => {
 			guest: 'gitlab',
 			node: 'pve',
 			bridge: 'vmbr1',
-			vm: 'DockerDesktop'
+			vm: 'DockerDesktop',
+			seconds: 330,
+			addresses_swept: 131072,
+			subnet_addresses: 1048576,
+			cutoff: 15,
+			addresses_pinged: 131072,
+			cidrs_left_out: ['10.64.0.0/12'],
+			minutes: 25,
+			fd_limit: 1024,
+			concurrency: 3,
+			expected_concurrency: 38,
+			reductions: 2,
+			lowest_batch_size: 50,
+			filters: ['eth9'],
+			interfaces: ['lo', 'eth0']
 		}) as unknown as DiscoveryWarning;
 
 	/**
@@ -321,6 +335,17 @@ describe('discovery warning rendering', () => {
 		// Historical sessions hold bare sentences, and they have to keep reading exactly as they
 		// did before warnings were coded.
 		expect(sentences([legacy])).toEqual(['Scan hit its time limit (4h) — 12 host(s) not scanned.']);
+	});
+
+	it('renders a code from a newer daemon as a sentence naming it, not as its JSON', () => {
+		const newer = {
+			code: 'Unknown',
+			detail: JSON.stringify({ code: 'SomethingNewer', address: '10.0.0.1' })
+		} as unknown as DiscoveryWarning;
+
+		const [sentence] = sentences([newer]);
+		expect(sentence).toContain('SomethingNewer');
+		expect(sentence).not.toContain('{');
 	});
 
 	it('files every code under a rung the remedy registry defines', () => {

@@ -21,15 +21,21 @@ import {
 	discovery_fixDaemonOnHost,
 	discovery_fixDaemonOnHypervisor,
 	discovery_fixDaemonOnSubnet,
+	discovery_fixLowerArpCutoff,
 	discovery_fixNarrowScan,
 	discovery_fixOpenCredential,
+	discovery_fixRaiseFdLimitGuide,
 	discovery_fixRaiseTimeLimit,
 	discovery_fixReenterCredential,
+	discovery_fixRemoveSubnetFromScan,
 	discovery_fixSetDaemonOs,
 	discovery_fixUpdateSecret,
 	hosts_resolveUnconfirmed,
-	subnets_resolveRange
+	subnets_resolveRange,
+	support_reportBug
 } from '#lib/paraglide/messages.js';
+import { BUG_REPORT_URL } from '#lib/features/support/support.ts';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
 import { credentialIdsOf, type WarningEntry } from './warnings';
 import type { CredentialLookup } from './snmpCheck';
 
@@ -61,14 +67,40 @@ const SCAN_SETTING_FIXES = new Map<WarningEntry['code'], { tab: string; label: (
 	// Max Discovery Duration lives on Detection, not Performance.
 	['ScanTimeLimit', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
 	['ScanTimeLimitWithEstimate', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
-	['WarningsTruncated', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
 	// Not CredentialCollectionTimedOut: its limit is the integration's own, per host, which no
 	// scan setting moves.
 	// The guests' subnet is added to the scan's targets.
 	['GuestOutsideScan', { tab: 'targets', label: () => discovery_fixAddSubnetToScan() }],
-	['NeighbourResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
-	['FdbResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }]
+	// ARP Scan Cutoff and ARP Scan Rate are on Performance.
+	['ArpSweepTruncated', { tab: 'performance', label: () => discovery_fixLowerArpCutoff() }],
+	['IcmpSweepTruncated', { tab: 'performance', label: () => discovery_fixLowerArpCutoff() }],
+	// The slow subnet is narrowed or removed, and the container network removed, on Targets.
+	['SubnetProbedWithoutInterface', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
+	['ContainerSubnetScanned', { tab: 'targets', label: () => discovery_fixRemoveSubnetFromScan() }]
 ]);
+
+/**
+ * Codes that report a fault in Scanopy with no setting to change: the next scan tries again, and
+ * a repeat is a bug to report.
+ */
+const REPORT_BUG_FIXES = new Set<WarningEntry['code']>([
+	'NeighbourResolutionIncomplete',
+	'FdbResolutionIncomplete',
+	'VlanRecordingFailed',
+	'DcpSweepTimedOut',
+	'IcmpSweepTimedOut'
+]);
+
+/** Codes fixed by raising the daemon's file-descriptor limit, which its host's guide covers. */
+const FD_LIMIT_FIXES = new Set<WarningEntry['code']>([
+	'DeepScanConcurrencyReduced',
+	'PortScanDescriptorsExhausted'
+]);
+
+/** How to raise the daemon's file-descriptor limit, per operating system and install method. */
+const FD_LIMIT_GUIDE = docsUrl(
+	'/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error'
+);
 
 /**
  * Codes whose fix is a new daemon, and where it goes: beside guests only a daemon on their
@@ -239,6 +271,22 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 				window.location.hash = 'discovery-scans';
 				openModal('discovery-editor', { id: scanId, tab: scanFix.tab });
 			}
+		};
+	}
+
+	if (REPORT_BUG_FIXES.has(entry.code)) {
+		return {
+			label: support_reportBug(),
+			icon: createIconComponent('bug'),
+			run: () => window.open(BUG_REPORT_URL, '_blank', 'noopener,noreferrer')
+		};
+	}
+
+	if (FD_LIMIT_FIXES.has(entry.code)) {
+		return {
+			label: discovery_fixRaiseFdLimitGuide(),
+			icon: createIconComponent('book-open'),
+			run: () => window.open(FD_LIMIT_GUIDE, '_blank', 'noopener,noreferrer')
 		};
 	}
 

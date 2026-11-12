@@ -597,14 +597,6 @@ impl DiscoveryIntegration for SnmpIntegration {
             remap_lldp_local_ports(&mut lldp_neighbors, &lldp_local_ports, &snmp_if_entries)
         };
         if local_ports.unmatched > 0 || local_ports.dropped > 0 {
-            tracing::warn!(
-                ip = %ip,
-                unmatched = local_ports.unmatched,
-                dropped = local_ports.dropped,
-                total = lldp_count,
-                "LLDP neighbours could not be placed on a local interface; the dropped ones \
-                 contribute no link at all"
-            );
             ctx.ops
                 .record_unresolved_lldp_ports(UnresolvedLldpPorts {
                     ip,
@@ -792,7 +784,8 @@ impl DiscoveryIntegration for SnmpIntegration {
             match ctx.ops.upsert_vlans(items, site_id, ctx.cancel).await {
                 Ok(mapping) => mapping,
                 Err(e) => {
-                    tracing::warn!(ip = %ip, error = %e, "Failed to upsert VLANs, VLAN IDs will not be resolved");
+                    // The warning names the device; this keeps the error, which it does not carry.
+                    tracing::debug!(ip = %ip, error = %e, "VLAN upsert failed");
                     // The switch answered in full and we could not record it. Silent until now,
                     // and the consequence is not small — every interface on this device loses
                     // its VLAN ids, which looks identical to a switch that reports no VLANs.
@@ -1043,11 +1036,6 @@ impl DiscoveryIntegration for SnmpIntegration {
         // The probe already proved the address, port and community are right, which is what
         // makes a device that returned nothing from any table worth a line of its own.
         if let Some(collected_nothing) = collected_nothing {
-            tracing::warn!(
-                ip = %ip,
-                failures = ?collected_nothing.failures,
-                "SNMP probe succeeded but every table came back empty"
-            );
             ctx.ops
                 .record_snmp_collected_nothing(collected_nothing)
                 .await;

@@ -17,6 +17,7 @@
 	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		BOOK_CALL_URL,
+		BUG_REPORT_URL,
 		betaProgramUrl,
 		supportEmailAddress
 	} from '#lib/features/support/support.ts';
@@ -92,7 +93,7 @@
 			{
 				title: support_reportBug(),
 				description: support_reportBugDesc(),
-				url: 'https://github.com/scanopy/scanopy/issues/new?template=bug_report.md',
+				url: BUG_REPORT_URL,
 				color: 'Red',
 				icon: Bug
 			},

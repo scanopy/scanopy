@@ -56,7 +56,7 @@
 		{#if phase === 'Scanning' && estimated_remaining_secs != null && estimated_remaining_secs > 3600}
 			<DocsHint
 				text={home_docsDiscoveryTakesLong()}
-				href="https://scanopy.net/docs/setting-up-daemons/troubleshooting-scans/scan-performance/#discovery-takes-hours"
+				href="https://scanopy.net/docs/using-scanopy/discovery/scans/#discovery-duration"
 				linkText={home_docsDiscoveryTakesLongLinkText()}
 				class="mt-0.5"
 			/>
