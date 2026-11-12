@@ -56,6 +56,11 @@ Local patches (all marked in-source with `SCANOPY LOCAL PATCH`):
     authenticated. An id the session never issued is still `RequestIdMismatch`.
     The loop has no deadline of its own: the caller's timeout drops the future,
     as it always did. Async session only; the daemon does not use the sync one.
+  * src/v3.rs `decrypt_des` (crypto-rust) — GH #846. DES padding is left in place
+    instead of being stripped as PKCS#7. RFC 3414 makes it arbitrary and the
+    scoped PDU's BER length bounds the read. net-snmp sends no padding when the
+    scoped PDU is a multiple of 8 bytes, so about one reply in eight was refused
+    as "Invalid padding" or lost its last byte, which broke table walks part way.
 
 The first is the only one that blocks compilation. The others are behaviour
 upstream does not offer, so returning to crates.io means re-applying them or
