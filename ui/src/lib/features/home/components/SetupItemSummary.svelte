@@ -51,7 +51,9 @@
 					{common_moreItems({ count: overflow })}
 				</button>
 			{/if}
-			{#if item.type === 'DaemonHealth'}
+			<!-- Outdated's sentence already says a newer version is available, so its tag would
+			     repeat it. -->
+			{#if item.type === 'DaemonHealth' && item.health !== 'outdated'}
 				<Tag
 					{...daemonHealths.getTag(item.health)}
 					icon={daemonHealths.getIconComponent(item.health)}
