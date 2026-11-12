@@ -96,6 +96,10 @@ fn starting_request_id() -> i32 {
 pub struct SnmpSession {
     inner: Box<AsyncSession>,
     getbulk_unusable: bool,
+    /// See [`SnmpWalkTransport::bulk_page_limit`].
+    ///
+    /// [`SnmpWalkTransport::bulk_page_limit`]: super::queries::SnmpWalkTransport::bulk_page_limit
+    bulk_page_limit: Option<u32>,
     /// The discovery's cancellation, checked between the requests of a walk. A table walk can run
     /// for a minute or more, and nothing else in it looks at the token.
     cancel: Option<tokio_util::sync::CancellationToken>,
@@ -109,6 +113,7 @@ impl SnmpSession {
         Self {
             inner: Box::new(inner),
             getbulk_unusable: false,
+            bulk_page_limit: None,
             cancel: None,
             key_extension,
         }
@@ -137,6 +142,15 @@ impl SnmpSession {
 
     pub fn note_getbulk_unusable(&mut self) {
         self.getbulk_unusable = true;
+    }
+
+    /// The page size a walk on this host fell back to after a page went unanswered.
+    pub fn bulk_page_limit(&self) -> Option<u32> {
+        self.bulk_page_limit
+    }
+
+    pub fn note_bulk_page_limit(&mut self, max_repetitions: u32) {
+        self.bulk_page_limit = Some(max_repetitions);
     }
 }
 
@@ -549,6 +563,79 @@ mod session_sync_tests {
         assert!(
             outcome.is_err(),
             "the stale datagram was served to a request that never got an answer"
+        );
+    }
+
+    /// The Response an agent sends to `request`, with `text` as `sysDescr` and `request_id` in
+    /// place of the request's own when given.
+    fn answer_to(request: &[u8], text: &str, request_id: Option<i32>) -> Vec<u8> {
+        use crate::daemon::discovery::integration::snmp::sim::udp::{encode_varbinds, tlv};
+
+        let varbinds = encode_varbinds(&[(SYS_DESCR.to_vec(), tlv(0x04, text.as_bytes()))]);
+        let mut reply = snmp2::Pdu::from_bytes(request).unwrap();
+        reply.message_type = snmp2::MessageType::Response;
+        reply.req_id = request_id.unwrap_or(reply.req_id);
+        reply.varbinds = snmp2::Varbinds::from_bytes(&varbinds);
+        reply.to_bytes().unwrap()
+    }
+
+    /// GH #848: the agent takes longer than the timeout over one request and answers it just
+    /// after the next request has gone out, then answers that one. The drain before the send
+    /// cannot help, because the late answer was not there yet. The caller must get the answer to
+    /// its own request.
+    #[tokio::test]
+    async fn an_answer_arriving_after_the_next_request_is_sent_is_passed_over() {
+        let (agent, addr) = silent_agent().await;
+        let mut session = AsyncSession::new_v2c(&addr, b"public", 0).await.unwrap();
+
+        abandon_one_request(&mut session).await;
+        let mut abandoned = [0u8; 2048];
+        let (abandoned_len, _) = agent.recv_from(&mut abandoned).await.unwrap();
+
+        let answers = async {
+            let mut current = [0u8; 2048];
+            let (current_len, from) = agent.recv_from(&mut current).await.unwrap();
+            let late = answer_to(&abandoned[..abandoned_len], "late", None);
+            agent.send_to(&late, from).await.unwrap();
+            let own = answer_to(&current[..current_len], "current", None);
+            agent.send_to(&own, from).await.unwrap();
+        };
+        let oid = Oid::from(SYS_DESCR).unwrap();
+        let (response, ()) =
+            tokio::join!(timeout(Duration::from_secs(1), session.get(&oid)), answers);
+
+        let response = response
+            .expect("the request's own answer was sent")
+            .expect("the late answer is not this request's to fail on");
+        let (_, value) = response.varbinds.clone().next().unwrap();
+        assert!(
+            matches!(value, snmp2::Value::OctetString(b"current")),
+            "read {value:?}"
+        );
+    }
+
+    /// Only an answer to a request this session sent earlier is passed over. One carrying an id
+    /// the session has not issued is nobody's late answer, and the request fails on it.
+    #[tokio::test]
+    async fn an_answer_to_a_request_never_sent_fails_the_request() {
+        let (agent, addr) = silent_agent().await;
+        let mut session = AsyncSession::new_v2c(&addr, b"public", 40).await.unwrap();
+
+        let answers = async {
+            let mut request = [0u8; 2048];
+            let (len, from) = agent.recv_from(&mut request).await.unwrap();
+            for foreign in [39, 41] {
+                let reply = answer_to(&request[..len], "foreign", Some(foreign));
+                agent.send_to(&reply, from).await.unwrap();
+            }
+        };
+        let oid = Oid::from(SYS_DESCR).unwrap();
+        let (response, ()) =
+            tokio::join!(timeout(Duration::from_secs(1), session.get(&oid)), answers);
+
+        assert_eq!(
+            response.expect("an answer arrived").err(),
+            Some(snmp2::Error::RequestIdMismatch)
         );
     }
 }

@@ -20,6 +20,7 @@ pub mod udp;
 pub mod wire;
 
 use std::net::Ipv4Addr;
+use std::time::Duration;
 
 use transport::{BulkRejection, Handler, Registration, SimAgent};
 use wire::{DataFile, Ordering};
@@ -64,6 +65,8 @@ pub struct Tables {
     pub own_address: mibs::OwnAddress,
     pub entity: mibs::EntityTable,
     pub cdp: mibs::CdpTable,
+    /// Rows from the vendor's enterprise subtree. Only `switch-omada-02` (GH #848).
+    pub vendor: mibs::VendorTree,
     /// Alternative LLDP files written alongside the active one and swapped in by hand. Only
     /// `switch-flaky-01` has these; each drives a different discard counter.
     pub lldp_variants: Vec<(&'static str, lldp::LldpTable)>,
@@ -90,6 +93,12 @@ pub struct AgentFaults {
     /// (`--reject`).
     pub reject: Vec<&'static str>,
     pub error_status: u32,
+    /// Rows under these take `row_cost` each to answer, so an answer is held for as long as the
+    /// slow rows on it add up to (`--slow`, `--row-cost`). GH #848's switch computes a per-port
+    /// utilization figure on request: a page with ten of them arrives after the client has given
+    /// up on it, and a page with none arrives at once.
+    pub slow_rows: Vec<&'static str>,
+    pub row_cost: Duration,
 }
 
 impl AgentFaults {
@@ -158,6 +167,7 @@ const ARP: &str = "arp";
 const IPADDR: &str = "ipaddr";
 const ENTITY: &str = "entity";
 const CDP: &str = "cdp";
+const VENDOR: &str = "vendor";
 pub(crate) const VLAN20: &str = "vlan20";
 /// `lldpLocPortTable`, split out for a device that serves it through a handler of its own.
 const LOCPORTS: &str = "locports";
@@ -250,6 +260,17 @@ impl SimDevice {
             .collect()
     }
 
+    /// Subtrees whose rows this device takes [`AgentFaults::row_cost`] each to answer, as
+    /// `snmp-bulk-refuser.py --slow` is configured.
+    pub fn slow_rows(&self) -> Vec<Vec<u64>> {
+        self.tables
+            .faults
+            .slow_rows
+            .iter()
+            .map(|o| oid_parts(o))
+            .collect()
+    }
+
     /// The `pass` data files this device serves, in a fixed order that the registrations index
     /// into.
     pub fn data_files(&self) -> Vec<DataFile> {
@@ -313,6 +334,10 @@ impl SimDevice {
         }
         if !self.tables.cdp.is_empty() {
             files.push(self.file(CDP, Ordering::Ascending, self.tables.cdp.wire_rows()));
+        }
+        if !self.tables.vendor.is_empty() {
+            let rows = self.tables.vendor.rows.clone();
+            files.push(self.file(VENDOR, Ordering::Ascending, rows));
         }
         if !self.suppresses.is_empty() {
             files.push(self.file(EMPTY, Ordering::Ascending, Vec::new()));
@@ -500,6 +525,13 @@ impl SimDevice {
                 });
             }
         }
+        if let Some(file) = index(VENDOR) {
+            registrations.push(Registration {
+                subtree: oid_parts(self.tables.vendor.subtree),
+                file,
+                handler: Handler::Normal,
+            });
+        }
         if let Some(file) = index(EMPTY) {
             for subtree in &self.suppresses {
                 registrations.push(Registration {
@@ -557,7 +589,8 @@ impl SimDevice {
             .refusing_getbulk(self.refuses_getbulk())
             .silent_on(self.silenced())
             .rejecting_getbulk_above(self.rejects_getbulk)
-            .erroring_on(self.rejected(), self.tables.faults.error_status);
+            .erroring_on(self.rejected(), self.tables.faults.error_status)
+            .slow_on(self.slow_rows(), self.tables.faults.row_cost);
         match self.community_versions {
             CommunityVersions::V1Only => agent.without_getbulk(),
             CommunityVersions::Both | CommunityVersions::V2cOnly => agent,

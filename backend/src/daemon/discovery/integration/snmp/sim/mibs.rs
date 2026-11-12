@@ -565,6 +565,25 @@ impl CdpTable {
     }
 }
 
+/// Rows a device serves from its vendor's enterprise subtree, which the daemon never asks for.
+///
+/// They are in the lab because a GETBULK does not stop at the end of the subtree it was aimed at.
+/// A page sent to a MIB the device lacks is filled from whatever sorts next, and on GH #848's
+/// switch that was this tree: a GETBULK of 20 at the absent CDP table read ten scalars and then
+/// ten per-port values the switch needed five seconds to compute.
+#[derive(Debug, Clone, Default)]
+pub struct VendorTree {
+    /// The subtree the rows are registered at.
+    pub subtree: &'static str,
+    pub rows: Vec<Row>,
+}
+
+impl VendorTree {
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

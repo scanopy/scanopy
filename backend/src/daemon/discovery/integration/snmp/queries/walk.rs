@@ -20,7 +20,7 @@ pub(super) const MAX_DESYNC_RETRIES: u8 = 2;
 /// a timeout, a session error, or a page with no varbinds on it.
 ///
 /// SNMP runs over UDP and nothing beneath us retransmits: `AsyncSession::send_and_recv` is one
-/// `send` and one `recv`, bounded only by [`SNMP_TIMEOUT`]. `snmpwalk` defaults to `-r 5 -t 1`, so
+/// `send` and a wait for its answer, bounded only by [`SNMP_TIMEOUT`]. `snmpwalk` defaults to `-r 5 -t 1`, so
 /// until this existed the daemon was strictly less tolerant than the command line operators use to
 /// prove a device is readable — a single dropped datagram in any one of the seven LLDP columns
 /// ended that column, which marks the whole neighbour set non-authoritative and leaves the switch
@@ -72,17 +72,15 @@ fn degrade_after_silence(transport_retries: u8, max_reps: &mut u32, use_bulk: &m
     }
 }
 
-/// Whether this error means the session read an answer to a question nobody is waiting for.
+/// Whether this error means the session read an answer that is not to the request it sent: one
+/// carrying a request id the session never issued, or another community.
 ///
-/// The daemon abandons SNMP requests constantly — 5s per query, 60s per walk — and keeps using
-/// the session afterwards. `drain_stale` clears the socket before each send, but a response still
-/// in flight from an abandoned request lands *after* that drain and is read by the next `recv`,
-/// where it fails validation. That is a transient belonging to the previous request, not a
-/// verdict on this one, and ending the walk on it turned one slow answer into a truncated table
-/// — visible in a customer log as `GET timeout` followed immediately by `RequestIdMismatch`.
-///
-/// Re-issuing is safe precisely because the failed read *consumed* the stale datagram, so the
-/// retry cannot be served the same one again.
+/// An answer to one of the session's own earlier requests no longer gets this far. The daemon
+/// abandons SNMP requests constantly, 5s per query and 60s per walk, and an agent that answers
+/// one after the next request has gone out used to have that answer read here as a mismatch. The
+/// session now passes those over and keeps reading for its own (GH #848, `send_and_recv` in the
+/// vendored snmp2). What is left is a datagram from somewhere else, and one more ask is still
+/// worth it: the failed read consumed that datagram, so the retry cannot be served it again.
 fn is_desync(error: &anyhow::Error) -> bool {
     error.chain().any(|cause| {
         matches!(
@@ -153,8 +151,21 @@ where
     let mut transport_retries = 0u8;
     // Repetitions asked for per getbulk round. Walk-local rather than the constant because it only
     // ever shrinks: an agent that could not fit 20 varbinds will not fit them on the next page
-    // either, so re-escalating would just re-earn the same failure.
-    let mut max_reps = BULK_MAX_REPETITIONS;
+    // either, so re-escalating would just re-earn the same failure. Decided by where the subtree
+    // sits rather than passed in by the caller, so a walk of a vendor table added later starts
+    // small without anyone having to remember to ask.
+    let mut max_reps = if base_parts.starts_with(&oids::oid_parts(oids::ENTERPRISES)) {
+        ENTERPRISE_MAX_REPETITIONS
+    } else {
+        BULK_MAX_REPETITIONS
+    };
+    // An earlier walk on this host already had to ask for less after a page went unanswered.
+    if let Some(limit) = session.bulk_page_limit() {
+        max_reps = max_reps.min(limit);
+    }
+    // Set where this walk asks for less after silence, and recorded on the session at the top of
+    // the loop, for the reason `note_fallback` is deferred.
+    let mut note_page_limit = false;
     // Every in-subtree OID already handed to `on_entry`. This is what tells the two devices that
     // used to look identical apart: an OID below where we asked from is the GH #674 firmware bug
     // when it names a row we have not seen, and an agent going in circles when it does not.
@@ -169,6 +180,10 @@ where
         if note_fallback {
             note_fallback = false;
             session.note_getbulk_unusable();
+        }
+        if note_page_limit {
+            note_page_limit = false;
+            session.note_bulk_page_limit(max_reps);
         }
         if session.cancelled() {
             stop = WalkStop::Cancelled;
@@ -214,7 +229,7 @@ where
                         base = base_oid_str,
                         attempt = desync_retries,
                         error = %e,
-                        "Re-issuing after reading a stale answer"
+                        "Re-issuing after an answer to a request this session did not send"
                     );
                     continue 'walk;
                 }
@@ -227,6 +242,9 @@ where
                     // for less. See `degrade_after_silence` for why the last one goes all the way.
                     degrade_after_silence(transport_retries, &mut max_reps, &mut use_bulk);
                     note_fallback = !use_bulk;
+                    // The rest of the host starts from the smaller page too. What a page runs
+                    // into past the end of its table is the same for every table near it.
+                    note_page_limit = use_bulk;
                     debug!(
                         ip = %ip,
                         base = base_oid_str,
@@ -254,7 +272,7 @@ where
                         base = base_oid_str,
                         attempt = desync_retries,
                         error = %e,
-                        "Re-issuing after reading a stale answer"
+                        "Re-issuing after an answer to a request this session did not send"
                     );
                     continue 'walk;
                 }

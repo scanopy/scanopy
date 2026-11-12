@@ -274,6 +274,14 @@ pub fn shim_args(device: &SimDevice) -> Option<String> {
             device.tables.faults.error_status
         ));
     }
+    let slow = device.slow_rows();
+    if !slow.is_empty() {
+        args.extend(slow.iter().map(|oid| format!("--slow {}", dotted(oid))));
+        args.push(format!(
+            "--row-cost {}",
+            device.tables.faults.row_cost.as_millis()
+        ));
+    }
     (!args.is_empty()).then(|| args.join(" "))
 }
 
@@ -669,14 +677,18 @@ mod tests {
     /// `<ip>:161` the two would contend for it and whichever started second would fail to bind,
     /// and if `lab.env` named a different port the shim would forward into nothing. They are
     /// generated from one place so they cannot drift, and this is what says so. One device per
-    /// shim mode: GH #668's getbulk drop, GH #685's silent column, and GH #710's error-status
-    /// answer.
+    /// shim mode: GH #668's getbulk drop, GH #685's silent column, GH #710's error-status
+    /// answer, and GH #848's slow rows.
     #[test]
     fn a_device_behind_a_bulk_shim_moves_its_agent_behind_it() {
         for (name, args) in [
             ("switch-slowbulk-01", "--refuse .1.0.8802.1.1.2.1.4"),
             ("switch-quietcol-01", "--silence .1.0.8802.1.1.2.1.4.1.1.10"),
             ("switch-hikvision-01", "--reject-above 10 --error-status 5"),
+            (
+                "switch-omada-02",
+                "--slow .1.3.6.1.4.1.11863.6.1.1.11 --row-cost 506",
+            ),
         ] {
             let device = super::super::device(name);
             let port = upstream_port(&device);

@@ -19,6 +19,8 @@
 //!   only the broadest of a set of overlapping `pass` lines and ignores the rest, so serving one
 //!   sub-table of a MIB differently means carving the MIB up, not nesting inside it.
 
+use std::time::Duration;
+
 use anyhow::Result;
 
 use super::wire::{DataFile, Row};
@@ -26,6 +28,7 @@ use crate::daemon::discovery::integration::snmp::queries::{
     RequestTimedOut, SNMP_ERR_NO_SUCH_NAME, SnmpWalkTransport, Varbinds, WalkPage,
     response_varbinds,
 };
+use crate::daemon::discovery::integration::snmp::session::SNMP_TIMEOUT;
 
 /// A device that answers a GETBULK above a repetition count with an error status instead of rows.
 ///
@@ -131,6 +134,17 @@ pub struct SimAgent {
     errors_on: Vec<Vec<u64>>,
     /// The status those subtrees are answered with.
     error_status: u32,
+    /// Subtrees whose rows each take `row_cost` to answer.
+    ///
+    /// The same shim with its `--slow` list: it holds a reply for `row_cost` per varbind on it
+    /// that falls under one of these. A cost per row rather than a delay per request, because
+    /// that is what GH #848's switch does: the same request reads back in 64ms at ten repetitions
+    /// and in 5.06s at twenty, and the only difference is the ten slow rows the larger page
+    /// reaches.
+    slow_rows: Vec<Vec<u64>>,
+    /// What each of those rows costs. This agent keeps no time, so an answer costing more than
+    /// [`SNMP_TIMEOUT`] is the timeout the client would see; [`super::udp::UdpAgent`] waits it out.
+    row_cost: Duration,
     /// Set once a walk has fallen back to getnext, and read by every walk after it.
     ///
     /// One `SimAgent` serves a whole collection, exactly as one session serves one host, so this
@@ -138,6 +152,9 @@ pub struct SimAgent {
     /// the scan one column's worth of timeouts rather than one per column — and not only the
     /// per-column half.
     getbulk_unusable: bool,
+    /// The page size a walk fell back to after a page went unanswered, read by every walk after
+    /// it for the same reason.
+    bulk_page_limit: Option<u32>,
 }
 
 impl SimAgent {
@@ -161,7 +178,10 @@ impl SimAgent {
             rejects_getbulk: None,
             errors_on: Vec::new(),
             error_status: 0,
+            slow_rows: Vec::new(),
+            row_cost: Duration::ZERO,
             getbulk_unusable: false,
+            bulk_page_limit: None,
         }
     }
 
@@ -203,6 +223,29 @@ impl SimAgent {
     pub fn refusing_getbulk(mut self, subtrees: Vec<Vec<u64>>) -> Self {
         self.refuses_getbulk = subtrees;
         self
+    }
+
+    /// An agent that takes `row_cost` to answer each row under these subtrees.
+    pub fn slow_on(mut self, subtrees: Vec<Vec<u64>>, row_cost: Duration) -> Self {
+        self.slow_rows = subtrees;
+        self.row_cost = row_cost;
+        self
+    }
+
+    /// How many rows of an answer the device is slow to produce.
+    pub(super) fn slow_rows_on(&self, page: &Varbinds<'_>) -> u32 {
+        page.iter()
+            .filter(|(oid, _)| self.slow_rows.iter().any(|prefix| oid.starts_with(prefix)))
+            .count() as u32
+    }
+
+    pub(super) fn row_cost(&self) -> Duration {
+        self.row_cost
+    }
+
+    /// Whether the client gives up on this answer before the device has finished it.
+    fn outlasts_the_client(&self, page: &Varbinds<'_>) -> bool {
+        self.row_cost * self.slow_rows_on(page) > SNMP_TIMEOUT
     }
 
     /// An agent with no getbulk, as SNMPv1 has none.
@@ -301,6 +344,14 @@ impl SnmpWalkTransport for SimAgent {
         self.getbulk_unusable = true;
     }
 
+    fn bulk_page_limit(&self) -> Option<u32> {
+        self.bulk_page_limit
+    }
+
+    fn note_bulk_page_limit(&mut self, max_repetitions: u32) {
+        self.bulk_page_limit = Some(max_repetitions);
+    }
+
     async fn walk_getbulk<'a>(
         &'a mut self,
         from: &[u64],
@@ -335,10 +386,11 @@ impl SnmpWalkTransport for SimAgent {
                 echo(from),
             ));
         }
-        Ok(WalkPage::from_bulk_response(
-            0,
-            self.page(from, max_repetitions),
-        ))
+        let page = self.page(from, max_repetitions);
+        if self.outlasts_the_client(&page) {
+            return Err(RequestTimedOut("getbulk").into());
+        }
+        Ok(WalkPage::from_bulk_response(0, page))
     }
 
     async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
@@ -351,6 +403,9 @@ impl SnmpWalkTransport for SimAgent {
             return response_varbinds(from, status, echo(from));
         }
         let page = self.page(from, 1);
+        if self.outlasts_the_client(&page) {
+            return Err(RequestTimedOut("getnext").into());
+        }
         // SNMPv1 has no `endOfMibView`. net-snmp answers a v1 client that walks off the end of
         // its MIB view with `noSuchName` and the request echoed back (RFC 3584 §4.2.2.2.2), and
         // `bulk_unsupported` is exactly the v1 agent.

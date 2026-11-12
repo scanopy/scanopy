@@ -51,6 +51,21 @@ use walk::{walk_column, walk_subtree};
 /// Varbinds requested per getbulk round when walking a table subtree.
 pub const BULK_MAX_REPETITIONS: u32 = 20;
 
+/// Varbinds requested per getbulk round when walking a vendor's enterprise subtree
+/// (`1.3.6.1.4.1`), such as Cisco's CDP and VTP tables.
+///
+/// Most agents have no such subtree, and a getbulk aimed at a missing one is filled from whatever
+/// sorts after it: the next vendor's tree, which nobody chose to read. On GH #848's TP-Link a
+/// page of 20 at the CDP table read ten scalars and then ten per-port utilization rows that took
+/// the switch 5.06s, past [`SNMP_TIMEOUT`]. The reporter's `snmpbulkget -Cr10` stopped one row
+/// short of them and answered in 64ms, so ten has no margin on that firmware. Five ends inside
+/// the scalars, and a page of five made up of nothing but those rows would cost 2.5s there and
+/// 4.5s on the reporter's second switch (9.08s for ten), both inside the timeout.
+///
+/// The price is round trips on an agent that does have the table: a 48-neighbour CDP column is
+/// ten requests where it was three.
+pub const ENTERPRISE_MAX_REPETITIONS: u32 = 5;
+
 /// A single `getbulk` round-trip's non-error outcome. Transport failures (timeouts,
 /// session errors) are the `Err` arm of the returned `Result`; the legitimate non-error
 /// signals are an agent that refuses getbulk, which the walk retries via getnext, and one
@@ -149,6 +164,21 @@ pub trait SnmpWalkTransport: Send {
     /// Record that getbulk did not work on this device.
     fn note_getbulk_unusable(&mut self) {}
 
+    /// The largest getbulk page later walks on this session should ask for, once a walk has had
+    /// to ask for less after a page went unanswered. `None` until then.
+    ///
+    /// Session-scoped for the reason [`Self::getbulk_unusable`] is. What made a page too slow is
+    /// usually not the table being walked but what sorts after it: GH #848's TP-Link computes ten
+    /// per-port figures at the start of its enterprise tree, so every page of 20 that runs off
+    /// the end of the standard MIBs reaches them and takes 5.06s, whichever column it was aimed
+    /// at. Learned per walk, each of those columns spent [`SNMP_TIMEOUT`] finding it out again.
+    fn bulk_page_limit(&self) -> Option<u32> {
+        None
+    }
+
+    /// Record the page size a walk fell back to after a page went unanswered.
+    fn note_bulk_page_limit(&mut self, _max_repetitions: u32) {}
+
     /// Whether the discovery this session serves has been cancelled. `walk_subtree` checks it
     /// before every request. Defaulted for the fakes, which serve one column and never cancel.
     fn cancelled(&self) -> bool {
@@ -201,6 +231,14 @@ impl SnmpWalkTransport for super::session::SnmpSession {
 
     fn note_getbulk_unusable(&mut self) {
         Self::note_getbulk_unusable(self);
+    }
+
+    fn bulk_page_limit(&self) -> Option<u32> {
+        Self::bulk_page_limit(self)
+    }
+
+    fn note_bulk_page_limit(&mut self, max_repetitions: u32) {
+        Self::note_bulk_page_limit(self, max_repetitions);
     }
 
     fn cancelled(&self) -> bool {
