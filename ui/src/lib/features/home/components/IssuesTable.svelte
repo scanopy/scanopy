@@ -78,7 +78,7 @@
 </script>
 
 {#snippet issueCell(entry: SetupListEntry)}
-	<SetupItemSummary item={entry.item} view={viewOf(entry)} />
+	<SetupItemSummary view={viewOf(entry)} />
 {/snippet}
 
 {#if issuesQuery.isPending && !issuesQuery.data}

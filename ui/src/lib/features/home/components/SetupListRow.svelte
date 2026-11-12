@@ -72,7 +72,7 @@
 		{/if}
 	</div>
 	<div class="min-w-0 flex-1 space-y-1">
-		<SetupItemSummary {item} {view} {done} />
+		<SetupItemSummary {view} {done} />
 		{#if running && session}
 			<div class="space-y-1 pt-1">
 				<DiscoveryEstimation

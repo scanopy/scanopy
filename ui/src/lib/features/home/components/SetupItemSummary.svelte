@@ -1,18 +1,14 @@
 <script lang="ts">
-	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
 	import { MAX_ITEMS_IN_CELL, entityRef } from '#lib/shared/components/data/types.ts';
-	import { daemonHealths, entities } from '#lib/shared/stores/metadata.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { common_moreItems } from '#lib/paraglide/messages.js';
 	import type { SetupRowView } from '../setup-row-view';
-	import type { SetupItem } from '../setup-list';
 
 	let {
-		item,
 		view,
 		done = false
 	}: {
-		item: SetupItem;
 		view: SetupRowView;
 		/** A done step shows its title alone. */
 		done?: boolean;
@@ -50,14 +46,6 @@
 				>
 					{common_moreItems({ count: overflow })}
 				</button>
-			{/if}
-			<!-- Outdated's sentence already says a newer version is available, so its tag would
-			     repeat it. -->
-			{#if item.type === 'DaemonHealth' && item.health !== 'outdated'}
-				<Tag
-					{...daemonHealths.getTag(item.health)}
-					icon={daemonHealths.getIconComponent(item.health)}
-				/>
 			{/if}
 		{/if}
 	</div>
