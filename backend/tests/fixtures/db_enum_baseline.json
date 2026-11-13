@@ -205,7 +205,8 @@
     "Network",
     "Docker",
     "Unified",
-    "Rescan"
+    "Rescan",
+    "InterfaceRefresh"
   ],
   "DiscoveryWarningCode": [
     "InterfaceSetCutShort",
@@ -273,7 +274,18 @@
     "CredentialLoginUnavailable",
     "GuestOutsideScan",
     "GuestBehindHypervisor",
-    "GuestIsolated"
+    "GuestIsolated",
+    "VlanPortsUnresolved",
+    "ArpSweepTruncated",
+    "IcmpSweepTruncated",
+    "SubnetProbedWithoutInterface",
+    "ContainerSubnetScanned",
+    "DeepScanConcurrencyReduced",
+    "PortScanDescriptorsExhausted",
+    "InterfaceFilterMatchedNothing",
+    "ArpSweepUnavailable",
+    "IcmpSweepUnavailable",
+    "DaemonInDesktopVm"
   ],
   "EdgeStyle": [
     "Straight",
@@ -437,7 +449,16 @@
     "InviteTeam",
     "MultiSite",
     "ApiKeys",
-    "Share"
+    "Share",
+    "UnconfirmedHosts",
+    "UnconfirmedSubnets",
+    "ExploreViews",
+    "DependencyTutorial"
+  ],
+  "SetupItemKey": [
+    "Org",
+    "Entity",
+    "RunWarning"
   ],
   "SnmpWalkGroup": [
     "Lldp",
