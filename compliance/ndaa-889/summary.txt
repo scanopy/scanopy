@@ -1,5 +1,4 @@
-check-889.sh: allowed exception — @esbuild/openharmony-arm64@0.28.1 (pkg:npm/%40esbuild/openharmony-arm64@0.28.1)
-check-889.sh: allowed exception — @rollup/rollup-openharmony-arm64@4.59.0 (pkg:npm/%40rollup/rollup-openharmony-arm64@4.59.0)
-check-889.sh: scanned 10020 component(s) across 3 SBOM(s) against 17 pattern(s)
-check-889.sh: 2 allowed exception(s) suppressed
+check-889.sh: allowed exception — @rolldown/binding-openharmony-arm64@1.2.19 (pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.19)
+check-889.sh: scanned 9999 component(s) across 3 SBOM(s) against 17 pattern(s)
+check-889.sh: 1 allowed exception(s) suppressed
 check-889.sh: PASS — no NDAA Section 889 prohibited components found
