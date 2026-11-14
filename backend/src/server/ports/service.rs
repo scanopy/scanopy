@@ -1,3 +1,4 @@
+use crate::server::shared::relations as R;
 use anyhow::Result;
 use std::{collections::HashMap, sync::Arc};
 use uuid::Uuid;
@@ -6,7 +7,7 @@ use crate::server::{
     ports::r#impl::base::Port,
     shared::{
         events::bus::EventBus,
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::{generic::GenericPostgresStorage, traits::Storage},
     },
     tags::entity_tags::EntityTagService,
@@ -41,16 +42,14 @@ impl CrudService<Port> for PortService {
     }
 }
 
-impl ChildCrudService<Port> for PortService {}
-
 impl PortService {
     pub fn new(storage: Arc<GenericPostgresStorage<Port>>, event_bus: Arc<EventBus>) -> Self {
         Self { storage, event_bus }
     }
 
-    /// Get all ports for a specific host (alias for get_for_parent)
+    /// Get all ports for a specific host
     pub async fn get_for_host(&self, host_id: &Uuid) -> Result<Vec<Port>> {
-        self.get_for_parent(host_id).await
+        self.get_for(&R::PORT_HOST.at(*host_id)).await
     }
 
     /// Get ports for multiple hosts. `at = None` reads live rows; `Some(t)`

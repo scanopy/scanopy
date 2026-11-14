@@ -133,9 +133,7 @@ impl Entity for UserApiKey {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::UserApiKey
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::UserApiKey;
 
     const ENTITY_NAME_SINGULAR: &'static str = "User API Key";
     const ENTITY_NAME_PLURAL: &'static str = "User API Keys";

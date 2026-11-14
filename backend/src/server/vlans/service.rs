@@ -1,12 +1,11 @@
+use crate::server::shared::relations as R;
 use crate::server::{
     interfaces::service::InterfaceService,
     shared::services::scan_context::ScanContext,
     shared::{
-        entities::EntityDiscriminants,
         events::bus::EventBus,
         services::traits::{CrudService, EventBusService, ObservationRefresher},
         storage::{
-            child::{GenericChildStorage, ParentRef},
             filter::StorableFilter,
             generic::GenericPostgresStorage,
             traits::{PaginatedResult, Storable, Storage, Unique},
@@ -32,7 +31,7 @@ pub struct VlanService {
     storage: Arc<GenericPostgresStorage<Vlan>>,
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
-    subnet_vlan_storage: Arc<GenericChildStorage<SubnetVlanRecord>>,
+    subnet_vlan_storage: Arc<GenericPostgresStorage<SubnetVlanRecord>>,
     interface_service: Arc<InterfaceService>,
 }
 
@@ -117,7 +116,7 @@ impl VlanService {
         storage: Arc<GenericPostgresStorage<Vlan>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
-        subnet_vlan_storage: Arc<GenericChildStorage<SubnetVlanRecord>>,
+        subnet_vlan_storage: Arc<GenericPostgresStorage<SubnetVlanRecord>>,
         interface_service: Arc<InterfaceService>,
     ) -> Self {
         Self {
@@ -153,7 +152,7 @@ impl VlanService {
     ) -> Result<HashMap<Uuid, Vec<Uuid>>> {
         Ok(self
             .subnet_vlan_storage
-            .get_for_parents(subnet_ids)
+            .get_for_many(&R::SUBNET_VLAN_SUBNET, subnet_ids)
             .await?
             .into_iter()
             .map(|(subnet_id, records)| (subnet_id, records.iter().map(|r| r.vlan_id()).collect()))
@@ -170,7 +169,7 @@ impl VlanService {
         }
         let filter =
             StorableFilter::<SubnetVlanRecord>::new_from_uuids_column("vlan_id", vlan_ids).live();
-        let records = self.subnet_vlan_storage.inner().get_all(filter).await?;
+        let records = self.subnet_vlan_storage.get_all(filter).await?;
 
         let mut result: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
         for record in records {
@@ -184,7 +183,10 @@ impl VlanService {
 
     /// The VLANs a subnet is linked to, live links only.
     pub async fn vlan_ids_for_subnet(&self, subnet_id: &Uuid) -> Result<Vec<Uuid>> {
-        let records = self.subnet_vlan_storage.get_for_parent(subnet_id).await?;
+        let records = self
+            .subnet_vlan_storage
+            .get_for(&R::SUBNET_VLAN_SUBNET.at(*subnet_id))
+            .await?;
         Ok(records.iter().map(|r| r.vlan_id()).collect())
     }
 
@@ -193,8 +195,8 @@ impl VlanService {
     /// queryable as of any time; inserts live links for additions; leaves unchanged links alone.
     pub async fn set_subnet_vlans(&self, subnet_id: &Uuid, vlan_ids: &[Uuid]) -> Result<()> {
         self.subnet_vlan_storage
-            .sync_for_parent(
-                &ParentRef::new(EntityDiscriminants::Subnet, *subnet_id),
+            .sync_members_for(
+                &R::SUBNET_VLAN_SUBNET.at(*subnet_id),
                 vlan_ids,
                 SubnetVlanRecord::vlan_id,
                 |vlan_id| SubnetVlanRecord::new(SubnetVlanRecordBase::new(*subnet_id, vlan_id)),
@@ -210,10 +212,7 @@ impl VlanService {
         if records.is_empty() {
             return Ok(());
         }
-        self.subnet_vlan_storage
-            .inner()
-            .create_many(records)
-            .await?;
+        self.subnet_vlan_storage.create_many(records).await?;
         Ok(())
     }
 

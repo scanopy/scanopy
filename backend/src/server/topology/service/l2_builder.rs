@@ -191,11 +191,12 @@ impl ViewBuilder for L2Builder {
         // 3. Create Host containers for qualifying hosts
         let host_lookup: HashMap<Uuid, &crate::server::hosts::r#impl::base::Host> =
             ctx.hosts.iter().map(|h| (h.id, h)).collect();
+        // The containers and the ports below iterate one set, so a port is never drawn inside a
+        // container that wasn't (GH #852).
+        qualifying_host_ids.retain(|host_id| host_lookup.contains_key(host_id));
 
         for &host_id in &qualifying_host_ids {
-            let Some(host) = host_lookup.get(&host_id) else {
-                continue;
-            };
+            let host = host_lookup[&host_id];
 
             let container_id = Self::container_id_for_host(host_id);
             nodes.push(Node {

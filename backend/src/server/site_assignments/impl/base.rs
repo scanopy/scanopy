@@ -7,13 +7,9 @@ use uuid::Uuid;
 
 use crate::server::{
     auth::access::{Assignment, AssignmentScope},
-    shared::{
-        entities::EntityDiscriminants,
-        storage::{
-            child::{ChildStorableEntity, ParentRef},
-            filter::StorableFilter,
-            traits::{SqlValue, Storable},
-        },
+    shared::storage::{
+        relation::RelationKey,
+        traits::{SqlValue, Storable},
     },
 };
 
@@ -33,11 +29,12 @@ impl Default for Principal {
 
 impl Principal {
     /// The set of rows this principal owns, which a write to them locks on.
-    pub fn parent(self) -> ParentRef {
+    pub fn assignments(self) -> RelationKey<SiteAssignment> {
+        use crate::server::shared::relations as R;
         match self {
-            Principal::User(id) => ParentRef::new(EntityDiscriminants::User, id),
-            Principal::ApiKey(id) => ParentRef::new(EntityDiscriminants::UserApiKey, id),
-            Principal::Invite(id) => ParentRef::new(EntityDiscriminants::Invite, id),
+            Principal::User(id) => R::SITE_ASSIGNMENT_USER.at(id),
+            Principal::ApiKey(id) => R::SITE_ASSIGNMENT_API_KEY.at(id),
+            Principal::Invite(id) => R::SITE_ASSIGNMENT_INVITE.at(id),
         }
     }
 }
@@ -84,6 +81,17 @@ impl Storable for SiteAssignment {
 
     fn table_name() -> &'static str {
         "site_assignments"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[
+            &R::SITE_ASSIGNMENT_ORGANIZATION,
+            &R::SITE_ASSIGNMENT_USER,
+            &R::SITE_ASSIGNMENT_API_KEY,
+            &R::SITE_ASSIGNMENT_INVITE,
+            &R::SITE_ASSIGNMENT_SITE,
+        ]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -152,25 +160,5 @@ impl Storable for SiteAssignment {
                 },
             },
         })
-    }
-}
-
-/// Rows belong to their organization, and a write replaces one principal's set of them.
-impl ChildStorableEntity for SiteAssignment {
-    fn parent_column() -> &'static str {
-        "organization_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.organization_id
-    }
-
-    fn parent_filter(parent: &ParentRef) -> StorableFilter<Self> {
-        let column = match parent.entity_type {
-            EntityDiscriminants::UserApiKey => "api_key_id",
-            EntityDiscriminants::Invite => "invite_id",
-            _ => "user_id",
-        };
-        StorableFilter::new_from_uuid_column(column, &parent.id)
     }
 }

@@ -436,13 +436,11 @@ async fn plant_site_seeds_and_its_l2_view_links_the_tiers() {
     }
     let interface_rows: Vec<InterfaceNeighborInterface> = storage
         .interface_neighbor_interfaces
-        .inner()
         .get_all(site_live!())
         .await
         .unwrap();
     let host_rows: Vec<InterfaceNeighborHost> = storage
         .interface_neighbor_hosts
-        .inner()
         .get_all(site_live!())
         .await
         .unwrap();
@@ -608,36 +606,20 @@ async fn hand_built_sites_snapshot_is_a_month_old_and_its_rows_cover_real_interv
             "dependencies",
         );
         assert_intervals(
-            &storage
-                .entity_tags
-                .inner()
-                .get_all(filter!())
-                .await
-                .unwrap(),
+            &storage.entity_tags.get_all(filter!()).await.unwrap(),
             "entity_tags",
         );
         assert_intervals(
-            &storage
-                .dependency_members
-                .inner()
-                .get_all(filter!())
-                .await
-                .unwrap(),
+            &storage.dependency_members.get_all(filter!()).await.unwrap(),
             "dependency_members",
         );
         assert_intervals(
-            &storage
-                .subnet_vlan
-                .inner()
-                .get_all(filter!())
-                .await
-                .unwrap(),
+            &storage.subnet_vlan.get_all(filter!()).await.unwrap(),
             "subnet_vlans",
         );
         assert_intervals(
             &storage
                 .interface_neighbor_interfaces
-                .inner()
                 .get_all(filter!())
                 .await
                 .unwrap(),

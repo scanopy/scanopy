@@ -1,11 +1,12 @@
 //! Construction, limit checks, insecure-URL warning, and host-service dependency injection.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl DaemonService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         daemon_storage: Arc<GenericPostgresStorage<Daemon>>,
-        interfaced_subnet_storage: Arc<GenericChildStorage<DaemonInterfacedSubnet>>,
+        interfaced_subnet_storage: Arc<GenericPostgresStorage<DaemonInterfacedSubnet>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
         discovery_service: Arc<DiscoveryService>,
@@ -63,7 +64,6 @@ impl DaemonService {
         let filter =
             StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
         self.interfaced_subnet_storage
-            .inner()
             .get_all_ordered(filter, "subnet_id ASC")
             .await
             .map(|records| records.into_iter().map(|r| r.subnet_id).collect())
@@ -87,7 +87,6 @@ impl DaemonService {
             daemon_ids,
         );
         self.interfaced_subnet_storage
-            .inner()
             .get_all_ordered(filter, "daemon_id ASC")
             .await
             .map(|records| {
@@ -121,10 +120,7 @@ impl DaemonService {
             })
             .collect();
         self.interfaced_subnet_storage
-            .save_for_parent(
-                &ParentRef::new(EntityDiscriminants::Daemon, *daemon_id),
-                &rows,
-            )
+            .replace_for(&R::INTERFACED_SUBNET_DAEMON.at(*daemon_id), &rows)
             .await
             .map(|_| ())
             .map_err(|e| {

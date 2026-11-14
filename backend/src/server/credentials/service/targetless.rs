@@ -61,7 +61,6 @@ impl CredentialService {
         let ids: Vec<Uuid> = credentials.iter().map(|c| c.id).collect();
         let site_rows = self
             .site_credential_storage
-            .inner()
             .get_all_ordered(
                 StorableFilter::<SiteCredential>::new_from_uuids_column("credential_id", &ids),
                 "credential_id ASC",
@@ -69,7 +68,6 @@ impl CredentialService {
             .await?;
         let host_rows = self
             .host_credential_storage
-            .inner()
             .get_all_ordered(
                 StorableFilter::<HostCredential>::new_from_uuids_column("credential_id", &ids),
                 "credential_id ASC",

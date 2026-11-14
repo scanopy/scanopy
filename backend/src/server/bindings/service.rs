@@ -5,7 +5,7 @@ use crate::server::{
     bindings::r#impl::base::Binding,
     shared::{
         events::bus::EventBus,
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::generic::GenericPostgresStorage,
     },
     tags::entity_tags::EntityTagService,
@@ -39,8 +39,6 @@ impl CrudService<Binding> for BindingService {
         None
     }
 }
-
-impl ChildCrudService<Binding> for BindingService {}
 
 impl BindingService {
     pub fn new(storage: Arc<GenericPostgresStorage<Binding>>, event_bus: Arc<EventBus>) -> Self {

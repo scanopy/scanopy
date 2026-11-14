@@ -150,7 +150,7 @@ where
     let stored = stored.map(to_json).transpose()?;
     validate_references(
         &state.services,
-        T::entity_type(),
+        T::ENTITY_TYPE,
         &to_json(entity)?,
         stored.as_ref(),
         &[],

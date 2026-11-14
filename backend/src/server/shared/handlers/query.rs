@@ -515,10 +515,10 @@ pub fn narrow_by_tags_and_search<T: Entity>(
     search: Option<&str>,
 ) -> Result<StorableFilter<T>, ApiError> {
     let filter = match tag_ids {
-        Some(tag_ids) if !tag_ids.is_empty() => filter.has_any_tags(tag_ids, T::entity_type()),
+        Some(tag_ids) if !tag_ids.is_empty() => filter.has_any_tags(tag_ids, T::ENTITY_TYPE),
         _ => filter,
     };
-    let filter = filter.has_tags_from_each(&parse_tag_sets(tag_sets)?, T::entity_type());
+    let filter = filter.has_tags_from_each(&parse_tag_sets(tag_sets)?, T::ENTITY_TYPE);
     Ok(match search {
         Some(search) if !search.trim().is_empty() => filter.text_search(search),
         _ => filter,
@@ -593,14 +593,31 @@ pub(crate) mod narrowing_check {
         );
 
         let unfiltered = narrow(&parse::<Q>("").await);
-        let baseline = (unfiltered.to_where_clause(), unfiltered.values().len());
+        let baseline = (unfiltered.to_where_clause(), bound_lists(&unfiltered));
         for (name, value) in samples {
             let filter = narrow(&parse::<Q>(&format!("{name}={value}")).await);
             assert_ne!(
-                (filter.to_where_clause(), filter.values().len()),
+                (filter.to_where_clause(), bound_lists(&filter)),
                 baseline,
                 "`{name}` is documented but does not narrow the rows"
             );
         }
+    }
+
+    /// The bind count and each bound list's contents. A list parameter binds one array, so a
+    /// filter that swaps the caller's site list for a narrower one changes only the array.
+    fn bound_lists<T: Storable>(filter: &StorableFilter<T>) -> (usize, Vec<String>) {
+        use crate::server::shared::storage::traits::SqlValue;
+        let lists = filter
+            .values()
+            .iter()
+            .filter_map(|value| match value {
+                SqlValue::UuidArray(ids) => Some(format!("{ids:?}")),
+                SqlValue::StringArray(items) => Some(format!("{items:?}")),
+                SqlValue::I32Array(items) => Some(format!("{items:?}")),
+                _ => None,
+            })
+            .collect();
+        (filter.values().len(), lists)
     }
 }

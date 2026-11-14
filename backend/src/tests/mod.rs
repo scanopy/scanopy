@@ -64,6 +64,7 @@ pub mod discovery_port_ownership;
 pub mod discovery_removed_children;
 pub mod discovery_stale_port_guards;
 pub mod discovery_stale_port_holders;
+pub mod discovery_unknown_subnet;
 pub mod discovery_warnings;
 pub mod email_unsubscribe;
 pub mod email_verification;
@@ -85,6 +86,7 @@ pub mod lldp_resolution;
 pub mod org_provisioning;
 pub mod org_reset;
 pub mod organization_writes;
+pub mod pooler;
 pub mod prepared_statements;
 pub mod provision_eligibility;
 pub mod self_hosted_license_emails;
@@ -113,6 +115,9 @@ pub const SERVER_DB_FIXTURE: &str = "src/tests/scanopy.sql";
 /// The test process's one Postgres server, started by the first test that needs it.
 static TEST_SERVER_PORT: OnceCell<u16> = OnceCell::const_new();
 static TEST_SERVER_CONTAINER_ID: OnceLock<String> = OnceLock::new();
+/// The transaction-mode PgBouncer in front of the server, started with it.
+static TEST_POOLER_PORT: OnceCell<u16> = OnceCell::const_new();
+static TEST_POOLER_CONTAINER_ID: OnceLock<String> = OnceLock::new();
 /// A database with every migration applied, which tests clone rather than migrating their own.
 static MIGRATED_TEMPLATE: OnceCell<()> = OnceCell::const_new();
 const MIGRATED_TEMPLATE_NAME: &str = "scanopy_migrated_template";
@@ -132,7 +137,7 @@ impl TestDb {
         let template = template
             .map(|t| format!(" TEMPLATE \"{t}\""))
             .unwrap_or_default();
-        let mut admin = PgConnection::connect(&admin_url(port)).await.unwrap();
+        let mut admin = admin_connection(port).await;
         admin
             .execute(format!("CREATE DATABASE \"{name}\"{template}").as_str())
             .await
@@ -140,8 +145,14 @@ impl TestDb {
         Self { port, name }
     }
 
+    /// Straight to Postgres. For admin work and for reading a backend's own session state.
     pub fn url(&self) -> String {
         database_url(self.port, &self.name)
+    }
+
+    /// Through the transaction-mode pooler, as prod connects.
+    pub async fn pooled_url(&self) -> String {
+        database_url(test_pooler_port().await, &self.name)
     }
 }
 
@@ -151,6 +162,21 @@ fn database_url(port: u16, database: &str) -> String {
 
 fn admin_url(port: u16) -> String {
     database_url(port, "postgres")
+}
+
+/// A connection to the server's `postgres` database. The image logs "ready to accept connections"
+/// from its init-time server as well as the real one, so the first connect after start can be
+/// reset while the init server shuts down.
+async fn admin_connection(port: u16) -> PgConnection {
+    let mut last = None;
+    for _ in 0..40 {
+        match PgConnection::connect(&admin_url(port)).await {
+            Ok(conn) => return conn,
+            Err(e) => last = Some(e),
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+    panic!("could not connect to the test server: {last:?}");
 }
 
 /// Durability is off because nothing outlives the process. Data stays on the container's disk: a
@@ -180,9 +206,76 @@ async fn start_test_server() -> u16 {
         .start()
         .await
         .unwrap();
+    let port = mapped_port(&container).await;
 
-    // Docker Desktop can report a running container with no port bindings for a moment after it
-    // starts, under load. `running=true` with an empty port map is that case, not a dead container.
+    // The server outlives every test, and a static is never dropped, so removal moves to process
+    // exit. A killed run skips this; the label lets the prune job find what it leaves behind.
+    let _ = TEST_SERVER_CONTAINER_ID.set(container.id().to_string());
+    std::mem::forget(container);
+    extern "C" fn remove_test_containers() {
+        let docker = |args: &[&str]| {
+            let _ = std::process::Command::new("docker")
+                .args(args)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+        };
+        if let Some(id) = TEST_POOLER_CONTAINER_ID.get() {
+            docker(&["rm", "-f", "-v", id]);
+        }
+        if let Some(id) = TEST_SERVER_CONTAINER_ID.get() {
+            docker(&["rm", "-f", "-v", id]);
+        }
+    }
+    // SAFETY: registers a function that takes no arguments and touches only set-once statics.
+    unsafe { libc::atexit(remove_test_containers) };
+
+    port
+}
+
+/// A PgBouncer configured as Neon's pooled endpoint, in front of the test server, routing every
+/// database by name. Neon's settings (https://neon.com/docs/connect/connection-pooling, "not
+/// user-configurable"): `pool_mode=transaction`, `max_prepared_statements=1000`. Round-robin over
+/// the server connections makes consecutive messages from one client reach different backends,
+/// as a busy pooler does. Idle server connections close before the server's own
+/// `idle_session_timeout` ends them, so the pooler never hands out a dead one.
+///
+/// The pooler reaches the server through the host's mapped port. Docker Desktop doesn't forward a
+/// published port of a container on a user-defined network, so the two can't share one.
+async fn start_test_pooler() -> u16 {
+    let server_port = test_server_port().await;
+    let container = GenericImage::new("edoburu/pgbouncer", "v1.26.1-p0")
+        .with_wait_for(WaitFor::message_on_stderr("process up"))
+        .with_host(
+            "host.docker.internal",
+            testcontainers::core::Host::HostGateway,
+        )
+        .with_env_var("DB_HOST", "host.docker.internal")
+        .with_env_var("DB_PORT", server_port.to_string())
+        .with_env_var("DB_USER", "postgres")
+        .with_env_var("DB_PASSWORD", "password")
+        .with_env_var("AUTH_TYPE", "scram-sha-256")
+        .with_env_var("POOL_MODE", "transaction")
+        .with_env_var("MAX_PREPARED_STATEMENTS", "1000")
+        .with_env_var("SERVER_ROUND_ROBIN", "1")
+        .with_env_var("DEFAULT_POOL_SIZE", "10")
+        .with_env_var("MAX_CLIENT_CONN", "10000")
+        .with_env_var("SERVER_IDLE_TIMEOUT", "5")
+        .with_env_var("AUTODB_IDLE_TIMEOUT", "30")
+        .with_label("net.scanopy.test-db", "true")
+        .start()
+        .await
+        .unwrap();
+    let port = mapped_port(&container).await;
+    let _ = TEST_POOLER_CONTAINER_ID.set(container.id().to_string());
+    std::mem::forget(container);
+    port
+}
+
+/// The host port a container's 5432 maps to. Docker Desktop can report a running container with
+/// no port bindings for a moment after it starts, under load. `running=true` with an empty port
+/// map is that case, not a dead container.
+async fn mapped_port(container: &testcontainers::ContainerAsync<GenericImage>) -> u16 {
     let mut port = container.get_host_port_ipv4(5432).await;
     for _ in 0..40 {
         if port.is_ok() {
@@ -191,7 +284,7 @@ async fn start_test_server() -> u16 {
         tokio::time::sleep(Duration::from_millis(250)).await;
         port = container.get_host_port_ipv4(5432).await;
     }
-    let port = match port {
+    match port {
         Ok(port) => port,
         Err(e) => {
             let running = container.is_running().await;
@@ -202,35 +295,21 @@ async fn start_test_server() -> u16 {
                 .map(|b| String::from_utf8_lossy(&b).into_owned())
                 .unwrap_or_else(|e| format!("<could not read logs: {e}>"));
             panic!(
-                "could not read the test database's mapped port: {e}\n\
+                "could not read the test container's mapped port: {e}\n\
                  container {} running={running:?} exit_code={exit_code:?}\n\
                  container stderr:\n{logs}",
                 container.id()
             );
         }
-    };
-
-    // The server outlives every test, and a static is never dropped, so removal moves to process
-    // exit. A killed run skips this; the label lets the prune job find what it leaves behind.
-    let _ = TEST_SERVER_CONTAINER_ID.set(container.id().to_string());
-    std::mem::forget(container);
-    extern "C" fn remove_test_server() {
-        if let Some(id) = TEST_SERVER_CONTAINER_ID.get() {
-            let _ = std::process::Command::new("docker")
-                .args(["rm", "-f", "-v", id])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status();
-        }
     }
-    // SAFETY: registers a function that takes no arguments and touches only a set-once static.
-    unsafe { libc::atexit(remove_test_server) };
-
-    port
 }
 
 async fn test_server_port() -> u16 {
     *TEST_SERVER_PORT.get_or_init(start_test_server).await
+}
+
+async fn test_pooler_port() -> u16 {
+    *TEST_POOLER_PORT.get_or_init(start_test_pooler).await
 }
 
 /// Migrates once per process. Closes every connection afterwards: Postgres refuses to clone a
@@ -239,7 +318,7 @@ async fn migrated_template() {
     MIGRATED_TEMPLATE
         .get_or_init(|| async {
             let port = test_server_port().await;
-            let mut admin = PgConnection::connect(&admin_url(port)).await.unwrap();
+            let mut admin = admin_connection(port).await;
             admin
                 .execute(format!("CREATE DATABASE \"{MIGRATED_TEMPLATE_NAME}\"").as_str())
                 .await
@@ -260,13 +339,41 @@ pub async fn setup_test_db() -> (PgPool, String, TestDb) {
     (pool, url, db)
 }
 
-/// A new database with every migration applied.
+/// A new database with every migration applied, reached through the transaction-mode pooler as
+/// prod reaches its database. [`TestDb::url`] goes around the pooler when a test needs that.
 pub async fn setup_migrated_test_db() -> (PgPool, String, TestDb) {
     migrated_template().await;
     let db = TestDb::create(Some(MIGRATED_TEMPLATE_NAME)).await;
-    let url = db.url();
+    let url = db.pooled_url().await;
     let pool = PgPool::connect(&url).await.unwrap();
     (pool, url, db)
+}
+
+/// A migrated database with a pool straight to Postgres and a pool through the pooler, with
+/// `backends` server connections already open behind the pooler so round-robin has backends to
+/// rotate consecutive messages across.
+pub async fn setup_pooled_test_db(backends: usize) -> (PgPool, PgPool, TestDb) {
+    migrated_template().await;
+    let db = TestDb::create(Some(MIGRATED_TEMPLATE_NAME)).await;
+    let direct = PgPool::connect(&db.url()).await.unwrap();
+    let pooled = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(backends.max(10) as u32)
+        .connect_with(
+            crate::server::shared::storage::factory::connect_options(&db.pooled_url().await)
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let mut warm = Vec::new();
+    for _ in 0..backends {
+        let mut tx = pooled.begin().await.unwrap();
+        sqlx::query("SELECT 1").execute(&mut *tx).await.unwrap();
+        warm.push(tx);
+    }
+    for tx in warm {
+        tx.commit().await.unwrap();
+    }
+    (direct, pooled, db)
 }
 
 pub async fn test_storage() -> (StorageFactory, TestDb) {

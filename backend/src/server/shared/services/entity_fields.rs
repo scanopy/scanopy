@@ -54,7 +54,7 @@ impl ServiceSource<'_> {
             + serde::Serialize,
         S: CrudService<T> + Sync,
     {
-        let Some(site_ids) = self.reader.readable_site_ids(T::entity_type().resource()) else {
+        let Some(site_ids) = self.reader.readable_site_ids(T::ENTITY_TYPE.resource()) else {
             return Ok(Vec::new());
         };
         let mut filter = StorableFilter::<T>::new_for_access(&site_ids, &self.organization_id)

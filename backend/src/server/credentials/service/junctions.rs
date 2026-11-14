@@ -1,5 +1,6 @@
 //! The `site_credentials` and `host_credentials` junctions: a site's or host's credentials, and a
 //! credential's sites or hosts. Each end replaces only its own rows.
+use crate::server::shared::relations as R;
 
 use super::*;
 
@@ -9,7 +10,6 @@ impl CredentialService {
         let filter = StorableFilter::<SiteCredential>::new_from_uuid_column("site_id", site_id);
         let records = self
             .site_credential_storage
-            .inner()
             .get_all_ordered(filter, "credential_id ASC")
             .await?;
         Ok(records.into_iter().map(|r| r.credential_id).collect())
@@ -26,7 +26,6 @@ impl CredentialService {
         let filter = StorableFilter::<SiteCredential>::new_from_uuids_column("site_id", site_ids);
         let records = self
             .site_credential_storage
-            .inner()
             .get_all_ordered(filter, "site_id ASC")
             .await?;
         let mut map: std::collections::HashMap<Uuid, Vec<Uuid>> = std::collections::HashMap::new();
@@ -46,7 +45,6 @@ impl CredentialService {
         let filter = StorableFilter::<HostCredential>::new_from_uuid_column("host_id", host_id);
         let records = self
             .host_credential_storage
-            .inner()
             .get_all_ordered(filter, "credential_id ASC")
             .await?;
         Ok(records
@@ -69,7 +67,6 @@ impl CredentialService {
         let filter = StorableFilter::<HostCredential>::new_from_uuids_column("host_id", host_ids);
         let records = self
             .host_credential_storage
-            .inner()
             .get_all_ordered(filter, "host_id ASC")
             .await?;
         let mut map: std::collections::HashMap<Uuid, Vec<CredentialAssignment>> =
@@ -100,7 +97,7 @@ impl CredentialService {
             })
             .collect();
         self.site_credential_storage
-            .save_for_parent(&ParentRef::new(EntityDiscriminants::Site, *site_id), &rows)
+            .replace_for(&R::SITE_CREDENTIAL_SITE.at(*site_id), &rows)
             .await?;
         Ok(())
     }
@@ -119,10 +116,7 @@ impl CredentialService {
         if records.is_empty() {
             return Ok(());
         }
-        self.site_credential_storage
-            .inner()
-            .create_many(&records)
-            .await?;
+        self.site_credential_storage.create_many(&records).await?;
         Ok(())
     }
 
@@ -164,7 +158,7 @@ impl CredentialService {
             })
             .collect();
         self.host_credential_storage
-            .save_for_parent(&ParentRef::new(EntityDiscriminants::Host, *host_id), &rows)
+            .replace_for(&R::HOST_CREDENTIAL_HOST.at(*host_id), &rows)
             .await?;
         Ok(())
     }
@@ -210,7 +204,6 @@ impl CredentialService {
             StorableFilter::<SiteCredential>::new_from_uuid_column("credential_id", credential_id);
         let records = self
             .site_credential_storage
-            .inner()
             .get_all_ordered(filter, "site_id ASC")
             .await?;
         Ok(records.into_iter().map(|r| r.site_id).collect())
@@ -230,7 +223,6 @@ impl CredentialService {
         );
         let records = self
             .site_credential_storage
-            .inner()
             .get_all_ordered(filter, "credential_id ASC")
             .await?;
         let mut map: std::collections::HashMap<Uuid, Vec<Uuid>> = std::collections::HashMap::new();
@@ -251,7 +243,6 @@ impl CredentialService {
             StorableFilter::<HostCredential>::new_from_uuid_column("credential_id", credential_id);
         let records = self
             .host_credential_storage
-            .inner()
             .get_all_ordered(filter, "host_id ASC")
             .await?;
         Ok(records
@@ -277,7 +268,6 @@ impl CredentialService {
         );
         let records = self
             .host_credential_storage
-            .inner()
             .get_all_ordered(filter, "credential_id ASC")
             .await?;
         let mut map: std::collections::HashMap<Uuid, Vec<CredentialHostAssignment>> =
@@ -307,14 +297,8 @@ impl CredentialService {
             })
             .collect();
         // Only this credential's rows, so other credentials on the same sites stay.
-        let filter =
-            StorableFilter::<SiteCredential>::new_from_uuid_column("credential_id", credential_id);
         self.site_credential_storage
-            .replace_matching(
-                &ParentRef::new(EntityDiscriminants::Credential, *credential_id),
-                filter,
-                &rows,
-            )
+            .replace_for(&R::SITE_CREDENTIAL_CREDENTIAL.at(*credential_id), &rows)
             .await?;
         Ok(())
     }
@@ -334,14 +318,8 @@ impl CredentialService {
             })
             .collect();
         // Only this credential's rows, so other credentials on the same hosts stay.
-        let filter =
-            StorableFilter::<HostCredential>::new_from_uuid_column("credential_id", credential_id);
         self.host_credential_storage
-            .replace_matching(
-                &ParentRef::new(EntityDiscriminants::Credential, *credential_id),
-                filter,
-                &rows,
-            )
+            .replace_for(&R::HOST_CREDENTIAL_CREDENTIAL.at(*credential_id), &rows)
             .await?;
         Ok(())
     }

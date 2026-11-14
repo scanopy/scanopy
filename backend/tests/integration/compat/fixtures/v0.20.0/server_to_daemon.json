@@ -1,0 +1,213 @@
+{
+  "version": "0.20.0",
+  "exchanges": [
+    {
+      "method": "POST",
+      "path": "/api/initialize",
+      "request_body": {
+        "api_key": "scp_d_fLJmCN1kFzSA6gQkrw01EF9qZhT12C5X",
+        "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da"
+      },
+      "response_status": 200,
+      "response_body": {
+        "data": "Daemon initialized successfully",
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/first-contact",
+      "request_body": {
+        "daemon_id": "68fcb628-c5a1-4c16-9290-ac9cc9f0acc5",
+        "name": "scanopy-daemon-serverpoll",
+        "network_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+        "server_capabilities": {
+          "deprecation_warnings": [
+            {
+              "message": "Daemon version unknown. Update to 0.20.0 or later.",
+              "severity": "Warning"
+            }
+          ],
+          "last_unsupported_daemon_version": "0.11.9",
+          "minimum_daemon_version": "0.12.0",
+          "server_version": "0.20.0"
+        }
+      },
+      "response_status": 200,
+      "response_body": {
+        "data": {
+          "capabilities": {
+            "interfaced_subnet_ids": []
+          },
+          "interfaces_fingerprint": "c4253875fc0d1251",
+          "mode": "server_poll",
+          "name": "scanopy-daemon-serverpoll",
+          "os": "linux",
+          "ready_for_work": true,
+          "version": "0.20.0"
+        },
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/poll",
+      "request_body": {},
+      "response_status": 200,
+      "response_body": {
+        "data": {
+          "entities": {
+            "hosts": [],
+            "subnets": [],
+            "vlans": []
+          },
+          "progress": null
+        },
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/discovery/initiate",
+      "request_body": {
+        "credential_mappings": [],
+        "discovery_id": "00000000-0000-0000-0000-000000000000",
+        "discovery_type": {
+          "host_id": "18b6c6b1-34cf-4a4a-bee5-dbc2cdf46def",
+          "type": "InterfaceRefresh"
+        },
+        "session_id": "bb64f876-3266-49ba-b7fb-9ac28c8364d5",
+        "subnets": []
+      },
+      "response_status": 200,
+      "response_body": {
+        "data": {
+          "session_id": "bb64f876-3266-49ba-b7fb-9ac28c8364d5"
+        },
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/status",
+      "request_body": {},
+      "response_status": 200,
+      "response_body": {
+        "data": {
+          "capabilities": {
+            "interfaced_subnet_ids": []
+          },
+          "interfaces_fingerprint": "c4253875fc0d1251",
+          "mode": "server_poll",
+          "name": "scanopy-daemon-serverpoll",
+          "os": "linux",
+          "ready_for_work": false,
+          "version": "0.20.0"
+        },
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/discovery/entities-created",
+      "request_body": {
+        "hosts": [],
+        "subnets": [
+          [
+            "85c9cd1a-d8d2-4f37-b282-52978bb8eea6",
+            {
+              "cidr": "172.25.0.0/28",
+              "cidr_source": "DaemonSelfReport",
+              "created_at": "2026-11-13T00:34:14.987300Z",
+              "description": null,
+              "first_discovery_id": null,
+              "id": "85c9cd1a-d8d2-4f37-b282-52978bb8eea6",
+              "last_discovery_id": null,
+              "last_seen_at": "2026-11-13T00:34:14.987300Z",
+              "lineage_id": null,
+              "name": "172.25.0.0/28",
+              "name_source": "Unspecified",
+              "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+              "source": {
+                "type": "Discovery"
+              },
+              "subnet_type": "Lan",
+              "subnet_type_source": "InterfaceNameMatch",
+              "tags": [],
+              "updated_at": "2026-11-13T00:34:14.987300Z",
+              "valid_from": "2026-11-13T00:34:14.987300Z",
+              "valid_to": null,
+              "virtualization_service_id": null,
+              "vlan_ids": []
+            }
+          ],
+          [
+            "887d38f2-2167-49ac-a72e-da5c1c7e91ee",
+            {
+              "cidr": "127.0.0.0/8",
+              "cidr_source": "DaemonSelfReport",
+              "created_at": "2026-11-13T00:34:14.987236Z",
+              "description": null,
+              "first_discovery_id": null,
+              "id": "887d38f2-2167-49ac-a72e-da5c1c7e91ee",
+              "last_discovery_id": null,
+              "last_seen_at": "2026-11-13T00:34:14.987236Z",
+              "lineage_id": null,
+              "name": "127.0.0.0/8",
+              "name_source": "Unspecified",
+              "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+              "source": {
+                "type": "Discovery"
+              },
+              "subnet_type": "Loopback",
+              "subnet_type_source": "InterfaceNameMatch",
+              "tags": [],
+              "updated_at": "2026-11-13T00:34:14.987236Z",
+              "valid_from": "2026-11-13T00:34:14.987236Z",
+              "valid_to": null,
+              "virtualization_service_id": null,
+              "vlan_ids": []
+            }
+          ]
+        ],
+        "vlans": []
+      },
+      "response_status": 200,
+      "response_body": {
+        "data": "Created entities acknowledged",
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.20.0"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/favicon.ico",
+      "request_body": {},
+      "response_status": 404,
+      "response_body": {}
+    }
+  ]
+}

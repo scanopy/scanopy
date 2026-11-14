@@ -21,6 +21,15 @@ impl Storable for Binding {
         "bindings"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[
+            &R::BINDING_SERVICE,
+            &R::BINDING_IP_ADDRESS,
+            &R::BINDING_PORT,
+        ]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn is_live_row(&self) -> bool {
@@ -232,9 +241,7 @@ impl Entity for Binding {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Binding
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Binding;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Binding";
     const ENTITY_NAME_PLURAL: &'static str = "Bindings";

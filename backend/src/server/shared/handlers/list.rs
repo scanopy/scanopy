@@ -60,7 +60,7 @@ impl<O: OrderField> ListOrdering<O> {
         default_order: &str,
     ) -> (StorableFilter<T>, String) {
         self.tag_group.apply(
-            T::entity_type(),
+            T::ENTITY_TYPE,
             self.group_by,
             self.order_by,
             self.direction,

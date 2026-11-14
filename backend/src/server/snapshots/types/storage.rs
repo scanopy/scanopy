@@ -98,9 +98,7 @@ impl Entity for Snapshot {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Snapshot
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Snapshot;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Snapshot";
     const ENTITY_NAME_PLURAL: &'static str = "Snapshots";

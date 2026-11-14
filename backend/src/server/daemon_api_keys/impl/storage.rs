@@ -136,9 +136,7 @@ impl Entity for DaemonApiKey {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::DaemonApiKey
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::DaemonApiKey;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Daemon API Key";
     const ENTITY_NAME_PLURAL: &'static str = "Daemon API Keys";

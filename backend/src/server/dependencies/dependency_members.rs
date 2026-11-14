@@ -11,10 +11,7 @@ use uuid::Uuid;
 
 use crate::server::shared::{
     position::Positioned,
-    storage::{
-        child::ChildStorableEntity,
-        traits::{SqlValue, Storable},
-    },
+    storage::traits::{SqlValue, Storable},
 };
 
 // =============================================================================
@@ -103,8 +100,13 @@ impl Storable for DependencyMemberRecord {
         "dependency_members"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::DEPENDENCY_MEMBER_DEPENDENCY]
+    }
+
     /// `dependency_members` carries the full SCD2 set (`valid_from` / `valid_to` /
-    /// `lineage_id` / `snapshot_id`). This went undeclared while `GenericChildStorage` filtered
+    /// `lineage_id` / `snapshot_id`). This went undeclared while `GenericPostgresStorage` filtered
     /// every child to live rows unconditionally; now that the filter consults this, the
     /// declaration is load-bearing.
     const HAS_SCD2: bool = true;
@@ -203,16 +205,6 @@ impl crate::server::shared::storage::snapshot::Snapshotable for DependencyMember
         {
             self.base.binding_id = Some(*closed);
         }
-    }
-}
-
-impl ChildStorableEntity for DependencyMemberRecord {
-    fn parent_column() -> &'static str {
-        "dependency_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.dependency_id
     }
 }
 

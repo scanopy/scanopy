@@ -10,7 +10,6 @@ use crate::server::{
         },
         services::traits::{CrudService, EventBusService, SnapshotMutator},
         storage::{
-            child::GenericChildStorage,
             filter::StorableFilter,
             generic::GenericPostgresStorage,
             lock::{DEFAULT_LOCK_TIMEOUT, LockKey},
@@ -36,7 +35,7 @@ pub struct TagService {
     storage: Arc<GenericPostgresStorage<Tag>>,
     /// The tags module's own junction storage, read to check a tag group change against existing
     /// assignments.
-    entity_tags: Arc<GenericChildStorage<EntityTag>>,
+    entity_tags: Arc<GenericPostgresStorage<EntityTag>>,
     tag_group_service: Arc<TagGroupService>,
     event_bus: Arc<EventBus>,
 }
@@ -165,7 +164,7 @@ impl CrudService<Tag> for TagService {
 impl TagService {
     pub fn new(
         storage: Arc<GenericPostgresStorage<Tag>>,
-        entity_tags: Arc<GenericChildStorage<EntityTag>>,
+        entity_tags: Arc<GenericPostgresStorage<EntityTag>>,
         tag_group_service: Arc<TagGroupService>,
         event_bus: Arc<EventBus>,
     ) -> Self {
@@ -274,7 +273,7 @@ impl TagService {
             return Ok(Vec::new());
         }
         let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
-        self.entity_tags.inner().get_all(filter).await
+        self.entity_tags.get_all(filter).await
     }
 
     /// Whether any of `tag_ids` is assigned to a live entity.
@@ -283,7 +282,7 @@ impl TagService {
             return Ok(false);
         }
         let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
-        self.entity_tags.inner().exists(filter).await
+        self.entity_tags.exists(filter).await
     }
 
     /// The live tags in a group.
