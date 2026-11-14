@@ -97,9 +97,16 @@ pub async fn create_session_store(
 /// sqlx gives each persistent query its own named prepared statement and closes it only when
 /// the statement cache evicts it, so the cache stays at sqlx's bounded default. With the cache
 /// off, every query left a prepared statement on its connection until the connection retired,
-/// and a few thousand hosts of discovery grew Postgres by gigabytes. The dynamic `SELECT *`
-/// queries, whose result type a migration can change (SQLSTATE 0A000), run non-persistent in
-/// `GenericPostgresStorage` and `ChildStorage` instead.
+/// and a few thousand hosts of discovery grew Postgres by gigabytes.
+///
+/// Every query stays persistent (named). Prod reaches Postgres through Neon's transaction-mode
+/// PgBouncer, which re-prepares a named statement on whichever backend runs it. An unnamed
+/// statement is parsed in one round trip and bound in the next, and the pooler can send the two
+/// to different backends: v0.20.0 did that and failed every query (2026-11-13). Storage selects
+/// named columns ([`Storable::select_columns`]), so a migration adding a column can't change a
+/// cached statement's result type.
+///
+/// [`Storable::select_columns`]: super::traits::Storable::select_columns
 pub(crate) fn connect_options(database_url: &str) -> Result<PgConnectOptions> {
     Ok(PgConnectOptions::from_str(database_url)?)
 }

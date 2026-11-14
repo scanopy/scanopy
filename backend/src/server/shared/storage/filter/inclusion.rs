@@ -87,20 +87,13 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
-    /// Push `expr IN ($n, …)` with one bound string per value, or `FALSE` for none.
+    /// Push `expr = ANY($n)` with the values bound as one text array, or `FALSE` for none.
     fn push_text_in(&mut self, expr: String, values: impl ExactSizeIterator<Item = String>) {
         if values.len() == 0 {
             self.conditions.push("FALSE".to_string());
             return;
         }
-
-        let start = self.values.len();
-        let placeholders: Vec<String> = (0..values.len())
-            .map(|i| format!("${}", start + i + 1))
-            .collect();
-        self.conditions
-            .push(format!("{} IN ({})", expr, placeholders.join(", ")));
-        self.values.extend(values.map(SqlValue::String));
+        self.push_any(&expr, SqlValue::StringArray(values.collect()));
     }
 }
 
@@ -137,9 +130,9 @@ mod tests {
 
         assert_eq!(
             filter.to_where_clause(),
-            "WHERE discovery.run_type->'results'->>'phase' IN ($1, $2)"
+            "WHERE discovery.run_type->'results'->>'phase' = ANY($1)"
         );
-        assert_eq!(filter.values().len(), 2);
+        assert_eq!(filter.values().len(), 1);
     }
 
     #[test]
@@ -151,7 +144,7 @@ mod tests {
         assert!(
             filter
                 .to_where_clause()
-                .contains("hosts.manufacturer IN ($2)"),
+                .contains("hosts.manufacturer = ANY($2)"),
             "placeholders must continue from the binds already pushed: {}",
             filter.to_where_clause()
         );

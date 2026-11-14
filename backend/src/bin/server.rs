@@ -1,4 +1,13 @@
-use std::{collections::HashSet, net::SocketAddr, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet,
+    net::SocketAddr,
+    str::FromStr,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 use axum::{
     Extension, Router,
@@ -19,11 +28,13 @@ use scanopy::server::{
     email,
     github::latest_release::run_latest_release_checks,
     license::middleware::license_guard_middleware,
+    organizations::r#impl::base::Organization,
     shared::handlers::{
         cache::AppCache,
         factory::{create_public_share_routes, create_router},
     },
     shared::web_assets::{self, WebUi},
+    shared::{services::traits::CrudService, storage::filter::StorableFilter},
     shares::handlers::{ShareIndexHtml, share_html_handler},
 };
 use tower::ServiceBuilder;
@@ -560,12 +571,15 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE]);
 
-    // Liveness (/api/health): static response, answers "is the process alive?"
-    // Used by kamal-proxy and similar load-balancer health checks — must not depend on DB.
-    // Readiness (/api/health/ready): runs a cheap DB probe, answers "can this process serve
-    // traffic?" Used by the release backward-compat container harness to verify that the
-    // currently-deployed binary can still execute SQL against a freshly-migrated schema.
+    // Liveness (/api/health): static response, answers "is the process alive?" Must not depend
+    // on the DB.
+    // Readiness (/api/health/ready): 503 until startup has spawned the background tasks and run
+    // one read through the storage layer, then that same read on each request. It answers "can
+    // this binary query its database?", which kamal-proxy checks before it moves traffic to a new
+    // container (v0.20.0 passed the static check and then failed every query, 2026-11-13). The
+    // release compat harness uses it to check the previous binary against a migrated schema.
     // Metrics endpoint is at /api/metrics with external service auth (see factory.rs).
+    let storage_ready = Arc::new(AtomicBool::new(false));
     let app = Router::new()
         .route(
             "/api/health",
@@ -579,17 +593,25 @@ async fn main() -> anyhow::Result<()> {
         )
         .route(
             "/api/health/ready",
-            axum::routing::get(
-                |axum::extract::State(state): axum::extract::State<Arc<AppState>>| async move {
+            axum::routing::get({
+                let storage_ready = storage_ready.clone();
+                move |axum::extract::State(state): axum::extract::State<Arc<AppState>>| async move {
+                    if !storage_ready.load(Ordering::Acquire) {
+                        return (
+                            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                            axum::Json(serde_json::json!({
+                                "success": false,
+                                "data": null,
+                                "error": "starting"
+                            })),
+                        );
+                    }
                     // Fail fast: sqlx's default pool acquire_timeout is 30s, which makes a
                     // down-DB readiness probe look like a hang to callers (k8s, kamal,
                     // compat-check.sh). 5s leaves headroom for cold TCP+TLS handshake to
                     // managed Postgres (e.g., Neon) without flapping on transient blips.
-                    let probe = tokio::time::timeout(
-                        Duration::from_secs(5),
-                        sqlx::query("SELECT 1").execute(&state.pool),
-                    )
-                    .await;
+                    let probe =
+                        tokio::time::timeout(Duration::from_secs(5), storage_probe(&state)).await;
                     match probe {
                         Ok(Ok(_)) => (
                             axum::http::StatusCode::OK,
@@ -616,8 +638,8 @@ async fn main() -> anyhow::Result<()> {
                             })),
                         ),
                     }
-                },
-            ),
+                }
+            }),
         )
         .with_state(state.clone())
         .layer(health_cors)
@@ -760,6 +782,13 @@ async fn main() -> anyhow::Result<()> {
         tracing::warn!(target: LOG_TARGET, "  WARNING: metrics_token is set but external_service_allowed_ips is empty — all IPs can access metrics endpoint");
     }
 
+    // Background tasks are running. A binary that can't query its database exits here, so a
+    // deploy's readiness check never passes and the old container keeps serving.
+    storage_probe(&state)
+        .await
+        .map_err(|e| anyhow::anyhow!("storage probe failed at startup: {e:#}"))?;
+    storage_ready.store(true, Ordering::Release);
+
     // Ready message
     tracing::info!(target: LOG_TARGET, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     tracing::info!(target: LOG_TARGET, "Server ready");
@@ -790,6 +819,17 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(target: LOG_TARGET, "Server stopped");
 
     Ok(())
+}
+
+/// One read through the storage layer, the path every background task takes: a named statement,
+/// its bind and a decoded row.
+async fn storage_probe(state: &AppState) -> anyhow::Result<()> {
+    state
+        .services
+        .organization_service
+        .get_all(StorableFilter::<Organization>::new().limit(1))
+        .await
+        .map(|_| ())
 }
 
 /// How long in-flight requests get to finish after a shutdown signal.
