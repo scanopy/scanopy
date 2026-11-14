@@ -64,7 +64,7 @@ where
         reader: &auth.entity,
         organization_id: scope.organization_id,
     };
-    let csv_data = entities_csv(&source, T::entity_type(), &entities)
+    let csv_data = entities_csv(&source, T::ENTITY_TYPE, &entities)
         .await
         .map_err(|e| {
             tracing::error!(

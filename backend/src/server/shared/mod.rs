@@ -14,6 +14,7 @@ pub mod logos;
 pub mod oui;
 pub mod position;
 pub mod product_area;
+pub mod relations;
 pub mod services;
 pub mod sse;
 pub mod storage;

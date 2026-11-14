@@ -1,11 +1,11 @@
 pub mod attributed;
-pub mod child;
 pub mod factory;
 pub mod filter;
 pub mod generic;
 pub mod lock;
 pub mod migration_runner;
 pub mod pg_value;
+pub mod relation;
 pub mod seed_data;
 pub mod snapshot;
 pub mod tests;

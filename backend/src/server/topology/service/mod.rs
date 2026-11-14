@@ -1,9 +1,11 @@
 pub mod application_builder;
+pub mod bundle_closure;
 pub mod child_order;
 pub mod context;
 pub mod edge_builder;
 pub mod element_rules;
 pub mod fdb;
+pub mod graph_integrity;
 pub mod l2_builder;
 pub mod l3_builder;
 pub mod main;

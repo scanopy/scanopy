@@ -212,9 +212,7 @@ impl Entity for Invite {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Invite
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Invite;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Invite";
     const ENTITY_NAME_PLURAL: &'static str = "Invites";

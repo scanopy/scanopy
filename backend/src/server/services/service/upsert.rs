@@ -1,5 +1,6 @@
 //! Service upsert from discovery/API.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl ServiceService {
     pub async fn upsert_service(
@@ -110,8 +111,8 @@ impl ServiceService {
 
         let saved_bindings = self
             .binding_service
-            .save_for_parent(
-                &existing_service.id,
+            .sync_for(
+                &R::BINDING_SERVICE.at(existing_service.id),
                 &bindings_with_ids,
                 authentication.clone(),
                 // The only bindings an upsert removes are specific ones an all-addresses binding

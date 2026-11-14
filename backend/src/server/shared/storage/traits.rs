@@ -217,6 +217,13 @@ pub trait Storable: Sized + Clone + Send + Sync + 'static + Default {
     /// Database table name
     fn table_name() -> &'static str;
 
+    /// The rows this row points at, one [`Relation`](super::relation::Relation) per id column
+    /// that storage keys a set by or a cascade follows. A junction row lists both ends. The
+    /// consts live in `shared/relations.rs`.
+    fn relations() -> &'static [&'static super::relation::Relation<Self>] {
+        &[]
+    }
+
     /// Serialization for database storage
     /// Returns (column_names, bind_values)
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error>;
@@ -244,13 +251,13 @@ pub trait Storable: Sized + Clone + Send + Sync + 'static + Default {
     /// When `true`, reads filter to live rows (`valid_to IS NULL`) so closed historical
     /// copies don't leak: frontend-facing GET handlers drop them from list responses,
     /// `GET /{id}` of a closed row 404s, and
-    /// [`GenericChildStorage`](super::child::GenericChildStorage) excludes them when loading
-    /// children for a parent.
+    /// [`GenericPostgresStorage::get_for`](super::generic::GenericPostgresStorage::get_for) excludes
+    /// them when loading the rows that point at one row.
     ///
     /// **Deliberately has no default.** It used to default to `false`, which meant an entity
     /// whose table had the columns but whose impl stayed silent was indistinguishable from one
     /// that genuinely had none. Three of them accumulated that way (`dependency_members`,
-    /// `entity_tags`, `subnet_vlans`), unnoticed only because `GenericChildStorage` hard-coded the
+    /// `entity_tags`, `subnet_vlans`), unnoticed only because the child storage hard-coded the
     /// filter instead of consulting this. Answer it for every entity; the value must match
     /// what the table actually has.
     const HAS_SCD2: bool;
@@ -274,8 +281,9 @@ pub trait Entity: Storable + crate::server::shared::events::log::EntityLog {
     fn set_id(&mut self, id: Uuid);
     fn set_created_at(&mut self, time: DateTime<Utc>);
 
-    /// Entity type discriminant for the entity enum
-    fn entity_type() -> EntityDiscriminants;
+    /// Entity type discriminant for the entity enum. A const so relation and hop constructors can
+    /// read it at compile time.
+    const ENTITY_TYPE: EntityDiscriminants;
 
     /// Singular name for error messages (e.g., "host")
     /// Use the constant in const contexts, use the method at runtime.
@@ -325,7 +333,7 @@ pub trait Entity: Storable + crate::server::shared::events::log::EntityLog {
     /// Whether this entity type supports tagging.
     /// Default implementation delegates to `EntityDiscriminants::is_taggable`.
     fn is_taggable() -> bool {
-        Self::entity_type().is_taggable()
+        Self::ENTITY_TYPE.is_taggable()
     }
 
     /// Get the tags field from the entity for validation.
@@ -353,7 +361,7 @@ pub trait Entity: Storable + crate::server::shared::events::log::EntityLog {
     where
         Self: 'static,
     {
-        let fields = Self::entity_type().fields();
+        let fields = Self::ENTITY_TYPE.fields();
         for rule in fields.iter().filter_map(|f| f.write.settled_rule()) {
             rule.apply(self, existing);
         }

@@ -21,6 +21,7 @@ use crate::server::{
     ports::r#impl::base::Port,
     services::r#impl::base::Service,
     shared::entities::EntityDiscriminants as E,
+    shared::relations as R,
     shared::types::entity_field::{
         EntityField as F, FieldFormat, FieldGroup as G, FieldRule, FieldWrite, Hop,
         MetadataFixture as Fx,
@@ -80,16 +81,13 @@ macro_rules! merge {
     };
 }
 
-const SITE: F =
-    F::new("site_id", "Site", G::Relationships).entity(&[Hop::parent(E::Site, "site_id")]);
+const SITE: F = F::new("site_id", "Site", G::Relationships).entity(&[Hop::parent(R::SITE_ID)]);
 const SOURCE: F = F::new("source", "Source", G::Discovery)
     .field("source.type")
     .metadata(Fx::EntitySources);
 const DESCRIPTION: F = F::new("description", "Description", G::Identity).format(FieldFormat::Prose);
 const TIMESTAMP: FieldFormat = FieldFormat::Timestamp;
-const TAGS: F = F::internal("tags")
-    .entity(&[Hop::parent(E::Tag, "tags")])
-    .many();
+const TAGS: F = F::internal("tags").entity(&[Hop::parent(R::TAGS)]).many();
 const ORGANIZATION_ID: F = F::internal("organization_id");
 
 // List-table columns. A column read from a response type or worked out by the table is `computed`.
@@ -112,25 +110,21 @@ const HOST: &[F] = &[
         .summary()
         .searchable(),
     F::new("interface_ip", "IP Addresses", G::Network)
-        .via(
-            &[Hop::children(E::IPAddress, "host_id")],
-            Some("ip_address"),
-        )
+        .via(&[Hop::children(&R::IP_ADDRESS_HOST)], Some("ip_address"))
         .format(FieldFormat::Identifier)
         .summary(),
-    F::new("interfaces", "Interfaces", G::Network)
-        .entity(&[Hop::children(E::Interface, "host_id")]),
+    F::new("interfaces", "Interfaces", G::Network).entity(&[Hop::children(&R::INTERFACE_HOST)]),
     F::new("services", "Services", G::Relationships)
-        .entity(&[Hop::children(E::Service, "host_id")])
+        .entity(&[Hop::children(&R::SERVICE_HOST)])
         .summary(),
     F::new("ports", "Ports", G::Network)
-        .via(&[Hop::children(E::Port, "host_id")], None)
+        .via(&[Hop::children(&R::PORT_HOST)], None)
         .format(FieldFormat::Port),
     F::new("virtualized_by", "Virtualized By", G::Virtualization)
-        .entity(&[Hop::parent(E::Service, "virtualization_service_id")])
+        .entity(&[Hop::parent(R::VIRTUALIZATION_SERVICE_ID)])
         .summary(),
     F::new("presented_by", "Presented By", G::Virtualization)
-        .entity(&[Hop::parent(E::Interface, "virtualization_interface_id")]),
+        .entity(&[Hop::parent(R::VIRTUALIZATION_INTERFACE_ID)]),
     F::new("os_family", "Operating System", G::Device)
         .field("os")
         .source("os_source")
@@ -177,11 +171,11 @@ const HOST: &[F] = &[
     F::internal("matched_device_type").source("matched_device_type_source"),
     F::internal("credential_assignments").entity(&[
         Hop::embedded("credential_assignments"),
-        Hop::parent(E::Credential, "credential_id"),
+        Hop::parent(R::CREDENTIAL_ID),
     ]),
     F::internal("credential_assignment_addresses").entity(&[
         Hop::embedded("credential_assignments"),
-        Hop::parent(E::IPAddress, "ip_address_ids"),
+        Hop::parent(R::IP_ADDRESS_IDS),
     ]),
     TAGS,
     // Read from `HostResponse`, not the stored `Host`, so these are worked out for the table.
@@ -209,20 +203,20 @@ const IP_ADDRESS: &[F] = &[
         .merged(merge!(IPAddress, merge_mac_address)),
     F::new("name", "Name", G::Identity).searchable(),
     F::new("host_id", "Host", G::Relationships)
-        .entity(&[Hop::parent(E::Host, "host_id")])
+        .entity(&[Hop::parent(R::HOST_ID)])
         .summary(),
     F::new("subnet_id", "Subnet", G::Network)
-        .entity(&[Hop::parent(E::Subnet, "subnet_id")])
+        .entity(&[Hop::parent(R::SUBNET_ID)])
         .summary(),
     F::new("services", "Services", G::Relationships).entity(&[
-        Hop::children(E::Binding, "ip_address_id"),
-        Hop::parent(E::Service, "service_id"),
+        Hop::children(&R::BINDING_IP_ADDRESS),
+        Hop::parent(R::SERVICE_ID),
     ]),
     F::new("ports", "Ports", G::Network)
         .via(
             &[
-                Hop::children(E::Binding, "ip_address_id"),
-                Hop::parent(E::Port, "port_id"),
+                Hop::children(&R::BINDING_IP_ADDRESS),
+                Hop::parent(R::PORT_ID),
             ],
             None,
         )
@@ -238,7 +232,7 @@ const INTERFACE: &[F] = &[
         .summary()
         .searchable(),
     F::new("host_id", "Host", G::Relationships)
-        .entity(&[Hop::parent(E::Host, "host_id")])
+        .entity(&[Hop::parent(R::HOST_ID)])
         .summary(),
     F::new("mac_address", "MAC Address", G::Network)
         .source("mac_address_source")
@@ -263,17 +257,16 @@ const INTERFACE: &[F] = &[
     F::new("admin_status", "Admin Status", G::Status)
         .keep_when_none(keep!(Interface, base.admin_status)),
     F::new("native_vlan_id", "Native VLAN", G::Network)
-        .entity(&[Hop::parent(E::Vlan, "native_vlan_id")])
+        .entity(&[Hop::parent(R::NATIVE_VLAN_ID)])
         .source("vlan_membership_source")
         .summary()
         .searchable(),
     F::new("vlan_ids", "Tagged VLANs", G::Network)
-        .entity(&[Hop::parent(E::Vlan, "vlan_ids")])
+        .entity(&[Hop::parent(R::VLAN_IDS)])
         .source("vlan_membership_source")
         .many()
         .searchable(),
-    F::new("ip_address_id", "IP Address", G::Network)
-        .entity(&[Hop::parent(E::IPAddress, "ip_address_id")]),
+    F::new("ip_address_id", "IP Address", G::Network).entity(&[Hop::parent(R::IP_ADDRESS_ID)]),
     F::new("if_name", "ifName", G::Identity)
         .searchable()
         .keep_when_none(keep!(Interface, base.if_name)),
@@ -305,23 +298,18 @@ const SERVICE: &[F] = &[
         .summary()
         .searchable(),
     F::new("host", "Host", G::Relationships)
-        .entity(&[Hop::parent(E::Host, "host_id")])
+        .entity(&[Hop::parent(R::HOST_ID)])
         .summary(),
     F::new("port_bindings", "Port Bindings", G::Network)
-        .via(
-            &[Hop::embedded("bindings"), Hop::parent(E::Port, "port_id")],
-            None,
-        )
+        .via(&[Hop::embedded("bindings"), Hop::parent(R::PORT_ID)], None)
         .format(FieldFormat::Port)
         .summary(),
-    F::new("ip_bindings", "IP Address Bindings", G::Network).entity(&[
-        Hop::embedded("bindings"),
-        Hop::parent(E::IPAddress, "ip_address_id"),
-    ]),
+    F::new("ip_bindings", "IP Address Bindings", G::Network)
+        .entity(&[Hop::embedded("bindings"), Hop::parent(R::IP_ADDRESS_ID)]),
     // Both virtualization halves are preserved independently: a caller that supplies neither must
     // not lose the container's identity or its owning runtime.
     F::new("containerized_by", "Containerized By", G::Virtualization)
-        .entity(&[Hop::parent(E::Service, "virtualization_service_id")])
+        .entity(&[Hop::parent(R::VIRTUALIZATION_SERVICE_ID)])
         .keep_when_none(keep!(Service, base.virtualization_service_id)),
     F::internal("virtualization_metadata")
         .keep_when_none(keep!(Service, base.virtualization_metadata)),
@@ -360,18 +348,16 @@ const PORT: &[F] = &[
         .summary(),
     F::new("protocol", "Protocol", G::Network).summary(),
     F::new("port_type", "Port Type", G::Identity).field("type"),
-    F::new("host_id", "Host", G::Relationships).entity(&[Hop::parent(E::Host, "host_id")]),
+    F::new("host_id", "Host", G::Relationships).entity(&[Hop::parent(R::HOST_ID)]),
     SITE,
     F::internal("port_source").merged(merge!(Port, merge_port_source)),
 ];
 
 const BINDING: &[F] = &[
     F::new("binding_type", "Binding Type", G::Identity).field("type"),
-    F::new("service_id", "Service", G::Relationships)
-        .entity(&[Hop::parent(E::Service, "service_id")]),
-    F::new("ip_address_id", "IP Address", G::Network)
-        .entity(&[Hop::parent(E::IPAddress, "ip_address_id")]),
-    F::new("port_id", "Port", G::Network).entity(&[Hop::parent(E::Port, "port_id")]),
+    F::new("service_id", "Service", G::Relationships).entity(&[Hop::parent(R::SERVICE_ID)]),
+    F::new("ip_address_id", "IP Address", G::Network).entity(&[Hop::parent(R::IP_ADDRESS_ID)]),
+    F::new("port_id", "Port", G::Network).entity(&[Hop::parent(R::PORT_ID)]),
     SITE,
 ];
 
@@ -392,11 +378,11 @@ const SUBNET: &[F] = &[
         .merged(merge!(Subnet, merge_subnet_type)),
     DESCRIPTION,
     F::new("vlan_ids", "VLANs", G::Network)
-        .entity(&[Hop::parent(E::Vlan, "vlan_ids")])
+        .entity(&[Hop::parent(R::VLAN_IDS)])
         .many()
         .summary(),
     F::new("managed_by", "Managed By", G::Virtualization)
-        .entity(&[Hop::parent(E::Service, "virtualization_service_id")]),
+        .entity(&[Hop::parent(R::VIRTUALIZATION_SERVICE_ID)]),
     // After `cidr`: settling the range is what confirms an inferred subnet.
     SOURCE.merged(merge!(Subnet, merge_source)),
     SITE,
@@ -425,11 +411,11 @@ const VLAN: &[F] = &[
         .merged(merge!(Vlan, merge_name)),
     DESCRIPTION.summary(),
     F::new("subnet_ids", "Subnets", G::Network)
-        .entity(&[Hop::parent(E::Subnet, "subnet_ids")])
+        .entity(&[Hop::parent(R::SUBNET_IDS)])
         .many()
         .server_owned(pin!(Vlan, base.subnet_ids)),
     F::new("interface_ids", "Interfaces", G::Network)
-        .entity(&[Hop::parent(E::Interface, "interface_ids")])
+        .entity(&[Hop::parent(R::INTERFACE_IDS)])
         .many()
         .server_owned(pin!(Vlan, base.interface_ids)),
     SOURCE.immutable(pin!(Vlan, base.source)),
@@ -464,8 +450,7 @@ const TAG: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
     DESCRIPTION.summary(),
     F::new("color", "Color", G::Identity),
-    F::new("tag_group", "Tag Group", G::Relationships)
-        .entity(&[Hop::parent(E::TagGroup, "tag_group_id")]),
+    F::new("tag_group", "Tag Group", G::Relationships).entity(&[Hop::parent(R::TAG_GROUP_ID)]),
     F::new("icon", "Icon", G::Identity),
     ORGANIZATION_ID,
     F::internal("position"),
@@ -504,9 +489,9 @@ const DAEMON: &[F] = &[
     F::new("url", "URL", G::Configuration),
     // The daemon's own Host record, created at provision time.
     F::new("host_id", "Host", G::Relationships)
-        .entity(&[Hop::parent(E::Host, "host_id")])
+        .entity(&[Hop::parent(R::HOST_ID)])
         .immutable(pin!(Daemon, base.host_id)),
-    F::new("maintainer", "Maintainer", G::Relationships).entity(&[Hop::parent(E::User, "user_id")]),
+    F::new("maintainer", "Maintainer", G::Relationships).entity(&[Hop::parent(R::USER_ID)]),
     // The tenancy boundary: the daemon's key, host, seeded loopback and discovery jobs were all
     // created against it. The daemon's handshake also overwrites it.
     SITE.immutable(pin!(Daemon, base.site_id)),
@@ -533,21 +518,17 @@ const DISCOVERY: &[F] = &[
         .metadata(Fx::DiscoveryTypes)
         .summary(),
     F::new("run_type", "Run Type", G::Configuration).field("run_type.type"),
-    F::new("daemon_id", "Daemon", G::Relationships).entity(&[Hop::parent(E::Daemon, "daemon_id")]),
+    F::new("daemon_id", "Daemon", G::Relationships).entity(&[Hop::parent(R::DAEMON_ID)]),
     SITE,
     F::internal("next_run_is_full_scan"),
     F::internal("integration_targets").entity(&[
         Hop::embedded("integration_targets"),
-        Hop::parent(E::Credential, "credential_id"),
+        Hop::parent(R::CREDENTIAL_ID),
     ]),
-    F::internal("scanned_subnet_ids").entity(&[
-        Hop::embedded("discovery_type"),
-        Hop::parent(E::Subnet, "subnet_ids"),
-    ]),
-    F::internal("scanned_host_id").entity(&[
-        Hop::embedded("discovery_type"),
-        Hop::parent(E::Host, "host_id"),
-    ]),
+    F::internal("scanned_subnet_ids")
+        .entity(&[Hop::embedded("discovery_type"), Hop::parent(R::SUBNET_IDS)]),
+    F::internal("scanned_host_id")
+        .entity(&[Hop::embedded("discovery_type"), Hop::parent(R::HOST_ID)]),
     TAGS,
     F::column("last_run", "Last run", G::Status).computed(),
     F::column("scan_count", "Completed scans", G::Status).server_owned(pin!(Discovery, scan_count)),
@@ -581,7 +562,7 @@ const DAEMON_API_KEY: &[F] = &[
     F::new("expires_at", "Expires", G::Access).format(TIMESTAMP),
     // The 1:1 binding, set at provision only.
     F::new("daemon_id", "Daemon", G::Relationships)
-        .entity(&[Hop::parent(E::Daemon, "daemon_id")])
+        .entity(&[Hop::parent(R::DAEMON_ID)])
         .server_owned(pin!(DaemonApiKey, base.daemon_id)),
     SITE,
     // The hash cannot be changed via update: the rotate endpoint does that.
@@ -609,7 +590,7 @@ const USER_API_KEY: &[F] = &[
         .server_owned(pin!(UserApiKey, base.last_used)),
     F::new("expires_at", "Expires", G::Access).format(TIMESTAMP),
     F::new("user_id", "User", G::Relationships)
-        .entity(&[Hop::parent(E::User, "user_id")])
+        .entity(&[Hop::parent(R::USER_ID)])
         .server_owned(pin!(UserApiKey, base.user_id)),
     ORGANIZATION_ID.server_owned(pin!(UserApiKey, base.organization_id)),
     // The hash cannot be changed via update: the rotate endpoint does that.
@@ -617,7 +598,7 @@ const USER_API_KEY: &[F] = &[
     TAGS,
     F::internal("id").immutable(pin!(UserApiKey, id)),
     F::column("site_ids", "Sites", G::Relationships)
-        .entity(&[Hop::parent(E::Site, "site_ids")])
+        .entity(&[Hop::parent(R::SITE_IDS)])
         .many(),
     CREATED_AT.immutable(pin!(UserApiKey, created_at)),
     UPDATED_AT,
@@ -632,23 +613,21 @@ const CREDENTIAL: &[F] = &[
         .merged(merge!(Credential, merge_credential_type)),
     DESCRIPTION.tooltip(),
     F::new("daemon_os", "Daemon OS", G::Configuration),
-    F::internal("login_credential_id").entity(&[Hop::parent(E::Credential, "login_credential_id")]),
+    F::internal("login_credential_id").entity(&[Hop::parent(R::LOGIN_CREDENTIAL_ID)]),
     // Hydrated from the credentials that name this login; a request can't set it.
     F::internal("used_by")
-        .entity(&[Hop::parent(E::Credential, "used_by")])
+        .entity(&[Hop::parent(R::USED_BY)])
         .many()
         .server_owned(pin!(Credential, base.used_by)),
     ORGANIZATION_ID,
     F::internal("assigned_site_ids")
-        .entity(&[Hop::parent(E::Site, "assigned_site_ids")])
+        .entity(&[Hop::parent(R::ASSIGNED_SITE_IDS)])
         .many(),
-    F::internal("host_assignments").entity(&[
-        Hop::embedded("host_assignments"),
-        Hop::parent(E::Host, "host_id"),
-    ]),
+    F::internal("host_assignments")
+        .entity(&[Hop::embedded("host_assignments"), Hop::parent(R::HOST_ID)]),
     F::internal("host_assignment_addresses").entity(&[
         Hop::embedded("host_assignments"),
-        Hop::parent(E::IPAddress, "ip_address_ids"),
+        Hop::parent(R::IP_ADDRESS_IDS),
     ]),
     F::internal("is_default"),
     TAGS,
@@ -670,7 +649,7 @@ const SITE_FIELDS: &[F] = &[
         .format(FieldFormat::Number),
     ORGANIZATION_ID.server_owned(pin!(Site, base.organization_id)),
     F::internal("credential_ids")
-        .entity(&[Hop::parent(E::Credential, "credential_ids")])
+        .entity(&[Hop::parent(R::CREDENTIAL_IDS)])
         .many(),
     TAGS,
     F::column(
@@ -756,7 +735,7 @@ const USER: &[F] = &[
     F::column("expires_at", "Expires", G::Access).computed(),
     F::column("invited_by", "Created By", G::Relationships).computed(),
     F::column("site_ids", "Sites", G::Relationships)
-        .entity(&[Hop::parent(E::Site, "site_ids")])
+        .entity(&[Hop::parent(R::SITE_IDS)])
         .many(),
     F::column("created_at", "Joined", G::Timestamps),
     UPDATED_AT,
@@ -766,10 +745,9 @@ const SHARE: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
     F::new("is_enabled", "Enabled", G::Access).format(FieldFormat::Boolean),
     F::new("expires_at", "Expires", G::Access).format(TIMESTAMP),
-    F::new("topology_id", "Topology", G::Relationships)
-        .entity(&[Hop::parent(E::Topology, "topology_id")]),
+    F::new("topology_id", "Topology", G::Relationships).entity(&[Hop::parent(R::TOPOLOGY_ID)]),
     F::new("created_by", "Created By", G::Relationships)
-        .entity(&[Hop::parent(E::User, "created_by")])
+        .entity(&[Hop::parent(R::CREATED_BY)])
         .server_owned(pin!(Share, base.created_by)),
     SITE,
     F::internal("password"),

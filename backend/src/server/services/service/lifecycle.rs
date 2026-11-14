@@ -1,5 +1,6 @@
 //! Construction, ordered queries, locking, and host-service dependency injection.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl ServiceService {
     pub fn new(
@@ -34,7 +35,10 @@ impl ServiceService {
         }
 
         let service_ids: Vec<Uuid> = services.iter().map(|s| s.id).collect();
-        let bindings_map = self.binding_service.get_for_parents(&service_ids).await?;
+        let bindings_map = self
+            .binding_service
+            .get_for_many(&R::BINDING_SERVICE, &service_ids)
+            .await?;
 
         for service in &mut services {
             if let Some(bindings) = bindings_map.get(&service.id) {
@@ -58,7 +62,10 @@ impl ServiceService {
 
         if !paginated.items.is_empty() {
             let service_ids: Vec<Uuid> = paginated.items.iter().map(|s| s.id).collect();
-            let bindings_map = self.binding_service.get_for_parents(&service_ids).await?;
+            let bindings_map = self
+                .binding_service
+                .get_for_many(&R::BINDING_SERVICE, &service_ids)
+                .await?;
 
             for service in &mut paginated.items {
                 if let Some(bindings) = bindings_map.get(&service.id) {

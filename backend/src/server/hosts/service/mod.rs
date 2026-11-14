@@ -44,7 +44,7 @@ use crate::server::{
             types::{DeletionReason, EntityOperation, HostMatchedBy, UpdateReason},
         },
         position::resolve_and_validate_input_positions,
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,

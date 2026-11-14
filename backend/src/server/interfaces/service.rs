@@ -14,7 +14,7 @@ use crate::server::{
     ip_addresses::service::IPAddressService,
     shared::{
         events::{bus::EventBus, types::UpdateReason},
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,
@@ -54,8 +54,6 @@ impl CrudService<Interface> for InterfaceService {
         None
     }
 }
-
-impl ChildCrudService<Interface> for InterfaceService {}
 
 impl InterfaceService {
     pub fn new(

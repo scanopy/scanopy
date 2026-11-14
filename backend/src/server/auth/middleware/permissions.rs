@@ -60,7 +60,7 @@ pub trait HasResource: 'static {
 
 impl<T: Entity + 'static> HasResource for T {
     fn resource() -> Resource {
-        T::entity_type().resource()
+        T::ENTITY_TYPE.resource()
     }
 }
 

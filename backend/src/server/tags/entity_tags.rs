@@ -2,6 +2,7 @@
 //!
 //! Manages tag assignments to entities across the system.
 
+use crate::server::shared::relations as R;
 use anyhow::{Error, Result, anyhow};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -13,8 +14,8 @@ use uuid::Uuid;
 
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::storage::{
-    child::{ChildStorableEntity, GenericChildStorage, ParentRef},
     filter::StorableFilter,
+    generic::GenericPostgresStorage,
     snapshot::{FkMaps, Snapshotable},
     traits::{Entity, SqlValue, Storable, Storage},
 };
@@ -104,6 +105,11 @@ impl Storable for EntityTag {
 
     fn table_name() -> &'static str {
         "entity_tags"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::ENTITY_TAG_ENTITY, &R::ENTITY_TAG_TAG]
     }
 
     const HAS_SCD2: bool = true;
@@ -201,23 +207,6 @@ impl Snapshotable for EntityTag {
     }
 }
 
-// Rows are scoped by `entity_id` and `entity_type` together: the parent column alone names
-// an id, not which kind of entity holds it.
-impl ChildStorableEntity for EntityTag {
-    fn parent_column() -> &'static str {
-        "entity_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.entity_id
-    }
-
-    fn parent_filter(parent: &ParentRef) -> StorableFilter<Self> {
-        StorableFilter::<Self>::new_from_uuid_column("entity_id", &parent.id)
-            .entity_type(&parent.entity_type)
-    }
-}
-
 // =============================================================================
 // Entity Tag Service
 // =============================================================================
@@ -229,12 +218,15 @@ impl ChildStorableEntity for EntityTag {
 /// - Tag assignment/removal with validation
 /// - Bulk operations for efficient multi-entity updates
 pub struct EntityTagService {
-    storage: Arc<GenericChildStorage<EntityTag>>,
+    storage: Arc<GenericPostgresStorage<EntityTag>>,
     tag_service: Arc<TagService>,
 }
 
 impl EntityTagService {
-    pub fn new(storage: Arc<GenericChildStorage<EntityTag>>, tag_service: Arc<TagService>) -> Self {
+    pub fn new(
+        storage: Arc<GenericPostgresStorage<EntityTag>>,
+        tag_service: Arc<TagService>,
+    ) -> Self {
         Self {
             storage,
             tag_service,
@@ -256,7 +248,7 @@ impl EntityTagService {
 
     /// Hydrate tags for a single entity.
     pub async fn hydrate_tags<T: Entity>(&self, entity: &mut T) -> Result<()> {
-        let tags = self.held_tag_ids(&entity.id(), &T::entity_type()).await?;
+        let tags = self.held_tag_ids(&entity.id(), &T::ENTITY_TYPE).await?;
         entity.set_tags(tags);
         Ok(())
     }
@@ -270,9 +262,7 @@ impl EntityTagService {
         }
 
         let ids: Vec<Uuid> = entities.iter().map(|e| e.id()).collect();
-        let tags_map = self
-            .tag_ids_by_entity(&ids, &T::entity_type(), None)
-            .await?;
+        let tags_map = self.tag_ids_by_entity(&ids, &T::ENTITY_TYPE, None).await?;
 
         for entity in entities {
             let tags = tags_map.get(&entity.id()).cloned().unwrap_or_default();
@@ -391,10 +381,11 @@ impl EntityTagService {
         entity_type: EntityDiscriminants,
     ) -> Result<()> {
         self.storage
-            .close_matching(EntityTag::parent_filter(&ParentRef::new(
-                entity_type,
-                entity_id,
-            )))
+            .close_matching(
+                R::ENTITY_TAG_ENTITY
+                    .at_entity(entity_type, entity_id)
+                    .filter(),
+            )
             .await?;
         Ok(())
     }
@@ -406,7 +397,7 @@ impl EntityTagService {
     /// Bulk insert pre-built EntityTag records. Skips validation — caller must
     /// ensure tags exist. Single INSERT for all records.
     pub async fn create_many(&self, entity_tags: &[EntityTag]) -> Result<Vec<EntityTag>> {
-        self.storage.inner().create_many(entity_tags).await
+        self.storage.create_many(entity_tags).await
     }
 
     /// Add a tag to multiple entities.
@@ -562,7 +553,7 @@ impl EntityTagService {
         let filter = StorableFilter::<EntityTag>::new_from_uuid_column("entity_id", entity_id)
             .entity_type(entity_type)
             .live();
-        let records = self.storage.inner().get_all(filter).await?;
+        let records = self.storage.get_all(filter).await?;
         Ok(records.iter().map(|r| r.base.tag_id).collect())
     }
 
@@ -584,7 +575,6 @@ impl EntityTagService {
 
         let records = self
             .storage
-            .inner()
             .get_all(entity_tags_filter(entity_ids, entity_type, snapshot_id))
             .await?;
 
@@ -607,7 +597,7 @@ impl EntityTagService {
     ) -> Result<bool> {
         let entity_tag = EntityTag::new(EntityTagBase::new(entity_id, entity_type, tag_id));
 
-        match self.storage.inner().create(&entity_tag).await {
+        match self.storage.create(&entity_tag).await {
             Ok(_) => Ok(true),
             Err(e) => {
                 // Check if it's a unique constraint violation (already exists)
@@ -677,8 +667,8 @@ impl EntityTagService {
         tag_ids: Vec<Uuid>,
     ) -> Result<()> {
         self.storage
-            .sync_for_parent(
-                &ParentRef::new(entity_type, entity_id),
+            .sync_members_for(
+                &R::ENTITY_TAG_ENTITY.at_entity(entity_type, entity_id),
                 &tag_ids,
                 |row| row.base.tag_id,
                 |tag_id| EntityTag::new(EntityTagBase::new(entity_id, entity_type, tag_id)),

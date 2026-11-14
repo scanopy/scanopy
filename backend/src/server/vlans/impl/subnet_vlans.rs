@@ -12,7 +12,6 @@ use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
 use crate::server::shared::storage::{
-    child::ChildStorableEntity,
     snapshot::{FkMaps, Snapshotable},
     traits::{SqlValue, Storable},
 };
@@ -91,6 +90,11 @@ impl Storable for SubnetVlanRecord {
 
     fn table_name() -> &'static str {
         "subnet_vlans"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::SUBNET_VLAN_SUBNET, &R::SUBNET_VLAN_VLAN]
     }
 
     const HAS_SCD2: bool = true;
@@ -174,16 +178,5 @@ impl Snapshotable for SubnetVlanRecord {
         if let Some(closed) = maps.vlans.get(&self.base.vlan_id) {
             self.base.vlan_id = *closed;
         }
-    }
-}
-
-// Written from the subnet's side (the end-of-scan reconcile), so the subnet is the parent.
-impl ChildStorableEntity for SubnetVlanRecord {
-    fn parent_column() -> &'static str {
-        "subnet_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.subnet_id
     }
 }

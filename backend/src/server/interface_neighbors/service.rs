@@ -1,13 +1,14 @@
 //! Read/write paths for the three GH #701 tables.
 //!
-//! No `CrudService`/`ChildCrudService` here — both require `Entity` (`shared/services/traits.rs`),
+//! No `CrudService` here — it requires `Entity` (`shared/services/traits.rs`),
 //! which these tables deliberately don't implement (see `impl/base.rs`'s module docs). Each
-//! table is a `GenericChildStorage<T>` from `StorageFactory`, which gives parent-scoped reads and
+//! table is a `GenericPostgresStorage<T>` from `StorageFactory`, which gives relation-keyed reads and
 //! the replace-all write the disposable candidates table needs; this service hand-writes the
 //! natural-key reconciliation the two resolved tables need — the same shape as
 //! `Interface::create_or_update_from_discovery`, at per-adjacency-row granularity instead of
 //! per-interface.
 
+use crate::server::shared::relations as R;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use std::collections::{HashMap, HashSet};
@@ -21,27 +22,20 @@ use crate::server::{
         InterfaceNeighborInterfaceBase, InterfaceNeighborRow, Neighbor,
     },
     interfaces::r#impl::base::InterfaceDataComplete,
-    shared::{
-        entities::EntityDiscriminants,
-        storage::{
-            child::{GenericChildStorage, ParentRef},
-            filter::StorableFilter,
-            traits::Storage,
-        },
-    },
+    shared::storage::{filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage},
 };
 
 pub struct InterfaceNeighborService {
-    candidates: Arc<GenericChildStorage<InterfaceNeighborCandidate>>,
-    resolved_interfaces: Arc<GenericChildStorage<InterfaceNeighborInterface>>,
-    resolved_hosts: Arc<GenericChildStorage<InterfaceNeighborHost>>,
+    candidates: Arc<GenericPostgresStorage<InterfaceNeighborCandidate>>,
+    resolved_interfaces: Arc<GenericPostgresStorage<InterfaceNeighborInterface>>,
+    resolved_hosts: Arc<GenericPostgresStorage<InterfaceNeighborHost>>,
 }
 
 impl InterfaceNeighborService {
     pub fn new(
-        candidates: Arc<GenericChildStorage<InterfaceNeighborCandidate>>,
-        resolved_interfaces: Arc<GenericChildStorage<InterfaceNeighborInterface>>,
-        resolved_hosts: Arc<GenericChildStorage<InterfaceNeighborHost>>,
+        candidates: Arc<GenericPostgresStorage<InterfaceNeighborCandidate>>,
+        resolved_interfaces: Arc<GenericPostgresStorage<InterfaceNeighborInterface>>,
+        resolved_hosts: Arc<GenericPostgresStorage<InterfaceNeighborHost>>,
     ) -> Self {
         Self {
             candidates,
@@ -58,7 +52,9 @@ impl InterfaceNeighborService {
         &self,
         interface_id: &Uuid,
     ) -> Result<Vec<InterfaceNeighborCandidate>> {
-        self.candidates.get_for_parent(interface_id).await
+        self.candidates
+            .get_for(&R::NEIGHBOR_CANDIDATE_INTERFACE.at(*interface_id))
+            .await
     }
 
     /// Every candidate in the site, in one query — for callers (topology's protocol-label
@@ -68,14 +64,16 @@ impl InterfaceNeighborService {
         site_id: Uuid,
     ) -> Result<Vec<InterfaceNeighborCandidate>> {
         let filter = StorableFilter::<InterfaceNeighborCandidate>::new_from_site_ids(&[site_id]);
-        self.candidates.inner().get_all(filter).await
+        self.candidates.get_all(filter).await
     }
 
     pub async fn candidates_for_interfaces(
         &self,
         interface_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<InterfaceNeighborCandidate>>> {
-        self.candidates.get_for_parents(interface_ids).await
+        self.candidates
+            .get_for_many(&R::NEIGHBOR_CANDIDATE_INTERFACE, interface_ids)
+            .await
     }
 
     /// Replace an interface's candidate rows with what this scan submitted.
@@ -138,10 +136,7 @@ impl InterfaceNeighborService {
         }
 
         self.candidates
-            .save_for_parent(
-                &ParentRef::new(EntityDiscriminants::Interface, interface_id),
-                &rows,
-            )
+            .replace_for(&R::NEIGHBOR_CANDIDATE_INTERFACE.at(interface_id), &rows)
             .await?;
         Ok(())
     }
@@ -156,9 +151,12 @@ impl InterfaceNeighborService {
     ) -> Result<Vec<InterfaceNeighborRow>> {
         let interfaces = self
             .resolved_interfaces
-            .get_for_parent(interface_id)
+            .get_for(&R::NEIGHBOR_INTERFACE_LOCAL.at(*interface_id))
             .await?;
-        let hosts = self.resolved_hosts.get_for_parent(interface_id).await?;
+        let hosts = self
+            .resolved_hosts
+            .get_for(&R::NEIGHBOR_HOST_LOCAL.at(*interface_id))
+            .await?;
         Ok(interfaces
             .iter()
             .map(InterfaceNeighborRow::from)
@@ -175,9 +173,12 @@ impl InterfaceNeighborService {
         }
         let interfaces = self
             .resolved_interfaces
-            .get_for_parents(interface_ids)
+            .get_for_many(&R::NEIGHBOR_INTERFACE_LOCAL, interface_ids)
             .await?;
-        let hosts = self.resolved_hosts.get_for_parents(interface_ids).await?;
+        let hosts = self
+            .resolved_hosts
+            .get_for_many(&R::NEIGHBOR_HOST_LOCAL, interface_ids)
+            .await?;
 
         let mut result: HashMap<Uuid, Vec<InterfaceNeighborRow>> = HashMap::new();
         for (id, rows) in &interfaces {
@@ -217,12 +218,8 @@ impl InterfaceNeighborService {
             ),
         };
 
-        let interfaces = self
-            .resolved_interfaces
-            .inner()
-            .get_all(interfaces_filter)
-            .await?;
-        let hosts = self.resolved_hosts.inner().get_all(hosts_filter).await?;
+        let interfaces = self.resolved_interfaces.get_all(interfaces_filter).await?;
+        let hosts = self.resolved_hosts.get_all(hosts_filter).await?;
 
         Ok(interfaces
             .iter()
@@ -258,9 +255,12 @@ impl InterfaceNeighborService {
     ) -> Result<()> {
         let existing_interfaces = self
             .resolved_interfaces
-            .get_for_parent(&interface_id)
+            .get_for(&R::NEIGHBOR_INTERFACE_LOCAL.at(interface_id))
             .await?;
-        let existing_hosts = self.resolved_hosts.get_for_parent(&interface_id).await?;
+        let existing_hosts = self
+            .resolved_hosts
+            .get_for(&R::NEIGHBOR_HOST_LOCAL.at(interface_id))
+            .await?;
 
         let desired_interface_ids: HashSet<Uuid> = desired
             .iter()
@@ -276,12 +276,12 @@ impl InterfaceNeighborService {
 
         for row in &existing_interfaces {
             if !desired_interface_ids.contains(&row.base.neighbor_interface_id) {
-                self.resolved_interfaces.inner().delete(&row.id).await?;
+                self.resolved_interfaces.delete(&row.id).await?;
             }
         }
         for row in &existing_hosts {
             if !desired_host_ids.contains(&row.base.neighbor_host_id) {
-                self.resolved_hosts.inner().delete(&row.id).await?;
+                self.resolved_hosts.delete(&row.id).await?;
             }
         }
 
@@ -302,10 +302,7 @@ impl InterfaceNeighborService {
                             if let Some(id) = discovery_id {
                                 updated.last_discovery_id = Some(id);
                             }
-                            self.resolved_interfaces
-                                .inner()
-                                .update(&mut updated)
-                                .await?;
+                            self.resolved_interfaces.update(&mut updated).await?;
                         }
                         None => {
                             let mut created =
@@ -319,7 +316,7 @@ impl InterfaceNeighborService {
                             created.last_seen_at = scan_time;
                             created.first_discovery_id = discovery_id;
                             created.last_discovery_id = discovery_id;
-                            self.resolved_interfaces.inner().create(&created).await?;
+                            self.resolved_interfaces.create(&created).await?;
                         }
                     }
                 }
@@ -336,7 +333,7 @@ impl InterfaceNeighborService {
                             if let Some(id) = discovery_id {
                                 updated.last_discovery_id = Some(id);
                             }
-                            self.resolved_hosts.inner().update(&mut updated).await?;
+                            self.resolved_hosts.update(&mut updated).await?;
                         }
                         None => {
                             let mut created =
@@ -350,7 +347,7 @@ impl InterfaceNeighborService {
                             created.last_seen_at = scan_time;
                             created.first_discovery_id = discovery_id;
                             created.last_discovery_id = discovery_id;
-                            self.resolved_hosts.inner().create(&created).await?;
+                            self.resolved_hosts.create(&created).await?;
                         }
                     }
                 }
@@ -369,7 +366,7 @@ impl InterfaceNeighborService {
         site_id: Uuid,
     ) -> Result<Vec<InterfaceNeighborCandidate>> {
         let filter = StorableFilter::<InterfaceNeighborCandidate>::new_from_site_ids(&[site_id]);
-        let candidates = self.candidates.inner().get_all(filter).await?;
+        let candidates = self.candidates.get_all(filter).await?;
         if candidates.is_empty() {
             return Ok(Vec::new());
         }
@@ -402,24 +399,30 @@ impl InterfaceNeighborService {
     /// move would duplicate (the survivor already has that adjacency) or turn into a self-loop is
     /// deleted instead, since the natural keys are unique among live rows.
     pub async fn repoint_interface(&self, site_id: Uuid, from: Uuid, to: Uuid) -> Result<()> {
-        let to_interfaces = self.resolved_interfaces.get_for_parent(&to).await?;
-        for mut row in self.resolved_interfaces.get_for_parent(&from).await? {
+        let to_interfaces = self
+            .resolved_interfaces
+            .get_for(&R::NEIGHBOR_INTERFACE_LOCAL.at(to))
+            .await?;
+        for mut row in self
+            .resolved_interfaces
+            .get_for(&R::NEIGHBOR_INTERFACE_LOCAL.at(from))
+            .await?
+        {
             let neighbor = row.base.neighbor_interface_id;
             if neighbor == to
                 || to_interfaces
                     .iter()
                     .any(|r| r.base.neighbor_interface_id == neighbor)
             {
-                self.resolved_interfaces.inner().delete(&row.id).await?;
+                self.resolved_interfaces.delete(&row.id).await?;
             } else {
                 row.base.interface_id = to;
-                self.resolved_interfaces.inner().update(&mut row).await?;
+                self.resolved_interfaces.update(&mut row).await?;
             }
         }
 
         let pointing_at_from = self
             .resolved_interfaces
-            .inner()
             .get_all(
                 StorableFilter::<InterfaceNeighborInterface>::new_from_site_ids(&[site_id])
                     .neighbor_interface_id(&from)
@@ -428,7 +431,6 @@ impl InterfaceNeighborService {
             .await?;
         let pointing_at_to = self
             .resolved_interfaces
-            .inner()
             .get_all(
                 StorableFilter::<InterfaceNeighborInterface>::new_from_site_ids(&[site_id])
                     .neighbor_interface_id(&to)
@@ -438,21 +440,28 @@ impl InterfaceNeighborService {
         for mut row in pointing_at_from {
             let local = row.base.interface_id;
             if local == to || pointing_at_to.iter().any(|r| r.base.interface_id == local) {
-                self.resolved_interfaces.inner().delete(&row.id).await?;
+                self.resolved_interfaces.delete(&row.id).await?;
             } else {
                 row.base.neighbor_interface_id = to;
-                self.resolved_interfaces.inner().update(&mut row).await?;
+                self.resolved_interfaces.update(&mut row).await?;
             }
         }
 
-        let to_hosts = self.resolved_hosts.get_for_parent(&to).await?;
-        for mut row in self.resolved_hosts.get_for_parent(&from).await? {
+        let to_hosts = self
+            .resolved_hosts
+            .get_for(&R::NEIGHBOR_HOST_LOCAL.at(to))
+            .await?;
+        for mut row in self
+            .resolved_hosts
+            .get_for(&R::NEIGHBOR_HOST_LOCAL.at(from))
+            .await?
+        {
             let neighbor = row.base.neighbor_host_id;
             if to_hosts.iter().any(|r| r.base.neighbor_host_id == neighbor) {
-                self.resolved_hosts.inner().delete(&row.id).await?;
+                self.resolved_hosts.delete(&row.id).await?;
             } else {
                 row.base.interface_id = to;
-                self.resolved_hosts.inner().update(&mut row).await?;
+                self.resolved_hosts.update(&mut row).await?;
             }
         }
         Ok(())
@@ -475,22 +484,22 @@ impl InterfaceNeighborService {
                 .neighbor_host_id(host)
                 .live()
         };
-        let pointing_at_to = self.resolved_hosts.inner().get_all(filter(&to)).await?;
+        let pointing_at_to = self.resolved_hosts.get_all(filter(&to)).await?;
         // An interface that moved to `to` and named `to` as its neighbour now names itself.
         for row in &pointing_at_to {
             if to_interface_ids.contains(&row.base.interface_id) {
-                self.resolved_hosts.inner().delete(&row.id).await?;
+                self.resolved_hosts.delete(&row.id).await?;
             }
         }
-        for mut row in self.resolved_hosts.inner().get_all(filter(&from)).await? {
+        for mut row in self.resolved_hosts.get_all(filter(&from)).await? {
             let local = row.base.interface_id;
             if to_interface_ids.contains(&local)
                 || pointing_at_to.iter().any(|r| r.base.interface_id == local)
             {
-                self.resolved_hosts.inner().delete(&row.id).await?;
+                self.resolved_hosts.delete(&row.id).await?;
             } else {
                 row.base.neighbor_host_id = to;
-                self.resolved_hosts.inner().update(&mut row).await?;
+                self.resolved_hosts.update(&mut row).await?;
             }
         }
         Ok(())
