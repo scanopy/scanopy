@@ -16179,12 +16179,12 @@ MA-L,84413C,"New H3C Technologies Co., Ltd","466 Changhe Road, Binjiang District
 MA-L,D82332,Espressif Systems (Singapore) Pte. Ltd,1 FUSIONOPOLIS VIEW#07-02ECLIPSE Singapore  SG 138577 
 MA-L,0CA2F4,Verve Energy Technology," Suite 1 Second Floor 17-19 Cheltenham Parade, Harrogate GB HG1 1DD "
 MA-L,94B2EC,NVIDIA Corporation,2701 San Tomas Expressway Santa Clara  US 95050 
-MA-L,846E2F,OHSUNG,"335-4,SANHODAERO,GUMI,GYEONG BUK,KOREA GUMI GYEONG BUK KR 730-030 "
-MA-L,AC66B3,BUFFALO.INC,"AKAMONDORI Bld.,30-20,Ohsu 3-chome,Naka-ku Nagoya Aichi Pref. JP 460-8315 "
-MA-L,188947,"HISENSE VISUAL TECHNOLOGY CO.,LTD",Qianwangang Road 218 Qingdao Shandong CN 266510 
 MA-L,789F5B,"HUAWEI TECHNOLOGIES CO.,LTD","No.2 Xin Cheng Road, Room R6,Songshan Lake Technology Park Dongguan  CN 523808 "
 MA-L,D81EA8,"HUAWEI TECHNOLOGIES CO.,LTD","No.2 Xin Cheng Road, Room R6,Songshan Lake Technology Park Dongguan  CN 523808 "
+MA-L,188947,"HISENSE VISUAL TECHNOLOGY CO.,LTD",Qianwangang Road 218 Qingdao Shandong CN 266510 
+MA-L,AC66B3,BUFFALO.INC,"AKAMONDORI Bld.,30-20,Ohsu 3-chome,Naka-ku Nagoya Aichi Pref. JP 460-8315 "
 MA-L,B83184,Hewlett Packard Enterprise,6280 America Center Dr San Jose CA US 95002 
+MA-L,846E2F,OHSUNG,"335-4,SANHODAERO,GUMI,GYEONG BUK,KOREA GUMI GYEONG BUK KR 730-030 "
 MA-L,6C8720,"New H3C Technologies Co., Ltd","466 Changhe Road, Binjiang District Hangzhou Zhejiang CN 310052 "
 MA-L,0C8D7A,RADiflow,HaBarzel St 38 Tel-Aviv  IL 6971054 
 MA-L,FCA9F5,Xiaomi Communications Co Ltd,"#019, 9th Floor, Building 6, 33 Xi'erqi Middle Road Beijing Haidian District CN 100085 "
@@ -24261,6 +24261,10 @@ MA-L,14A07D,Microchip Technology Inc.,2355 W. Chandler Blvd. Chandler AZ US 8522
 MA-L,B8CD2B,eero inc.,660 3rd Street  San Francisco CA US 94107 
 MA-L,5C6CBB,IEEE Registration Authority,445 Hoes Lane Piscataway NJ US 08554 
 MA-L,0090A5,SPECTRA LOGIC,6285 Lookout RD  Boulder CO US 80301 
+MA-L,748B7F,Skullcandy,1441 Ute blvd. Park City  US 84098 
+MA-L,589D44,Raycon,"1115 Broadway, Suite 12 New York NY US 10010 "
+MA-L,3479DF,Dell Inc.,One Dell Way Round Rock  TX US 78682 
+MA-L,10D605,FN-LINK TECHNOLOGY Ltd.,"No.8, Litong Road, Liuyang Economic & Technical Development Zone, Changsha, Hunan,China Changsha Hunan CN 410329 "
 MA-L,B00C9D,"Quectel Wireless Solutions Co.,Ltd.","7th Floor, Hongye Building, No.1801 Hongmei Road, Xuhui District Shanghai  CN 200233 "
 MA-L,F0AB1F,zte corporation,"12/F.,zte R&D building ,kejinan Road,Shenzhen,P.R.China shenzhen  guangdong CN 518057 "
 MA-L,7CB30A,zte corporation,"12/F.,zte R&D building ,kejinan Road,Shenzhen,P.R.China shenzhen  guangdong CN 518057 "
@@ -32423,6 +32427,7 @@ MA-L,A8AB18,Tuya Smart Inc.,"160 Greentree Drive, Suite 101 Dover DE US 19904 "
 MA-L,047B43,IEEE Registration Authority,445 Hoes Lane Piscataway NJ US 08554 
 MA-L,8C054D,"HUAWEI TECHNOLOGIES CO.,LTD","No.2 Xin Cheng Road, Room R6,Songshan Lake Technology Park Dongguan  CN 523808 "
 MA-L,80FF60,"HUAWEI TECHNOLOGIES CO.,LTD","No.2 Xin Cheng Road, Room R6,Songshan Lake Technology Park Dongguan  CN 523808 "
+MA-L,046EE5,"HI-POWER Solution CO.,LTD.","Rm. 5F-1A, No. 6, Ln. 256, Sec. 2, Xitun Rd., Xitun Dist.,  Taichung City  TW 407428 "
 MA-L,C85CE2,IEEE Registration Authority,445 Hoes Lane Piscataway NJ US 08554 
 MA-L,DCEE14,ADT Technology,"Room 325, 3rd Floor, Building F, Xinmao Science and Technology Park, Huayuan Industrial Zone Tianjin Tianjin CN 300384 "
 MA-L,10FFE0,"GIGA-BYTE TECHNOLOGY CO.,LTD.","Pin-Jen City, Taoyuan, Taiwan, R.O.C. Pin-Jen Taoyuan TW 324 "
@@ -40492,3 +40497,5 @@ MA-L,F0276E,AltoBeam Inc.,"B808, Tsinghua Tongfang Hi-Tech Plaza, Haidian Beijin
 MA-L,2C1DBB,Tuya Smart Inc.,"160 Greentree Drive, Suite 101 Dover DE US 19904 "
 MA-L,0C331B,TydenBrooks,1 Stoffel Drive Tallapoosa GA US 30176 
 MA-L,D43F38,"HUAWEI TECHNOLOGIES CO.,LTD","No.2 Xin Cheng Road, Room R6,Songshan Lake Technology Park Dongguan  CN 523808 "
+MA-L,14F474,Network Orbiter Private Limited,C-79 4th Floor DDA Shed Okhla PH-1 New Delhi Delhi IN 110020 
+MA-L,B4416B,GX India Pvt Ltd,"595, SECTOR-8, IMT MANESAR GURGAON Haryana IN 122051 "

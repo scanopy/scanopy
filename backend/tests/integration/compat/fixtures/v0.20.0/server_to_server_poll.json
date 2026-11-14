@@ -5,8 +5,8 @@
       "method": "POST",
       "path": "/api/initialize",
       "request_body": {
-        "api_key": "scp_d_fLJmCN1kFzSA6gQkrw01EF9qZhT12C5X",
-        "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da"
+        "api_key": "scp_d_meFthQ8bXucJCWMuW1AVHfeK1krZmDIf",
+        "site_id": "8dc5a375-7025-4afa-b80b-5db6acaf56d8"
       },
       "response_status": 200,
       "response_body": {
@@ -22,9 +22,9 @@
       "method": "POST",
       "path": "/api/first-contact",
       "request_body": {
-        "daemon_id": "68fcb628-c5a1-4c16-9290-ac9cc9f0acc5",
+        "daemon_id": "4d0b4af4-2ec8-4fa6-9678-fe4509fd654a",
         "name": "scanopy-daemon-serverpoll",
-        "network_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+        "network_id": "8dc5a375-7025-4afa-b80b-5db6acaf56d8",
         "server_capabilities": {
           "deprecation_warnings": [
             {
@@ -85,16 +85,16 @@
         "credential_mappings": [],
         "discovery_id": "00000000-0000-0000-0000-000000000000",
         "discovery_type": {
-          "host_id": "18b6c6b1-34cf-4a4a-bee5-dbc2cdf46def",
+          "host_id": "0ad3aed3-81f0-472c-867f-33bb0c77fbb8",
           "type": "InterfaceRefresh"
         },
-        "session_id": "bb64f876-3266-49ba-b7fb-9ac28c8364d5",
+        "session_id": "d51a4dfb-db96-4431-8194-067a5c13d126",
         "subnets": []
       },
       "response_status": 200,
       "response_body": {
         "data": {
-          "session_id": "bb64f876-3266-49ba-b7fb-9ac28c8364d5"
+          "session_id": "d51a4dfb-db96-4431-8194-067a5c13d126"
         },
         "meta": {
           "api_version": 1,
@@ -134,56 +134,56 @@
         "hosts": [],
         "subnets": [
           [
-            "85c9cd1a-d8d2-4f37-b282-52978bb8eea6",
+            "a5b1c0c1-5772-4b27-92e1-23914f2f1574",
             {
               "cidr": "172.25.0.0/28",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-11-13T00:34:14.987300Z",
+              "created_at": "2026-11-14T15:20:19.058579Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "85c9cd1a-d8d2-4f37-b282-52978bb8eea6",
+              "id": "a5b1c0c1-5772-4b27-92e1-23914f2f1574",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-13T00:34:14.987300Z",
+              "last_seen_at": "2026-11-14T15:20:19.058579Z",
               "lineage_id": null,
               "name": "172.25.0.0/28",
               "name_source": "Unspecified",
-              "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+              "site_id": "8dc5a375-7025-4afa-b80b-5db6acaf56d8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Lan",
               "subnet_type_source": "InterfaceNameMatch",
               "tags": [],
-              "updated_at": "2026-11-13T00:34:14.987300Z",
-              "valid_from": "2026-11-13T00:34:14.987300Z",
+              "updated_at": "2026-11-14T15:20:19.058579Z",
+              "valid_from": "2026-11-14T15:20:19.058579Z",
               "valid_to": null,
               "virtualization_service_id": null,
               "vlan_ids": []
             }
           ],
           [
-            "887d38f2-2167-49ac-a72e-da5c1c7e91ee",
+            "e9c134ee-2253-4475-93bc-94a0291a0537",
             {
               "cidr": "127.0.0.0/8",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-11-13T00:34:14.987236Z",
+              "created_at": "2026-11-14T15:20:19.058525Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "887d38f2-2167-49ac-a72e-da5c1c7e91ee",
+              "id": "e9c134ee-2253-4475-93bc-94a0291a0537",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-13T00:34:14.987236Z",
+              "last_seen_at": "2026-11-14T15:20:19.058525Z",
               "lineage_id": null,
               "name": "127.0.0.0/8",
               "name_source": "Unspecified",
-              "site_id": "1acbe937-22e8-4c40-ae6a-76b4615931da",
+              "site_id": "8dc5a375-7025-4afa-b80b-5db6acaf56d8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Loopback",
               "subnet_type_source": "InterfaceNameMatch",
               "tags": [],
-              "updated_at": "2026-11-13T00:34:14.987236Z",
-              "valid_from": "2026-11-13T00:34:14.987236Z",
+              "updated_at": "2026-11-14T15:20:19.058525Z",
+              "valid_from": "2026-11-14T15:20:19.058525Z",
               "valid_to": null,
               "virtualization_service_id": null,
               "vlan_ids": []
