@@ -997,15 +997,22 @@ jobs:
           BRANCH="chore/regen-db-enum-baseline-${{ github.event.release.tag_name }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
+          git checkout -B "$BRANCH"
           git add tests/fixtures/db_enum_baseline.json
           git commit -m "chore: regenerate db_enum_baseline for ${{ github.event.release.tag_name }}"
-          git push -u origin "$BRANCH"
-          gh pr create \
-            --title "chore: regenerate db_enum_baseline for ${{ github.event.release.tag_name }}" \
-            --body "Automated baseline refresh after ${{ github.event.release.tag_name }} was published. Merges the new set of DB-backed enum variants into the baseline so the next release cycle's coexistence checks compare against the just-released binary.$'\n\n'Review: confirm the diff matches the enum changes in this release. If a rename shipped with a \`#[serde(alias)]\`, keep the old name in the fixture manually." \
-            --base dev \
-            --head "$BRANCH"
+          # A re-cut release (tag deleted and published again) finds the branch and PR from its
+          # first run. The branch is the bot's own, so the newer baseline replaces it, and an open
+          # PR for it is reused rather than a second one opened.
+          git push --force -u origin "$BRANCH"
+          if [ -n "$(gh pr list --head "$BRANCH" --base dev --state open --json number -q '.[].number')" ]; then
+            echo "Updated the open PR for $BRANCH"
+          else
+            gh pr create \
+              --title "chore: regenerate db_enum_baseline for ${{ github.event.release.tag_name }}" \
+              --body "Automated baseline refresh after ${{ github.event.release.tag_name }} was published. Merges the new set of DB-backed enum variants into the baseline so the next release cycle's coexistence checks compare against the just-released binary.$'\n\n'Review: confirm the diff matches the enum changes in this release. If a rename shipped with a \`#[serde(alias)]\`, keep the old name in the fixture manually." \
+              --base dev \
+              --head "$BRANCH"
+          fi
 
       - name: Summary
         run: |
