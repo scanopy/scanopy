@@ -7,6 +7,10 @@
 //! fields the same way instead of each keeping its own list.
 
 use crate::server::shared::entities::EntityDiscriminants;
+use crate::server::shared::storage::{
+    relation::{Reference, Relation},
+    traits::Entity,
+};
 use crate::server::shared::types::{
     Color, Icon,
     metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
@@ -127,12 +131,20 @@ pub enum Hop {
 }
 
 impl Hop {
-    pub const fn parent(entity: EntityDiscriminants, key: &'static str) -> Self {
-        Hop::Parent { entity, key }
+    /// The entity whose id `reference.key` holds.
+    pub const fn parent(reference: Reference) -> Self {
+        Hop::Parent {
+            entity: reference.to,
+            key: reference.key,
+        }
     }
 
-    pub const fn children(entity: EntityDiscriminants, key: &'static str) -> Self {
-        Hop::Children { entity, key }
+    /// Every `T` whose `relation` column holds the current object's id.
+    pub const fn children<T: Entity>(relation: &Relation<T>) -> Self {
+        Hop::Children {
+            entity: T::ENTITY_TYPE,
+            key: relation.column,
+        }
     }
 
     pub const fn embedded(key: &'static str) -> Self {

@@ -43,6 +43,11 @@ impl Storable for InterfaceNeighborCandidate {
         "interface_neighbor_candidates"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::NEIGHBOR_CANDIDATE_INTERFACE]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         InterfaceNeighborCandidate::new(base)
     }
@@ -131,6 +136,11 @@ impl Storable for InterfaceNeighborInterface {
 
     fn table_name() -> &'static str {
         "interface_neighbor_interfaces"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::NEIGHBOR_INTERFACE_LOCAL, &R::NEIGHBOR_INTERFACE_FAR]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -252,6 +262,11 @@ impl Storable for InterfaceNeighborHost {
 
     fn table_name() -> &'static str {
         "interface_neighbor_hosts"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::NEIGHBOR_HOST_LOCAL, &R::NEIGHBOR_HOST_FAR]
     }
 
     fn new(base: Self::BaseData) -> Self {

@@ -1,3 +1,4 @@
+use crate::server::shared::relations as R;
 use anyhow::Result;
 use async_trait::async_trait;
 use std::collections::{HashMap, HashSet};
@@ -22,7 +23,6 @@ use crate::server::{
         },
         services::traits::{CrudService, EventBusService},
         storage::{
-            child::{GenericChildStorage, ParentRef},
             filter::StorableFilter,
             generic::GenericPostgresStorage,
             traits::{PaginatedResult, Storable, Storage},
@@ -33,7 +33,7 @@ use crate::server::{
 
 pub struct DependencyService {
     dependency_storage: Arc<GenericPostgresStorage<Dependency>>,
-    member_storage: Arc<GenericChildStorage<DependencyMemberRecord>>,
+    member_storage: Arc<GenericPostgresStorage<DependencyMemberRecord>>,
     binding_service: Arc<BindingService>,
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
@@ -224,7 +224,7 @@ impl CrudService<Dependency> for DependencyService {
 impl DependencyService {
     pub fn new(
         dependency_storage: Arc<GenericPostgresStorage<Dependency>>,
-        member_storage: Arc<GenericChildStorage<DependencyMemberRecord>>,
+        member_storage: Arc<GenericPostgresStorage<DependencyMemberRecord>>,
         binding_service: Arc<BindingService>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
@@ -243,7 +243,6 @@ impl DependencyService {
         let filter =
             StorableFilter::<DependencyMemberRecord>::new_from_dependency_ids(&[*dependency_id]);
         self.member_storage
-            .inner()
             .get_all_ordered(filter, "position ASC")
             .await
     }
@@ -269,7 +268,6 @@ impl DependencyService {
             StorableFilter::<DependencyMemberRecord>::new_from_dependency_ids(&dependency_ids);
         let records = self
             .member_storage
-            .inner()
             .get_all_ordered(filter, "dependency_id ASC, position ASC")
             .await?;
 
@@ -346,10 +344,7 @@ impl DependencyService {
         };
 
         self.member_storage
-            .save_for_parent(
-                &ParentRef::new(EntityDiscriminants::Dependency, *dependency_id),
-                &rows,
-            )
+            .replace_for(&R::DEPENDENCY_MEMBER_DEPENDENCY.at(*dependency_id), &rows)
             .await?;
         Ok(())
     }
@@ -362,7 +357,7 @@ impl DependencyService {
         if records.is_empty() {
             return Ok(());
         }
-        self.member_storage.inner().create_many(records).await?;
+        self.member_storage.create_many(records).await?;
         Ok(())
     }
 
@@ -373,7 +368,6 @@ impl DependencyService {
         binding_id: &Uuid,
     ) -> Result<Vec<DependencyMemberRecord>> {
         self.member_storage
-            .inner()
             .get_all(
                 StorableFilter::<DependencyMemberRecord>::new_from_binding_id(binding_id).live(),
             )
@@ -386,7 +380,6 @@ impl DependencyService {
         service_id: &Uuid,
     ) -> Result<Vec<DependencyMemberRecord>> {
         self.member_storage
-            .inner()
             .get_all(
                 StorableFilter::<DependencyMemberRecord>::new_from_service_id(service_id).live(),
             )

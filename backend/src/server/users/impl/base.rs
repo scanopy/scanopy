@@ -487,9 +487,7 @@ impl Entity for User {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::User
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::User;
 
     const ENTITY_NAME_SINGULAR: &'static str = "User";
     const ENTITY_NAME_PLURAL: &'static str = "Users";

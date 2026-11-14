@@ -16,9 +16,9 @@ use crate::server::{
             types::{DeletionReason, EntityOperation, UpdateReason},
         },
         storage::{
-            child::ChildStorableEntity,
             filter::StorableFilter,
             generic::GenericPostgresStorage,
+            relation::{Relation, RelationKey},
             traits::{Entity, PaginatedResult, Storage, Unique},
         },
     },
@@ -98,7 +98,7 @@ where
     async fn hydrate_tags(&self, entity: &mut T) -> Result<(), Error> {
         if let Some(entity_tag_service) = self.entity_tag_service() {
             let tags = entity_tag_service
-                .get_tags(&entity.id(), &T::entity_type())
+                .get_tags(&entity.id(), &T::ENTITY_TYPE)
                 .await?;
             entity.set_tags(tags);
         }
@@ -119,7 +119,7 @@ where
         if let Some(entity_tag_service) = self.entity_tag_service() {
             let ids: Vec<Uuid> = entities.iter().map(|e| e.id()).collect();
             let tags_map = entity_tag_service
-                .get_tags_map(&ids, T::entity_type(), snapshot_id)
+                .get_tags_map(&ids, T::ENTITY_TYPE, snapshot_id)
                 .await?;
             for entity in entities {
                 if let Some(tags) = tags_map.get(&entity.id()) {
@@ -395,7 +395,7 @@ where
 
             if let Some(entity_tag_service) = self.entity_tag_service() {
                 entity_tag_service
-                    .remove_all_for_entity(entity.id(), T::entity_type())
+                    .remove_all_for_entity(entity.id(), T::ENTITY_TYPE)
                     .await?;
             }
 
@@ -454,7 +454,7 @@ where
             && let Some(tags) = created.get_tags()
         {
             entity_tag_service
-                .set_tags(created.id(), T::entity_type(), tags.clone(), org_id)
+                .set_tags(created.id(), T::ENTITY_TYPE, tags.clone(), org_id)
                 .await?;
         }
 
@@ -544,7 +544,7 @@ where
             && let Some(tags) = updated.get_tags()
         {
             entity_tag_service
-                .set_tags(updated.id(), T::entity_type(), tags.clone(), org_id)
+                .set_tags(updated.id(), T::ENTITY_TYPE, tags.clone(), org_id)
                 .await?;
         }
 
@@ -650,7 +650,7 @@ where
 
                 if let Some(entity_tag_service) = self.entity_tag_service() {
                     entity_tag_service
-                        .remove_all_for_entity(entity.id(), T::entity_type())
+                        .remove_all_for_entity(entity.id(), T::ENTITY_TYPE)
                         .await?;
                 }
 
@@ -702,7 +702,7 @@ where
 
             if let Some(entity_tag_service) = self.entity_tag_service() {
                 entity_tag_service
-                    .remove_all_for_entity(entity.id(), T::entity_type())
+                    .remove_all_for_entity(entity.id(), T::ENTITY_TYPE)
                     .await?;
             }
 
@@ -729,48 +729,39 @@ where
 
         Ok(deleted)
     }
-}
 
-/// Extension trait for services that manage child entities.
-/// Provides parent-based query methods using the entity's ChildStorableEntity implementation.
-#[async_trait]
-pub trait ChildCrudService<T>: CrudService<T>
-where
-    T: ChildStorableEntity
-        + Entity
-        + Into<EntityEnum>
-        + Default
-        + Display
-        + ChangeTriggersTopologyStaleness<T>,
-{
-    /// Get all entities for a single parent
-    async fn get_for_parent(&self, parent_id: &Uuid) -> Result<Vec<T>, anyhow::Error> {
-        let filter = StorableFilter::<T>::new_from_uuid_column(T::parent_column(), parent_id);
-        self.get_all(filter).await
+    // Sets keyed by a relation: the entities that point at one row (see `shared/relations.rs`).
+
+    /// The entities in `key`'s set.
+    async fn get_for(&self, key: &RelationKey<T>) -> Result<Vec<T>, anyhow::Error> {
+        self.get_all(key.filter()).await
     }
 
-    /// Get entities for multiple parents, grouped by parent_id
-    async fn get_for_parents(
+    /// The entities pointing at each of `ids` through `relation`, grouped by id.
+    async fn get_for_many(
         &self,
-        parent_ids: &[Uuid],
+        relation: &'static Relation<T>,
+        ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<T>>, anyhow::Error> {
-        if parent_ids.is_empty() {
+        if ids.is_empty() {
             return Ok(HashMap::new());
         }
 
-        let filter = StorableFilter::<T>::new_from_uuids_column(T::parent_column(), parent_ids);
+        let filter = StorableFilter::<T>::new_from_uuids_column(relation.column, ids);
         let entities = self.get_all(filter).await?;
         // Note: get_all already hydrates tags, no need to call bulk_hydrate_tags again
 
         let mut result: HashMap<Uuid, Vec<T>> = HashMap::new();
         for entity in entities {
-            result.entry(entity.parent_id()).or_default().push(entity);
+            for id in relation.ids_of(&entity) {
+                result.entry(id).or_default().push(entity.clone());
+            }
         }
 
         Ok(result)
     }
 
-    /// Save children for a parent (syncs children, preserving IDs where possible)
+    /// Make `children` the entities in `key`'s set, preserving ids where possible.
     ///
     /// This uses a sync pattern instead of delete-all + insert-all to preserve
     /// existing entity IDs. This is important for entities with foreign key
@@ -781,16 +772,16 @@ where
     ///
     /// Returns the saved entities with their actual IDs (including generated ones). `reason`
     /// names why dropped children are deleted, `update_reason` why kept ones are rewritten.
-    async fn save_for_parent(
+    async fn sync_for(
         &self,
-        parent_id: &Uuid,
+        key: &RelationKey<T>,
         children: &[T],
         authentication: AuthenticatedEntity,
         reason: DeletionReason,
         update_reason: UpdateReason,
     ) -> Result<Vec<T>, Error> {
         // Fetch full existing children to get their created_at timestamps
-        let existing_children = self.get_for_parent(parent_id).await?;
+        let existing_children = self.get_for(key).await?;
         let existing_by_id: std::collections::HashMap<Uuid, T> =
             existing_children.into_iter().map(|c| (c.id(), c)).collect();
 
@@ -840,14 +831,14 @@ where
         Ok(saved)
     }
 
-    /// Delete all entities for a parent
-    async fn delete_for_parent(
+    /// Delete every entity in `key`'s set.
+    async fn delete_for(
         &self,
-        parent_id: &Uuid,
+        key: &RelationKey<T>,
         authentication: AuthenticatedEntity,
         reason: DeletionReason,
     ) -> Result<usize, anyhow::Error> {
-        let filter = StorableFilter::<T>::new_from_uuid_column(T::parent_column(), parent_id);
+        let filter = key.filter();
 
         let entities = self.storage().get_all(filter.clone()).await?;
 
@@ -858,7 +849,7 @@ where
 
             if let Some(entity_tag_service) = self.entity_tag_service() {
                 entity_tag_service
-                    .remove_all_for_entity(entity.id(), T::entity_type())
+                    .remove_all_for_entity(entity.id(), T::ENTITY_TYPE)
                     .await?;
             }
 

@@ -806,7 +806,7 @@ impl<T: Storable> StorableFilter<T> {
     }
 
     /// Generic UUID filter for any column name.
-    /// Used by generic child entity handlers to filter by parent_column dynamically.
+    /// Used by relation-keyed reads to filter by a relation's column.
     pub fn uuid_column(mut self, column: &str, id: &Uuid) -> Self {
         let col = self.qualify_column(column);
         self.conditions
@@ -816,7 +816,7 @@ impl<T: Storable> StorableFilter<T> {
     }
 
     /// Generic UUID IN filter for any column name.
-    /// Used by generic child entity services to filter by parent_column dynamically.
+    /// Used by relation-keyed reads to filter by a relation's column.
     pub fn uuids_column(mut self, column: &str, ids: &[Uuid]) -> Self {
         if ids.is_empty() {
             self.conditions.push("FALSE".to_string());

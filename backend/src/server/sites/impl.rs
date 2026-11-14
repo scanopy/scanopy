@@ -353,9 +353,7 @@ impl Entity for Site {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Site
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Site;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Site";
     const ENTITY_NAME_PLURAL: &'static str = "Sites";

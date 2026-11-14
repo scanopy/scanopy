@@ -1,5 +1,6 @@
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
+use crate::server::shared::relations as R;
 use crate::server::shared::storage::traits::{PaginatedResult, Storable, Unique};
 use crate::server::tags::entity_tags::EntityTagService;
 use crate::server::{
@@ -20,7 +21,7 @@ use crate::server::{
             types::{DeletionReason, EntityOperation, UpdateReason},
         },
         position::next_position,
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,
@@ -75,7 +76,10 @@ impl CrudService<Service> for ServiceService {
         let service = self.storage().get_by_id(id).await?;
         match service {
             Some(mut s) => {
-                s.base.bindings = self.binding_service.get_for_parent(&s.id).await?;
+                s.base.bindings = self
+                    .binding_service
+                    .get_for(&R::BINDING_SERVICE.at(s.id))
+                    .await?;
                 self.hydrate_tags(&mut s).await?;
                 Ok(Some(s))
             }
@@ -93,7 +97,10 @@ impl CrudService<Service> for ServiceService {
         }
 
         let service_ids: Vec<Uuid> = services.iter().map(|s| s.id).collect();
-        let bindings_map = self.binding_service.get_for_parents(&service_ids).await?;
+        let bindings_map = self
+            .binding_service
+            .get_for_many(&R::BINDING_SERVICE, &service_ids)
+            .await?;
 
         for service in &mut services {
             if let Some(bindings) = bindings_map.get(&service.id) {
@@ -112,7 +119,10 @@ impl CrudService<Service> for ServiceService {
     ) -> Result<Unique<Service>, anyhow::Error> {
         match self.storage().get_unique(filter).await? {
             Unique::One(mut s) => {
-                s.base.bindings = self.binding_service.get_for_parent(&s.id).await?;
+                s.base.bindings = self
+                    .binding_service
+                    .get_for(&R::BINDING_SERVICE.at(s.id))
+                    .await?;
                 self.hydrate_tags(&mut s).await?;
                 Ok(Unique::One(s))
             }
@@ -132,7 +142,10 @@ impl CrudService<Service> for ServiceService {
 
         if !paginated.items.is_empty() {
             let service_ids: Vec<Uuid> = paginated.items.iter().map(|s| s.id).collect();
-            let bindings_map = self.binding_service.get_for_parents(&service_ids).await?;
+            let bindings_map = self
+                .binding_service
+                .get_for_many(&R::BINDING_SERVICE, &service_ids)
+                .await?;
 
             for service in &mut paginated.items {
                 if let Some(bindings) = bindings_map.get(&service.id) {
@@ -239,8 +252,8 @@ impl CrudService<Service> for ServiceService {
                     .collect();
                 let saved_bindings = self
                     .binding_service
-                    .save_for_parent(
-                        &created.id,
+                    .sync_for(
+                        &R::BINDING_SERVICE.at(created.id),
                         &bindings_with_ids,
                         authentication.clone(),
                         DeletionReason::EntityRequested,
@@ -344,8 +357,8 @@ impl CrudService<Service> for ServiceService {
             .collect();
         let saved_bindings = self
             .binding_service
-            .save_for_parent(
-                &updated.id,
+            .sync_for(
+                &R::BINDING_SERVICE.at(updated.id),
                 &bindings_with_ids,
                 authentication.clone(),
                 DeletionReason::EntityRequested,
@@ -459,8 +472,6 @@ impl CrudService<Service> for ServiceService {
         Ok(())
     }
 }
-
-impl ChildCrudService<Service> for ServiceService {}
 
 mod binding_mutation;
 mod binding_validation;

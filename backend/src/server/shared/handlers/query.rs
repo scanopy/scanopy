@@ -515,10 +515,10 @@ pub fn narrow_by_tags_and_search<T: Entity>(
     search: Option<&str>,
 ) -> Result<StorableFilter<T>, ApiError> {
     let filter = match tag_ids {
-        Some(tag_ids) if !tag_ids.is_empty() => filter.has_any_tags(tag_ids, T::entity_type()),
+        Some(tag_ids) if !tag_ids.is_empty() => filter.has_any_tags(tag_ids, T::ENTITY_TYPE),
         _ => filter,
     };
-    let filter = filter.has_tags_from_each(&parse_tag_sets(tag_sets)?, T::entity_type());
+    let filter = filter.has_tags_from_each(&parse_tag_sets(tag_sets)?, T::ENTITY_TYPE);
     Ok(match search {
         Some(search) if !search.trim().is_empty() => filter.text_search(search),
         _ => filter,

@@ -1,17 +1,14 @@
 //! Credential junction table types.
 //!
-//! Models the `site_credentials` and `host_credentials` junction tables as
-//! `ChildStorableEntity` rows, stored through `GenericChildStorage`.
+//! Models the `site_credentials` and `host_credentials` junction tables. Each row belongs to
+//! both ends; its relations are in `shared/relations.rs`.
 
 use anyhow::Result;
 use sqlx::{Row, postgres::PgRow};
 use std::fmt::Display;
 use uuid::Uuid;
 
-use crate::server::shared::storage::{
-    child::ChildStorableEntity,
-    traits::{SqlValue, Storable},
-};
+use crate::server::shared::storage::traits::{SqlValue, Storable};
 
 // =============================================================================
 // SiteCredential (Junction Table)
@@ -40,6 +37,11 @@ impl Storable for SiteCredential {
 
     fn table_name() -> &'static str {
         "site_credentials"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::SITE_CREDENTIAL_SITE, &R::SITE_CREDENTIAL_CREDENTIAL]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -101,6 +103,11 @@ impl Storable for HostCredential {
         "host_credentials"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::HOST_CREDENTIAL_HOST, &R::HOST_CREDENTIAL_CREDENTIAL]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         Self {
             host_id: base.0,
@@ -137,26 +144,5 @@ impl Storable for HostCredential {
     }
 }
 
-// Both tables are written from either end: the site's (or host's) credentials, and a
-// credential's sites (or hosts). The declared parent is the site or host; the credential side
-// replaces its rows through `GenericChildStorage::replace_matching`.
-
-impl ChildStorableEntity for SiteCredential {
-    fn parent_column() -> &'static str {
-        "site_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.site_id
-    }
-}
-
-impl ChildStorableEntity for HostCredential {
-    fn parent_column() -> &'static str {
-        "host_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.host_id
-    }
-}
+// Both tables are written from either end, the site's (or host's) credentials and a
+// credential's sites (or hosts), through the relation for that end (`shared/relations.rs`).

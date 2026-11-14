@@ -14,7 +14,6 @@ use crate::server::{
         entities::EntityDiscriminants,
         product_area::ProductArea,
         storage::{
-            child::ChildStorableEntity,
             snapshot::{DiscoveryTracked, FkMaps, Snapshotable},
             traits::{Entity, SqlValue, Storable},
         },
@@ -26,6 +25,11 @@ impl Storable for IPAddress {
 
     fn table_name() -> &'static str {
         "ip_addresses"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::IP_ADDRESS_HOST, &R::IP_ADDRESS_SUBNET]
     }
 
     const HAS_SCD2: bool = true;
@@ -176,9 +180,7 @@ impl Entity for IPAddress {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::IPAddress
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::IPAddress;
 
     const ENTITY_NAME_SINGULAR: &'static str = "IP Address";
     const ENTITY_NAME_PLURAL: &'static str = "IP Addresses";
@@ -221,16 +223,6 @@ impl IPAddress {
             .base
             .ip_address_source
             .keep_or_heal(self.base.ip_address_source);
-    }
-}
-
-impl ChildStorableEntity for IPAddress {
-    fn parent_column() -> &'static str {
-        "host_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.host_id
     }
 }
 

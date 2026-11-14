@@ -12,14 +12,13 @@
 //! neighbor_interface_id` / `interface_id, neighbor_host_id`), mirroring `Interface`'s own
 //! discovery-write pattern (`create_or_update_from_discovery`).
 //!
-//! All three are deliberately `Storable` (+ `Snapshotable`/`ChildStorableEntity` for the resolved
-//! two) rather than the full `Entity` trait: `Entity` pulls in `EntityDiscriminants` registration,
+//! All three are deliberately `Storable` (+ `Snapshotable` for the resolved two) rather than the full `Entity` trait: `Entity` pulls in `EntityDiscriminants` registration,
 //! CSV export, tag support and generic REST/event-bus exposure none of these tables need, and
 //! `DiscoveryTracked` (`shared/storage/snapshot.rs`) requires `Entity` as a hard supertrait bound
 //! for exactly that machinery — so the two resolved tables carry their own
 //! last_seen_at/last_discovery_id/first_discovery_id fields and inherent methods that mirror
 //! `DiscoveryTracked`'s audit-column behaviour without the trait. See `service.rs` for the bespoke
-//! read/write paths that replace `CrudService`/`ChildCrudService` (both `Entity`-bound) here.
+//! read/write paths that replace `CrudService` (`Entity`-bound) here.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

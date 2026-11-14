@@ -142,9 +142,7 @@ impl Entity for TagGroup {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::TagGroup
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::TagGroup;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Tag Group";
     const ENTITY_NAME_PLURAL: &'static str = "Tag Groups";

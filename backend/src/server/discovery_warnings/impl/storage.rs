@@ -1,14 +1,10 @@
 use sqlx::{Row, postgres::PgRow};
-use uuid::Uuid;
 
 use crate::{
     daemon::discovery::types::warnings::warning_from_value,
     server::{
         discovery_warnings::r#impl::base::{DiscoveryWarningRecord, DiscoveryWarningRecordBase},
-        shared::storage::{
-            child::ChildStorableEntity,
-            traits::{SqlValue, Storable},
-        },
+        shared::storage::traits::{SqlValue, Storable},
     },
 };
 
@@ -18,6 +14,11 @@ impl Storable for DiscoveryWarningRecord {
 
     fn table_name() -> &'static str {
         "discovery_warnings"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::DISCOVERY_WARNING_DISCOVERY]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -74,15 +75,5 @@ impl Storable for DiscoveryWarningRecord {
                 details: warning_from_value(details),
             },
         })
-    }
-}
-
-impl ChildStorableEntity for DiscoveryWarningRecord {
-    fn parent_column() -> &'static str {
-        "discovery_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.discovery_id
     }
 }

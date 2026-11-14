@@ -16,7 +16,12 @@ use crate::server::{
     },
     interfaces::r#impl::base::{FdbMacs, FdbMacsValue, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue},
+    ports::r#impl::base::{Port, PortBase},
     services::r#impl::base::{Service, ServiceBase},
+    shared::storage::{
+        relation::{Ownership, Target},
+        traits::Storable,
+    },
     shared::{attribution::AttributeSource, entities::EntityDiscriminants},
     subnets::r#impl::base::Subnet,
     topology::{
@@ -556,5 +561,159 @@ fn removing_a_parent_removes_its_children_and_theirs() {
     assert_eq!(
         ids(data.services.iter().map(|s| s.service.id).collect()),
         HashSet::from([kept_service.id])
+    );
+}
+
+/// The owners `T`'s relations declare on `row`: each `Owner` relation's entity and the id it
+/// holds there.
+fn owners_of<T: Storable>(row: &T) -> Vec<(&'static str, EntityDiscriminants, Uuid)> {
+    T::relations()
+        .iter()
+        .filter(|relation| relation.ownership == Ownership::Owner)
+        .flat_map(|relation| {
+            let Target::Entity(entity) = relation.target else {
+                panic!(
+                    "{}.{} isn't a bundle relation",
+                    T::table_name(),
+                    relation.column
+                );
+            };
+            relation
+                .ids_of(row)
+                .into_iter()
+                .map(move |id| (relation.column, entity, id))
+        })
+        .collect()
+}
+
+/// Every row the cascade judges, with its id, its table and its owners.
+fn judged_rows(
+    data: &TopologyData,
+) -> Vec<(
+    Uuid,
+    &'static str,
+    Vec<(&'static str, EntityDiscriminants, Uuid)>,
+)> {
+    fn rows<T: Storable>(
+        rows: impl Iterator<Item = (Uuid, T)>,
+    ) -> Vec<(
+        Uuid,
+        &'static str,
+        Vec<(&'static str, EntityDiscriminants, Uuid)>,
+    )> {
+        rows.map(|(id, row)| (id, T::table_name(), owners_of(&row)))
+            .collect()
+    }
+    let mut all = rows(data.ip_addresses.iter().map(|r| (r.id, r.clone())));
+    all.extend(rows(
+        data.interfaces
+            .iter()
+            .map(|r| (r.interface.id, r.interface.clone())),
+    ));
+    all.extend(rows(
+        data.services
+            .iter()
+            .map(|r| (r.service.id, r.service.clone())),
+    ));
+    all.extend(rows(data.ports.iter().map(|r| (r.id, r.clone()))));
+    all.extend(rows(data.bindings.iter().map(|r| (r.id(), r.clone()))));
+    all.extend(rows(data.candidates.iter().map(|r| (r.id, r.clone()))));
+    all
+}
+
+/// Every owner relation of a row type the bundle carries, as `table.column`.
+fn bundle_owner_relations() -> HashSet<String> {
+    fn of<T: Storable>() -> impl Iterator<Item = String> {
+        T::relations()
+            .iter()
+            .filter(|relation| relation.ownership == Ownership::Owner)
+            .map(|relation| format!("{}.{}", T::table_name(), relation.column))
+    }
+    of::<IPAddress>()
+        .chain(of::<Interface>())
+        .chain(of::<Service>())
+        .chain(of::<Port>())
+        .chain(of::<Binding>())
+        .chain(of::<InterfaceNeighborCandidate>())
+        .collect()
+}
+
+fn row_ids(data: &TopologyData) -> HashSet<Uuid> {
+    judged_rows(data).into_iter().map(|(id, _, _)| id).collect()
+}
+
+fn remove_row(data: &mut TopologyData, entity: EntityDiscriminants, id: Uuid) {
+    match entity {
+        EntityDiscriminants::Host => data.hosts.retain(|h| h.host.id != id),
+        EntityDiscriminants::Subnet => data.subnets.retain(|s| s.id != id),
+        EntityDiscriminants::IPAddress => data.ip_addresses.retain(|r| r.id != id),
+        EntityDiscriminants::Interface => data.interfaces.retain(|r| r.interface.id != id),
+        EntityDiscriminants::Service => data.services.retain(|r| r.service.id != id),
+        EntityDiscriminants::Port => data.ports.retain(|r| r.id != id),
+        other => panic!("the bundle holds no {other:?} rows: add them to this helper"),
+    }
+}
+
+/// A host with one of each owned row: an interface, an address, a service with an address
+/// binding and a port binding, an open port and neighbour evidence.
+fn complete_bundle() -> TopologyData {
+    let h = host("h");
+    let subnet = make_subnet();
+    let interface = port(h.id, 1);
+    let ip = address(h.id, subnet.id);
+    let open_port = Port::new(PortBase {
+        host_id: h.id,
+        ..Default::default()
+    });
+    let (mut web, ip_binding) = service(h.id, ip.id);
+    let port_binding = Binding::new_port(web.id, Uuid::nil(), open_port.id, Some(ip.id));
+    web.base.bindings.push(port_binding.clone());
+
+    let ip_addresses = vec![ip];
+    let services = vec![web];
+    TopologyData {
+        hosts: TopologyHost::wrap_all(vec![h], &ip_addresses, &services),
+        ip_addresses,
+        subnets: vec![subnet],
+        ports: vec![open_port],
+        bindings: vec![ip_binding, port_binding],
+        candidates: vec![candidate(interface.id)],
+        interfaces: vec![interface.into()],
+        services: services.into_iter().map(Into::into).collect(),
+        ..Default::default()
+    }
+}
+
+/// For every bundle row and every owner its relations name, removing that owner removes the
+/// row. An owner relation added to a bundle row type joins this test without a change here, and
+/// the coverage check below fails until the fixture gives it a value.
+#[test]
+fn a_row_leaves_with_every_owner_its_relations_name() {
+    let data = complete_bundle();
+    let mut untouched = data.clone();
+    untouched.remove_orphans();
+    assert_eq!(
+        row_ids(&untouched),
+        row_ids(&data),
+        "the complete bundle loses nothing"
+    );
+
+    let mut exercised = HashSet::new();
+    for (row_id, table, owners) in judged_rows(&data) {
+        for (column, entity, owner_id) in owners {
+            exercised.insert(format!("{table}.{column}"));
+            let mut without_owner = data.clone();
+            remove_row(&mut without_owner, entity, owner_id);
+            without_owner.remove_orphans();
+            assert!(
+                !row_ids(&without_owner).contains(&row_id),
+                "{table} row {row_id} stayed after its {column} owner left",
+            );
+        }
+    }
+    assert_eq!(
+        exercised,
+        bundle_owner_relations(),
+        "the fixture sets every owner relation"
     );
 }

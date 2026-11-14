@@ -10,7 +10,7 @@
 //! Every removal path runs [`TopologyData::remove_orphans`] after it removes rows, so builders
 //! only see a bundle whose required references resolve.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use uuid::Uuid;
 
@@ -19,6 +19,13 @@ use crate::server::{
     interface_neighbors::r#impl::base::{InterfaceNeighborCandidate, InterfaceNeighborRow},
     ip_addresses::r#impl::base::IPAddress,
     ports::r#impl::base::Port,
+    shared::{
+        entities::EntityDiscriminants as E,
+        storage::{
+            relation::{Ownership, Target},
+            traits::Storable,
+        },
+    },
     topology::types::api::{TopologyData, TopologyInterface, TopologyService},
 };
 
@@ -69,10 +76,11 @@ fn split_off<T>(rows: &mut Vec<T>, keep: impl Fn(&T) -> bool) -> Vec<T> {
 impl TopologyData {
     /// Remove every row whose required parent is absent from the bundle, and return them.
     ///
-    /// Runs parents first, so one pass reaches the end of each chain: an address leaves with its
-    /// host or subnet; an interface, service or port with its host; a binding with its service,
-    /// address or port; a neighbour row with its local interface; a candidate
-    /// with its interface. Optional links, such as an interface's `ip_address_id`, stay.
+    /// A row's owners are its [`Ownership::Owner`] relations ([`Storable::relations`], declared in
+    /// `shared/relations.rs`): an address leaves with its host or its subnet, a binding with its
+    /// service, address or port. References, such as an interface's `ip_address_id`, stay.
+    ///
+    /// Runs parents first, so one pass reaches the end of each chain.
     pub fn remove_orphans(&mut self) -> OrphanRows {
         // No `..`: a collection added to the bundle doesn't compile here until it states what it
         // belongs to.
@@ -103,35 +111,30 @@ impl TopologyData {
             has_interface_credential: _,
         } = self;
 
-        let host_ids: HashSet<Uuid> = hosts.iter().map(|h| h.host.id).collect();
-        let subnet_ids: HashSet<Uuid> = subnets.iter().map(|s| s.id).collect();
+        let mut present = Present::default();
+        present.hold(E::Host, hosts.iter().map(|h| h.host.id));
+        present.hold(E::Subnet, subnets.iter().map(|s| s.id));
 
-        let removed_ip_addresses = split_off(ip_addresses, |ip| {
-            host_ids.contains(&ip.base.host_id) && subnet_ids.contains(&ip.base.subnet_id)
+        let removed_ip_addresses = present.split_unowned(ip_addresses, |ip| ip);
+        let removed_interfaces = present.split_unowned(interfaces, |i| &i.interface);
+        let removed_services = present.split_unowned(services, |s| &s.service);
+        let removed_ports = present.split_unowned(ports, |p| p);
+
+        present.hold(E::IPAddress, ip_addresses.iter().map(|ip| ip.id));
+        present.hold(E::Interface, interfaces.iter().map(|i| i.interface.id));
+        present.hold(E::Service, services.iter().map(|s| s.service.id));
+        present.hold(E::Port, ports.iter().map(|p| p.id));
+
+        let removed_bindings = present.split_unowned(bindings, |b| b);
+        let removed_candidates = present.split_unowned(candidates, |c| c);
+        // A neighbour row is resolved from `interface_neighbor_interfaces` or `_hosts`, so it has
+        // no relations of its own. Both tables' local end (`NEIGHBOR_INTERFACE_LOCAL`,
+        // `NEIGHBOR_HOST_LOCAL`) is an owner. Their far end is `OwnerKeptWhenHidden`: the row
+        // still says the local port is linked (the "By link" filter reads it), and the builders
+        // draw no edge to a far end the bundle doesn't hold.
+        let removed_neighbours = split_off(neighbours, |row| {
+            present.holds(E::Interface, row.interface_id) != Some(false)
         });
-        let removed_interfaces =
-            split_off(interfaces, |i| host_ids.contains(&i.interface.base.host_id));
-        let removed_services = split_off(services, |s| host_ids.contains(&s.service.base.host_id));
-        let removed_ports = split_off(ports, |p| host_ids.contains(&p.base.host_id));
-
-        let ip_address_ids: HashSet<Uuid> = ip_addresses.iter().map(|ip| ip.id).collect();
-        let interface_ids: HashSet<Uuid> = interfaces.iter().map(|i| i.interface.id).collect();
-        let service_ids: HashSet<Uuid> = services.iter().map(|s| s.service.id).collect();
-        let port_ids: HashSet<Uuid> = ports.iter().map(|p| p.id).collect();
-
-        let removed_bindings = split_off(bindings, |b| {
-            service_ids.contains(&b.service_id())
-                && b.ip_address_id()
-                    .is_none_or(|id| ip_address_ids.contains(&id))
-                && b.port_id().is_none_or(|id| port_ids.contains(&id))
-        });
-        // The local interface is the row's parent. The far end is a reference: the row still says
-        // the local port is linked (the "By link" filter reads it), and the builders draw no edge
-        // to a far end the bundle doesn't hold.
-        let removed_neighbours =
-            split_off(neighbours, |row| interface_ids.contains(&row.interface_id));
-        let removed_candidates =
-            split_off(candidates, |c| interface_ids.contains(&c.base.interface_id));
 
         OrphanRows {
             ip_addresses: removed_ip_addresses,
@@ -142,5 +145,39 @@ impl TopologyData {
             neighbours: removed_neighbours,
             candidates: removed_candidates,
         }
+    }
+}
+
+/// The ids of each entity type the bundle still holds, filled parents first.
+#[derive(Default)]
+struct Present(HashMap<E, HashSet<Uuid>>);
+
+impl Present {
+    fn hold(&mut self, entity: E, ids: impl Iterator<Item = Uuid>) {
+        self.0.entry(entity).or_default().extend(ids);
+    }
+
+    /// Whether the bundle holds `id`, or `None` when it carries no rows of that type at all and
+    /// so can't judge.
+    fn holds(&self, entity: E, id: Uuid) -> Option<bool> {
+        self.0.get(&entity).map(|ids| ids.contains(&id))
+    }
+
+    /// Move the rows of `rows` with an owner the bundle no longer holds into the returned vector.
+    /// `row` reaches the stored row inside a wrapper such as `TopologyInterface`.
+    fn split_unowned<W, T: Storable>(&self, rows: &mut Vec<W>, row: impl Fn(&W) -> &T) -> Vec<W> {
+        split_off(rows, |wrapper| {
+            let row = row(wrapper);
+            T::relations().iter().all(|relation| {
+                let Target::Entity(entity) = relation.target else {
+                    return true;
+                };
+                relation.ownership != Ownership::Owner
+                    || relation
+                        .ids_of(row)
+                        .into_iter()
+                        .all(|id| self.holds(entity, id) != Some(false))
+            })
+        })
     }
 }

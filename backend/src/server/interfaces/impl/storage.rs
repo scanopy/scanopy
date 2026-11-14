@@ -14,7 +14,6 @@ use crate::server::{
         entities::EntityDiscriminants,
         product_area::ProductArea,
         storage::{
-            child::ChildStorableEntity,
             snapshot::{DiscoveryTracked, FkMaps, Snapshotable},
             traits::{Entity, SqlValue, Storable},
         },
@@ -26,6 +25,11 @@ impl Storable for Interface {
 
     fn table_name() -> &'static str {
         "interfaces"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::INTERFACE_HOST]
     }
 
     const HAS_SCD2: bool = true;
@@ -239,9 +243,7 @@ impl Entity for Interface {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Interface
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Interface;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Interface";
     const ENTITY_NAME_PLURAL: &'static str = "Interfaces";
@@ -294,16 +296,6 @@ impl Interface {
                 }
                 (existing, incoming) => existing.keep_or_heal(incoming),
             };
-    }
-}
-
-impl ChildStorableEntity for Interface {
-    fn parent_column() -> &'static str {
-        "host_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.host_id
     }
 }
 
