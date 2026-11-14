@@ -32,11 +32,14 @@ use crate::server::{
 use sqlx::postgres::PgRow;
 use std::collections::HashMap;
 
+/// Decodes one row of a table, failing when a selected column doesn't read.
+type RowDecoder = Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>;
+
 /// How storage reads one table: the columns it selects and the row decoder.
 #[allow(dead_code)]
 struct TableReader {
     columns: Vec<&'static str>,
-    deserialize: Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>,
+    deserialize: RowDecoder,
 }
 
 #[allow(dead_code)]

@@ -680,7 +680,7 @@ impl TopologyService {
                 bundle.data.interfaces.iter().map(|i| &i.interface),
                 &bundle.data.ip_addresses,
             );
-            Self::apply_server_metadata_filters(&mut bundle.data, &options, &ctx);
+            Self::apply_server_metadata_filters(&mut bundle.data, options, &ctx);
             bundle
         });
         // One context for both the server-side drop and the values the frontend reads, so a
@@ -690,7 +690,7 @@ impl TopologyService {
             data.interfaces.iter().map(|i| &i.interface),
             &data.ip_addresses,
         );
-        Self::apply_server_metadata_filters(&mut data, &options, &filter_ctx);
+        Self::apply_server_metadata_filters(&mut data, options, &filter_ctx);
         data.stamp_filter_values(&filter_ctx);
         if let Some(bundle) = tag_hidden_bundle {
             data.hidden_by_tag = Self::hidden_by_tag_per_view(&bundle, options, views);

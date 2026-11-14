@@ -91,7 +91,7 @@ fn service(host_id: Uuid, ip_address_id: Uuid) -> (Service, Binding) {
         ..Default::default()
     };
     let binding = Binding::new_ip_address(service.id, Uuid::nil(), ip_address_id);
-    service.base.bindings = vec![binding.clone()];
+    service.base.bindings = vec![binding];
     (service, binding)
 }
 
@@ -179,7 +179,7 @@ fn fixture(removal: Removal) -> Fixture {
         hosts: TopologyHost::wrap_all(vec![switch, server], &ip_addresses, &services),
         ip_addresses,
         subnets: vec![subnet],
-        bindings: vec![server_binding, x_binding.clone()],
+        bindings: vec![server_binding, x_binding],
         interfaces: [
             switch_to_server,
             switch_to_x,
@@ -505,10 +505,7 @@ fn removing_a_parent_removes_its_children_and_theirs() {
         hosts: TopologyHost::wrap_all(vec![kept_host], &ip_addresses, &services),
         ip_addresses,
         subnets: vec![subnet],
-        bindings: vec![
-            binding_to_gone_address.clone(),
-            binding_of_gone_service.clone(),
-        ],
+        bindings: vec![binding_to_gone_address, binding_of_gone_service],
         interfaces: [
             gone_port.clone(),
             kept_port.clone(),
@@ -517,7 +514,7 @@ fn removing_a_parent_removes_its_children_and_theirs() {
         .into_iter()
         .map(Into::into)
         .collect(),
-        neighbours: vec![gone_row.clone(), row_to_gone_port.clone()],
+        neighbours: vec![gone_row, row_to_gone_port],
         candidates: vec![gone_candidate.clone()],
         services: services.into_iter().map(Into::into).collect(),
         ..Default::default()
@@ -586,21 +583,16 @@ fn owners_of<T: Storable>(row: &T) -> Vec<(&'static str, EntityDiscriminants, Uu
         .collect()
 }
 
-/// Every row the cascade judges, with its id, its table and its owners.
-fn judged_rows(
-    data: &TopologyData,
-) -> Vec<(
+/// One row the cascade judges: its id, its table, and each owner as (column, type, id).
+type JudgedRow = (
     Uuid,
     &'static str,
     Vec<(&'static str, EntityDiscriminants, Uuid)>,
-)> {
-    fn rows<T: Storable>(
-        rows: impl Iterator<Item = (Uuid, T)>,
-    ) -> Vec<(
-        Uuid,
-        &'static str,
-        Vec<(&'static str, EntityDiscriminants, Uuid)>,
-    )> {
+);
+
+/// Every row the cascade judges, with its id, its table and its owners.
+fn judged_rows(data: &TopologyData) -> Vec<JudgedRow> {
+    fn rows<T: Storable>(rows: impl Iterator<Item = (Uuid, T)>) -> Vec<JudgedRow> {
         rows.map(|(id, row)| (id, T::table_name(), owners_of(&row)))
             .collect()
     }
@@ -615,8 +607,8 @@ fn judged_rows(
             .iter()
             .map(|r| (r.service.id, r.service.clone())),
     ));
-    all.extend(rows(data.ports.iter().map(|r| (r.id, r.clone()))));
-    all.extend(rows(data.bindings.iter().map(|r| (r.id(), r.clone()))));
+    all.extend(rows(data.ports.iter().map(|r| (r.id, *r))));
+    all.extend(rows(data.bindings.iter().map(|r| (r.id(), *r))));
     all.extend(rows(data.candidates.iter().map(|r| (r.id, r.clone()))));
     all
 }
@@ -667,7 +659,7 @@ fn complete_bundle() -> TopologyData {
     });
     let (mut web, ip_binding) = service(h.id, ip.id);
     let port_binding = Binding::new_port(web.id, Uuid::nil(), open_port.id, Some(ip.id));
-    web.base.bindings.push(port_binding.clone());
+    web.base.bindings.push(port_binding);
 
     let ip_addresses = vec![ip];
     let services = vec![web];
