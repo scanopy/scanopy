@@ -32,297 +32,110 @@ use crate::server::{
 use sqlx::postgres::PgRow;
 use std::collections::HashMap;
 
-// Type alias for the deserialization function
+/// How storage reads one table: the columns it selects and the row decoder.
 #[allow(dead_code)]
-type DeserializeFn = Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>;
+struct TableReader {
+    columns: Vec<&'static str>,
+    deserialize: Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>,
+}
 
-// Mapping from table name to deserialization function
 #[allow(dead_code)]
-fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
-    let mut map: HashMap<&'static str, DeserializeFn> = HashMap::new();
-
+fn register<T: Storable>(map: &mut HashMap<&'static str, TableReader>) {
     map.insert(
-        SiteAssignment::table_name(),
-        Box::new(|row| {
-            SiteAssignment::from_row(row)?;
-            Ok(())
-        }),
+        T::table_name(),
+        TableReader {
+            columns: T::select_columns(),
+            deserialize: Box::new(|row| {
+                T::from_row(row)?;
+                Ok(())
+            }),
+        },
     );
+}
 
-    map.insert(
-        DaemonApiKey::table_name(),
-        Box::new(|row| {
-            DaemonApiKey::from_row(row)?;
-            Ok(())
-        }),
-    );
+// Mapping from table name to how storage reads it
+#[allow(dead_code)]
+fn get_entity_deserializers() -> HashMap<&'static str, TableReader> {
+    let mut map: HashMap<&'static str, TableReader> = HashMap::new();
 
-    map.insert(
-        Daemon::table_name(),
-        Box::new(|row| {
-            Daemon::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<SiteAssignment>(&mut map);
 
-    map.insert(
-        Discovery::table_name(),
-        Box::new(|row| {
-            Discovery::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<DaemonApiKey>(&mut map);
 
-    map.insert(
-        Dependency::table_name(),
-        Box::new(|row| {
-            Dependency::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Daemon>(&mut map);
 
-    map.insert(
-        Host::table_name(),
-        Box::new(|row| {
-            Host::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Discovery>(&mut map);
 
-    map.insert(
-        Site::table_name(),
-        Box::new(|row| {
-            Site::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Dependency>(&mut map);
 
-    map.insert(
-        Organization::table_name(),
-        Box::new(|row| {
-            Organization::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Host>(&mut map);
 
-    map.insert(
-        Service::table_name(),
-        Box::new(|row| {
-            Service::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Site>(&mut map);
 
-    map.insert(
-        Subnet::table_name(),
-        Box::new(|row| {
-            Subnet::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Organization>(&mut map);
 
-    map.insert(
-        User::table_name(),
-        Box::new(|row| {
-            User::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Service>(&mut map);
 
-    map.insert(
-        Topology::table_name(),
-        Box::new(|row| {
-            Topology::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Subnet>(&mut map);
 
-    map.insert(
-        Snapshot::table_name(),
-        Box::new(|row| {
-            Snapshot::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<User>(&mut map);
 
-    map.insert(
-        Tag::table_name(),
-        Box::new(|row| {
-            Tag::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Topology>(&mut map);
 
-    map.insert(
-        TagGroup::table_name(),
-        Box::new(|row| {
-            TagGroup::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Snapshot>(&mut map);
 
-    map.insert(
-        crate::server::license::instances::ServerInstance::table_name(),
-        Box::new(|row| {
-            crate::server::license::instances::ServerInstance::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Tag>(&mut map);
 
-    map.insert(
-        crate::server::license::instances::LicenseInstance::table_name(),
-        Box::new(|row| {
-            crate::server::license::instances::LicenseInstance::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<TagGroup>(&mut map);
 
-    map.insert(
-        crate::server::release_notes::storage::ReleaseAnnouncement::table_name(),
-        Box::new(|row| {
-            crate::server::release_notes::storage::ReleaseAnnouncement::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<crate::server::license::instances::ServerInstance>(&mut map);
 
-    map.insert(
-        Invite::table_name(),
-        Box::new(|row| {
-            Invite::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<crate::server::license::instances::LicenseInstance>(&mut map);
 
-    map.insert(
-        Share::table_name(),
-        Box::new(|row| {
-            Share::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<crate::server::release_notes::storage::ReleaseAnnouncement>(&mut map);
 
-    map.insert(
-        IPAddress::table_name(),
-        Box::new(|row| {
-            IPAddress::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Invite>(&mut map);
 
-    map.insert(
-        Port::table_name(),
-        Box::new(|row| {
-            Port::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Share>(&mut map);
 
-    map.insert(
-        Binding::table_name(),
-        Box::new(|row| {
-            Binding::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<IPAddress>(&mut map);
 
-    map.insert(
-        DiscoveryWarningRecord::table_name(),
-        Box::new(|row| {
-            DiscoveryWarningRecord::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Port>(&mut map);
 
-    map.insert(
-        DependencyMemberRecord::table_name(),
-        Box::new(|row| {
-            DependencyMemberRecord::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Binding>(&mut map);
 
-    map.insert(
-        UserApiKey::table_name(),
-        Box::new(|row| {
-            UserApiKey::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<DiscoveryWarningRecord>(&mut map);
 
-    map.insert(
-        EntityTag::table_name(),
-        Box::new(|row| {
-            EntityTag::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<DependencyMemberRecord>(&mut map);
+
+    register::<UserApiKey>(&mut map);
+
+    register::<EntityTag>(&mut map);
 
     // snmp_credentials table was dropped by universal_credentials migration
     // SnmpCredential deserializer is no longer needed
 
-    map.insert(
-        Credential::table_name(),
-        Box::new(|row| {
-            Credential::from_row(row)?;
-            Ok(())
-        }),
+    register::<Credential>(&mut map);
+
+    register::<crate::server::credentials::r#impl::junction::HostCredential>(&mut map);
+
+    register::<crate::server::credentials::r#impl::junction::SiteCredential>(&mut map);
+
+    register::<crate::server::daemons::r#impl::interfaced_subnets::DaemonInterfacedSubnet>(
+        &mut map,
     );
 
-    // Junction tables for multi-credential support — no entity struct, just verify readable
-    map.insert("host_credentials", Box::new(|_row| Ok(())));
+    register::<Interface>(&mut map);
 
-    map.insert("site_credentials", Box::new(|_row| Ok(())));
+    register::<InterfaceNeighborCandidate>(&mut map);
 
-    // Daemon ↔ interfaced-subnet junction — no entity struct, just verify readable.
-    map.insert("daemon_interfaced_subnets", Box::new(|_row| Ok(())));
+    register::<InterfaceNeighborInterface>(&mut map);
 
-    map.insert(
-        Interface::table_name(),
-        Box::new(|row| {
-            Interface::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<InterfaceNeighborHost>(&mut map);
 
-    map.insert(
-        InterfaceNeighborCandidate::table_name(),
-        Box::new(|row| {
-            InterfaceNeighborCandidate::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<Vlan>(&mut map);
 
-    map.insert(
-        InterfaceNeighborInterface::table_name(),
-        Box::new(|row| {
-            InterfaceNeighborInterface::from_row(row)?;
-            Ok(())
-        }),
-    );
-
-    map.insert(
-        InterfaceNeighborHost::table_name(),
-        Box::new(|row| {
-            InterfaceNeighborHost::from_row(row)?;
-            Ok(())
-        }),
-    );
-
-    map.insert(
-        Vlan::table_name(),
-        Box::new(|row| {
-            Vlan::from_row(row)?;
-            Ok(())
-        }),
-    );
-
-    map.insert(
-        SubnetVlanRecord::table_name(),
-        Box::new(|row| {
-            SubnetVlanRecord::from_row(row)?;
-            Ok(())
-        }),
-    );
+    register::<SubnetVlanRecord>(&mut map);
 
     map
 }
@@ -519,15 +332,21 @@ pub async fn test_struct_deserialization_backward_compatibility() {
 
         let deserializers = get_entity_deserializers();
 
-        for (table_name, deserialize_fn) in deserializers.iter() {
-            let rows = sqlx::query(&format!("SELECT * FROM {}", table_name))
-                .fetch_all(&pool)
-                .await
-                .unwrap_or_else(|_| panic!("Failed to fetch {}", table_name));
+        for (table_name, reader) in deserializers.iter() {
+            // The columns storage selects, so a decoder reading a column outside them fails here.
+            let rows = sqlx::query(&format!(
+                "SELECT {} FROM {}",
+                reader.columns.join(", "),
+                table_name
+            ))
+            .fetch_all(&pool)
+            .await
+            .unwrap_or_else(|e| panic!("Failed to fetch {}: {}", table_name, e));
 
             for row in rows.iter() {
-                deserialize_fn(row)
-                    .unwrap_or_else(|_| panic!("Failed to deserialize row from {}", table_name));
+                (reader.deserialize)(row).unwrap_or_else(|e| {
+                    panic!("Failed to deserialize row from {}: {:#}", table_name, e)
+                });
             }
 
             println!(
@@ -664,6 +483,60 @@ pub async fn test_entity_columns_match_live_schema() {
             failures.join("\n  - ")
         );
     }
+}
+
+/// Storage selects the columns `to_params` names, not `*`. A live column outside that list never
+/// reaches `from_row`, so a decoder reading it with `try_get(..).unwrap_or(..)` would silently get
+/// its default. Every live column is selected, or listed here with the reason storage never reads
+/// it.
+#[tokio::test]
+async fn storage_selects_every_live_column() {
+    /// (table, or `*` for every table, column, why storage doesn't read it)
+    const UNREAD: &[(&str, &str, &str)] = &[
+        (
+            "*",
+            "snapshot_id",
+            "filters match on it in SQL and stamp_snapshot_id_in_tx writes it; no decoder reads it",
+        ),
+        (
+            "organizations",
+            "onboarding",
+            "replaced by setup; only migrations read it, until the contract release drops it",
+        ),
+        (
+            "users",
+            "tags",
+            "left from 20251210045929_tags; users carry no tags and nothing reads it",
+        ),
+    ];
+
+    let (pool, _url, _db) = crate::tests::setup_migrated_test_db().await;
+    let mut unselected = Vec::new();
+    for (table, reader) in get_entity_deserializers() {
+        let live: Vec<String> = sqlx::query_scalar(
+            "SELECT column_name::text FROM information_schema.columns \
+             WHERE table_schema = 'public' AND table_name = $1",
+        )
+        .bind(table)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        for column in live {
+            let exempt = UNREAD
+                .iter()
+                .any(|(t, c, _)| (*t == "*" || *t == table) && *c == column);
+            if !exempt && !reader.columns.contains(&column.as_str()) {
+                unselected.push(format!("{table}.{column}"));
+            }
+        }
+    }
+    unselected.sort();
+    assert!(
+        unselected.is_empty(),
+        "live columns storage doesn't select (add them to to_params, or to UNREAD with the \
+         reason nothing reads them):\n  {}",
+        unselected.join("\n  ")
+    );
 }
 
 // ============================================================================

@@ -231,6 +231,17 @@ pub trait Storable: Sized + Clone + Send + Sync + 'static + Default {
     /// Deserialization from database
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error>;
 
+    /// The columns storage reads, the same ones `to_params` writes. Storage names them instead of
+    /// selecting `*`, so a migration that adds a column leaves a cached statement's result type
+    /// unchanged. With `*`, Postgres refuses the statement (SQLSTATE 0A000) until it is
+    /// re-prepared, and behind a pooler that keys statements by text it never is.
+    fn select_columns() -> Vec<&'static str> {
+        Self::default()
+            .to_params()
+            .expect("to_params succeeds on a default row")
+            .0
+    }
+
     /// SQL boolean fragments that `StorableFilter::text_search` ORs together to
     /// implement free-text search over this entity. `{}` marks where the bound
     /// `%pattern%` parameter is substituted; the same parameter is reused by
@@ -391,6 +402,7 @@ pub enum SqlValue {
     OptionTimestamp(Option<DateTime<Utc>>),
     OptionDate(Option<NaiveDate>),
     UuidArray(Vec<Uuid>),
+    I32Array(Vec<i32>),
     IpCidr(IpCidr),
     IpAddr(IpAddr),
     OptionalIpAddr(Option<IpAddr>),
@@ -816,7 +828,9 @@ impl SqlValue {
             | SqlValueDiscriminants::StringArray
             | SqlValueDiscriminants::OptionalStringArray
             | SqlValueDiscriminants::OptionalFdbMacs => String::contribute(out),
-            SqlValueDiscriminants::I32 | SqlValueDiscriminants::OptionalI32 => i32::contribute(out),
+            SqlValueDiscriminants::I32
+            | SqlValueDiscriminants::OptionalI32
+            | SqlValueDiscriminants::I32Array => i32::contribute(out),
             SqlValueDiscriminants::I64 => i64::contribute(out),
             SqlValueDiscriminants::OptionalI64 => i64::contribute(out),
             SqlValueDiscriminants::U16 | SqlValueDiscriminants::OptionVecU16 => {

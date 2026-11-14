@@ -593,14 +593,31 @@ pub(crate) mod narrowing_check {
         );
 
         let unfiltered = narrow(&parse::<Q>("").await);
-        let baseline = (unfiltered.to_where_clause(), unfiltered.values().len());
+        let baseline = (unfiltered.to_where_clause(), bound_lists(&unfiltered));
         for (name, value) in samples {
             let filter = narrow(&parse::<Q>(&format!("{name}={value}")).await);
             assert_ne!(
-                (filter.to_where_clause(), filter.values().len()),
+                (filter.to_where_clause(), bound_lists(&filter)),
                 baseline,
                 "`{name}` is documented but does not narrow the rows"
             );
         }
+    }
+
+    /// The bind count and each bound list's contents. A list parameter binds one array, so a
+    /// filter that swaps the caller's site list for a narrower one changes only the array.
+    fn bound_lists<T: Storable>(filter: &StorableFilter<T>) -> (usize, Vec<String>) {
+        use crate::server::shared::storage::traits::SqlValue;
+        let lists = filter
+            .values()
+            .iter()
+            .filter_map(|value| match value {
+                SqlValue::UuidArray(ids) => Some(format!("{ids:?}")),
+                SqlValue::StringArray(items) => Some(format!("{items:?}")),
+                SqlValue::I32Array(items) => Some(format!("{items:?}")),
+                _ => None,
+            })
+            .collect();
+        (filter.values().len(), lists)
     }
 }

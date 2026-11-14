@@ -228,9 +228,10 @@ jobs:
         # `CREATE INDEX CONCURRENTLY` fail ("cannot run inside a transaction
         # block"). The custom runner splits statements, matching prod-app
         # behavior, so the release check exercises migrations exactly as prod will.
+        # Through the pooled endpoint, as prod's server applies them at boot.
         run: cargo run --bin migrate -- --database-url "$DATABASE_URL"
         env:
-          DATABASE_URL: ${{ steps.create_branch.outputs.db_url }}
+          DATABASE_URL: ${{ steps.create_branch.outputs.db_url_pooled }}
 
       - name: Snapshot schema after migrations and write diff to job summary
         run: |
@@ -287,7 +288,8 @@ jobs:
         if: steps.deploy_mode.outputs.mode != 'downtime'
         id: compat_check
         env:
-          DATABASE_URL: ${{ steps.create_branch.outputs.db_url }}
+          # The pooled endpoint, as prod runs: transaction-mode PgBouncer.
+          DATABASE_URL: ${{ steps.create_branch.outputs.db_url_pooled }}
         run: |
           set +e
           bash backend/scripts/compat-check.sh "$DATABASE_URL" "ghcr.io/${{ github.repository }}/server:latest" | tee /tmp/compat-check.log
@@ -324,8 +326,10 @@ jobs:
           cargo test --lib test_current_reads_previous_release_variants -- --ignored
           cargo test --lib test_current_writes_subset_of_previous_release -- --ignored
 
+      # On success the branch stays for neon-smoke-test, which deletes it. Its 24h expiry covers a
+      # release that fails in between.
       - name: Delete Neon branch
-        if: always()
+        if: failure() || cancelled()
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
@@ -790,10 +794,78 @@ jobs:
   # Create multi-arch manifests for server images
   # ============================================
   
+  # ============================================
+  # Boot the server image just built against the migrated Neon branch, through its pooled
+  # endpoint as prod connects, and let its background tasks run. v0.20.0 passed every earlier
+  # check and failed all its queries through Neon's pooler in prod (2026-11-13). The built image,
+  # not `cargo run`: only the release profile aborts on a panic.
+  # ============================================
+  neon-smoke-test:
+    name: Smoke-test server image on Neon
+    runs-on: ubuntu-latest
+    needs: [build-docker-server, migration-branch-test]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull release image (before waking Neon)
+        run: docker pull "ghcr.io/${{ github.repository }}/server:${{ github.event.release.tag_name }}-amd64"
+
+      # Same name as migration-branch-test's branch, so the action reuses it (migrations already
+      # applied) and returns its connection strings.
+      - name: Reuse the migration-check Neon branch
+        id: branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: release/${{ github.event.release.tag_name }}-migration-check
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Warm Neon compute
+        env:
+          DATABASE_URL: ${{ steps.branch.outputs.db_url }}
+        run: psql "$DATABASE_URL" -c 'SELECT 1' >/dev/null
+
+      - name: Boot the release image and watch its background tasks
+        env:
+          DATABASE_URL: ${{ steps.branch.outputs.db_url_pooled }}
+        run: |
+          set +e
+          bash backend/scripts/compat-check.sh "$DATABASE_URL" \
+            "ghcr.io/${{ github.repository }}/server:${{ github.event.release.tag_name }}-amd64" \
+            --new-release | tee /tmp/smoke.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "## Release image on Neon (pooled)"
+            echo ""
+            grep '^COMPAT_STATUS=' /tmp/smoke.log | tail -1 || echo "No COMPAT_STATUS emitted; see the job log."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      - name: Delete Neon branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: release/${{ github.event.release.tag_name }}-migration-check
+          api_key: ${{ secrets.NEON_API_KEY }}
+
   create-manifests:
     name: Create Multi-arch Manifests
     runs-on: ubuntu-latest
-    needs: [build-docker-server, build-docker-daemon]
+    needs: [build-docker-server, build-docker-daemon, neon-smoke-test]
     permissions:
       packages: write
 
