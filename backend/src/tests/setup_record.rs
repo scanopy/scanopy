@@ -17,6 +17,7 @@ fn install_daemon(daemon_id: Uuid) -> SetupOperation {
     SetupOperation::Completed {
         item_type: SetupItemDiscriminants::InstallDaemon,
         subject_id: Some(daemon_id),
+        answers: None,
     }
 }
 
@@ -30,6 +31,7 @@ async fn concurrent_records_of_one_item_add_it_once() {
     let completed = || SetupOperation::Completed {
         item_type: SetupItemDiscriminants::Tags,
         subject_id: None,
+        answers: None,
     };
     let (a, b) = tokio::join!(
         organizations.record_setup(org.id, completed(), AuthenticatedEntity::System),

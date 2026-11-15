@@ -1564,6 +1564,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/issues/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export dashboard Issues to CSV
+         * @description Every Issue the caller sees that matches the filters, in the list's order, ignoring `limit`
+         *     and `offset`.
+         */
+        get: operations["export_dashboard_issues_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -14149,8 +14170,8 @@ export interface components {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
                 /**
-                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-                 *     step still Open.
+                 * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+                 *     a day: an Issue, or a first step still Open.
                  */
                 alerts_when_stuck: boolean;
                 item: components["schemas"]["SetupItem"];
@@ -15856,8 +15877,8 @@ export interface components {
          */
         SetupListEntry: {
             /**
-             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-             *     step still Open.
+             * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+             *     a day: an Issue, or a first step still Open.
              */
             alerts_when_stuck: boolean;
             item: components["schemas"]["SetupItem"];
@@ -21137,6 +21158,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
+                };
+            };
+        };
+    };
+    export_dashboard_issues_csv: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file containing Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };

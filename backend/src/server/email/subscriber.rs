@@ -725,6 +725,7 @@ impl Subscriber<SetupOperation> for EmailService {
             let SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::InstallDaemon,
                 subject_id,
+                ..
             } = &event.operation
             else {
                 continue;

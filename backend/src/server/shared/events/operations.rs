@@ -368,6 +368,7 @@ pub(crate) mod tests {
                     SetupOperation::Completed {
                         item_type: crate::server::setup::types::SetupItemDiscriminants::Tags,
                         subject_id: None,
+                        answers: None,
                     },
                     system(),
                 ),

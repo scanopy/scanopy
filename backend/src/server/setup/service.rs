@@ -248,6 +248,7 @@ impl SetupService {
                     SetupOperation::Completed {
                         item_type,
                         subject_id: None,
+                        answers: None,
                     },
                     entity.clone(),
                 )

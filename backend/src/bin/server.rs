@@ -331,19 +331,16 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    // Setup items left open on a trial (hourly). Cloud trials only; each item is reported once
-    // per org, after 24 hours open.
-    if deployment_type == DeploymentType::Cloud {
-        let trial_setup = state.services.setup_service.clone();
+    // Setup items opening and clearing, on every org (hourly). A trialing org's item left open
+    // 24 hours is also reported, once.
+    {
+        let setup = state.services.setup_service.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60 * 60));
             loop {
                 interval.tick().await;
-                if let Err(e) = trial_setup
-                    .sweep_trials(scanopy::server::shared::clock::now())
-                    .await
-                {
-                    tracing::error!(error = %e, "Setup trial sweep failed");
+                if let Err(e) = setup.sweep_all(scanopy::server::shared::clock::now()).await {
+                    tracing::error!(error = %e, "Setup sweep failed");
                 }
             }
         });
