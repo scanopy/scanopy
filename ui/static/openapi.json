@@ -51278,7 +51278,8 @@
           "if_descr",
           "identifier",
           "sys_name",
-          "address"
+          "address",
+          "candidate_host_ids"
         ],
         "properties": {
           "address": {
@@ -51287,6 +51288,14 @@
               "null"
             ],
             "description": "The address the far end published for itself — `lldpRemManAddr`, a `NetworkAddress` port\nid, or `cdpCacheAddress` — where it sent a usable one.\n\nCarried because it is the difference between two reports that otherwise read identically:\n\"the far end told us where it lives and this site holds no such address\" is a device\nnobody has scanned, while \"it told us nothing\" is a device that cannot be placed no matter\nhow much of the network is scanned. Without it, deciding which of the two a fleet is\nlooking at costs another round trip to the operator (GH #668)."
+          },
+          "candidate_host_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The hosts on this site the identifier matched, for an ambiguous one: the records a person\nmerges when they are one device. Empty for a neighbour that matched nothing, and on warnings\nstored before it was carried. Comes from the server's site-scoped lookups, never from a\ndaemon's report."
           },
           "host_id": {
             "type": [

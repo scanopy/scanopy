@@ -4,7 +4,6 @@
 //! - `LldpResolver` trait for LLDP neighbor resolution database lookups
 //! - `LldpResolverImpl` production implementation using database services
 
-use std::collections::HashSet;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -150,24 +149,29 @@ impl LldpResolver for LldpResolverImpl {
         let Ok(entries) = self.interface_service.get_all(filter).await else {
             return IdentityResolution::NotFound;
         };
-        let host_ids: HashSet<Uuid> = entries.iter().map(|e| e.base.host_id).collect();
-
-        match host_ids.len() {
-            0 => IdentityResolution::NotFound,
-            1 => IdentityResolution::Resolved(host_ids.into_iter().next().unwrap_or_default()),
-            _ => IdentityResolution::Ambiguous,
+        let mut host_ids: Vec<Uuid> = Vec::new();
+        for entry in &entries {
+            if !host_ids.contains(&entry.base.host_id) {
+                host_ids.push(entry.base.host_id);
+            }
         }
+
+        IdentityResolution::from_matches(host_ids)
     }
+
+    // The four lookups below fetch every matching row rather than asking `get_unique`, so an
+    // ambiguous verdict can name the hosts behind it. The verdict still counts rows, as
+    // `get_unique` did.
 
     async fn find_host_by_ip(&self, ip: &IpAddr, site_id: Uuid) -> IdentityResolution {
         let filter = StorableFilter::<IPAddress>::new_from_site_ids(&[site_id])
             .ip_address(*ip)
             .live();
-        let Ok(found) = self.ip_address_service.get_unique(filter).await else {
+        let Ok(rows) = self.ip_address_service.get_all(filter).await else {
             return IdentityResolution::NotFound;
         };
 
-        IdentityResolution::from_unique(found.map(|ip| ip.base.host_id))
+        IdentityResolution::from_matches(rows.iter().map(|ip| ip.base.host_id))
     }
 
     async fn find_host_by_if_name(&self, name: &str, site_id: Uuid) -> IdentityResolution {
@@ -175,11 +179,11 @@ impl LldpResolver for LldpResolverImpl {
             .if_descr(name)
             .walked()
             .live();
-        let Ok(found) = self.interface_service.get_unique(filter).await else {
+        let Ok(rows) = self.interface_service.get_all(filter).await else {
             return IdentityResolution::NotFound;
         };
 
-        IdentityResolution::from_unique(found.map(|entry| entry.base.host_id))
+        IdentityResolution::from_matches(rows.iter().map(|entry| entry.base.host_id))
     }
 
     async fn find_host_by_chassis_id(&self, chassis_id: &str, site_id: Uuid) -> IdentityResolution {
@@ -187,11 +191,11 @@ impl LldpResolver for LldpResolverImpl {
             .chassis_id(chassis_id)
             .live();
 
-        let Ok(found) = self.host_storage.get_unique(filter).await else {
+        let Ok(rows) = self.host_storage.get_all(filter).await else {
             return IdentityResolution::NotFound;
         };
 
-        IdentityResolution::from_unique(found.map(|host| host.id))
+        IdentityResolution::from_matches(rows.iter().map(|host| host.id))
     }
 
     async fn find_host_by_sys_name(&self, sys_name: &str, site_id: Uuid) -> IdentityResolution {
@@ -199,11 +203,11 @@ impl LldpResolver for LldpResolverImpl {
             .sys_name(sys_name)
             .live();
 
-        let Ok(found) = self.host_storage.get_unique(filter).await else {
+        let Ok(rows) = self.host_storage.get_all(filter).await else {
             return IdentityResolution::NotFound;
         };
 
-        IdentityResolution::from_unique(found.map(|host| host.id))
+        IdentityResolution::from_matches(rows.iter().map(|host| host.id))
     }
 
     async fn find_interface_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
@@ -256,7 +260,7 @@ impl LldpResolver for LldpResolverImpl {
                     // adapter as IP-bound) leaves the tie unresolved — never guess between
                     // equally-plausible candidates.
                     1 => IdentityResolution::Resolved(ip_configured[0].id),
-                    _ => IdentityResolution::Ambiguous,
+                    _ => IdentityResolution::Ambiguous(candidates.iter().map(|c| c.id).collect()),
                 }
             }
         }

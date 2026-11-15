@@ -669,12 +669,15 @@ async fn a_mac_on_every_port_of_the_far_end_resolves_to_no_port() {
             .await,
         IdentityResolution::Resolved(dlink.host.id)
     );
-    assert_eq!(
-        port_id
-            .resolve_interface_id(&lab.resolver, dlink.host.id)
-            .await,
-        IdentityResolution::Ambiguous,
-        "an address on three ports must be declined, not resolved to whichever row came back first"
+    let verdict = port_id
+        .resolve_interface_id(&lab.resolver, dlink.host.id)
+        .await;
+    assert!(
+        verdict
+            .ambiguous_candidates()
+            .is_some_and(|ports| ports.len() > 1),
+        "an address on several ports must be declined, not resolved to whichever row came back \
+         first, and the verdict names those ports: {verdict:?}"
     );
 }
 

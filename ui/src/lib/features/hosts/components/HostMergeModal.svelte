@@ -34,12 +34,20 @@
 
 	interface Props {
 		otherHost?: Host | null;
+		/** The host to merge into, preselected. A person can still pick another. */
+		destinationHost?: Host | null;
 		isOpen?: boolean;
 		onMerge: (otherHostId: string, destinationHostId: string) => Promise<void> | void;
 		onClose: () => void;
 	}
 
-	let { otherHost = null, isOpen = false, onMerge, onClose }: Props = $props();
+	let {
+		otherHost = null,
+		destinationHost = null,
+		isOpen = false,
+		onMerge,
+		onClose
+	}: Props = $props();
 
 	// TanStack Query hooks
 	//
@@ -149,7 +157,13 @@
 	});
 
 	function resetForm() {
-		selectedTargetHost = null;
+		selectedTargetHost =
+			destinationHost && destinationHost.id !== otherHost?.id
+				? {
+						...destinationHost,
+						ip_addresses: ipAddressesData.filter((a) => a.host_id === destinationHost.id)
+					}
+				: null;
 		showPreview = false;
 		loading = false;
 	}
@@ -217,6 +231,8 @@
 
 <GenericModal
 	{isOpen}
+	name="host-merge"
+	entityId={otherHost?.id}
 	title={hosts_mergeModal_title()}
 	size="lg"
 	onClose={handleClose}

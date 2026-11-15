@@ -33,6 +33,21 @@ use crate::server::services::r#impl::patterns::ClientProbe;
 /// a fixture cannot accidentally assert a provenance no real scan produces.
 const SNMP_READ: AttributeSource = AttributeSource::Probe(ClientProbe::Snmp);
 
+/// The candidates an ambiguous verdict named, sorted, so a test compares them as a set. Panics on
+/// any other verdict.
+fn ambiguous(resolution: IdentityResolution) -> Vec<Uuid> {
+    let IdentityResolution::Ambiguous(mut ids) = resolution else {
+        panic!("expected Ambiguous, got {resolution:?}");
+    };
+    ids.sort();
+    ids
+}
+
+fn sorted(mut ids: Vec<Uuid>) -> Vec<Uuid> {
+    ids.sort();
+    ids
+}
+
 /// Everything a resolution test needs: a site with hosts and interfaces in it, and a resolver
 /// pointed at the same database.
 struct Lab {
@@ -330,17 +345,21 @@ async fn a_virtually_typed_nic_with_no_address_still_resolves_its_host() {
 #[tokio::test]
 async fn one_mac_across_two_hosts_resolves_to_neither() {
     let lab = Lab::new().await;
+    let mut hosts = Vec::new();
     for name in ["switch-a", "switch-b"] {
         let h = lab.host(name).await;
         lab.port(h.id, 1, "Gi0/1", Some("00:ad:24:af:4e:00")).await;
+        hosts.push(h.id);
     }
 
     assert_eq!(
-        lab.resolver
-            .find_host_by_mac("00:ad:24:af:4e:00", lab.site_id)
-            .await,
-        IdentityResolution::Ambiguous,
-        "one MAC on two devices names neither, and says so"
+        ambiguous(
+            lab.resolver
+                .find_host_by_mac("00:ad:24:af:4e:00", lab.site_id)
+                .await
+        ),
+        sorted(hosts),
+        "one MAC on two devices names neither, and says which two"
     );
 }
 
@@ -394,14 +413,17 @@ async fn a_chassis_id_resolves_only_when_it_names_one_host() {
         IdentityResolution::Resolved(netgear.id)
     );
 
-    lab.host_with("netgear-clone", Some("00:1a:2b:00:11:00"), None)
+    let clone = lab
+        .host_with("netgear-clone", Some("00:1a:2b:00:11:00"), None)
         .await;
     assert_eq!(
-        lab.resolver
-            .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.site_id)
-            .await,
-        IdentityResolution::Ambiguous,
-        "a chassis id on two hosts identifies neither, and reports why"
+        ambiguous(
+            lab.resolver
+                .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.site_id)
+                .await
+        ),
+        sorted(vec![netgear.id, clone.id]),
+        "a chassis id on two hosts identifies neither, and names both"
     );
 }
 
@@ -418,12 +440,14 @@ async fn a_sys_name_resolves_only_when_it_names_one_host() {
         IdentityResolution::Resolved(sw.id)
     );
 
-    lab.host_with("sw-2", None, Some("core-switch")).await;
+    let sw2 = lab.host_with("sw-2", None, Some("core-switch")).await;
     assert_eq!(
-        lab.resolver
-            .find_host_by_sys_name("core-switch", lab.site_id)
-            .await,
-        IdentityResolution::Ambiguous
+        ambiguous(
+            lab.resolver
+                .find_host_by_sys_name("core-switch", lab.site_id)
+                .await
+        ),
+        sorted(vec![sw.id, sw2.id])
     );
 }
 
@@ -467,21 +491,26 @@ async fn host_lookups_do_not_cross_a_site_boundary() {
 async fn a_mac_on_several_ports_of_one_device_is_ambiguous_not_arbitrary() {
     let lab = Lab::new().await;
     let switch = lab.host("d-link").await;
+    let mut ports = Vec::new();
     for if_index in 1..=3 {
-        lab.port(
-            switch.id,
-            if_index,
-            &format!("Slot0/{if_index}"),
-            Some("00:ad:24:af:4e:00"),
-        )
-        .await;
+        let port = lab
+            .port(
+                switch.id,
+                if_index,
+                &format!("Slot0/{if_index}"),
+                Some("00:ad:24:af:4e:00"),
+            )
+            .await;
+        ports.push(port.id);
     }
 
     assert_eq!(
-        lab.resolver
-            .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
-            .await,
-        IdentityResolution::Ambiguous
+        ambiguous(
+            lab.resolver
+                .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
+                .await
+        ),
+        sorted(ports)
     );
 }
 
@@ -582,21 +611,26 @@ async fn the_ip_configured_physical_port_resolves_among_mac_sharing_siblings() {
 async fn mac_sharing_ports_with_no_ip_configured_candidate_stay_ambiguous() {
     let lab = Lab::new().await;
     let switch = lab.host("d-link").await;
+    let mut ports = Vec::new();
     for if_index in 1..=3 {
-        lab.port(
-            switch.id,
-            if_index,
-            &format!("Slot0/{if_index}"),
-            Some("00:ad:24:af:4e:00"),
-        )
-        .await;
+        let port = lab
+            .port(
+                switch.id,
+                if_index,
+                &format!("Slot0/{if_index}"),
+                Some("00:ad:24:af:4e:00"),
+            )
+            .await;
+        ports.push(port.id);
     }
 
     assert_eq!(
-        lab.resolver
-            .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
-            .await,
-        IdentityResolution::Ambiguous
+        ambiguous(
+            lab.resolver
+                .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
+                .await
+        ),
+        sorted(ports)
     );
 }
 
@@ -607,16 +641,20 @@ async fn mac_sharing_ports_with_no_ip_configured_candidate_stay_ambiguous() {
 async fn two_ip_configured_candidates_sharing_a_mac_stay_ambiguous() {
     let lab = Lab::new().await;
     let host = lab.host("teamed-nics").await;
-    lab.ip_configured_port(host.id, 1, "nic-a", Some("00:1a:2b:00:10:00"))
+    let a = lab
+        .ip_configured_port(host.id, 1, "nic-a", Some("00:1a:2b:00:10:00"))
         .await;
-    lab.ip_configured_port(host.id, 2, "nic-b", Some("00:1a:2b:00:10:00"))
+    let b = lab
+        .ip_configured_port(host.id, 2, "nic-b", Some("00:1a:2b:00:10:00"))
         .await;
 
     assert_eq!(
-        lab.resolver
-            .find_interface_by_mac("00:1a:2b:00:10:00", host.id)
-            .await,
-        IdentityResolution::Ambiguous,
+        ambiguous(
+            lab.resolver
+                .find_interface_by_mac("00:1a:2b:00:10:00", host.id)
+                .await
+        ),
+        sorted(vec![a.id, b.id]),
         "two equally-plausible candidates must not be resolved arbitrarily"
     );
 }

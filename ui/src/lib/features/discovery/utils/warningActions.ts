@@ -30,6 +30,7 @@ import {
 	discovery_fixRemoveSubnetFromScan,
 	discovery_fixSetDaemonOs,
 	discovery_fixUpdateSecret,
+	hosts_mergeDuplicates,
 	hosts_resolveUnconfirmed,
 	subnets_resolveRange,
 	support_reportBug
@@ -170,6 +171,21 @@ function openCredential(credentialId: string | undefined, tab: CredentialTab) {
 }
 
 /**
+ * The distinct sets of hosts an ambiguity row's neighbours could not choose between, each in the
+ * order the server found them (oldest first). A set of fewer than two names nothing to merge, which
+ * is every warning stored before the candidates were carried.
+ */
+export function duplicateGroupsOf(entry: Pick<WarningEntry, 'warnings'>): string[][] {
+	const groups = new Map<string, string[]>();
+	for (const w of entry.warnings) {
+		if (w.code !== 'LldpNeighbourAmbiguous' || w.candidate_host_ids.length < 2) continue;
+		const key = [...w.candidate_host_ids].sort().join(',');
+		if (!groups.has(key)) groups.set(key, w.candidate_host_ids);
+	}
+	return [...groups.values()];
+}
+
+/**
  * Where a row hands off to, when Scanopy owns the fix.
  *
  * A row without a destination renders no button rather than a dead one. The hypervisor guest
@@ -227,6 +243,25 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 				window.location.hash = 'hosts';
 				if (hostIds.length === 1) openModal('unconfirmed-host', { id: hostIds[0] });
 				else closeModal();
+			}
+		};
+	}
+
+	if (entry.code === 'LldpNeighbourAmbiguous') {
+		// Each neighbour names the hosts its identifier matched. Neighbours naming the same set are
+		// one group of records to merge. One group merges in place; several is the list, as above.
+		const groups = duplicateGroupsOf(entry);
+		if (groups.length === 0) return null;
+		return {
+			label: hosts_mergeDuplicates(),
+			icon: createIconComponent('replace'),
+			run: () => {
+				window.location.hash = 'hosts';
+				if (groups.length === 1) {
+					// The first candidate is the oldest record, so it is the one kept.
+					const [destination, other] = groups[0];
+					openModal('host-merge', { id: other, subEntityId: destination });
+				} else closeModal();
 			}
 		};
 	}
