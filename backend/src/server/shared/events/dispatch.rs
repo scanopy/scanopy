@@ -567,6 +567,7 @@ mod tests {
                 SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
                     subject_id: None,
+                    answers: None,
                 },
                 AuthenticatedEntity::System,
             ))
@@ -686,6 +687,7 @@ mod tests {
                 SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
                     subject_id: None,
+                    answers: None,
                 },
                 AuthenticatedEntity::System,
             ))
@@ -795,6 +797,7 @@ mod tests {
             .publish(setup_event(SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::Tags,
                 subject_id: None,
+                answers: None,
             }))
             .await;
         assert_eq!(handled.load(Ordering::SeqCst), 0);
@@ -840,6 +843,7 @@ mod tests {
             let event = setup_event(SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::Tags,
                 subject_id: None,
+                answers: None,
             });
             published.push(event.id);
             channel.publish(event).await;
@@ -888,6 +892,7 @@ mod tests {
                 .publish(setup_event(SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
                     subject_id: None,
+                    answers: None,
                 }))
                 .await;
         }
@@ -934,6 +939,7 @@ mod tests {
                 .publish(setup_event(SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
                     subject_id: None,
+                    answers: None,
                 }))
                 .await;
         }

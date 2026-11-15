@@ -6541,6 +6541,161 @@
         ]
       }
     },
+    "/api/v1/dashboard/issues/export/csv": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Export dashboard Issues to CSV",
+        "description": "Every Issue the caller sees that matches the filters, in the list's order, ignoring `limit`\nand `offset`.",
+        "operationId": "export_dashboard_issues_csv",
+        "parameters": [
+          {
+            "name": "site_ids",
+            "in": "query",
+            "description": "Only Issues on one of these sites, plus the Issues about the whole organization. Repeat\nfor several. Unset returns every site's.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "categories",
+            "in": "query",
+            "description": "Only Issues in one of these categories. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/IssueCategory"
+              }
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "description": "Only Issues of one of these types. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/SetupItemDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "What the list is grouped by.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/IssueOrderField"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "What the list sorts by, inside its groups.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/IssueOrderField"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for `order_by` (`group_by` always sorts ascending).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file containing Issues",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/v1/dashboard/summary": {
       "get": {
         "tags": [
@@ -45593,7 +45748,7 @@
               "properties": {
                 "alerts_when_stuck": {
                   "type": "boolean",
-                  "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+                  "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
                 },
                 "item": {
                   "$ref": "#/components/schemas/SetupItem"
@@ -49276,7 +49431,7 @@
         "properties": {
           "alerts_when_stuck": {
             "type": "boolean",
-            "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+            "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
           },
           "item": {
             "$ref": "#/components/schemas/SetupItem"

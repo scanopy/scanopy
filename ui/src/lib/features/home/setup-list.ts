@@ -52,7 +52,7 @@ export function setupStepsLeft(entries: SetupListEntry[], lapsed: boolean): numb
 	return total - done;
 }
 
-/** The server's key as a string, to key the list and the once-per-key `setup_issue_shown` event. */
+/** The server's key as a string, to key the list. */
 export function entryId(entry: SetupListEntry): string {
 	return JSON.stringify(entry.key);
 }

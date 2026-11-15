@@ -726,7 +726,7 @@ impl DbEnumContributor for IntegrationTarget {
     }
 }
 
-/// `OrgNotifications` holds the trial sweep's `SetupItemKey`s, whose `type` tag nothing else
+/// `OrgNotifications` holds the Setup sweep's `SetupItemKey`s, whose `type` tag nothing else
 /// stores. Its item types and warning codes are catalogued through their own columns.
 impl DbEnumContributor for OrgNotifications {
     fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {

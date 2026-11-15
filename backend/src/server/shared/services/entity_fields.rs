@@ -372,7 +372,7 @@ pub async fn validate_references(
 pub const CSV_SYSTEM_COLUMNS: &[&str] = &["id", "created_at", "updated_at"];
 
 /// CSV bytes for `roots` of `entity`: the system columns, then one column per exported registry
-/// field. A field with several values (children, arrays) joins them with `; `.
+/// field.
 pub async fn build_entity_csv<S: RelatedSource>(
     source: &S,
     entity: EntityDiscriminants,
@@ -384,9 +384,20 @@ pub async fn build_entity_csv<S: RelatedSource>(
         .filter(|f| f.csv)
         .map(|f| f.for_csv())
         .collect();
+    build_csv(source, CSV_SYSTEM_COLUMNS, &fields, roots).await
+}
+
+/// CSV bytes for `roots`: the `leading` columns read straight off each root, then one column per
+/// field, headed by its `id`. A field with several values (children, arrays) joins them with `; `.
+pub async fn build_csv<S: RelatedSource>(
+    source: &S,
+    leading: &[&str],
+    fields: &[EntityField],
+    roots: &[Value],
+) -> Result<Vec<u8>> {
     let mut resolver = FieldResolver::new(source);
     let mut columns = Vec::with_capacity(fields.len());
-    for field in &fields {
+    for field in fields {
         let values = resolver.resolve(field, roots).await?;
         columns.push(
             values
@@ -403,18 +414,13 @@ pub async fn build_entity_csv<S: RelatedSource>(
     }
 
     let mut writer = csv::Writer::from_writer(vec![]);
-    writer.write_record(
-        CSV_SYSTEM_COLUMNS
-            .iter()
-            .copied()
-            .chain(fields.iter().map(|f| f.id)),
-    )?;
+    writer.write_record(leading.iter().copied().chain(fields.iter().map(|f| f.id)))?;
     for (row, root) in roots.iter().enumerate() {
-        let system = CSV_SYSTEM_COLUMNS
+        let leading = leading
             .iter()
             .map(|c| root.get(*c).map(scalar_text).unwrap_or_default());
         let values = columns.iter().map(|column| column[row].clone());
-        writer.write_record(system.chain(values))?;
+        writer.write_record(leading.chain(values))?;
     }
     writer
         .into_inner()
