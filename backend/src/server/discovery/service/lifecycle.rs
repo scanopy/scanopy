@@ -5,6 +5,7 @@ impl DiscoveryService {
     #[allow(clippy::too_many_arguments)]
     pub async fn new(
         discovery_storage: Arc<GenericPostgresStorage<Discovery>>,
+        subnet_target_storage: Arc<GenericChildStorage<DiscoverySubnet>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
         credential_service: Arc<CredentialService>,
@@ -20,6 +21,7 @@ impl DiscoveryService {
         Ok(Arc::new_cyclic(|weak| Self {
             self_ref: weak.clone(),
             discovery_storage,
+            subnet_target_storage,
             sessions: RwLock::new(HashMap::new()),
             daemon_sessions: RwLock::new(HashMap::new()),
             discovery_sessions: RwLock::new(HashMap::new()),

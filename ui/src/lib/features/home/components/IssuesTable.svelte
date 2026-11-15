@@ -9,6 +9,7 @@
 	import { setupItemTiers } from '#lib/shared/stores/metadata.ts';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useInitiateDiscoveryMutation } from '#lib/features/discovery/queries.ts';
 	import { useIssuesListQuery } from '../queries';
 	import { entryId, type SetupItemType, type SetupListEntry } from '../setup-list';
 	import { setupRowView } from '../setup-row-view';
@@ -41,6 +42,7 @@
 	const lookups = setupLookups(() => issues);
 
 	let showTroubleshooting = $state(false);
+	const startScan = useInitiateDiscoveryMutation();
 
 	/** What a row says and does. Issues ask no questions, so `onAnswer` is never called. */
 	function viewOf(entry: SetupListEntry) {
@@ -48,7 +50,8 @@
 			setup,
 			lookups,
 			onAnswer: () => {},
-			onTroubleshoot: () => (showTroubleshooting = true)
+			onTroubleshoot: () => (showTroubleshooting = true),
+			onRetryScans: (scanIds) => scanIds.forEach((id) => startScan.mutate(id))
 		});
 	}
 

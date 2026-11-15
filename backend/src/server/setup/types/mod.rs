@@ -1,3 +1,14 @@
+//! The Setup list's items and their metadata. Each item's identity and list entry live in
+//! [`key`], its events in [`operation`], and the Issues list's grouping and query in [`issues`].
+
+mod issues;
+mod key;
+mod operation;
+
+pub use issues::*;
+pub use key::*;
+pub use operation::*;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use strum::{EnumIter, IntoStaticStr};
@@ -6,7 +17,10 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    daemon::discovery::types::warnings::{DiscoveryWarning, DiscoveryWarningCode},
+    daemon::discovery::types::{
+        base::DiscoveryTerminalReason,
+        warnings::{DiscoveryWarning, DiscoveryWarningCode},
+    },
     server::{
         auth::{
             access::{Action, Resource},
@@ -108,6 +122,20 @@ pub enum SetupItem {
         /// Every warning of the code from the daemon's latest runs.
         warnings: Vec<DiscoveryWarning>,
     },
+    /// A daemon's scans whose latest run ended the same way short of finishing.
+    #[schema(title = "FailedScans")]
+    FailedScans {
+        /// The daemon that ran the scans.
+        daemon_id: Uuid,
+        /// The daemon's name.
+        daemon_name: String,
+        /// The site the daemon scans.
+        site_id: Uuid,
+        /// Why the runs ended.
+        reason: DiscoveryTerminalReason,
+        /// The scans, newest run first.
+        scans: Vec<FailedScan>,
+    },
     /// Hosts known only from other devices' reports, which the user may review.
     #[schema(title = "UnconfirmedHosts")]
     UnconfirmedHosts {
@@ -183,6 +211,17 @@ pub enum SetupItem {
     Share,
 }
 
+/// A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish.
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq)]
+pub struct FailedScan {
+    /// The scan.
+    pub scan_id: Uuid,
+    /// The scan's name.
+    pub name: String,
+    /// The scan's latest run, which didn't finish.
+    pub run_id: Uuid,
+}
+
 /// Which group of the Setup list an item sits in, in display order.
 #[derive(
     Serialize,
@@ -202,177 +241,6 @@ pub enum SetupItem {
 pub enum SetupItemTier {
     Issue,
     Setup,
-}
-
-/// What an Issue's fix is about, which groups the Issues list, in display order.
-#[derive(
-    Serialize,
-    Deserialize,
-    ToSchema,
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    EnumIter,
-    IntoStaticStr,
-)]
-pub enum IssueCategory {
-    Daemons,
-    Credentials,
-    Devices,
-    Scans,
-    Review,
-}
-
-impl IssueCategory {
-    /// The entity whose icon and color the category takes.
-    fn subject(&self) -> EntityDiscriminants {
-        match self {
-            Self::Daemons => EntityDiscriminants::Daemon,
-            Self::Credentials => EntityDiscriminants::Credential,
-            Self::Devices | Self::Review => EntityDiscriminants::Host,
-            Self::Scans => EntityDiscriminants::Discovery,
-        }
-    }
-}
-
-impl HasId for IssueCategory {
-    fn id(&self) -> &'static str {
-        self.into()
-    }
-}
-
-impl EntityMetadataProvider for IssueCategory {
-    fn color(&self) -> Color {
-        self.subject().color()
-    }
-
-    fn icon(&self) -> Icon {
-        self.subject().icon()
-    }
-}
-
-impl TypeMetadataProvider for IssueCategory {
-    fn name(&self) -> &'static str {
-        match self {
-            Self::Daemons => "Daemons",
-            Self::Credentials => "Credentials",
-            Self::Devices => "Devices",
-            Self::Scans => "Scans",
-            Self::Review => "Review",
-        }
-    }
-
-    fn description(&self) -> &'static str {
-        match self {
-            Self::Daemons => "Daemons to fix, upgrade or install.",
-            Self::Credentials => "Credentials that failed, or that no scan uses.",
-            Self::Devices => "Devices that answered a scan with less than they hold.",
-            Self::Scans => "Scans that stopped early or couldn't reach part of the network.",
-            Self::Review => "Hosts and subnets other devices reported, to confirm or dismiss.",
-        }
-    }
-}
-
-/// One item's identity across sweeps and page loads.
-#[derive(
-    Serialize,
-    Deserialize,
-    ToSchema,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    EnumDiscriminants,
-)]
-#[strum_discriminants(derive(strum::VariantNames))]
-#[serde(tag = "type")]
-pub enum SetupItemKey {
-    /// An item about the whole org (InstallDaemon, Tags, ...).
-    #[schema(title = "Org")]
-    Org { item_type: SetupItemDiscriminants },
-    /// An item about one entity: a daemon's health, a credential, a site, an integration's hosts.
-    #[schema(title = "Entity")]
-    Entity {
-        item_type: SetupItemDiscriminants,
-        /// The daemon, credential or site the item concerns. For an uncovered integration, its
-        /// first host.
-        entity_id: Uuid,
-    },
-    /// One warning code from a daemon's latest runs.
-    #[schema(title = "RunWarning")]
-    RunWarning {
-        /// The daemon whose latest runs raised the warning.
-        daemon_id: Uuid,
-        code: DiscoveryWarningCode,
-    },
-}
-
-impl SetupItemKey {
-    /// The type of the item this key identifies.
-    pub fn item_type(&self) -> SetupItemDiscriminants {
-        match self {
-            Self::Org { item_type } | Self::Entity { item_type, .. } => *item_type,
-            Self::RunWarning { .. } => SetupItemDiscriminants::RunWarnings,
-        }
-    }
-}
-
-/// Where a Setup item stands. Issues are always Open.
-#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SetupItemState {
-    /// Still to do.
-    Open,
-    /// Waiting on an earlier step. Shown disabled.
-    Locked,
-    /// Done once, and done for good.
-    Done,
-}
-
-/// One Setup list row as the dashboard serves it: the item, with its identity, its tier and its
-/// state.
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct SetupListEntry {
-    /// The item's identity: the same item on the next load has the same key.
-    pub key: SetupItemKey,
-    /// The group of the list the item sits in.
-    pub tier: SetupItemTier,
-    pub state: SetupItemState,
-    /// Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-    /// step still Open.
-    pub alerts_when_stuck: bool,
-    /// The sites the item is about, which the list can be narrowed to. Empty for an item about
-    /// the whole org, which shows whatever sites are picked.
-    pub site_ids: Vec<Uuid>,
-    pub item: SetupItem,
-}
-
-impl SetupListEntry {
-    pub fn new(item: SetupItem, state: SetupItemState) -> Self {
-        let item_type = SetupItemDiscriminants::from(&item);
-        Self {
-            key: item.key(),
-            tier: item_type.tier(),
-            state,
-            alerts_when_stuck: item_type.alerts_when_stuck() && state == SetupItemState::Open,
-            site_ids: item.site_ids(),
-            item,
-        }
-    }
-}
-
-/// An Issue or first step the trial sweep saw open, and since when.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct OpenSetupItem {
-    pub key: SetupItemKey,
-    pub open_since: DateTime<Utc>,
 }
 
 impl SetupItem {
@@ -398,6 +266,12 @@ impl SetupItem {
             } => SetupItemKey::RunWarning {
                 daemon_id: *daemon_id,
                 code: *code,
+            },
+            Self::FailedScans {
+                daemon_id, reason, ..
+            } => SetupItemKey::FailedScans {
+                daemon_id: *daemon_id,
+                reason: *reason,
             },
             Self::InstallDaemon
             | Self::RunFirstScan { .. }
@@ -433,6 +307,7 @@ impl SetupItem {
             Self::DaemonHealth { site_id, .. }
             | Self::SiteWithoutDaemon { site_id, .. }
             | Self::RunWarnings { site_id, .. }
+            | Self::FailedScans { site_id, .. }
             | Self::UnconfirmedHosts { site_id, .. }
             | Self::UnconfirmedSubnets { site_id, .. } => vec![*site_id],
             Self::UncoveredIntegration { site_ids, .. } => site_ids.clone(),
@@ -472,6 +347,7 @@ impl SetupItem {
                     && (!code.concerns_credential()
                         || entity.can(Resource::Credential, Action::Read))
             }
+            Self::FailedScans { site_id, .. } => on_site(Resource::Discovery, site_id),
             Self::TargetlessCredential { .. } => entity.can(Resource::Credential, Action::Read),
             Self::UncoveredIntegration { site_ids, .. } => {
                 entity.can(Resource::Credential, Action::Read)
@@ -508,6 +384,7 @@ impl SetupItemDiscriminants {
             | Self::TargetlessCredential
             | Self::SiteWithoutDaemon
             | Self::RunWarnings
+            | Self::FailedScans
             | Self::UnconfirmedHosts
             | Self::UnconfirmedSubnets => SetupItemTier::Issue,
             Self::InstallDaemon
@@ -534,7 +411,7 @@ impl SetupItemDiscriminants {
         Some(match self {
             Self::DaemonHealth | Self::SiteWithoutDaemon => IssueCategory::Daemons,
             Self::UncoveredIntegration | Self::TargetlessCredential => IssueCategory::Credentials,
-            Self::RunWarnings => IssueCategory::Scans,
+            Self::RunWarnings | Self::FailedScans => IssueCategory::Scans,
             Self::UnconfirmedHosts | Self::UnconfirmedSubnets => IssueCategory::Review,
             Self::InstallDaemon
             | Self::RunFirstScan
@@ -570,6 +447,7 @@ impl SetupItemDiscriminants {
             | Self::TargetlessCredential
             | Self::SiteWithoutDaemon
             | Self::RunWarnings
+            | Self::FailedScans
             | Self::UnconfirmedHosts
             | Self::UnconfirmedSubnets
             | Self::InstallDaemon
@@ -602,6 +480,7 @@ impl SetupItemDiscriminants {
             | Self::TargetlessCredential
             | Self::SiteWithoutDaemon
             | Self::RunWarnings
+            | Self::FailedScans
             | Self::UnconfirmedHosts
             | Self::UnconfirmedSubnets
             | Self::InstallDaemon
@@ -652,7 +531,9 @@ impl SetupItemDiscriminants {
                 &EntityDiscriminants::Credential
             }
             Self::SiteWithoutDaemon | Self::MultiSite => &EntityDiscriminants::Site,
-            Self::RunWarnings | Self::RunFirstScan => &EntityDiscriminants::Discovery,
+            Self::RunWarnings | Self::FailedScans | Self::RunFirstScan => {
+                &EntityDiscriminants::Discovery
+            }
             Self::OpenTopology | Self::ExploreViews => &EntityDiscriminants::Topology,
             Self::AnswerProfile => &EntityDiscriminants::User,
             Self::UnconfirmedHosts => &EntityDiscriminants::Host,
@@ -690,6 +571,7 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::TargetlessCredential => "Credential not used by any scan",
             Self::SiteWithoutDaemon => "Site has no daemon",
             Self::RunWarnings => "Scan left data missing",
+            Self::FailedScans => "Scan didn't finish",
             Self::UnconfirmedHosts => "Review unconfirmed hosts",
             Self::UnconfirmedSubnets => "Review unconfirmed subnets",
             Self::InstallDaemon => "Install a daemon",
@@ -720,6 +602,7 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             }
             Self::SiteWithoutDaemon => "Nothing on this site is scanned until it has a daemon.",
             Self::RunWarnings => "The daemon's latest scan couldn't read part of your network.",
+            Self::FailedScans => "The latest run of these scans stopped before it finished.",
             Self::UnconfirmedHosts => {
                 "Other devices reported these hosts, and no scan has reached them yet. Confirm, merge or dismiss them."
             }
@@ -805,139 +688,6 @@ impl TypeMetadataProvider for SetupItemTier {
     }
 }
 
-/// The answers a question item collected. Empty when the user skipped the question.
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq)]
-#[serde(tag = "type")]
-pub enum SetupAnswers {
-    Profile {
-        job_title: Option<String>,
-        company_size: Option<String>,
-    },
-    ReferralSource {
-        referral_source: ReferralSource,
-        referral_source_other: Option<String>,
-    },
-}
-
-/// What happened to an item on an org's Setup list.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, strum::Display, EnumDiscriminants)]
-#[serde(tag = "type")]
-#[strum(serialize_all = "snake_case")]
-#[strum_discriminants(derive(
-    Hash,
-    EnumIter,
-    strum::Display,
-    strum::AsRefStr,
-    Serialize,
-    Deserialize,
-))]
-pub enum SetupOperation {
-    /// A recorded item finished. Stored in `setup`.
-    Completed {
-        item_type: SetupItemDiscriminants,
-        subject_id: Option<Uuid>,
-    },
-    /// A question item was answered (or skipped, with empty answers). Stored in `setup`.
-    Answered {
-        item_type: SetupItemDiscriminants,
-        answers: SetupAnswers,
-    },
-    /// The sweep saw an open item clear.
-    Resolved {
-        key: SetupItemKey,
-        tier: SetupItemTier,
-        hours_open: u32,
-    },
-    /// The sweep saw an item stay open 24 h on a trialing org.
-    Stuck {
-        key: SetupItemKey,
-        tier: SetupItemTier,
-        plan: BillingPlan,
-        trial_end: DateTime<Utc>,
-        hours_open: u32,
-    },
-}
-
-impl SetupOperation {
-    /// The item type this operation stores in `organizations.setup`. `None` for the sweep's
-    /// events, which store nothing there.
-    pub fn recorded_item_type(&self) -> Option<SetupItemDiscriminants> {
-        match self {
-            Self::Completed { item_type, .. } | Self::Answered { item_type, .. } => {
-                Some(*item_type)
-            }
-            Self::Resolved { .. } | Self::Stuck { .. } => None,
-        }
-    }
-
-    /// The fields consumers outside the server receive. A sweep event spreads its key into
-    /// single-level fields, so a PostHog insight breaks down on `metadata.item_type` with no
-    /// nested lookup.
-    pub fn metadata(&self) -> SetupOperationMetadata<'_> {
-        let (key, tier, plan, trial_end, hours_open) = match self {
-            Self::Completed { .. } | Self::Answered { .. } => {
-                return SetupOperationMetadata::Recorded(self);
-            }
-            Self::Resolved {
-                key,
-                tier,
-                hours_open,
-            } => (key, tier, None, None, hours_open),
-            Self::Stuck {
-                key,
-                tier,
-                plan,
-                trial_end,
-                hours_open,
-            } => (key, tier, Some(plan), Some(*trial_end), hours_open),
-        };
-        let (entity_id, daemon_id, warning_code) = match key {
-            SetupItemKey::Org { .. } => (None, None, None),
-            SetupItemKey::Entity { entity_id, .. } => (Some(*entity_id), None, None),
-            SetupItemKey::RunWarning { daemon_id, code } => (None, Some(*daemon_id), Some(*code)),
-        };
-        SetupOperationMetadata::Swept(SweptItemMetadata {
-            operation: self.into(),
-            item_type: key.item_type(),
-            entity_id,
-            daemon_id,
-            warning_code,
-            tier: *tier,
-            plan,
-            trial_end,
-            hours_open: *hours_open,
-        })
-    }
-}
-
-/// See [`SetupOperation::metadata`].
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum SetupOperationMetadata<'a> {
-    Recorded(&'a SetupOperation),
-    Swept(SweptItemMetadata<'a>),
-}
-
-/// A Resolved or Stuck event with its key's fields at the top level.
-#[derive(Serialize)]
-pub struct SweptItemMetadata<'a> {
-    #[serde(rename = "type")]
-    operation: SetupOperationDiscriminants,
-    item_type: SetupItemDiscriminants,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    entity_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    daemon_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    warning_code: Option<DiscoveryWarningCode>,
-    tier: SetupItemTier,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    plan: Option<&'a BillingPlan>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    trial_end: Option<DateTime<Utc>>,
-    hours_open: u32,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -989,56 +739,5 @@ mod tests {
         let stored = serde_json::to_value(&all).unwrap();
         let values: Vec<serde_json::Value> = serde_json::from_value(stored).unwrap();
         assert_eq!(SetupItemDiscriminants::parse_recorded(values), all);
-    }
-}
-
-/// What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, ToSchema, EnumIter)]
-#[serde(rename_all = "snake_case")]
-pub enum IssueOrderField {
-    /// The Issue's [`IssueCategory`].
-    #[default]
-    Category,
-    /// The Issue's type.
-    Type,
-}
-
-impl crate::server::shared::handlers::ordering::OrderField for IssueOrderField {
-    /// Never read: the list is ordered in memory.
-    fn to_sql(&self) -> &'static str {
-        "id"
-    }
-}
-
-/// Query parameters for paging the Issues list.
-#[derive(Deserialize, Default, Debug, Clone, utoipa::IntoParams)]
-pub struct IssueFilterQuery {
-    /// Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
-    /// for several. Unset returns every site's.
-    pub site_ids: Option<Vec<Uuid>>,
-    /// Only Issues in one of these categories. Repeat for several.
-    pub categories: Option<Vec<IssueCategory>>,
-    /// Only Issues of one of these types. Repeat for several.
-    pub types: Option<Vec<SetupItemDiscriminants>>,
-    /// What the list is grouped by.
-    pub group_by: Option<IssueOrderField>,
-    /// What the list sorts by, inside its groups.
-    pub order_by: Option<IssueOrderField>,
-    /// Direction for `order_by` (`group_by` always sorts ascending).
-    pub order_direction: Option<OrderDirection>,
-    /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
-    #[param(minimum = 0, maximum = 1000)]
-    pub limit: Option<u32>,
-    /// Number of results to skip. Default: 0.
-    #[param(minimum = 0)]
-    pub offset: Option<u32>,
-}
-
-impl IssueFilterQuery {
-    pub fn pagination(&self) -> PaginationParams {
-        PaginationParams {
-            limit: self.limit,
-            offset: self.offset,
-        }
     }
 }

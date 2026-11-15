@@ -329,6 +329,7 @@ impl ServiceFactory {
         // Already implements Arc internally due to scheduler + sessions
         let discovery_service = DiscoveryService::new(
             storage.discovery.clone(),
+            storage.discovery_subnets.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
             credential_service.clone(),

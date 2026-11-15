@@ -48,7 +48,10 @@
 	let Icon = $derived(setupItems.getIconComponent(item.type));
 	let iconColors = $derived(setupItems.getColorHelper(item.type));
 
-	let view = $derived(setupRowView(item, { setup, lookups, onAnswer, onTroubleshoot }));
+	// Setup steps run no scan again; only a failed-scan Issue does, on the Issues tab.
+	let view = $derived(
+		setupRowView(item, { setup, lookups, onAnswer, onTroubleshoot, onRetryScans: () => {} })
+	);
 
 	function runFix() {
 		trackEvent('setup_item_action_clicked', { item_type: item.type });

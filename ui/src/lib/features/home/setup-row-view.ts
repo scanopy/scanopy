@@ -22,7 +22,12 @@ import {
 } from '#lib/features/topology/queries.ts';
 import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
 import { openTab } from '#lib/shared/stores/url-state.ts';
-import { daemonHealths, setupItems } from '#lib/shared/stores/metadata.ts';
+import {
+	daemonHealths,
+	discoveryTerminalReasons,
+	scanFailureFixes,
+	setupItems
+} from '#lib/shared/stores/metadata.ts';
 import {
 	common_answer,
 	common_getStarted,
@@ -68,6 +73,7 @@ export interface SetupLookups {
 	) => (Record<string, unknown> & Parameters<typeof hostDisplayName>[0]) | undefined;
 	site: (id: string) => Record<string, unknown> | undefined;
 	credential: CredentialLookup;
+	scan: (id: string) => object | undefined;
 }
 
 /**
@@ -99,6 +105,8 @@ export interface SetupRowContext {
 	onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
 	/** Opens the daemon troubleshooting help. */
 	onTroubleshoot: () => void;
+	/** Starts a run of each of these scans. */
+	onRetryScans: (scanIds: string[]) => void;
 }
 
 function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1]) {
@@ -128,7 +136,7 @@ function reviewInferred(tab: string, siteId: string) {
 
 /** What the row for `item` says and does, by item type. */
 export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowView {
-	const { setup, lookups, onAnswer, onTroubleshoot } = ctx;
+	const { setup, lookups, onAnswer, onTroubleshoot, onRetryScans } = ctx;
 	const hostSubjects = (ids: string[]) =>
 		allOf('Host', ids, (id) => {
 			const host = lookups.host(id);
@@ -150,7 +158,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			// old release, or one that never reported its version, gets the upgrade; one on
 			// standby has had no scan in 30 days, so it gets a scan to schedule.
 			const fix: SetupFix =
-				health === 'awaiting_connection' || health === 'unreachable'
+				health === 'awaiting_connection' || health === 'unreachable' || health === 'not_checking_in'
 					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
 					: health === 'standby'
 						? { label: home_setup_scheduleScan(), run: () => go('discovery-scans') }
@@ -256,6 +264,40 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 									: common_openScanThatFoundIt(),
 							run: () => go('discovery-history', 'discovery-history-detail', { id: discoveryId })
 						}
+			};
+		}
+		case 'FailedScans': {
+			const { daemon_id: daemonId, daemon_name, reason, scans } = item;
+			// Newest run first: the run to open, and the scan whose schedule to move.
+			const newest = scans[0];
+			const fixType = discoveryTerminalReasons.getMetadata(reason).issue_fix ?? 'OpenRun';
+			const run: () => void = (() => {
+				switch (fixType) {
+					case 'RetryScan':
+						return () => onRetryScans(scans.map((s) => s.scan_id));
+					case 'TroubleshootConnection':
+						return onTroubleshoot;
+					case 'RescheduleScan':
+						return () =>
+							go('discovery-scans', 'discovery-editor', { id: newest?.scan_id, tab: 'schedule' });
+					case 'OpenRun':
+						return () =>
+							go('discovery-history', 'discovery-history-detail', { id: newest?.run_id });
+				}
+			})();
+			return {
+				title,
+				sentence: discoveryTerminalReasons.getDescription(reason),
+				subjects: [
+					...scans.map((s) => ({
+						type: 'Discovery' as const,
+						id: s.scan_id,
+						label: s.name,
+						data: lookups.scan(s.scan_id)
+					})),
+					{ type: 'Daemon', id: daemonId, label: daemon_name, data: lookups.daemon(daemonId) }
+				],
+				fix: { label: scanFailureFixes.getName(fixType), run }
 			};
 		}
 		case 'UnconfirmedHosts':

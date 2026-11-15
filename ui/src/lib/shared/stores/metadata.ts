@@ -12,6 +12,7 @@ import portsJson from '#lib/data/ports.json';
 import discoveryTypesJson from '#lib/data/discovery-types.json';
 import discoveryPhasesJson from '#lib/data/discovery-phases.json';
 import discoveryTerminalReasonsJson from '#lib/data/discovery-terminal-reasons.json';
+import scanFailureFixesJson from '#lib/data/scan-failure-fixes.json';
 import billingPlansJson from '#lib/data/billing-plans-all.json';
 import planStatusesJson from '#lib/data/plan-statuses.json';
 import emailCategoriesJson from '#lib/data/email-categories.json';
@@ -134,6 +135,7 @@ export interface MetadataRegistry {
 	discovery_types: TypeMetadata[];
 	discovery_phases: TypeMetadata[];
 	discovery_terminal_reasons: TypeMetadata[];
+	scan_failure_fixes: TypeMetadata[];
 	billing_plans: TypeMetadata[];
 	plan_statuses: TypeMetadata[];
 	email_categories: TypeMetadata[];
@@ -344,6 +346,9 @@ export interface DiscoveryTerminalReasonMetadata {
 	is_stall: boolean;
 	/** The daemon's own log lines for the run say what happened. */
 	explained_by_daemon_logs: boolean;
+	/** What the Issues row for a run that ended this way offers. `null` for a run that finished
+	 *  or that someone stopped. */
+	issue_fix: components['schemas']['ScanFailureFix'] | null;
 }
 
 export interface ContainerTypeMetadata {
@@ -372,6 +377,7 @@ export const metadata = writable<MetadataRegistry>({
 	discovery_types: discoveryTypesJson,
 	discovery_phases: discoveryPhasesJson,
 	discovery_terminal_reasons: discoveryTerminalReasonsJson,
+	scan_failure_fixes: scanFailureFixesJson,
 	billing_plans: billingPlansJson,
 	plan_statuses: planStatusesJson,
 	email_categories: emailCategoriesJson,
@@ -659,6 +665,11 @@ export const discoveryTerminalReasons = createTypeMetadataHelpers<
 	'discovery_terminal_reasons',
 	DiscoveryTerminalReasonMetadata
 >('discovery_terminal_reasons');
+/** The fix an Issues row for a scan that didn't finish offers (button label, icon), keyed by
+ *  `ScanFailureFix`. */
+export const scanFailureFixes = createTypeMetadataHelpers<'scan_failure_fixes', object>(
+	'scan_failure_fixes'
+);
 export const billingPlans = createTypeMetadataHelpers<'billing_plans', BillingPlanMetadata>(
 	'billing_plans'
 );

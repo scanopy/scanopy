@@ -1543,6 +1543,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the dashboard's Issues
+         * @description One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
+         *     summary.
+         */
+        get: operations["get_dashboard_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -4668,6 +4689,13 @@ export interface components {
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
+                /**
+                 * Format: int64
+                 * @description The Issues the caller sees, on every site.
+                 */
+                issue_count: number;
+                /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+                issue_site_ids: string[];
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
                 /**
@@ -4675,7 +4703,7 @@ export interface components {
                  *     Suggestions.
                  */
                 setup_items: components["schemas"]["SetupListEntry"][];
-                /** @description Per-site counts for every site the caller can see. */
+                /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
                 sites: components["schemas"]["SiteSummary"][];
             };
             /**
@@ -9010,7 +9038,7 @@ export interface components {
          *     filters on its value, which reads the same in every language.
          * @enum {string}
          */
-        DaemonHealth: "unsupported" | "unreachable" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
+        DaemonHealth: "unsupported" | "unreachable" | "not_checking_in" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
         /**
          * @description Legacy heartbeat payload for backwards compatibility with pre-v0.14.0 daemons.
          *     Old daemons call POST /api/daemons/{id}/heartbeat with this payload.
@@ -9213,6 +9241,13 @@ export interface components {
         };
         /** @description Dashboard summary response */
         DashboardSummary: {
+            /**
+             * Format: int64
+             * @description The Issues the caller sees, on every site.
+             */
+            issue_count: number;
+            /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+            issue_site_ids: string[];
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
             /**
@@ -9220,7 +9255,7 @@ export interface components {
              *     Suggestions.
              */
             setup_items: components["schemas"]["SetupListEntry"][];
-            /** @description Per-site counts for every site the caller can see. */
+            /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
             sites: components["schemas"]["SiteSummary"][];
         };
         /** @enum {string} */
@@ -10276,6 +10311,120 @@ export interface components {
              * @description How many lookups went unanswered.
              */
             count: number;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses the sweep covered.
+             */
+            addresses_swept: number;
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "ArpSweepTruncated";
+            /**
+             * Format: int32
+             * @description The ARP Scan Cutoff in force, as a prefix length.
+             */
+            cutoff: number;
+            /**
+             * Format: int64
+             * @description Addresses the subnet holds.
+             */
+            subnet_addresses: number;
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses the sweep pinged.
+             */
+            addresses_pinged: number;
+            /** @description The subnets the sweep cut short or never reached, in CIDR notation. */
+            cidrs_left_out: string[];
+            /** @enum {string} */
+            code: "IcmpSweepTruncated";
+            /**
+             * Format: int32
+             * @description The ARP Scan Cutoff in force, as a prefix length.
+             */
+            cutoff: number;
+        } | {
+            /**
+             * Format: int64
+             * @description Addresses probed in it that held nothing.
+             */
+            addresses: number;
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "SubnetProbedWithoutInterface";
+            /**
+             * Format: int32
+             * @description The share of the run those probes took, in minutes.
+             */
+            minutes: number;
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /** @description The subnet, in CIDR notation. */
+            cidr: string;
+            /** @enum {string} */
+            code: "ContainerSubnetScanned";
+            /**
+             * Format: uuid
+             * @description The subnet, so the UI can link it. `None` once that subnet has been deleted.
+             */
+            subnet_id: string | null;
+        } | {
+            /** @enum {string} */
+            code: "DeepScanConcurrencyReduced";
+            /**
+             * Format: int32
+             * @description Hosts deep-scanned at once under that limit.
+             */
+            concurrency: number;
+            /**
+             * Format: int32
+             * @description Hosts it deep-scans at once when the limit is not the constraint.
+             */
+            expected_concurrency: number;
+            /**
+             * Format: int64
+             * @description The daemon process's file-descriptor limit.
+             */
+            fd_limit: number;
+        } | {
+            /** @enum {string} */
+            code: "PortScanDescriptorsExhausted";
+            /**
+             * Format: int32
+             * @description The smallest port batch it fell back to.
+             */
+            lowest_batch_size: number;
+            /**
+             * Format: int32
+             * @description Times the scan shrank its batch after running out.
+             */
+            reductions: number;
+        } | {
+            /** @enum {string} */
+            code: "InterfaceFilterMatchedNothing";
+            /** @description The filter values configured on the daemon. */
+            filters: string[];
+            /** @description The interfaces the host has. */
+            interfaces: string[];
+        } | {
+            /** @enum {string} */
+            code: "ArpSweepUnavailable";
+        } | {
+            /** @enum {string} */
+            code: "IcmpSweepUnavailable";
         } | (components["schemas"]["UnmatchedNeighbour"] & {
             /** @enum {string} */
             code: "LldpNeighbourNotFound";
@@ -10361,7 +10510,7 @@ export interface components {
          *     [`DiscoveryWarning::code`] is an exhaustive match, so the two cannot drift.
          * @enum {string}
          */
-        DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "VlanPortsUnresolved" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
+        DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "VlanPortsUnresolved" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "ArpSweepTruncated" | "IcmpSweepTruncated" | "SubnetProbedWithoutInterface" | "ContainerSubnetScanned" | "DeepScanConcurrencyReduced" | "PortScanDescriptorsExhausted" | "InterfaceFilterMatchedNothing" | "ArpSweepUnavailable" | "IcmpSweepUnavailable" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
         /**
          * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
          *     Create on a resource where it adds rows.
@@ -10889,6 +11038,21 @@ export interface components {
             svg_export: boolean;
             /** @description Viewer may export the diagram as an editable Visio (VSDX) file. */
             vsdx_export: boolean;
+        };
+        /** @description A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish. */
+        FailedScan: {
+            /** @description The scan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The scan's latest run, which didn't finish.
+             */
+            run_id: string;
+            /**
+             * Format: uuid
+             * @description The scan.
+             */
+            scan_id: string;
         };
         FdbMacs: {
             /** @description MAC addresses the switch learned on this port. A port with one learned MAC can be resolved to a neighbor link; several indicate an uplink. */
@@ -12751,6 +12915,16 @@ export interface components {
              */
             number?: string | null;
         };
+        /**
+         * @description What an Issue's fix is about, which groups the Issues list, in display order.
+         * @enum {string}
+         */
+        IssueCategory: "Daemons" | "Credentials" | "Devices" | "Scans" | "Review";
+        /**
+         * @description What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.
+         * @enum {string}
+         */
+        IssueOrderField: "category" | "type";
         Ixy: {
             /** @description Horizontal position, which may be negative. */
             x: number;
@@ -13986,6 +14160,34 @@ export interface components {
             success: boolean;
         };
         /** @description Response type for paginated list endpoints (pagination is always present in meta) */
+        PaginatedApiResponse_SetupListEntry: {
+            /** @description The page of results. Empty when nothing matched the query. */
+            data: {
+                /**
+                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+                 *     step still Open.
+                 */
+                alerts_when_stuck: boolean;
+                item: components["schemas"]["SetupItem"];
+                /** @description The item's identity: the same item on the next load has the same key. */
+                key: components["schemas"]["SetupItemKey"];
+                /**
+                 * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+                 *     the whole org, which shows whatever sites are picked.
+                 */
+                site_ids: string[];
+                state: components["schemas"]["SetupItemState"];
+                /** @description The group of the list the item sits in. */
+                tier: components["schemas"]["SetupItemTier"];
+            }[];
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata, plus pagination counters. */
+            meta: components["schemas"]["PaginatedApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        /** @description Response type for paginated list endpoints (pagination is always present in meta) */
         PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: (components["schemas"]["Subnet"] & {
@@ -15044,6 +15246,11 @@ export interface components {
             percent_off: number;
         };
         /**
+         * @description What the Issues row for a scan that didn't finish offers, by why it ended.
+         * @enum {string}
+         */
+        ScanFailureFix: "RetryScan" | "OpenRun" | "TroubleshootConnection" | "RescheduleScan";
+        /**
          * @description Scan performance settings. Lives on the discovery entity.
          *     Numeric fields are `Option<T>` — `None` means "use daemon default".
          *     The daemon unwraps with defaults at point of use.
@@ -15550,10 +15757,34 @@ export interface components {
             warnings: components["schemas"]["DiscoveryWarning"][];
         } | {
             /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            /** @description The daemon's name. */
+            daemon_name: string;
+            /** @description Why the runs ended. */
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @description The scans, newest run first. */
+            scans: components["schemas"]["FailedScan"][];
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "FailedScans";
+        } | {
+            /**
              * Format: int64
              * @description The unconfirmed hosts on the sites the user reads.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the hosts are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedHosts";
         } | {
@@ -15562,6 +15793,11 @@ export interface components {
              * @description The unconfirmed subnets on the sites the user reads.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the subnets are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedSubnets";
         } | {
@@ -15617,7 +15853,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "FailedScans" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15642,6 +15878,15 @@ export interface components {
             daemon_id: string;
             /** @enum {string} */
             type: "RunWarning";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @enum {string} */
+            type: "FailedScans";
         };
         /**
          * @description Where a Setup item stands. Issues are always Open.
@@ -20890,6 +21135,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_dashboard_issues: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
                 };
             };
         };
