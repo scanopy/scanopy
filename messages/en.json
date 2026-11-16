@@ -3082,7 +3082,7 @@
 	"meta_warning_codes_LldpLocalPortDropped_name": "LLDP neighbours discarded",
 	"meta_warning_codes_LldpLocalPortMisplaced_description": "{addresses} reported LLDP neighbours whose local port could not be identified but does match an interface number ({misplaced} in total), so they are drawn against a port that may not be the right one.",
 	"meta_warning_codes_LldpLocalPortMisplaced_name": "LLDP neighbours possibly misplaced",
-	"meta_warning_codes_LldpNeighbourAmbiguous_description": "LLDP/CDP neighbours advertise an identifier that several hosts on this site hold ({count} in total), so none of them can be picked and no link is drawn. This is usually duplicate records for one device rather than a device that was missed — merge the duplicates and the link resolves.",
+	"meta_warning_codes_LldpNeighbourAmbiguous_description": "LLDP/CDP neighbours advertise an identifier that several hosts on this site hold ({count} in total), so no link is drawn to any of them. If those hosts are one device recorded twice, merge them and the link resolves. If they are separate devices, they share a default identifier such as a sysName, and it needs changing on one of them.",
 	"meta_warning_codes_LldpNeighbourAmbiguous_name": "Neighbour device identifier not unique",
 	"meta_warning_codes_LldpNeighbourNotFound_description": "LLDP/CDP neighbours name devices this site has not discovered ({count} in total), so they draw no links. This is expected where the far end is an endpoint or unmanaged device; a device that should have been scanned means the identifier it advertises is not one this site holds.",
 	"meta_warning_codes_LldpNeighbourNotFound_name": "Neighbour device not discovered",
