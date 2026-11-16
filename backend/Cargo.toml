@@ -127,7 +127,7 @@ prost = "0.14"
 prost-types = "0.14"
 tokio-stream = "0.1"
 pnet = "0.35.0"
-ipnetwork = "0.20"
+ipnetwork = "0.21"
 cidr = { version = "0.3.1", features = ["serde"] }
 if-addrs = "0.15.0"
 # mDNS/DNS-SD browsing needs IP_MULTICAST_IF to choose which interface a query leaves by, and
