@@ -1359,6 +1359,7 @@
 	"hosts_ipAddresses_placeholder": "Select subnet to create IP address on...",
 	"hosts_ipAddresses_selectToConfig": "Select an IP address from the list to configure it",
 	"hosts_ipAddresses_subnet": "Subnet {name}",
+	"hosts_mergeDuplicates": "Merge duplicate hosts",
 	"hosts_mergeModal_addressesMigrated": "{count} address(es) move from \"{source}\" to \"{destination}\"",
 	"hosts_mergeModal_chooseHost": "Choose a host...",
 	"hosts_mergeModal_credentialsMigrated": "{count} credential assignment(s) move from \"{source}\" to \"{destination}\"",

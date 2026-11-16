@@ -952,6 +952,13 @@ pub struct UnmatchedNeighbour {
     /// looking at costs another round trip to the operator (GH #668).
     #[schema(required)]
     pub address: Option<String>,
+    /// The hosts on this site the identifier matched, for an ambiguous one: the records a person
+    /// merges when they are one device. Empty for a neighbour that matched nothing, and on warnings
+    /// stored before it was carried. Comes from the server's site-scoped lookups, never from a
+    /// daemon's report.
+    #[serde(default)]
+    #[schema(required)]
+    pub candidate_host_ids: Vec<Uuid>,
 }
 
 /// A range inferred from where unplaceable far ends say they live.

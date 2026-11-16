@@ -234,7 +234,9 @@ mod topology;
 mod update;
 mod virtualization_tree;
 
-pub(crate) use same_device::{SameDevice, hosts_proven_same_device};
+pub(crate) use same_device::{
+    SameDevice, hosts_proven_same_device, inferred_hosts_sharing_chassis_id,
+};
 
 /// Statistics from LLDP link resolution.
 ///
@@ -313,7 +315,7 @@ impl LldpResolutionStats {
             // `LldpNeighbourNotFound` and `LldpNeighbourAmbiguous`, which call for opposite
             // things: an identifier matching nothing is a device that was never discovered,
             // while one matching two is a device we have, twice over.
-            IdentityResolution::NotFound | IdentityResolution::Ambiguous => None,
+            IdentityResolution::NotFound | IdentityResolution::Ambiguous(_) => None,
         }
     }
 
@@ -330,7 +332,7 @@ impl LldpResolutionStats {
             // we do have.
             IdentityResolution::NoStrategy
             | IdentityResolution::NotFound
-            | IdentityResolution::Ambiguous => Neighbor::Host(host_id),
+            | IdentityResolution::Ambiguous(_) => Neighbor::Host(host_id),
         }
     }
 }
@@ -602,6 +604,9 @@ pub(crate) struct HostMatch {
     pub matched_by: HostMatchedBy,
     pub ip_addresses: Vec<IPAddress>,
     pub same_device: Vec<SameDevice>,
+    /// Inferred hosts carrying the chassis id the payload reports for itself
+    /// ([`inferred_hosts_sharing_chassis_id`]). Merged only when the payload is a scan.
+    pub inferred_twins: Vec<SameDevice>,
 }
 
 /// A host dedup may match against, and the identities it can be matched on.
@@ -616,6 +621,9 @@ pub(crate) struct HostCandidate {
     pub virtualization: Option<HostVirtualization>,
     /// The interface on another host that presents this one, for a network identity.
     pub virtualization_interface_id: Option<Uuid>,
+    /// Whether it is an `EntitySource::Inferred` host: known from another device's report, never
+    /// scanned itself.
+    pub inferred: bool,
 }
 
 impl HostCandidate {
@@ -977,6 +985,7 @@ mod tests {
             ip_addresses,
             virtualization: None,
             virtualization_interface_id: None,
+            inferred: false,
         }
     }
 
@@ -992,6 +1001,7 @@ mod tests {
             ip_addresses,
             virtualization: None,
             virtualization_interface_id: None,
+            inferred: false,
         }
     }
 
@@ -1398,6 +1408,7 @@ mod tests {
                 network_type,
             })),
             virtualization_interface_id: None,
+            inferred: false,
         }
     }
 
@@ -1465,6 +1476,7 @@ mod tests {
                 ip_addresses: vec![runtime_row.clone()],
                 virtualization: None,
                 virtualization_interface_id: None,
+                inferred: false,
             },
         ];
 
@@ -1661,6 +1673,7 @@ mod tests {
                 guest_type: Some(ProxmoxGuestType::Qemu),
             })),
             virtualization_interface_id: None,
+            inferred: false,
         }
     }
 

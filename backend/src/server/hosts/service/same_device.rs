@@ -81,6 +81,52 @@ pub(crate) fn hosts_proven_same_device(
         .collect()
 }
 
+/// Inferred hosts this payload proves are the device it matched, because they carry the chassis id
+/// the payload reports for itself. The caller merges them into `matched`, and only for a scan.
+///
+/// An LLDP neighbour mints an Inferred host from a chassis id no host on the site carried. When a
+/// later scan reaches a host found earlier by ping alone and reads that same chassis id off it, the
+/// two records are one device. Neither the address tier nor [`hosts_proven_same_device`] links them,
+/// since the Inferred one usually holds no address at all.
+///
+/// - Only `inferred` candidates. Two scanned hosts sharing a chassis id may be distinct devices
+///   (GH #668), and only a person can tell.
+/// - Only a candidate the payload **accounts for**: every identity address it holds is one the
+///   payload also reports. A far end that published a management address the payload doesn't
+///   hold is left alone.
+/// - The id compared is the one the payload reports, never a stored value.
+pub(crate) fn inferred_hosts_sharing_chassis_id(
+    incoming: &[IPAddress],
+    incoming_chassis_id: Option<&str>,
+    matched: Uuid,
+    candidates: &[HostCandidate],
+) -> Vec<SameDevice> {
+    let Some(chassis_id) = incoming_chassis_id
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+    else {
+        return Vec::new();
+    };
+    candidates
+        .iter()
+        .filter(|c| c.id != matched && c.inferred && c.chassis_id.as_deref() == Some(chassis_id))
+        .filter_map(|c| {
+            let identity_rows: Vec<&IPAddress> = c
+                .ip_addresses
+                .iter()
+                .filter(|row| !should_skip_for_matching(row))
+                .collect();
+            identity_rows
+                .iter()
+                .all(|row| incoming.iter().any(|i| ip_addresses_share_address(i, row)))
+                .then(|| SameDevice {
+                    host_id: c.id,
+                    addresses: identity_rows.iter().map(|r| r.base.ip_address).collect(),
+                })
+        })
+        .collect()
+}
+
 /// A host [`hosts_proven_same_device`] found to be the same device, and the addresses that showed
 /// it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,6 +189,7 @@ mod tests {
             ip_addresses: rows,
             virtualization: None,
             virtualization_interface_id: None,
+            inferred: false,
         }
     }
 
@@ -418,5 +465,108 @@ mod tests {
         ];
         let sweep = [arp("192.168.4.126", lan, ens18())];
         assert_eq!(proven(&sweep, older, &candidates, &[]), vec![newer]);
+    }
+
+    fn twins(
+        incoming: &[IPAddress],
+        chassis_id: Option<&str>,
+        matched: Uuid,
+        candidates: &[HostCandidate],
+    ) -> Vec<Uuid> {
+        inferred_hosts_sharing_chassis_id(incoming, chassis_id, matched, candidates)
+            .into_iter()
+            .map(|s| s.host_id)
+            .collect()
+    }
+
+    fn with_chassis(
+        mut candidate: HostCandidate,
+        chassis_id: &str,
+        inferred: bool,
+    ) -> HostCandidate {
+        candidate.chassis_id = Some(chassis_id.to_string());
+        candidate.inferred = inferred;
+        candidate
+    }
+
+    const SWITCH_CHASSIS: &str = "00:04:38:02:e0:00";
+
+    /// snmp-test: a switch found by ping, then a neighbour minted an Inferred host from its chassis
+    /// MAC. The scan that first walks the switch reports that MAC as its own.
+    #[test]
+    fn an_inferred_host_carrying_the_scanned_chassis_id_is_its_twin() {
+        let lan = Uuid::new_v4();
+        let (scanned, minted) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![
+            with_chassis(
+                host(scanned, vec![arp("192.168.7.201", lan, ens18())]),
+                SWITCH_CHASSIS,
+                false,
+            ),
+            with_chassis(host(minted, vec![]), SWITCH_CHASSIS, true),
+        ];
+        let payload = [snmp("192.168.7.201", lan, ens18())];
+        assert_eq!(
+            twins(&payload, Some(SWITCH_CHASSIS), scanned, &candidates),
+            vec![minted]
+        );
+    }
+
+    /// Two scanned hosts sharing a chassis id can be distinct devices (GH #668).
+    #[test]
+    fn a_scanned_host_sharing_the_chassis_id_is_never_a_twin() {
+        let lan = Uuid::new_v4();
+        let (scanned, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![
+            with_chassis(
+                host(scanned, vec![arp("192.168.7.201", lan, ens18())]),
+                SWITCH_CHASSIS,
+                false,
+            ),
+            with_chassis(host(other, vec![]), SWITCH_CHASSIS, false),
+        ];
+        let payload = [snmp("192.168.7.201", lan, ens18())];
+        assert!(twins(&payload, Some(SWITCH_CHASSIS), scanned, &candidates).is_empty());
+    }
+
+    /// A far end that published an address the scan does not report is a different device.
+    #[test]
+    fn an_inferred_host_holding_an_address_the_payload_does_not_claim_is_not_a_twin() {
+        let lan = Uuid::new_v4();
+        let (scanned, minted) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![
+            with_chassis(
+                host(scanned, vec![arp("192.168.7.201", lan, ens18())]),
+                SWITCH_CHASSIS,
+                false,
+            ),
+            with_chassis(
+                host(minted, vec![arp("192.168.7.99", lan, ens19())]),
+                SWITCH_CHASSIS,
+                true,
+            ),
+        ];
+        let payload = [snmp("192.168.7.201", lan, ens18())];
+        assert!(twins(&payload, Some(SWITCH_CHASSIS), scanned, &candidates).is_empty());
+
+        let claimed = [
+            snmp("192.168.7.201", lan, ens18()),
+            snmp("192.168.7.99", lan, ens19()),
+        ];
+        assert_eq!(
+            twins(&claimed, Some(SWITCH_CHASSIS), scanned, &candidates),
+            vec![minted]
+        );
+    }
+
+    #[test]
+    fn no_reported_chassis_id_finds_no_twin() {
+        let (scanned, minted) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![with_chassis(host(minted, vec![]), SWITCH_CHASSIS, true)];
+        for chassis_id in [None, Some(""), Some("   ")] {
+            assert!(twins(&[], chassis_id, scanned, &candidates).is_empty());
+        }
+        // The matched host is never its own twin.
+        assert!(twins(&[], Some(SWITCH_CHASSIS), minted, &candidates).is_empty());
     }
 }

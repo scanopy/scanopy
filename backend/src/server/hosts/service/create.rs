@@ -585,12 +585,14 @@ impl HostService {
 
         let is_new_host = matching_result.is_none();
         let mut same_device: Vec<SameDevice> = Vec::new();
+        let mut inferred_twins: Vec<SameDevice> = Vec::new();
         let mut host_matched_by: Option<HostMatchedBy> = None;
 
         if let Some(HostMatch {
             host: existing_host,
             matched_by,
             same_device: proven,
+            inferred_twins: twins,
             ..
         }) = matching_result
         {
@@ -611,6 +613,11 @@ impl HostService {
                     host.id = existing_host.id;
                     host_matched_by = Some(matched_by);
                     same_device = proven;
+                    // Only a scan absorbs an Inferred twin. A neighbour or forwarding-table mint
+                    // reaches here too, and is itself the kind of record a scan replaces.
+                    if host.base.source == EntitySource::Discovery {
+                        inferred_twins = twins;
+                    }
                 }
             }
         }
@@ -2001,8 +2008,10 @@ impl HostService {
         // Hosts this payload proves are the same device (`hosts_proven_same_device`) merge into the
         // one it matched, now that its children are written, and still under the dedup lock so no
         // other submission can match the merged-away host halfway through.
+        // Inferred hosts carrying the chassis id this scan read off the device merge the same way:
+        // a neighbour minted them before any scan had recorded that id on this host.
         let mut merged_response = None;
-        for proven in same_device {
+        for proven in same_device.into_iter().chain(inferred_twins) {
             match self
                 .merge_same_device(&created_host.id, &proven, &authentication)
                 .await

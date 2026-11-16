@@ -78,6 +78,7 @@ pub mod host_interface_sync;
 pub mod host_mac_ordering;
 pub mod host_merge_on_discovery;
 pub mod host_naming;
+pub mod inferred_host_absorption;
 pub mod interface_neighbor_candidates;
 pub mod invite_registration;
 pub mod junction_writes;

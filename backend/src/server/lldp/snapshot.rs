@@ -17,7 +17,7 @@
 //! would start attaching links to an arbitrary one of several identically named devices — the
 //! failure `find_host_by_sys_name` and `find_interface_by_mac` are documented as preventing.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::net::IpAddr;
 
@@ -34,38 +34,56 @@ use crate::server::shared::storage::traits::Unique;
 
 /// One entry of an index over a column that does not promise uniqueness.
 ///
-/// Mirrors [`Unique`] without owning a row: the id is only meaningful while exactly one thing
-/// claimed the key, and a second claimant erases it rather than queueing behind it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Mirrors [`Unique`] without owning a row: the id resolves only while exactly one thing claimed
+/// the key. A second claimant turns it into [`Claim::Many`], which keeps every claimant in the
+/// order it was indexed so an ambiguous verdict can name them.
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Claim {
     One(Uuid),
-    Many,
+    Many(Vec<Uuid>),
 }
 
 impl Claim {
     fn verdict(found: Option<&Self>) -> Unique<Uuid> {
         match found {
             Some(Self::One(id)) => Unique::One(*id),
-            Some(Self::Many) => Unique::Multiple,
+            Some(Self::Many(_)) => Unique::Multiple,
             None => Unique::None,
+        }
+    }
+
+    /// The same verdict as [`Self::verdict`], with the claimants of an ambiguous key.
+    fn resolution(found: Option<&Self>) -> IdentityResolution {
+        match found {
+            Some(Self::One(id)) => IdentityResolution::Resolved(*id),
+            Some(Self::Many(ids)) => IdentityResolution::Ambiguous(ids.clone()),
+            None => IdentityResolution::NotFound,
         }
     }
 }
 
-/// Record that `id` claims `key`, collapsing to [`Claim::Many`] on the second distinct claimant.
+/// Record that `id` claims `key`, turning it into [`Claim::Many`] on the second distinct claimant.
 ///
-/// Distinct is the operative word: the same row indexed twice — which happens wherever one
-/// interface is reachable under two spellings of the same name — must not make the key ambiguous
+/// Distinct is the operative word: the same row indexed twice, which happens wherever one
+/// interface is reachable under two spellings of the same name, must not make the key ambiguous
 /// with itself.
 fn claim<K: Eq + Hash>(index: &mut HashMap<K, Claim>, key: K, id: Uuid) {
-    index
-        .entry(key)
-        .and_modify(|existing| {
-            if *existing != Claim::One(id) {
-                *existing = Claim::Many;
+    let Some(slot) = index.get_mut(&key) else {
+        index.insert(key, Claim::One(id));
+        return;
+    };
+    match slot {
+        Claim::One(existing) if *existing == id => {}
+        Claim::One(existing) => {
+            let first = *existing;
+            *slot = Claim::Many(vec![first, id]);
+        }
+        Claim::Many(ids) => {
+            if !ids.contains(&id) {
+                ids.push(id);
             }
-        })
-        .or_insert(Claim::One(id));
+        }
+    }
 }
 
 /// Every identity lookup resolution needs, for one site, read once.
@@ -83,8 +101,9 @@ pub struct LldpInventorySnapshot {
     /// two rows carrying one MAC is not a resolution even when both sit on one host.
     host_by_address_mac: HashMap<MacAddress, Claim>,
     /// `interfaces.mac_address` → the distinct hosts carrying it. A switch repeating its chassis
-    /// MAC across 48 ports is one host and one answer, so this collapses before counting.
-    hosts_by_interface_mac: HashMap<MacAddress, HashSet<Uuid>>,
+    /// MAC across 48 ports is one host and one answer, which a [`Claim`] already gives: it counts
+    /// distinct claimants, not rows.
+    hosts_by_interface_mac: HashMap<MacAddress, Claim>,
     /// `interfaces.if_descr` → host, site-wide, walked rows (`if_index` set) only.
     host_by_interface_descr: HashMap<String, Claim>,
 
@@ -161,11 +180,7 @@ impl LldpInventorySnapshot {
             let host_id = interface.base.host_id;
 
             if let Some(mac) = mac_of(&interface.base.mac_address) {
-                snapshot
-                    .hosts_by_interface_mac
-                    .entry(mac)
-                    .or_default()
-                    .insert(host_id);
+                claim(&mut snapshot.hosts_by_interface_mac, mac, host_id);
                 // Virtual rows are excluded from the per-host lookup only. A VLAN interface is not
                 // the far end of a cable, and letting it contest the MAC turned lookups ambiguous
                 // that no physical port would have contested. An unread `if_type` counts as
@@ -269,27 +284,15 @@ impl LldpResolver for LldpInventorySnapshot {
             return IdentityResolution::Resolved(host_id);
         }
 
-        match self.hosts_by_interface_mac.get(&mac_addr) {
-            None => IdentityResolution::NotFound,
-            Some(hosts) => match hosts.len() {
-                0 => IdentityResolution::NotFound,
-                1 => hosts
-                    .iter()
-                    .next()
-                    .copied()
-                    .map(IdentityResolution::Resolved)
-                    .unwrap_or(IdentityResolution::NotFound),
-                _ => IdentityResolution::Ambiguous,
-            },
-        }
+        Claim::resolution(self.hosts_by_interface_mac.get(&mac_addr))
     }
 
     async fn find_host_by_ip(&self, ip: &IpAddr, _site_id: Uuid) -> IdentityResolution {
-        IdentityResolution::from_unique(Claim::verdict(self.host_by_address.get(ip)))
+        Claim::resolution(self.host_by_address.get(ip))
     }
 
     async fn find_host_by_if_name(&self, name: &str, _site_id: Uuid) -> IdentityResolution {
-        IdentityResolution::from_unique(Claim::verdict(self.host_by_interface_descr.get(name)))
+        Claim::resolution(self.host_by_interface_descr.get(name))
     }
 
     async fn find_host_by_chassis_id(
@@ -297,11 +300,11 @@ impl LldpResolver for LldpInventorySnapshot {
         chassis_id: &str,
         _site_id: Uuid,
     ) -> IdentityResolution {
-        IdentityResolution::from_unique(Claim::verdict(self.host_by_chassis_id.get(chassis_id)))
+        Claim::resolution(self.host_by_chassis_id.get(chassis_id))
     }
 
     async fn find_host_by_sys_name(&self, sys_name: &str, _site_id: Uuid) -> IdentityResolution {
-        IdentityResolution::from_unique(Claim::verdict(self.host_by_sys_name.get(sys_name)))
+        Claim::resolution(self.host_by_sys_name.get(sys_name))
     }
 
     async fn find_interface_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
@@ -309,19 +312,19 @@ impl LldpResolver for LldpInventorySnapshot {
             return IdentityResolution::NotFound;
         };
         let key = (host_id, mac_addr);
-        match Claim::verdict(self.interface_by_host_mac.get(&key)) {
+        match Claim::resolution(self.interface_by_host_mac.get(&key)) {
             // Several physical rows share this MAC — see if exactly one of them is also the one
             // the device's own ipAddrTable binds an address to (mirrors `LldpResolverImpl`'s
             // `get_all`-then-narrow; this index already holds only that subset). Zero matches
             // here is still a tie among the physical candidates, not a fresh "not found" — the
             // base lookup already proved at least two rows exist.
-            Unique::Multiple => {
+            IdentityResolution::Ambiguous(candidates) => {
                 match Claim::verdict(self.interface_by_host_mac_ip_configured.get(&key)) {
                     Unique::One(id) => IdentityResolution::Resolved(id),
-                    Unique::None | Unique::Multiple => IdentityResolution::Ambiguous,
+                    Unique::None | Unique::Multiple => IdentityResolution::Ambiguous(candidates),
                 }
             }
-            verdict => IdentityResolution::from_unique(verdict),
+            verdict => verdict,
         }
     }
 
