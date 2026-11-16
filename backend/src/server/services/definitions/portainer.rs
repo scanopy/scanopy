@@ -23,10 +23,12 @@ impl ServiceDefinition for Portainer {
         DeviceTypeImplication::Server
     }
 
+    /// `ng-app="portainer"` is the root element of Portainer's page shell. A link to portainer.io
+    /// is not evidence: any page can carry one.
     fn discovery_pattern(&self) -> Pattern<'_> {
         Pattern::AnyOf(vec![
-            Pattern::Endpoint(PortType::Https9443, "/#!/auth", "portainer.io", None),
-            Pattern::Endpoint(PortType::Http9000, "/", "portainer.io", None),
+            Pattern::Endpoint(PortType::Https9443, "/", "ng-app=\"portainer\"", None),
+            Pattern::Endpoint(PortType::Http9000, "/", "ng-app=\"portainer\"", None),
         ])
     }
 

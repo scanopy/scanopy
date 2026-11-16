@@ -470,3 +470,90 @@ async fn a_mixed_conflict_enriches_the_identified_service_and_keeps_open_ports()
         Some(vec![at_lan(8083)])
     );
 }
+
+/// Web Service is a placeholder like Unclaimed Open Ports: an identified service found on a later
+/// scan takes its port, and Web Service keeps the rest.
+#[tokio::test]
+async fn an_identified_service_takes_its_port_from_web_service() {
+    let (storage, services, _container) = test_services().await;
+    let lab = Lab::new(&services, &storage).await;
+    let (lan, p80, p3000) = (lab.lan_ip(), lab.tcp(80), lab.tcp(3000));
+    let web = lab.service("Web Service", vec![(&p80, &lan), (&p3000, &lan)]);
+    lab.scan(vec![lan], vec![p80, p3000], vec![web]).await;
+
+    let (lan, p3000) = (lab.lan_ip(), lab.tcp(3000));
+    let grafana = lab.service("Grafana", vec![(&p3000, &lan)]);
+    lab.scan(vec![lan], vec![p3000], vec![grafana]).await;
+
+    assert_eq!(lab.ports_named("Grafana").await, Some(vec![at_lan(3000)]));
+    assert_eq!(lab.ports_named("Web Service").await, Some(vec![at_lan(80)]));
+}
+
+/// A service whose ports sit in both placeholders takes each from its holder, and a placeholder
+/// left with nothing goes.
+#[tokio::test]
+async fn an_identified_service_takes_ports_from_both_placeholders() {
+    let (storage, services, _container) = test_services().await;
+    let lab = Lab::new(&services, &storage).await;
+    let (lan, p22, p3000, p9999) = (lab.lan_ip(), lab.tcp(22), lab.tcp(3000), lab.tcp(9999));
+    let web = lab.service("Web Service", vec![(&p3000, &lan)]);
+    let open_ports = lab.service("Unclaimed Open Ports", vec![(&p22, &lan), (&p9999, &lan)]);
+    lab.scan(vec![lan], vec![p22, p3000, p9999], vec![web, open_ports])
+        .await;
+
+    let (lan, p22, p3000) = (lab.lan_ip(), lab.tcp(22), lab.tcp(3000));
+    let gitea = lab.service("Gitea", vec![(&p22, &lan), (&p3000, &lan)]);
+    lab.scan(vec![lan], vec![p22, p3000], vec![gitea]).await;
+
+    assert_eq!(
+        lab.ports_named("Gitea").await,
+        Some(vec![at_lan(22), at_lan(3000)])
+    );
+    assert_eq!(
+        lab.ports_named("Unclaimed Open Ports").await,
+        Some(vec![at_lan(9999)])
+    );
+    assert_eq!(lab.ports_named("Web Service").await, None);
+}
+
+/// A port that answers HTTP on a later scan moves from Unclaimed Open Ports to Web Service, the
+/// placeholder that says more about it.
+#[tokio::test]
+async fn web_service_takes_a_port_back_from_unclaimed_open_ports() {
+    let (storage, services, _container) = test_services().await;
+    let lab = Lab::new(&services, &storage).await;
+    let (lan, p22, p80) = (lab.lan_ip(), lab.tcp(22), lab.tcp(80));
+    let open_ports = lab.service("Unclaimed Open Ports", vec![(&p22, &lan), (&p80, &lan)]);
+    lab.scan(vec![lan], vec![p22, p80], vec![open_ports]).await;
+
+    let (lan, p80) = (lab.lan_ip(), lab.tcp(80));
+    let web = lab.service("Web Service", vec![(&p80, &lan)]);
+    lab.scan(vec![lan], vec![p80], vec![web]).await;
+
+    assert_eq!(lab.ports_named("Web Service").await, Some(vec![at_lan(80)]));
+    assert_eq!(
+        lab.ports_named("Unclaimed Open Ports").await,
+        Some(vec![at_lan(22)])
+    );
+}
+
+/// Unclaimed Open Ports ranks below Web Service, so a later scan reporting a Web Service port as
+/// unclaimed leaves it where it is.
+#[tokio::test]
+async fn unclaimed_open_ports_does_not_take_a_port_from_web_service() {
+    let (storage, services, _container) = test_services().await;
+    let lab = Lab::new(&services, &storage).await;
+    let (lan, p80) = (lab.lan_ip(), lab.tcp(80));
+    let web = lab.service("Web Service", vec![(&p80, &lan)]);
+    lab.scan(vec![lan], vec![p80], vec![web]).await;
+
+    let (lan, p22, p80) = (lab.lan_ip(), lab.tcp(22), lab.tcp(80));
+    let open_ports = lab.service("Unclaimed Open Ports", vec![(&p22, &lan), (&p80, &lan)]);
+    lab.scan(vec![lan], vec![p22, p80], vec![open_ports]).await;
+
+    assert_eq!(lab.ports_named("Web Service").await, Some(vec![at_lan(80)]));
+    assert_eq!(
+        lab.ports_named("Unclaimed Open Ports").await,
+        Some(vec![at_lan(22)])
+    );
+}

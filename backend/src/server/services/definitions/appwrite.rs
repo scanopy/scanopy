@@ -23,10 +23,12 @@ impl ServiceDefinition for Appwrite {
         DeviceTypeImplication::Server
     }
 
+    /// The console is served at `/console` and names itself `Appwrite Console` in its page shell.
+    /// A link to appwrite.io is not evidence: any page can carry one.
     fn discovery_pattern(&self) -> Pattern<'_> {
         Pattern::AnyOf(vec![
-            Pattern::Endpoint(PortType::Http, "/", "appwrite.io", None),
-            Pattern::Endpoint(PortType::Https, "/", "appwrite.io", None),
+            Pattern::Endpoint(PortType::Http, "/console", "Appwrite Console", None),
+            Pattern::Endpoint(PortType::Https, "/console", "Appwrite Console", None),
         ])
     }
 

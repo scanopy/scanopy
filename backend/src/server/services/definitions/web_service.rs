@@ -14,10 +14,12 @@ impl ServiceDefinition for WebService {
         "Web Service"
     }
     fn description(&self) -> &'static str {
-        "A generic web service"
+        "Ports that answered HTTP but matched no service. Reassign to the correct service if known."
     }
+    /// A placeholder like Unclaimed Open Ports: the ports it holds are waiting for an owner, and
+    /// any identified service takes them back.
     fn category(&self) -> ServiceCategory {
-        ServiceCategory::Unknown
+        ServiceCategory::OpenPorts
     }
     fn device_type(&self) -> DeviceTypeImplication {
         DeviceTypeImplication::Nothing

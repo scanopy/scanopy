@@ -23,12 +23,15 @@ impl ServiceDefinition for Grafana {
         DeviceTypeImplication::Server
     }
 
+    /// `app-grafana` is the body class Grafana renders into its page shell on every route. `/`
+    /// redirects to `/login` unless anonymous access is on, and the daemon follows no redirects,
+    /// so both paths are asked. A link to grafana.com is not evidence: any page can carry one.
     fn discovery_pattern(&self) -> Pattern<'_> {
         Pattern::AnyOf(vec![
             Pattern::Endpoint(PortType::Http, "/login", "app-grafana", None),
             Pattern::Endpoint(PortType::Http3000, "/login", "app-grafana", None),
-            Pattern::Endpoint(PortType::Http, "/", "grafana.com", None),
-            Pattern::Endpoint(PortType::Http3000, "/", "grafana.com", None),
+            Pattern::Endpoint(PortType::Http, "/", "app-grafana", None),
+            Pattern::Endpoint(PortType::Http3000, "/", "app-grafana", None),
         ])
     }
 
