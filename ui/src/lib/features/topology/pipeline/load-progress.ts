@@ -8,8 +8,9 @@
  * So the bar is planned from stages. Each stage owns a slice of the bar sized by how long that
  * stage took last time for the same topology and view (an estimate from the node count the first
  * time). The bar reaches the end of a slice only when its stage ends. Inside a slice the fill
- * moves at the recorded pace as a CSS transition, which the compositor keeps animating while the
- * main thread is blocked; that is the one part that is an estimate and not a measurement.
+ * eases toward the end at the recorded pace and keeps creeping when the stage overruns it, as a
+ * transform animation the compositor runs while the main thread is blocked; that is the one part
+ * that is an estimate and not a measurement.
  */
 
 import { writable, get } from 'svelte/store';
@@ -30,6 +31,8 @@ export interface LoadProgress {
 	expectedMs: number;
 	/** How long the stages still to come, this one included, are expected to take. */
 	remainingMs: number;
+	/** `performance.now()` when the stage was entered; 0 in a plan not yet entered. */
+	startedAt: number;
 }
 
 /** The stage a load is in, or null when nothing is loading. */
@@ -68,11 +71,35 @@ export function planStages(
 	for (const stage of stages) {
 		const expectedMs = Math.max(1, expected[stage]);
 		const to = from + ((1 - start) * expectedMs) / total;
-		plan.set(stage, { stage, from, to, expectedMs, remainingMs });
+		plan.set(stage, { stage, from, to, expectedMs, remainingMs, startedAt: 0 });
 		from = to;
 		remainingMs -= expectedMs;
 	}
 	return plan;
+}
+
+/** How far into its slice the fill may go before the stage ends. */
+const SLICE_REACH = 0.98;
+/** How long the fill keeps creeping, in multiples of the stage's expected time. */
+const CREEP_FACTOR = 8;
+/**
+ * A steep ease-out. Over `CREEP_FACTOR × expectedMs` it covers about 80% of the slice by
+ * `expectedMs`, 90% by twice that, then slows toward the end of the slice, so a stage that runs
+ * past its estimate still moves.
+ */
+const STAGE_EASING = 'cubic-bezier(0, 0.9, 0.1, 1)';
+
+/**
+ * The fill's motion through `progress`: from the start of its slice toward, and short of, the
+ * end, which the bar reaches only when the stage ends and the next one starts there.
+ */
+export function stageAnimation(progress: LoadProgress) {
+	return {
+		fromScale: progress.from,
+		toScale: progress.from + (progress.to - progress.from) * SLICE_REACH,
+		durationMs: Math.max(1, progress.expectedMs) * CREEP_FACTOR,
+		easing: STAGE_EASING
+	};
 }
 
 const STORAGE_KEY = 'scanopy_topology_stage_times';
@@ -109,7 +136,6 @@ export function expectedStageTimes(scope: string, nodeCount: number): Record<Loa
 
 let plan = new Map<LoadStage, LoadProgress>();
 let scopeOfRun = '';
-let stageStartedAt = 0;
 const measured: StageTimes = {};
 
 function now(): number {
@@ -119,7 +145,7 @@ function now(): number {
 function closeStage(): void {
 	const current = get(loadProgress);
 	if (!current) return;
-	measured[current.stage] = (measured[current.stage] ?? 0) + (now() - stageStartedAt);
+	measured[current.stage] = (measured[current.stage] ?? 0) + (now() - current.startedAt);
 }
 
 /**
@@ -151,8 +177,8 @@ export function beginLoad(scope: string, stages: LoadStage[], nodeCount = 0): Lo
 }
 
 function enter(stage: LoadStage): LoadProgress | null {
-	const next = plan.get(stage) ?? null;
-	stageStartedAt = now();
+	const planned = plan.get(stage);
+	const next = planned ? { ...planned, startedAt: now() } : null;
 	loadProgress.set(next);
 	return next;
 }

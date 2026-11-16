@@ -11,7 +11,7 @@
 	import type { DaemonMode } from '../../../types/base';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useTestReachabilityMutation, useRetryDaemonConnectionMutation } from '../../../queries';
-	import AnimatedProgressBar from '#lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
+	import AnimatedProgressBar from '#lib/shared/components/data/AnimatedProgressBar.svelte';
 	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
 	import OsSelector from '../../OsSelector.svelte';
 	import {
