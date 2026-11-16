@@ -12,7 +12,8 @@
 	import { useIssuesListQuery } from '../queries';
 	import { entryId, type SetupItemType, type SetupListEntry } from '../setup-list';
 	import { setupRowView } from '../setup-row-view';
-	import { reportShown, setupLookups } from '../setup-lookups.svelte';
+	import { setupLookups } from '../setup-lookups.svelte';
+	import { downloadCsvFrom } from '#lib/shared/utils/csvExport.ts';
 	import SetupItemSummary from './SetupItemSummary.svelte';
 	import { issueColumns } from './IssuesTable.columns';
 
@@ -74,7 +75,10 @@
 		issueColumns({ sites: () => sites, issueSites: () => issueSites, issueCell })
 	);
 
-	$effect(() => reportShown(issues));
+	/** The Issues the table's filters and order select, every page. */
+	async function handleCsvExport() {
+		await downloadCsvFrom('dashboard/issues', page.listQuery);
+	}
 </script>
 
 {#snippet issueCell(entry: SetupListEntry)}
@@ -96,6 +100,7 @@
 		onQueryChange={page.onQueryChange}
 		serverQuery={{ stale: false, tags: false, search: false }}
 		getActions={issueActions}
+		onCsvExport={handleCsvExport}
 	/>
 {/if}
 

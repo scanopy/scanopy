@@ -52,7 +52,7 @@
 	import SetupListRow from './SetupListRow.svelte';
 	import ReferralSourceModal from './ReferralSourceModal.svelte';
 	import ProfileModal from './ProfileModal.svelte';
-	import { reportShown, setupLookups } from '../setup-lookups.svelte';
+	import { setupLookups } from '../setup-lookups.svelte';
 	import {
 		doneEntries,
 		entryId,
@@ -129,9 +129,6 @@
 			});
 		}
 	});
-
-	// Open first steps (what the trial sweep reports) report once per item per page load.
-	$effect(() => reportShown(entries));
 
 	// While the create-daemon wizard waits for a daemon, poll until the org records its first
 	// connection, then tell the wizard and refresh the Daemons list, which still holds it unseen.

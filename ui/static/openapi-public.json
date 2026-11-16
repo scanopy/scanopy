@@ -37745,7 +37745,7 @@
               "properties": {
                 "alerts_when_stuck": {
                   "type": "boolean",
-                  "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+                  "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
                 },
                 "item": {
                   "$ref": "#/components/schemas/SetupItem"
@@ -41428,7 +41428,7 @@
         "properties": {
           "alerts_when_stuck": {
             "type": "boolean",
-            "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+            "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
           },
           "item": {
             "$ref": "#/components/schemas/SetupItem"

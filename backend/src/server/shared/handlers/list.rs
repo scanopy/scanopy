@@ -281,6 +281,16 @@ pub fn computed_page<L: ListRows>(
         .with_optional_group_counts(group_counts)
 }
 
+/// Every row of a list built in code that passes `query`, in the order its pages show them: what
+/// a CSV export of the list writes.
+pub fn computed_rows<L: ListRows>(rows: Vec<L::Item>, query: &L::Query) -> Vec<L::Item> {
+    let unpaged = PaginationParams {
+        limit: Some(0),
+        offset: None,
+    };
+    computed_page::<L>(rows, query, unpaged).data
+}
+
 /// A page of a list grouped by tree. SQL can't place a row under a parent it hasn't read, so
 /// the order is built here from every matching row's id, and the page is sliced from it: each
 /// parent leads its subtree, and siblings follow the sort. With no sort, siblings follow the

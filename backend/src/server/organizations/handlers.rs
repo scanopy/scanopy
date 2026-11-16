@@ -179,12 +179,13 @@ async fn update_profile(
         .organization_service
         .record_setup(
             org_id,
-            SetupOperation::Answered {
+            SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::AnswerProfile,
-                answers: SetupAnswers::Profile {
+                subject_id: None,
+                answers: Some(SetupAnswers::Profile {
                     job_title: request.job_title,
                     company_size: request.company_size,
-                },
+                }),
             },
             authentication,
         )
@@ -244,12 +245,13 @@ async fn submit_referral_source(
         .organization_service
         .record_setup(
             org_id,
-            SetupOperation::Answered {
+            SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::AnswerReferralSource,
-                answers: SetupAnswers::ReferralSource {
+                subject_id: None,
+                answers: Some(SetupAnswers::ReferralSource {
                     referral_source: request.referral_source,
                     referral_source_other: request.referral_source_other,
-                },
+                }),
             },
             authentication,
         )
@@ -302,6 +304,7 @@ async fn record_setup_item(
             SetupOperation::Completed {
                 item_type: request.item,
                 subject_id: None,
+                answers: None,
             },
             authentication,
         )

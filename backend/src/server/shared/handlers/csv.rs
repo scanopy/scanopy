@@ -76,17 +76,19 @@ where
             ApiError::internal_error(&format!("Failed to build CSV: {}", e))
         })?;
 
-    // Build response with appropriate headers
-    let filename = format!("{}.csv", T::entity_name_plural());
+    Ok(csv_response(T::entity_name_plural(), csv_data))
+}
+
+/// `csv_data` as a download named `{name}.csv`.
+pub fn csv_response(name: &str, csv_data: Vec<u8>) -> impl IntoResponse + use<> {
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/csv"));
     headers.insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
+        HeaderValue::from_str(&format!("attachment; filename=\"{name}.csv\""))
             .unwrap_or_else(|_| HeaderValue::from_static("attachment; filename=\"export.csv\"")),
     );
-
-    Ok((headers, Body::from(csv_data)))
+    (headers, Body::from(csv_data))
 }
 
 /// Response type for CSV export (used in OpenAPI documentation)

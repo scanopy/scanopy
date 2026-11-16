@@ -625,6 +625,7 @@ impl DiscoveryService {
                         SetupOperation::Completed {
                             item_type: SetupItemDiscriminants::RunFirstScan,
                             subject_id: Some(daemon_id),
+                            answers: None,
                         },
                         AuthenticatedEntity::System,
                     )
