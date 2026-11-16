@@ -5,7 +5,6 @@ use crate::server::services::r#impl::definitions::DeviceTypeImplication;
 use crate::server::services::r#impl::definitions::ServiceDefinition;
 use crate::server::services::r#impl::patterns::Pattern;
 use crate::server::shared::logos::Logo;
-use crate::server::subnets::r#impl::types::SubnetType;
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct WgDashboard;
@@ -25,15 +24,12 @@ impl ServiceDefinition for WgDashboard {
     }
 
     fn discovery_pattern(&self) -> Pattern<'_> {
-        Pattern::AllOf(vec![
-            Pattern::Endpoint(
-                PortType::new_tcp(10086),
-                "/",
-                "<title>WGDashboard</title>",
-                None,
-            ),
-            Pattern::Not(Box::new(Pattern::SubnetIsType(SubnetType::VpnTunnel))),
-        ])
+        Pattern::Endpoint(
+            PortType::new_tcp(10086),
+            "/",
+            "<title>WGDashboard</title>",
+            None,
+        )
     }
 
     fn logo(&self) -> Option<Logo> {
