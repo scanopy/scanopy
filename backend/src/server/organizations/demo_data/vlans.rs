@@ -144,3 +144,29 @@ pub(super) fn generate_subnet_vlan_records(
         })
         .collect()
 }
+
+/// The links a person made by hand. HQ Annex has had no scan, so discovery has no interface on it
+/// to read a VLAN from, but whoever wired the annex knows its staff ports carry the Users VLAN.
+pub(super) fn generate_manual_subnet_vlan_records(
+    subnets: &[Subnet],
+    vlans: &[Vlan],
+    now: DateTime<Utc>,
+) -> Vec<SubnetVlanRecord> {
+    let annex = subnets.iter().find(|s| s.base.name() == "HQ Annex");
+    let users = annex.and_then(|annex| {
+        vlans
+            .iter()
+            .find(|v| v.base.site_id == annex.base.site_id && v.base.vlan_number == 30)
+    });
+    match (annex, users) {
+        (Some(annex), Some(users)) => vec![SubnetVlanRecord {
+            id: Uuid::new_v4(),
+            created_at: now,
+            valid_from: now,
+            valid_to: None,
+            lineage_id: None,
+            base: SubnetVlanRecordBase::manual(annex.id, users.id),
+        }],
+        _ => Vec::new(),
+    }
+}

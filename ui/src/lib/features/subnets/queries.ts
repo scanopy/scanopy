@@ -266,6 +266,7 @@ export function createEmptySubnetFormData(defaultSiteId?: string): Subnet {
 		description: '',
 		subnet_type: 'Unknown',
 		virtualization_service_id: null,
+		vlan_ids: [],
 		source: {
 			type: 'Manual'
 		}

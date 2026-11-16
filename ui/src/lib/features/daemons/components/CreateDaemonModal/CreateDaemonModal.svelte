@@ -12,7 +12,8 @@
 	import { copyText } from '#lib/shared/utils/clipboard.ts';
 	import { common_failedToCopy } from '#lib/paraglide/messages.js';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
-	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import {
 		Settings,
 		Terminal,
@@ -270,8 +271,22 @@
 	const queryClient = useQueryClient();
 	const provisionedDaemonQuery = useDaemonQuery(() => provisionedDaemonId || null, {
 		enabled: () =>
-			(connectionStatus === 'waiting' || connectionStatus === 'trouble') && !!provisionedDaemonId
+			(connectionStatus === 'waiting' || connectionStatus === 'trouble' || findingNetworks) &&
+			!!provisionedDaemonId
 	});
+
+	// The networks the first scan covers. The daemon reports them right after its session starts, a
+	// few seconds after it connects, so the poll runs on until they arrive.
+	const subnetsQuery = useSubnetsQuery();
+	let reportedNetworkIds = $derived(provisionedDaemonQuery.data?.interfaced_subnet_ids ?? []);
+	let daemonNetworks = $derived(
+		(subnetsQuery.data ?? []).filter(
+			(s) =>
+				reportedNetworkIds.includes(s.id) &&
+				subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible
+		)
+	);
+	let findingNetworks = $derived(connectionStatus === 'connected' && daemonNetworks.length === 0);
 	function getDefaultDaemonName(siteId: string): string {
 		const site = sitesData.find((n) => n.id === siteId);
 		if (site) {
@@ -673,11 +688,17 @@
 		trackEvent('daemon_connected');
 	}
 
-	// Poll the provisioned daemon every 5s when waiting/trouble
+	// Poll the provisioned daemon every 5s while waiting for it, and after it connects until its
+	// networks arrive
 	$effect(() => {
-		if ((connectionStatus === 'waiting' || connectionStatus === 'trouble') && provisionedDaemonId) {
+		if (
+			(connectionStatus === 'waiting' || connectionStatus === 'trouble' || findingNetworks) &&
+			provisionedDaemonId
+		) {
 			const interval = setInterval(() => {
 				provisionedDaemonQuery.refetch();
+				// The daemon creates its subnets as it reports them, so the list has to catch up too.
+				if (findingNetworks) subnetsQuery.refetch();
 			}, 5000);
 			return () => clearInterval(interval);
 		}
@@ -942,6 +963,7 @@
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
+							{daemonNetworks}
 							onAdvanced={() => (showAdvanced = true)}
 							artifacts={installArtifacts}
 							daemonMode={(formValues.mode as DaemonMode) ?? 'daemon_poll'}

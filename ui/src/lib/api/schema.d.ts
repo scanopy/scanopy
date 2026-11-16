@@ -3411,8 +3411,11 @@ export interface paths {
         get: operations["get_subnet_by_id"];
         /**
          * Update subnet
-         * @description Updates subnet properties. If the CIDR is being changed, validates that
-         *     all existing ip_addresses on this subnet have IPs within the new CIDR range.
+         * @description Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon
+         *     interface, a container bridge, a device, or the Internet and Remote Network rows), on
+         *     `0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be
+         *     left in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one
+         *     are merged into it, and addresses are re-filed in the most specific subnet that holds them.
          */
         put: operations["update_subnet"];
         post?: never;
@@ -6711,6 +6714,12 @@ export interface components {
         ApiResponse_SubnetResponse: {
             /** @description A subnet together with what is derived from the rest of its site. */
             data?: components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -8258,6 +8267,30 @@ export interface components {
         CheckEmailResponse: {
             /** @description Whether the address has no account yet, and so can be registered. */
             available: boolean;
+        };
+        /** @description Why a subnet's range can't be changed by hand. `None` on a subnet means it can. */
+        CidrLock: {
+            /** @enum {string} */
+            type: "Organizational";
+        } | {
+            /**
+             * Format: uuid
+             * @description The runtime service that owns the bridge.
+             */
+            service_id: string;
+            /** @enum {string} */
+            type: "ContainerBridge";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that reports it.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "DaemonInterface";
+        } | {
+            /** @enum {string} */
+            type: "Discovered";
         };
         /**
          * @description Where a device's claim about itself came from.
@@ -14197,6 +14230,12 @@ export interface components {
         PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: (components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -16431,8 +16470,9 @@ export interface components {
             virtualization_service_id: string | null;
             /**
              * @description VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of
-             *     `Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,
-             *     so anything sent here on create/update is ignored by `to_params`.
+             *     `Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;
+             *     the ones discovery found stay whatever is sent, since the next scan would restore them. Not a
+             *     column on `subnets`: `SubnetService` writes the junction.
              */
             vlan_ids?: string[];
         };
@@ -16456,6 +16496,12 @@ export interface components {
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at" | "source" | "managed_by" | "utilization";
         /** @description A subnet together with what is derived from the rest of its site. */
         SubnetResponse: components["schemas"]["Subnet"] & {
+            readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+            /**
+             * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+             *     only the rest are a person's to change.
+             */
+            discovered_vlan_ids: string[];
             /**
              * Format: int32
              * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -17192,6 +17238,13 @@ export interface components {
              *     looking at costs another round trip to the operator (GH #668).
              */
             address: string | null;
+            /**
+             * @description The hosts on this site the identifier matched, for an ambiguous one: the records a person
+             *     merges when they are one device. Empty for a neighbour that matched nothing, and on warnings
+             *     stored before it was carried. Comes from the server's site-scoped lookups, never from a
+             *     daemon's report.
+             */
+            candidate_host_ids: string[];
             /**
              * Format: uuid
              * @description The local device that saw the neighbour, not the far end — the far end is what could not
@@ -26464,7 +26517,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Subnet"];
                 };
             };
-            /** @description CIDR change would orphan existing ip_addresses */
+            /** @description The CIDR can't be changed to the one requested */
             400: {
                 headers: {
                     [name: string]: unknown;

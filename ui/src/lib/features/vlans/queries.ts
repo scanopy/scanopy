@@ -1,8 +1,8 @@
 /**
  * TanStack Query hooks for VLANs
  *
- * VLANs are populated by SNMP discovery, so there is no create hook. Users edit a
- * discovered VLAN's description, or delete it.
+ * VLANs are populated by SNMP discovery, and a person can create one discovery hasn't found
+ * so a subnet can be linked to it.
  */
 
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
@@ -11,6 +11,7 @@ import { apiClient } from '#lib/api/client.ts';
 import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Vlan } from './types/base';
 import { invalidateListPages, useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 
 /**
  * VLANs list. Called with no arguments this is the shared full-list cache, so
@@ -41,6 +42,37 @@ export function useVlansListQuery(params: () => ListPageParams) {
 			apiClient.GET('/api/v1/vlans', { params: { query }, querySerializer }),
 		params
 	);
+}
+
+/**
+ * Mutation hook for creating a VLAN
+ */
+export function useCreateVlanMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: async (vlan: Vlan) => {
+			return unwrapData(await apiClient.POST('/api/v1/vlans', { body: vlan }));
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vlans.all })
+	}));
+}
+
+/** A VLAN a person is about to create. The server stamps its name `Manual` and its source. */
+export function createEmptyVlanFormData(siteId: string, organizationId: string): Vlan {
+	return {
+		id: uuidv4Sentinel,
+		created_at: utcTimeZoneSentinel,
+		updated_at: utcTimeZoneSentinel,
+		vlan_number: 1,
+		name: '',
+		name_source: 'Manual',
+		description: null,
+		site_id: siteId,
+		organization_id: organizationId,
+		source: { type: 'Manual' },
+		tags: []
+	};
 }
 
 /**

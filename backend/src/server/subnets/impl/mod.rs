@@ -1,4 +1,5 @@
 pub mod base;
+pub mod cidr_lock;
 pub mod correction_events;
 pub mod handlers;
 pub mod inference;

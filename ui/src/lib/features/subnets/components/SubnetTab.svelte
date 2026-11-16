@@ -143,7 +143,7 @@
 	let pageLoad = $derived(loadFailure(organizationQuery, subnetsQuery));
 
 	let showSubnetEditor = $state(false);
-	let editingSubnet = $state<Subnet | null>(null);
+	let editingSubnet = $state<SubnetResponse | null>(null);
 	let showProvisionalRange = $state(false);
 	let resolvingSubnet = $state<SubnetResponse | null>(null);
 
@@ -306,12 +306,12 @@
 	}
 
 	/** Straight into the editor, which is where a corrected CIDR is typed. */
-	function handleCorrectRange(subnet: Subnet) {
+	function handleCorrectRange(subnet: SubnetResponse) {
 		handleCloseProvisionalRange();
 		handleEditSubnet(subnet);
 	}
 
-	function handleEditSubnet(subnet: Subnet) {
+	function handleEditSubnet(subnet: SubnetResponse) {
 		editingSubnet = subnet;
 		showSubnetEditor = true;
 	}

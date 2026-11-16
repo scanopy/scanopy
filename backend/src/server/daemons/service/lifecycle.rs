@@ -105,6 +105,32 @@ impl DaemonService {
             })
     }
 
+    /// For each of `subnet_ids` that some daemon has an interface on, one such daemon: the
+    /// lowest id, so the answer is stable when several share a network. Unlike the lookups above
+    /// this one fails rather than degrading to empty, because its callers refuse a range edit on
+    /// what it returns and an empty answer would let that edit through.
+    pub async fn interfacing_daemon_by_subnet(
+        &self,
+        subnet_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Uuid>, anyhow::Error> {
+        if subnet_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+        let filter = StorableFilter::<DaemonInterfacedSubnet>::new_from_uuids_column(
+            "subnet_id",
+            subnet_ids,
+        );
+        let records = self
+            .interfaced_subnet_storage
+            .get_all_ordered(filter, "daemon_id ASC")
+            .await?;
+        let mut map = std::collections::HashMap::new();
+        for record in records {
+            map.entry(record.subnet_id).or_insert(record.daemon_id);
+        }
+        Ok(map)
+    }
+
     /// Replace this daemon's set of interfaced subnets in the
     /// `daemon_interfaced_subnets` junction. Every subnet id must already exist.
     pub async fn set_interfaced_subnet_ids(

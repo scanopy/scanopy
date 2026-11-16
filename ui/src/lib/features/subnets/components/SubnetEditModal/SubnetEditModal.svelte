@@ -2,12 +2,21 @@
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
 	import { required, max, cidrNotation } from '#lib/shared/components/forms/validators.ts';
-	import { createEmptySubnetFormData, isContainerSubnet } from '../../queries';
+	import { createEmptySubnetFormData } from '../../queries';
 	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
-	import type { Subnet } from '../../types/base';
+	import type { Subnet, SubnetResponse } from '../../types/base';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { navigateToEntity } from '#lib/shared/stores/modal-registry.ts';
+	import { attributeSourceLabel } from '#lib/shared/utils/attribute-source.ts';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { VlanDisplay } from '#lib/shared/components/forms/selection/display/VlanDisplay.svelte';
+	import { useVlansQuery } from '#lib/features/vlans/queries.ts';
+	import type { Vlan } from '#lib/features/vlans/types/base.ts';
+	import { disabledWhen } from '#lib/shared/components/data/types.ts';
 	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
 	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
@@ -29,13 +38,24 @@
 		common_description,
 		common_editName,
 		common_name,
+		common_openName,
 		common_saving,
 		common_update,
+		common_vlans,
 		subnets_cidrPlaceholder,
 		subnets_createSubnet,
+		subnets_cidrLockContainerBridge,
+		subnets_cidrLockDaemonInterface,
+		subnets_cidrLockDiscovered,
+		subnets_cidrLockOrganizational,
 		subnets_descriptionPlaceholder,
 		subnets_namePlaceholder,
-		subnets_subnetType
+		subnets_noVlans,
+		subnets_openRuntime,
+		subnets_selectVlan,
+		subnets_subnetType,
+		subnets_vlanDiscovered,
+		subnets_vlansHelp
 	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
@@ -44,7 +64,7 @@
 	let defaultSiteId = $derived(sitesData[0]?.id ?? '');
 
 	interface Props {
-		subnet?: Subnet | null;
+		subnet?: SubnetResponse | null;
 		isOpen?: boolean;
 		onCreate: (data: Subnet) => Promise<void> | void;
 		onUpdate: (id: string, data: Subnet) => Promise<void> | void;
@@ -83,6 +103,7 @@
 		site_id: string;
 		subnet_type: Subnet['subnet_type'];
 		tags: string[];
+		vlan_ids: string[];
 	}
 
 	function editing(): Subnet {
@@ -96,8 +117,36 @@
 			description: source.description ?? '',
 			site_id: source.site_id,
 			subnet_type: source.subnet_type,
-			tags: source.tags
+			tags: source.tags,
+			vlan_ids: source.vlan_ids ?? []
 		};
+	}
+
+	// The site and VLANs the VLAN picker reads. Kept as state because the form's own values aren't
+	// tracked by `$derived`, and synced to the form for submission.
+	let selectedSiteId = $state('');
+	let selectedVlanIds = $state<string[]>([]);
+
+	const vlansQuery = useVlansQuery();
+	let siteVlans = $derived((vlansQuery.data ?? []).filter((v) => v.site_id === selectedSiteId));
+	let vlanOptions = $derived(siteVlans.filter((v) => !selectedVlanIds.includes(v.id)));
+	let selectedVlans = $derived(
+		selectedVlanIds
+			.map((id) => (vlansQuery.data ?? []).find((v) => v.id === id))
+			.filter((v): v is Vlan => v !== undefined)
+	);
+	let discoveredVlanIds = $derived(subnet?.discovered_vlan_ids ?? []);
+
+	function setVlanIds(ids: string[]) {
+		selectedVlanIds = ids;
+		form.setFieldValue('vlan_ids', ids);
+	}
+
+	function handleSiteChange(id: string) {
+		selectedSiteId = id;
+		form.setFieldValue('site_id', id);
+		// A VLAN belongs to one site, so links to the old site's VLANs don't carry over.
+		setVlanIds(selectedVlanIds.filter((v) => siteVlans.some((s) => s.id === v)));
 	}
 
 	function getDefaultValues(): SubnetFormValues {
@@ -133,12 +182,57 @@
 	function handleOpen() {
 		const defaults = getDefaultValues();
 		form.reset(defaults);
+		selectedSiteId = defaults.site_id;
+		selectedVlanIds = defaults.vlan_ids;
 	}
 
-	// CIDR disabled state - use a function to avoid reactive dependency on form.state
-	function getIsCidrDisabled(): boolean {
-		return isContainerSubnet(editing()) || isEditing;
-	}
+	// The server says which ranges come from the network and can't be moved by hand.
+	let cidrLock = $derived(subnet?.cidr_lock ?? null);
+
+	const daemonsQuery = useDaemonsQuery({ enabled: () => cidrLock?.type === 'DaemonInterface' });
+	let lockingDaemon = $derived(
+		cidrLock?.type === 'DaemonInterface'
+			? ((daemonsQuery.data ?? []).find((d) => d.id === cidrLock.daemon_id) ?? null)
+			: null
+	);
+
+	/** Where the range comes from and when it changes, and the record to open, if there is one. */
+	let cidrLockReason = $derived.by(
+		(): { body: string; link?: { label: string; open: () => void } } | null => {
+			if (!cidrLock || !subnet) return null;
+			switch (cidrLock.type) {
+				case 'DaemonInterface': {
+					const { daemon_id } = cidrLock;
+					const name = lockingDaemon?.name ?? '';
+					return {
+						body: subnets_cidrLockDaemonInterface({ daemon: name }),
+						link: {
+							label: common_openName({ name }),
+							open: () => navigateToEntity('Daemon', daemon_id, lockingDaemon ?? undefined)
+						}
+					};
+				}
+				case 'ContainerBridge': {
+					const { service_id } = cidrLock;
+					return {
+						body: subnets_cidrLockContainerBridge(),
+						link: {
+							label: subnets_openRuntime(),
+							open: () => navigateToEntity('Service', service_id)
+						}
+					};
+				}
+				case 'Discovered':
+					return {
+						body: subnets_cidrLockDiscovered({
+							source: attributeSourceLabel(subnet.cidr_source ?? 'Unspecified')
+						})
+					};
+				case 'Organizational':
+					return { body: subnets_cidrLockOrganizational() };
+			}
+		}
+	);
 
 	async function handleSubmit() {
 		await submitForm(form);
@@ -251,21 +345,32 @@
 									id="cidr"
 									{field}
 									placeholder={subnets_cidrPlaceholder()}
-									disabled={getIsCidrDisabled()}
+									disabled={cidrLock !== null}
 									required
 								/>
 							{/snippet}
 						</form.Field>
 					</div>
 
+					{#if cidrLockReason}
+						<InlineInfo body={cidrLockReason.body}>
+							{#if cidrLockReason.link}
+								<button
+									type="button"
+									class="mt-1 text-sm text-link hover:underline"
+									onclick={cidrLockReason.link.open}
+								>
+									{cidrLockReason.link.label}
+								</button>
+							{/if}
+						</InlineInfo>
+					{/if}
+
 					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
 						<!-- Site Selection -->
 						<form.Field name="site_id">
 							{#snippet children(field)}
-								<SelectSite
-									selectedSiteId={field.state.value}
-									onSiteChange={(id) => field.handleChange(id)}
-								/>
+								<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
 							{/snippet}
 						</form.Field>
 
@@ -301,6 +406,24 @@
 							/>
 						{/snippet}
 					</form.Field>
+
+					<ListManager
+						label={common_vlans()}
+						helpText={subnets_vlansHelp()}
+						placeholder={subnets_selectVlan()}
+						emptyMessage={subnets_noVlans()}
+						allowReorder={false}
+						allowItemEdit={false}
+						showSearch={true}
+						options={vlanOptions}
+						items={selectedVlans}
+						optionDisplayComponent={VlanDisplay}
+						itemDisplayComponent={VlanDisplay}
+						itemRemoveUnavailable={(vlan) =>
+							disabledWhen(discoveredVlanIds.includes(vlan.id), subnets_vlanDiscovered())}
+						onAdd={(id) => setVlanIds([...selectedVlanIds, id])}
+						onRemove={(index) => setVlanIds(selectedVlanIds.filter((_, i) => i !== index))}
+					/>
 
 					<!-- Tags -->
 					<form.Field name="tags">

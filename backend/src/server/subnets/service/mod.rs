@@ -39,6 +39,9 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use uuid::Uuid;
 
+mod cidr_change;
+pub use cidr_change::CidrChangeRefusal;
+
 pub struct SubnetService {
     storage: Arc<GenericPostgresStorage<Subnet>>,
     event_bus: Arc<EventBus>,
@@ -176,6 +179,13 @@ impl SubnetService {
                 response.range_evidence = evidence.remove(&response.subnet.id);
             }
         }
+
+        let ids: Vec<Uuid> = responses.iter().map(|r| r.subnet.id).collect();
+        let mut discovered = self.vlan_service.discovered_ids_for_subnets(&ids).await?;
+        for response in &mut responses {
+            response.discovered_vlan_ids =
+                discovered.remove(&response.subnet.id).unwrap_or_default();
+        }
         Ok(responses)
     }
 
@@ -246,8 +256,8 @@ impl SubnetService {
         Ok(target)
     }
 
-    /// Whether narrowing `existing` to `new_cidr` would leave one of its addresses with nowhere to
-    /// go.
+    /// The first of `existing`'s addresses that narrowing it to `new_cidr` would leave with nowhere
+    /// to go, if any.
     ///
     /// Asked against the subnet list *as it would be after* the correction, which is the whole
     /// point: it is the corrected range itself that blocks the conventional bucket its own castoffs
@@ -256,17 +266,17 @@ impl SubnetService {
     ///
     /// The two arms are the two halves of [`Self::place_address`], asked without performing it, so
     /// this cannot answer differently from the re-placement that follows.
-    async fn narrowing_would_strand(
+    async fn stranded_by_narrowing(
         &self,
         existing: &Subnet,
         new_cidr: IpCidr,
         live: &[Subnet],
-    ) -> bool {
+    ) -> Option<IpAddr> {
         // Only a narrowing displaces anything. Widening adds space and a promotion moves the rung.
         if new_cidr.contains(&existing.base.cidr.first_address())
             && new_cidr.network_length() <= existing.base.cidr.network_length()
         {
-            return false;
+            return None;
         }
 
         let addresses = match self.ip_address_service.get_for_subnet(&existing.id).await {
@@ -279,7 +289,7 @@ impl SubnetService {
                     error = %e,
                     "Could not check what a narrowed range would displace"
                 );
-                return false;
+                return None;
             }
         };
 
@@ -298,8 +308,8 @@ impl SubnetService {
             .iter()
             .map(|a| a.base.ip_address)
             .filter(|ip| !new_cidr.contains(ip))
-            .any(|ip| {
-                placeable_subnet(&after, ip).is_none() && infer_range_for(ip, &after).is_none()
+            .find(|ip| {
+                placeable_subnet(&after, *ip).is_none() && infer_range_for(*ip, &after).is_none()
             })
     }
 
@@ -426,6 +436,34 @@ impl CrudService<Subnet> for SubnetService {
         Some(&self.entity_tag_service)
     }
 
+    /// A move to a new range goes through [`Self::move_range`], which keeps the old range in
+    /// history and re-files the addresses the move affects. Anything else is a plain update.
+    async fn update(
+        &self,
+        entity: &mut Subnet,
+        authentication: AuthenticatedEntity,
+        reason: UpdateReason,
+    ) -> Result<Subnet, anyhow::Error> {
+        let current = self
+            .get_by_id(&entity.id)
+            .await?
+            .ok_or_else(|| Error::msg(format!("Could not find {entity}")))?;
+        let mut updated = if current.base.cidr.value() == entity.base.cidr.value() {
+            self.update_base(entity, authentication, reason).await?
+        } else {
+            self.move_range(current, entity, authentication, reason)
+                .await?
+        };
+        // `vlan_ids` reads back every link; writing it sets the ones discovery didn't find, so a
+        // caller sending back what it read changes nothing.
+        self.vlan_service
+            .set_manual_subnet_vlans(&updated.id, &entity.base.vlan_ids)
+            .await?;
+        self.hydrate_vlans(std::slice::from_mut(&mut updated))
+            .await?;
+        Ok(updated)
+    }
+
     async fn get_by_id(&self, id: &Uuid) -> Result<Option<Subnet>, anyhow::Error> {
         match self.storage().get_by_id(id).await? {
             Some(mut subnet) => {
@@ -537,8 +575,9 @@ impl CrudService<Subnet> for SubnetService {
         let correctable = match correctable {
             Some(existing)
                 if self
-                    .narrowing_would_strand(existing, *subnet.base.cidr, &all_subnets)
-                    .await =>
+                    .stranded_by_narrowing(existing, *subnet.base.cidr, &all_subnets)
+                    .await
+                    .is_some() =>
             {
                 tracing::info!(
                     site_id = %subnet.base.site_id,
@@ -651,14 +690,22 @@ impl CrudService<Subnet> for SubnetService {
                 ) {
                     self.event_bus()
                         .publish(
-                            Event::new(scope, EntityOperation::Created, authentication).with_flags(
-                                EntityEventFlags {
+                            Event::new(scope, EntityOperation::Created, authentication.clone())
+                                .with_flags(EntityEventFlags {
                                     trigger_stale,
                                     ..Default::default()
-                                },
-                            ),
+                                }),
                         )
                         .await;
+                }
+
+                // A range a person records swallows the guesses inside it. Discovery leaves several
+                // for a person to merge (above); this is that person.
+                if created.base.source == EntitySource::Manual {
+                    self.vlan_service
+                        .set_manual_subnet_vlans(&created.id, &subnet.base.vlan_ids)
+                        .await?;
+                    self.absorb_assumed_ranges(&created, authentication).await?;
                 }
 
                 subnet
