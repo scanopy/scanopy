@@ -40,7 +40,7 @@ import {
 	home_nudges_inviteTeamAction,
 	home_nudges_multiSiteAction,
 	home_nudges_shareAction,
-	home_nudges_tagsAction,
+	home_nudges_tagHostsAction,
 	home_nudges_targetlessCredentialAction,
 	home_nudges_targetlessCredentialDescription,
 	home_nudges_unconfirmedHostsDescription,
@@ -49,7 +49,7 @@ import {
 	home_nudges_unconfirmedSubnetsDescription,
 	home_setup_installDaemonOnSite,
 	home_setup_openDaemon,
-	home_setup_scheduleScan,
+	home_setup_runScan,
 	home_setup_troubleshootConnection
 } from '#lib/paraglide/messages.js';
 import type { SetupItem, SetupItemType } from './setup-list';
@@ -126,6 +126,11 @@ function reviewInferred(tab: string, siteId: string) {
 	return () => openTab(tab, new URLSearchParams({ sources: 'Inferred', site_ids: siteId }));
 }
 
+/** Opens the scans list filtered to one daemon's scans. */
+function daemonScans(daemonId: string) {
+	return () => openTab('discovery-scans', new URLSearchParams({ daemon_ids: daemonId }));
+}
+
 /** What the row for `item` says and does, by item type. */
 export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowView {
 	const { setup, lookups, onAnswer, onTroubleshoot } = ctx;
@@ -148,12 +153,13 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			const { daemon_id: id, name, health } = item;
 			// A daemon that isn't talking to the server gets the connection help; one on an
 			// old release, or one that never reported its version, gets the upgrade; one on
-			// standby has had no scan in 30 days, so it gets a scan to schedule.
+			// standby has had no scan in 30 days, and starting one of its scans wakes it, so it
+			// gets its own scans, each with Run.
 			const fix: SetupFix =
 				health === 'awaiting_connection' || health === 'unreachable'
 					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
 					: health === 'standby'
-						? { label: home_setup_scheduleScan(), run: () => go('discovery-scans') }
+						? { label: home_setup_runScan(), run: daemonScans(id) }
 						: health === 'outdated' ||
 							  health === 'deprecated' ||
 							  health === 'unsupported' ||
@@ -283,10 +289,12 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 				label: gettingStarted_stepDaemonLabel(),
 				run: () => go('daemons', 'create-daemon')
 			});
+		// Registration creates and starts the first daemon's scans, so its list shows the scan
+		// running, or Run if it stopped.
 		case 'RunFirstScan':
 			return plain({
 				label: gettingStarted_stepDiscoveryLabel(),
-				run: () => go('discovery-scans')
+				run: item.daemon_id ? daemonScans(item.daemon_id) : () => go('discovery-scans')
 			});
 		case 'OpenTopology':
 			return plain({ label: common_viewTopology(), run: () => go('topology') });
@@ -331,7 +339,9 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 				run: () => go('credentials', 'credential-editor')
 			});
 		case 'Tags':
-			return plain({ label: home_nudges_tagsAction(), run: () => go('tags', 'tag-editor') });
+			// The step needs a tag on an entity. Each host's Tags cell assigns one, and creates it
+			// from a typed name when the org has none.
+			return plain({ label: home_nudges_tagHostsAction(), run: () => go('hosts') });
 		case 'InviteTeam':
 			return plain({
 				label: home_nudges_inviteTeamAction(),
