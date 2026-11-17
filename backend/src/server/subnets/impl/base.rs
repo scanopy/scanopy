@@ -374,6 +374,13 @@ impl Subnet {
         match ip_network {
             IpNetwork::V6(_) => None,
             IpNetwork::V4(ipv4_network) => {
+                // A Windows adapter can report 0.0.0.0/0, which would become a subnet holding
+                // every address and be swept from 0.0.0.0. Every other prefix is
+                // kept, however short, so a real large network is not dropped.
+                if ipv4_network.prefix() == 0 {
+                    return None;
+                }
+
                 // Non-loopback CIDRs on loopback ip_addresses (e.g. 10.99.0.0/24 aliased
                 // on lo0) are real networks, not loopback
                 if subnet_type.is_loopback() && ipv4_network.ip().octets()[0] != 127 {
@@ -589,6 +596,21 @@ mod tests {
             AttributeSource::DaemonSelfReport,
         );
         assert!(result.is_some(), "/2 prefix should be accepted");
+    }
+
+    #[test]
+    fn from_discovery_rejects_the_whole_address_space_and_keeps_shorter_real_prefixes() {
+        let from = |cidr: &str| {
+            Subnet::from_discovery(
+                "Ethernet 2".to_string(),
+                &IpNetwork::from_str(cidr).unwrap(),
+                Uuid::nil(),
+                AttributeSource::DaemonSelfReport,
+            )
+        };
+        assert!(from("0.0.0.0/0").is_none());
+        assert!(from("10.0.0.0/1").is_some());
+        assert!(from("10.0.0.0/8").is_some());
     }
 
     fn subnet(subnet_type: SubnetType, virtualization_service_id: Option<Uuid>) -> Subnet {
