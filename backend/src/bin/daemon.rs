@@ -349,6 +349,12 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
         tracing::warn!("  See: https://scanopy.net/docs/guides/unified-discovery-migration/");
     }
 
+    if config.use_npcap_arp {
+        tracing::warn!(
+            "Deprecated config: --use-npcap-arp / SCANOPY_USE_NPCAP_ARP has no effect. Set Use Npcap ARP (Windows) on the scan's Performance tab."
+        );
+    }
+
     {
         use scanopy::server::discovery::r#impl::scan_settings::defaults;
         let has_deprecated_scan_settings = config.arp_retries != defaults::arp_retries()
