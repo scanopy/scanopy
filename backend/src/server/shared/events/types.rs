@@ -373,6 +373,8 @@ pub enum UpdateReason {
     IpAddressSubnetMerged,
     /// Its subnet was narrowed and no longer held it, so it moved to one that does.
     IpAddressSubnetNarrowed,
+    /// A subnet was moved over it that holds it more specifically than the one it was in.
+    IpAddressSubnetWidened,
     /// A member service changed or went, so the members were updated.
     DependencyMembersChanged,
     /// Discovery read the range again: last seen refreshed, type corrected, or an owner adopted.
@@ -505,6 +507,9 @@ impl UpdateReason {
             Self::IpAddressSubnetMerged => "its subnet was merged into another".to_string(),
             Self::IpAddressSubnetNarrowed => {
                 "its subnet was narrowed and no longer held it".to_string()
+            }
+            Self::IpAddressSubnetWidened => {
+                "a subnet that holds it more specifically was moved over it".to_string()
             }
             Self::DependencyMembersChanged => "a member service changed".to_string(),
             Self::SubnetRediscovered => "discovery read the range again".to_string(),

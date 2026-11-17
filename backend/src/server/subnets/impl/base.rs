@@ -231,10 +231,10 @@ pub struct SubnetBase {
     /// Will be automatically set to Manual for creation through API
     pub source: EntitySource,
     /// VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of
-    /// `Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,
-    /// so anything sent here on create/update is ignored by `to_params`.
+    /// `Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;
+    /// the ones discovery found stay whatever is sent, since the next scan would restore them. Not a
+    /// column on `subnets`: `SubnetService` writes the junction.
     #[serde(default)]
-    #[schema(read_only)]
     pub vlan_ids: Vec<Uuid>,
     /// Tags assigned to this entity.
     #[serde(default)]
@@ -553,8 +553,10 @@ impl crate::server::shared::events::log::EntityLog for Subnet {
 }
 
 impl ChangeTriggersTopologyStaleness<Subnet> for Subnet {
-    fn triggers_staleness(&self, _other: Option<Subnet>) -> bool {
-        false
+    /// A moved range regroups the addresses topology draws inside it; nothing else about a subnet
+    /// changes the layout.
+    fn triggers_staleness(&self, other: Option<Subnet>) -> bool {
+        other.is_some_and(|before| before.base.cidr.value() != self.base.cidr.value())
     }
 }
 

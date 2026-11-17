@@ -283,10 +283,38 @@ impl<T: Snapshotable + Display> GenericPostgresStorage<T> {
         member_of: impl Fn(&T) -> Uuid,
         new_row: impl Fn(Uuid) -> T,
     ) -> Result<()> {
+        self.sync_members_within(key, |_| true, member_ids, member_of, new_row)
+            .await
+    }
+
+    /// [`Self::sync_members_for`] over only the rows of `key`'s set that `in_scope` accepts, for a
+    /// set two writers share, each owning its own rows (subnet-VLAN links found by discovery and
+    /// set by a person). Rows outside the scope are left alone, and a member one of them already
+    /// holds gets no second live row in this scope.
+    pub async fn sync_members_within(
+        &self,
+        key: &RelationKey<T>,
+        in_scope: impl Fn(&T) -> bool,
+        member_ids: &[Uuid],
+        member_of: impl Fn(&T) -> Uuid,
+        new_row: impl Fn(Uuid) -> T,
+    ) -> Result<()> {
         let mut tx = self.begin_transaction().await?;
         tx.lock(key.lock_key(), DEFAULT_LOCK_TIMEOUT).await?;
 
-        let existing = tx.get_all(key.filter().live()).await?;
+        let (existing, others): (Vec<T>, Vec<T>) = tx
+            .get_all(key.filter().live())
+            .await?
+            .into_iter()
+            .partition(|row| in_scope(row));
+        let held_elsewhere: std::collections::HashSet<Uuid> =
+            others.iter().map(&member_of).collect();
+        let member_ids: Vec<Uuid> = member_ids
+            .iter()
+            .copied()
+            .filter(|id| !held_elsewhere.contains(id))
+            .collect();
+        let member_ids = member_ids.as_slice();
         let wanted: std::collections::HashSet<Uuid> = member_ids.iter().copied().collect();
         let held: std::collections::HashSet<Uuid> = existing.iter().map(&member_of).collect();
 

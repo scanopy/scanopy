@@ -17,7 +17,7 @@ use crate::server::{
         handlers::{VlanDiscoveryItem, VlanDiscoveryResponse, VlanDiscoveryResponseItem},
         r#impl::{
             base::{Vlan, VlanName, VlanNameValue},
-            subnet_vlans::{SubnetVlanRecord, SubnetVlanRecordBase},
+            subnet_vlans::{SubnetVlanRecord, SubnetVlanRecordBase, SubnetVlanSource},
         },
     },
 };
@@ -159,6 +159,28 @@ impl VlanService {
             .collect())
     }
 
+    /// Subnet ID → the VLANs discovery linked it to (live links). The rest of `Subnet::vlan_ids`
+    /// are links a person set, which a person can remove.
+    pub async fn discovered_ids_for_subnets(
+        &self,
+        subnet_ids: &[Uuid],
+    ) -> Result<HashMap<Uuid, Vec<Uuid>>> {
+        Ok(self
+            .subnet_vlan_storage
+            .get_for_many(&R::SUBNET_VLAN_SUBNET, subnet_ids)
+            .await?
+            .into_iter()
+            .map(|(subnet_id, records)| {
+                let discovered = records
+                    .iter()
+                    .filter(|r| r.base.source == SubnetVlanSource::Discovery)
+                    .map(|r| r.vlan_id())
+                    .collect();
+                (subnet_id, discovered)
+            })
+            .collect())
+    }
+
     /// VLAN id → the subnets it is linked to, live links only.
     pub async fn subnet_ids_for_vlans(
         &self,
@@ -193,13 +215,32 @@ impl VlanService {
     /// Make `vlan_ids` a subnet's linked VLANs. Soft-closes live links not in the set, so the
     /// "this VLAN was associated with this subnet during [valid_from, valid_to]" answer stays
     /// queryable as of any time; inserts live links for additions; leaves unchanged links alone.
+    ///
+    /// Discovery's links only: a link a person set stays whatever a scan finds, and a VLAN a person
+    /// already linked gets no second row.
     pub async fn set_subnet_vlans(&self, subnet_id: &Uuid, vlan_ids: &[Uuid]) -> Result<()> {
         self.subnet_vlan_storage
-            .sync_members_for(
+            .sync_members_within(
                 &R::SUBNET_VLAN_SUBNET.at(*subnet_id),
+                |r| r.base.source == SubnetVlanSource::Discovery,
                 vlan_ids,
                 SubnetVlanRecord::vlan_id,
                 |vlan_id| SubnetVlanRecord::new(SubnetVlanRecordBase::new(*subnet_id, vlan_id)),
+            )
+            .await
+    }
+
+    /// Make `vlan_ids` the VLANs a person has linked this subnet to. Links discovery found are
+    /// left alone: a scan would put back any a person removed, so they aren't a person's to
+    /// remove, and a VLAN discovery already links needs no second row.
+    pub async fn set_manual_subnet_vlans(&self, subnet_id: &Uuid, vlan_ids: &[Uuid]) -> Result<()> {
+        self.subnet_vlan_storage
+            .sync_members_within(
+                &R::SUBNET_VLAN_SUBNET.at(*subnet_id),
+                |r| r.base.source == SubnetVlanSource::Manual,
+                vlan_ids,
+                SubnetVlanRecord::vlan_id,
+                |vlan_id| SubnetVlanRecord::new(SubnetVlanRecordBase::manual(*subnet_id, vlan_id)),
             )
             .await
     }

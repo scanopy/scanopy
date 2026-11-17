@@ -38,6 +38,7 @@ use crate::server::shared::types::entity_field::FieldGroup;
 use crate::server::shared::types::metadata::{
     EntityMetadata, EntityMetadataProvider, MetadataProvider, TypeMetadata,
 };
+use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::tags::r#impl::base::TagIcon;
 use crate::server::topology::types::edges::EdgeType;
@@ -172,6 +173,15 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
 
     let subnet_types: Vec<TypeMetadata> = SubnetType::iter().map(|t| t.to_metadata()).collect();
     write_fixture(&subnet_types, output_dir, "subnet-types.json");
+
+    let subnet_create_purposes: Vec<TypeMetadata> = SubnetCreatePurpose::iter()
+        .map(|p| p.to_metadata())
+        .collect();
+    write_fixture(
+        &subnet_create_purposes,
+        output_dir,
+        "subnet-create-purposes.json",
+    );
 
     let edge_types: Vec<TypeMetadata> = EdgeType::iter().map(|t| t.to_metadata()).collect();
     write_fixture(&edge_types, output_dir, "edge-types.json");

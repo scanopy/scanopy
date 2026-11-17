@@ -852,6 +852,69 @@ async fn subnet_vlan_links_diff_by_soft_close() {
     assert_eq!(by_vlan.get(&vlans[2]), Some(&vec![sn.id]));
 }
 
+/// A scan and a person each rebuild only their own subnet-VLAN links. A scan that no longer
+/// sees a VLAN leaves the one a person set, and a person's edit leaves the ones a scan found.
+#[tokio::test]
+async fn a_scan_and_a_person_each_keep_their_own_subnet_vlan_links() {
+    use crate::server::vlans::r#impl::subnet_vlans::SubnetVlanSource;
+
+    let (storage, services, _container) = test_services().await;
+    let (org_id, s) = org_with_sites(&storage, 1).await;
+    let sn = subnet(&s[0]);
+    storage.subnets.create(&sn).await.unwrap();
+    let mut vlans = Vec::new();
+    for number in [10, 20, 30] {
+        let v = Vlan::new(VlanBase {
+            vlan_number: number,
+            name: VlanName::new(
+                VlanNameValue(format!("vlan {number}")),
+                AttributeSource::Manual,
+            ),
+            site_id: s[0],
+            organization_id: org_id,
+            ..Default::default()
+        });
+        storage.vlans.create(&v).await.unwrap();
+        vlans.push(v.id);
+    }
+    let live = || async {
+        let mut links: Vec<(Uuid, SubnetVlanSource)> = rows(
+            &storage,
+            StorableFilter::<SubnetVlanRecord>::new_from_uuid_column("subnet_id", &sn.id).live(),
+        )
+        .await
+        .into_iter()
+        .map(|r| (r.vlan_id(), r.base.source))
+        .collect();
+        links.sort();
+        links
+    };
+
+    save_subnet_vlans(&services, &sn.id, &[vlans[0]]).await;
+    services
+        .vlan_service
+        .set_manual_subnet_vlans(&sn.id, &[vlans[0], vlans[1]])
+        .await
+        .unwrap();
+    // The next scan finds a different VLAN and nothing else.
+    save_subnet_vlans(&services, &sn.id, &[vlans[2]]).await;
+
+    let mut expected = vec![
+        (vlans[1], SubnetVlanSource::Manual),
+        (vlans[2], SubnetVlanSource::Discovery),
+    ];
+    expected.sort();
+    assert_eq!(live().await, expected);
+
+    // A person's edit that sends back everything it read keeps what the scan found.
+    services
+        .vlan_service
+        .set_manual_subnet_vlans(&sn.id, &[vlans[1], vlans[2]])
+        .await
+        .unwrap();
+    assert_eq!(live().await, expected);
+}
+
 /// The subnet-VLAN write `HostService` makes at the end of a scan.
 async fn save_subnet_vlans(services: &ServiceFactory, subnet_id: &Uuid, vlan_ids: &[Uuid]) {
     services

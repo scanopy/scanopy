@@ -6,6 +6,7 @@
 //! (the shape of selection predicates a subscriber declares). How an event is
 //! logged travels on the event itself, as an [`EventLog`].
 
+use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{borrow::Cow, collections::HashMap, fmt::Debug, hash::Hash, net::IpAddr};
@@ -87,7 +88,11 @@ pub trait Operation:
     /// Defaults to the operation itself. Operations whose identity lives on the scope override
     /// it to pick the scope fields that are safe to send: a scope can carry the whole entity, a
     /// client address or a device's diagnostic.
-    fn metadata<'a>(&'a self, _scope: &'a Self::Scope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        _scope: &'a Self::Scope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         self
     }
 
@@ -291,6 +296,9 @@ pub struct DiscoveryScope {
 pub struct EntityEventFlags {
     pub trigger_stale: bool,
     pub clear_stale: bool,
+    /// Why a person created a subnet, set by the subnet create handler and sent with the event.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subnet_create_purpose: Option<SubnetCreatePurpose>,
 }
 
 /// Cross-cutting hints for non-entity events. None today; the type stays so each operation
@@ -380,7 +388,7 @@ impl<Op: Operation> Event<Op> {
         EventProperties {
             actor,
             server_version: own_version(),
-            metadata: self.operation.metadata(&self.scope),
+            metadata: self.operation.metadata(&self.scope, &self.flags),
         }
     }
 }

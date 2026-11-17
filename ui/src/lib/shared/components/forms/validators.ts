@@ -2,7 +2,8 @@ import pkg from 'ipaddr.js';
 import { validate } from 'email-validator';
 import {
 	credentials_invalidProxmoxTokenId,
-	credentials_invalidSshPrivateKey
+	credentials_invalidSshPrivateKey,
+	vlans_numberOutOfRange
 } from '#lib/paraglide/messages.js';
 
 const { isValid, isValidCIDR, parse, parseCIDR } = pkg;
@@ -102,6 +103,12 @@ export function port(value: FormValue): string | undefined {
 
 /** Port range validation (alias for port) */
 export const portRangeValidation = port;
+
+/** An 802.1Q VLAN ID: 1 to 4094. */
+export function vlanNumber(value: FormValue): string | undefined {
+	const n = typeof value === 'string' ? Number(value) : typeof value === 'number' ? value : NaN;
+	return !Number.isInteger(n) || n < 1 || n > 4094 ? vlans_numberOutOfRange() : undefined;
+}
 
 /** URL format validator */
 export function url(value: FormValue): string | undefined {

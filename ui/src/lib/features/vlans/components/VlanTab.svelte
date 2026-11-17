@@ -14,6 +14,7 @@
 	import { isUserManagedSubnet, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import {
 		useBulkDeleteVlansMutation,
+		useCreateVlanMutation,
 		useDeleteVlanMutation,
 		useUpdateVlanMutation,
 		useVlansListQuery
@@ -21,6 +22,7 @@
 	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
 	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 	import VlanEditModal from './VlanEditModal.svelte';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import { Edit, Trash2 } from '@lucide/svelte';
 	import type { RowAction } from '#lib/shared/components/data/types.ts';
 	import type { TabProps } from '#lib/shared/types.ts';
@@ -33,6 +35,7 @@
 	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
 	import {
 		common_confirmBulkDelete,
+		common_create,
 		common_confirmDeleteName,
 		common_delete,
 		common_edit,
@@ -153,6 +156,22 @@
 		showVlanEditor = true;
 	}
 
+	const createVlanMutation = useCreateVlanMutation();
+
+	function handleCreateVlan() {
+		editingVlan = null;
+		showVlanEditor = true;
+	}
+
+	async function handleVlanCreate(data: Vlan) {
+		try {
+			await createVlanMutation.mutateAsync(data);
+			handleCloseVlanEditor();
+		} catch {
+			// Error handled by mutation
+		}
+	}
+
 	async function handleVlanUpdate(data: Vlan) {
 		try {
 			await updateVlanMutation.mutateAsync(data);
@@ -203,9 +222,14 @@
 	);
 </script>
 
-<div class="space-y-6">
-	<!-- Header: no actions — VLANs are discovery-populated, so there is nothing to create -->
+<!-- The page's own action, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if daemonConnected && can('Vlan', 'Write')}
+		<CreateButton onclick={handleCreateVlan} />
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !daemonConnected}
@@ -214,10 +238,11 @@
 		<!-- Loading state -->
 		<Loading />
 	{:else if page.isEmpty(vlansQuery)}
-		<!-- Empty state: no CTA, there is nothing to create -->
 		<EmptyState
 			title={common_noEntityYet({ entity: common_vlans() })}
 			subtitle={vlans_emptySubtitle()}
+			onClick={can('Vlan', 'Write') ? handleCreateVlan : undefined}
+			cta={can('Vlan', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -238,6 +263,7 @@
 			getActions={vlanActions}
 			getRowBadges={rowStatusBadges(() => sitesData, 'Vlan')}
 			entityLabel={common_vlans()}
+			{toolbarActions}
 		></DataControls>
 	{/if}
 </div>
@@ -246,6 +272,7 @@
 	name="vlan-editor"
 	isOpen={showVlanEditor}
 	vlan={editingVlan}
+	onCreate={handleVlanCreate}
 	onUpdate={handleVlanUpdate}
 	onClose={handleCloseVlanEditor}
 />

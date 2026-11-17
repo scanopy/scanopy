@@ -699,6 +699,34 @@ impl ApiError {
         )
     }
 
+    /// Bad request (400) - a person tried to move a range read from the network
+    pub fn subnet_cidr_locked() -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, ErrorCode::SubnetCidrLocked)
+    }
+
+    /// Bad request (400) - a person tried to move a subnet to `0.0.0.0/0`
+    pub fn subnet_cidr_organizational() -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, ErrorCode::SubnetCidrOrganizational)
+    }
+
+    /// Bad request (400) - another subnet on the site already has the requested range
+    pub fn subnet_cidr_duplicate(subnet: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::SubnetCidrDuplicate {
+                subnet: subnet.to_string(),
+            },
+        )
+    }
+
+    /// Bad request (400) - the requested range would leave an address in no subnet
+    pub fn subnet_cidr_strands_address(ip: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::SubnetCidrStrandsAddress { ip: ip.to_string() },
+        )
+    }
+
     // === Share errors ===
 
     /// Forbidden (403) - password required for share

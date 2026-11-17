@@ -17755,6 +17755,28 @@
         ],
         "summary": "Create subnet",
         "operationId": "create_subnet",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "description": "What the subnet is for. Sent with the `subnet_created` event; nothing stores it.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Scan",
+                    "Record"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -18533,7 +18555,7 @@
           "Subnets"
         ],
         "summary": "Update subnet",
-        "description": "Updates subnet properties. If the CIDR is being changed, validates that\nall existing ip_addresses on this subnet have IPs within the new CIDR range.",
+        "description": "Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon\ninterface, a container bridge, a device, or the Internet and Remote Network rows), on\n`0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be\nleft in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one\nare merged into it, and addresses are re-filed in the most specific subnet that holds them.",
         "operationId": "update_subnet",
         "parameters": [
           {
@@ -18569,7 +18591,7 @@
             }
           },
           "400": {
-            "description": "CIDR change would orphan existing ip_addresses",
+            "description": "The CIDR can't be changed to the one requested",
             "content": {
               "application/json": {
                 "schema": {
@@ -25628,7 +25650,7 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "IoT",
+              "device_type": "Server",
               "device_type_source": {
                 "service_id": "550e8400-e29b-41d4-a716-446655440007",
                 "service_name": "nginx",
@@ -27900,9 +27922,32 @@
                   "usable_addresses",
                   "nesting_depth",
                   "nesting_root_id",
-                  "range_evidence"
+                  "range_evidence",
+                  "cidr_lock",
+                  "discovered_vlan_ids"
                 ],
                 "properties": {
+                  "cidr_lock": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/CidrLock",
+                        "description": "Why this range can't be changed by hand, or `null` when it can."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "discovered_vlan_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "readOnly": true
+                    },
+                    "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                  },
                   "nesting_depth": {
                     "type": "integer",
                     "format": "int32",
@@ -31619,6 +31664,87 @@
             "description": "Whether the address has no account yet, and so can be registered."
           }
         }
+      },
+      "CidrLock": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Organizational",
+            "description": "The Internet or Remote Network row, which holds every address of its kind.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Organizational"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainerBridge",
+            "description": "A container runtime's bridge network, reported by the runtime on its host.",
+            "required": [
+              "service_id",
+              "type"
+            ],
+            "properties": {
+              "service_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The runtime service that owns the bridge."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ContainerBridge"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonInterface",
+            "description": "A network a daemon's host has an interface on. The daemon reports its range.",
+            "required": [
+              "daemon_id",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that reports it."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DaemonInterface"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Discovered",
+            "description": "A range discovery read from the network, such as a device's address table.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Discovered"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Why a subnet's range can't be changed by hand. `None` on a subnet means it can."
       },
       "ClaimSource": {
         "type": "string",
@@ -40742,7 +40868,7 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "IoT",
+          "device_type": "Server",
           "device_type_source": {
             "service_id": "550e8400-e29b-41d4-a716-446655440007",
             "service_name": "nginx",
@@ -45261,7 +45387,7 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "IoT",
+                "device_type": "Server",
                 "device_type_source": {
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "service_name": "nginx",
@@ -45816,9 +45942,32 @@
                     "usable_addresses",
                     "nesting_depth",
                     "nesting_root_id",
-                    "range_evidence"
+                    "range_evidence",
+                    "cidr_lock",
+                    "discovered_vlan_ids"
                   ],
                   "properties": {
+                    "cidr_lock": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/CidrLock",
+                          "description": "Why this range can't be changed by hand, or `null` when it can."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "readOnly": true
+                    },
+                    "discovered_vlan_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                      },
+                      "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                    },
                     "nesting_depth": {
                       "type": "integer",
                       "format": "int32",
@@ -50519,10 +50668,9 @@
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "format": "uuid",
-                  "readOnly": true
+                  "format": "uuid"
                 },
-                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,\nso anything sent here on create/update is ignored by `to_params`."
+                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;\nthe ones discovery found stay whatever is sent, since the next scan would restore them. Not a\ncolumn on `subnets`: `SubnetService` writes the junction."
               }
             }
           }
@@ -50590,9 +50738,32 @@
               "usable_addresses",
               "nesting_depth",
               "nesting_root_id",
-              "range_evidence"
+              "range_evidence",
+              "cidr_lock",
+              "discovered_vlan_ids"
             ],
             "properties": {
+              "cidr_lock": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CidrLock",
+                    "description": "Why this range can't be changed by hand, or `null` when it can."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "readOnly": true
+              },
+              "discovered_vlan_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "readOnly": true
+                },
+                "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+              },
               "nesting_depth": {
                 "type": "integer",
                 "format": "int32",
@@ -52028,7 +52199,8 @@
           "if_descr",
           "identifier",
           "sys_name",
-          "address"
+          "address",
+          "candidate_host_ids"
         ],
         "properties": {
           "address": {
@@ -52037,6 +52209,14 @@
               "null"
             ],
             "description": "The address the far end published for itself — `lldpRemManAddr`, a `NetworkAddress` port\nid, or `cdpCacheAddress` — where it sent a usable one.\n\nCarried because it is the difference between two reports that otherwise read identically:\n\"the far end told us where it lives and this site holds no such address\" is a device\nnobody has scanned, while \"it told us nothing\" is a device that cannot be placed no matter\nhow much of the network is scanned. Without it, deciding which of the two a fleet is\nlooking at costs another round trip to the operator (GH #668)."
+          },
+          "candidate_host_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The hosts on this site the identifier matched, for an ambiguous one: the records a person\nmerges when they are one device. Empty for a neighbour that matched nothing, and on warnings\nstored before it was carried. Comes from the server's site-scoped lookups, never from a\ndaemon's report."
           },
           "host_id": {
             "type": [

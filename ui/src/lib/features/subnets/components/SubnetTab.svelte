@@ -11,7 +11,7 @@
 	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import type { Subnet, SubnetResponse } from '../types/base';
+	import type { Subnet, SubnetCreatePurpose, SubnetResponse } from '../types/base';
 	import DataControls from '#lib/shared/components/data/DataControls.svelte';
 	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
 	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
@@ -143,7 +143,7 @@
 	let pageLoad = $derived(loadFailure(organizationQuery, subnetsQuery));
 
 	let showSubnetEditor = $state(false);
-	let editingSubnet = $state<Subnet | null>(null);
+	let editingSubnet = $state<SubnetResponse | null>(null);
 	let showProvisionalRange = $state(false);
 	let resolvingSubnet = $state<SubnetResponse | null>(null);
 
@@ -306,12 +306,12 @@
 	}
 
 	/** Straight into the editor, which is where a corrected CIDR is typed. */
-	function handleCorrectRange(subnet: Subnet) {
+	function handleCorrectRange(subnet: SubnetResponse) {
 		handleCloseProvisionalRange();
 		handleEditSubnet(subnet);
 	}
 
-	function handleEditSubnet(subnet: Subnet) {
+	function handleEditSubnet(subnet: SubnetResponse) {
 		editingSubnet = subnet;
 		showSubnetEditor = true;
 	}
@@ -322,9 +322,9 @@
 		}
 	}
 
-	async function handleSubnetCreate(data: Subnet) {
+	async function handleSubnetCreate(data: Subnet, purpose: SubnetCreatePurpose) {
 		try {
-			await createSubnetMutation.mutateAsync(data);
+			await createSubnetMutation.mutateAsync({ subnet: data, purpose });
 			showSubnetEditor = false;
 			editingSubnet = null;
 		} catch {
