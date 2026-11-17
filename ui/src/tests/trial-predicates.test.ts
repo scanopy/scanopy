@@ -10,6 +10,7 @@ function org(overrides: Partial<Organization> = {}): Organization {
 		name: 'Acme',
 		setup: [],
 		daemon_connected: false,
+		plan_recommendation: {},
 		plan: { type: 'Pro' } as Organization['plan'],
 		plan_status: null,
 		...overrides

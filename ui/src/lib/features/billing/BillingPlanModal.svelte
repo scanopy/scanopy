@@ -196,9 +196,17 @@
 			// New tab — this tab stays put, so track immediately rather than stashing
 			// the event for a post-redirect flush.
 			const metadata = billingPlanHelpers.getMetadata(plan.type);
+			// The recommendation on the tab this plan's card sits on.
+			const recommendations = organization?.plan_recommendation;
+			const recommendedPlan =
+				(metadata?.hosting === 'SelfHosted'
+					? recommendations?.self_hosted?.plan
+					: recommendations?.cloud?.plan) ?? null;
 			trackEvent('plan_selected', {
 				plan: plan.type,
-				is_commercial: metadata?.is_commercial ?? false
+				is_commercial: metadata?.is_commercial ?? false,
+				recommended_plan: recommendedPlan,
+				followed_recommendation: recommendedPlan === plan.type
 			});
 
 			// Backend decides: new subscriber → checkout URL, existing → plan change message
@@ -276,6 +284,7 @@
 			{isCurrentlyTrialing}
 			{currentPlanType}
 			currentPlanLapsed={organization != null && isPlanLapsed(organization)}
+			recommendation={organization?.plan_recommendation ?? null}
 		/>
 	</div>
 </GenericModal>

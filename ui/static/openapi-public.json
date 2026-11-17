@@ -18452,6 +18452,23 @@
             "type": "object",
             "description": "Response from onboarding state endpoint",
             "properties": {
+              "intent_other": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The text typed for \"Something else\" as an intent."
+              },
+              "intents": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/SignupIntent"
+                },
+                "description": "The intents saved so far. `None` until the intent step is answered."
+              },
               "org_name": {
                 "type": [
                   "string",
@@ -18495,6 +18512,13 @@
                     "type": "null"
                   }
                 ]
+              },
+              "use_case_other": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The text typed for \"Something else\" as the use case."
               }
             }
           },
@@ -18595,12 +18619,18 @@
               {
                 "type": "object",
                 "required": [
-                  "daemon_connected"
+                  "daemon_connected",
+                  "plan_recommendation"
                 ],
                 "properties": {
                   "daemon_connected": {
                     "type": "boolean",
                     "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                    "readOnly": true
+                  },
+                  "plan_recommendation": {
+                    "$ref": "#/components/schemas/PlanRecommendations",
+                    "description": "The plan the signup's intents call for on each hosting tab of the plan picker, with why.",
                     "readOnly": true
                   }
                 }
@@ -36229,6 +36259,23 @@
         "type": "object",
         "description": "Response from onboarding state endpoint",
         "properties": {
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as an intent."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "The intents saved so far. `None` until the intent step is answered."
+          },
           "org_name": {
             "type": [
               "string",
@@ -36272,6 +36319,13 @@
                 "type": "null"
               }
             ]
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as the use case."
           }
         }
       },
@@ -36282,6 +36336,23 @@
           "step"
         ],
         "properties": {
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as an intent: 3 to 200 characters once trimmed."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "What the signup wants Scanopy to do. An empty list records a skip."
+          },
           "step": {
             "type": "string",
             "description": "Identifier of the onboarding step the user has reached."
@@ -36296,6 +36367,13 @@
                 "type": "null"
               }
             ]
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as the use case: 3 to 200 characters once trimmed."
           }
         }
       },
@@ -36387,6 +36465,23 @@
             "type": "boolean",
             "description": "Whether a payment method is on file.",
             "readOnly": true
+          },
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the signup typed for \"Something else\" as an intent."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "What the signup wants Scanopy to do. `None` when never asked (orgs created before the\nquestion, invites); empty when the signup skipped it."
           },
           "last_discount_at": {
             "type": [
@@ -36500,6 +36595,13 @@
           "use_case": {
             "$ref": "#/components/schemas/UseCase",
             "description": "Use case selection (homelab, company, msp, other)"
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the signup typed for \"Something else\" as the use case. `None` for any other use\ncase, and for orgs created before it was asked."
           }
         }
       },
@@ -36511,12 +36613,18 @@
           {
             "type": "object",
             "required": [
-              "daemon_connected"
+              "daemon_connected",
+              "plan_recommendation"
             ],
             "properties": {
               "daemon_connected": {
                 "type": "boolean",
                 "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                "readOnly": true
+              },
+              "plan_recommendation": {
+                "$ref": "#/components/schemas/PlanRecommendations",
+                "description": "The plan the signup's intents call for on each hosting tab of the plan picker, with why.",
                 "readOnly": true
               }
             }
@@ -38667,6 +38775,52 @@
           }
         }
       },
+      "PlanRecommendation": {
+        "type": "object",
+        "required": [
+          "plan",
+          "reasons"
+        ],
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "The recommended plan's type, as in `BillingPlan.type`."
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationReason"
+            },
+            "description": "The intents that call for this plan rather than the one below it."
+          }
+        }
+      },
+      "PlanRecommendations": {
+        "type": "object",
+        "description": "The recommendation on each hosting tab of the plan picker.",
+        "properties": {
+          "cloud": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "self_hosted": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "PlanStatus": {
         "type": "string",
         "description": "Derived subscription status — our domain enum, never Stripe's raw status.\nStripe webhook events map to typed `BillingOperation` variants at reception\n(in `billing/service.rs`); each variant deterministically implies a\n`PlanStatus` for downstream feature gates via\n`BillingOperation::implied_status`.\n\n`FromStr` is derived (via strum) so the storage layer can round-trip a\nsnake_case `text` column back into the typed value; `ToSchema` exposes\nthe enum as a stricter string union in the generated OpenAPI schema so\nthe frontend's `org.plan_status === 'paused'` comparisons are\ncompile-checked against the canonical variant list.",
@@ -39557,6 +39711,26 @@
           "widened_by_vlan": {
             "type": "boolean",
             "description": "Whether a shared VLAN widened the range past the conventional prefix."
+          }
+        }
+      },
+      "RecommendationReason": {
+        "type": "object",
+        "description": "One picked intent the recommended plan serves, and the features it needs that the plan below\nlacks. On the lowest plan, every feature the intent needs.",
+        "required": [
+          "intent",
+          "features"
+        ],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Feature ids, as in `features.json`."
+          },
+          "intent": {
+            "$ref": "#/components/schemas/SignupIntent"
           }
         }
       },
@@ -41850,6 +42024,18 @@
           }
         }
       },
+      "SignupIntent": {
+        "type": "string",
+        "enum": [
+          "current_diagram",
+          "inventory",
+          "audit_evidence",
+          "troubleshooting",
+          "client_documentation",
+          "workloads",
+          "other"
+        ]
+      },
       "Site": {
         "allOf": [
           {
@@ -43268,6 +43454,11 @@
             "type": "string",
             "format": "uuid",
             "description": "The site this entity belongs to."
+          },
+          "starting_view": {
+            "$ref": "#/components/schemas/TopologyView",
+            "description": "The view the topology tab opens on: the one the organization's intents call for, when\nthe site has the data for it (`TopologyView::starting_for`). Worked out on each list\nread, never stored.",
+            "readOnly": true
           }
         }
       },
@@ -44635,10 +44826,11 @@
       },
       "UseCase": {
         "type": "string",
+        "description": "Declaration order is the order the signup step lists the options in.",
         "enum": [
-          "homelab",
           "internal_it",
           "msp",
+          "homelab",
           "other"
         ]
       },

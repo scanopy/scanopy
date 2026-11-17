@@ -16,7 +16,10 @@ use std::collections::{BTreeSet, HashSet};
 use semver::Version;
 use uuid::Uuid;
 
-use super::types::{FailedScan, SetupItem, SetupItemDiscriminants, SetupItemState, SetupListEntry};
+use super::types::{
+    FailedScan, SetupItem, SetupItemDiscriminants, SetupItemState, SetupItemTier, SetupListEntry,
+};
+use crate::server::organizations::r#impl::intent::SignupIntent;
 use crate::{
     daemon::discovery::types::{
         base::DiscoveryTerminalReason,
@@ -125,6 +128,9 @@ pub struct SetupContext {
     pub plan: BillingPlan,
     /// Whether this is Scanopy Cloud. The two questions are asked only there.
     pub cloud: bool,
+    /// What the signup wants Scanopy to do, which moves the Setup steps it names up the list.
+    /// Empty when never asked or skipped.
+    pub intents: Vec<SignupIntent>,
     /// The resources the user may write. `None` in the sweep, which acts for the whole org and
     /// passes every write check.
     pub can_write: Option<BTreeSet<Resource>>,
@@ -138,7 +144,26 @@ impl SetupContext {
     fn can_write(&self, resource: Resource) -> bool {
         self.can_write
             .as_ref()
-            .is_none_or(|writable| writable.contains(&resource))
+            .is_none_or(
+    /// Where a type sorts in the list: Issues and the first steps (daemon, first scan, topology)
+    /// keep their place, then the Setup steps the org's intents name, then the rest. Ties keep
+    /// declaration order. Locks are unaffected, so a step moved up can still read Locked.
+    pub fn list_rank(&self, item_type: SetupItemDiscriminants) -> u8 {
+        use SetupItemDiscriminants as T;
+        match item_type {
+            _ if item_type.tier() == SetupItemTier::Issue => 0,
+            T::InstallDaemon | T::RunFirstScan | T::OpenTopology => 1,
+            _ if self
+                .intents
+                .iter()
+                .any(|intent| intent.setup_items().contains(&item_type)) =>
+            {
+                2
+            }
+            _ => 3,
+        }
+    }
+|writable| writable.contains(&resource))
     }
 
     /// Whether the dependency tutorial is done, recorded or shown done by the org's rows.

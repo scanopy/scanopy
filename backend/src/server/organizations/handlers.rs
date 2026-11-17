@@ -141,9 +141,14 @@ async fn organization_response(
         .daemon_service
         .org_has_connected_daemon(organization.id)
         .await?;
+    let plan_recommendation =
+        crate::server::billing::recommendation::PlanRecommendations::for_intents(
+            organization.base.intents.as_deref(),
+        );
     Ok(OrganizationResponse {
         organization,
         daemon_connected,
+        plan_recommendation,
     })
 }
 

@@ -11,8 +11,16 @@ use validator::Validate;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     license::{instances::InstanceLimits, online::InstanceUsage},
+    organizations::r#impl::intent::SignupIntent,
     setup::types::SetupItemDiscriminants,
-    shared::{entities::ChangeTriggersTopologyStaleness, events::types::BillingOperation},
+    shared::{
+        entities::ChangeTriggersTopologyStaleness,
+        events::types::BillingOperation,
+        types::{
+            Color, Icon,
+            metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+        },
+    },
 };
 
 #[derive(
@@ -30,14 +38,68 @@ use crate::server::{
     IntoStaticStr,
     Display,
 )]
+/// Declaration order is the order the signup step lists the options in.
 #[serde(rename_all = "lowercase")]
 pub enum UseCase {
-    Homelab,
     #[serde(rename = "internal_it", alias = "company")]
     InternalIt,
     Msp,
+    Homelab,
     #[default]
     Other,
+}
+
+impl HasId for UseCase {
+    /// The stored value, which the signup step's options are keyed by.
+    fn id(&self) -> &'static str {
+        match self {
+            UseCase::Homelab => "homelab",
+            UseCase::InternalIt => "internal_it",
+            UseCase::Msp => "msp",
+            UseCase::Other => "other",
+        }
+    }
+}
+
+impl EntityMetadataProvider for UseCase {
+    fn color(&self) -> Color {
+        match self {
+            UseCase::InternalIt => Color::Blue,
+            UseCase::Msp => Color::Purple,
+            UseCase::Homelab => Color::Green,
+            UseCase::Other => Color::Gray,
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            UseCase::InternalIt => Icon::Building2,
+            UseCase::Msp => Icon::Users,
+            UseCase::Homelab => Icon::House,
+            UseCase::Other => Icon::Boxes,
+        }
+    }
+}
+
+/// The signup step's wording: whose network the org documents.
+impl TypeMetadataProvider for UseCase {
+    fn name(&self) -> &'static str {
+        match self {
+            UseCase::InternalIt => "My employer's",
+            UseCase::Msp => "My clients'",
+            UseCase::Homelab => "My own",
+            UseCase::Other => "Something else",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            UseCase::InternalIt => "I work in IT or operations at a company, school or public body",
+            UseCase::Msp => "I manage networks for other organizations",
+            UseCase::Homelab => "A home network or lab",
+            UseCase::Other => "",
+        }
+    }
 }
 
 /// Deserialize UseCase from an Option<String>, mapping null to UseCase::Other.
@@ -216,6 +278,17 @@ pub struct OrganizationBase {
     /// Use case selection (homelab, company, msp, other)
     #[serde(default, deserialize_with = "deserialize_use_case_from_option")]
     pub use_case: UseCase,
+    /// What the signup typed for "Something else" as the use case. `None` for any other use
+    /// case, and for orgs created before it was asked.
+    #[serde(default)]
+    pub use_case_other: Option<String>,
+    /// What the signup wants Scanopy to do. `None` when never asked (orgs created before the
+    /// question, invites); empty when the signup skipped it.
+    #[serde(default)]
+    pub intents: Option<Vec<SignupIntent>>,
+    /// What the signup typed for "Something else" as an intent.
+    #[serde(default)]
+    pub intent_other: Option<String>,
     /// When the org's self-hosted license is paid through: the trial end
     /// during a self-hosted trial, then the end of the last paid invoice's
     /// service period. While a sent invoice is unpaid, its due date plus a

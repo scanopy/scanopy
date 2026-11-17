@@ -14,20 +14,17 @@ describe('asksForSite', () => {
 });
 
 describe('onboardingSteps', () => {
-	it('asks where Scanopy runs before anything else when the server sells both', () => {
-		for (const hosting of ['cloud', 'self_hosted', null] as const) {
-			expect(onboardingSteps(true, hosting)[0]).toBe('hosting');
+	it('asks where Scanopy runs first only when the server sells both', () => {
+		expect(onboardingSteps(true)[0]).toBe('hosting');
+		expect(onboardingSteps(false)).not.toContain('hosting');
+	});
+
+	it('asks every new org, a license buyer included, whose network it is and then what it wants', () => {
+		for (const asksHosting of [true, false]) {
+			const steps = onboardingSteps(asksHosting);
+			expect(steps.indexOf('intents')).toBe(steps.indexOf('use_case') + 1);
+			expect(steps.indexOf('use_case')).toBeLessThan(steps.indexOf('setup'));
+			expect(steps.at(-1)).toBe('register');
 		}
-	});
-
-	it('skips the use case only for a self-hosted license buyer', () => {
-		expect(onboardingSteps(true, 'self_hosted')).not.toContain('use_case');
-		expect(onboardingSteps(true, 'cloud')).toContain('use_case');
-		expect(onboardingSteps(true, null)).toContain('use_case');
-	});
-
-	it('ignores a hosting value on a server that does not ask the question', () => {
-		expect(onboardingSteps(false, 'self_hosted')).toEqual(onboardingSteps(false, null));
-		expect(onboardingSteps(false, null)).not.toContain('hosting');
 	});
 });

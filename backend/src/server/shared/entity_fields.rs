@@ -760,6 +760,8 @@ const SHARE: &[F] = &[
 const TOPOLOGY: &[F] = &[
     SITE,
     F::internal("options"),
+    // Worked out from the org's intents on each list read; not stored.
+    F::internal("starting_view").computed(),
     F::internal("id").immutable(pin!(Topology, id)),
     INTERNAL_CREATED_AT.immutable(pin!(Topology, created_at)),
     INTERNAL_UPDATED_AT.immutable(pin!(Topology, updated_at)),
@@ -768,6 +770,10 @@ const TOPOLOGY: &[F] = &[
 const ORGANIZATION: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
     F::internal("use_case"),
+    // The signup's other answers, set with `use_case` when the org is created.
+    F::internal("use_case_other"),
+    F::internal("intents").many(),
+    F::internal("intent_other"),
     // Billing fields are managed by the Stripe integration.
     F::internal("stripe_customer_id")
         .unserialized()
@@ -815,6 +821,8 @@ const ORGANIZATION: &[F] = &[
     F::internal("air_gapped_key_current_until"),
     // On `OrganizationResponse`, derived from the org's daemons.
     F::internal("daemon_connected").computed(),
+    // On `OrganizationResponse`, derived from `intents` and the plans' features.
+    F::internal("plan_recommendation").computed(),
 ];
 
 const SNAPSHOT: &[F] = &[

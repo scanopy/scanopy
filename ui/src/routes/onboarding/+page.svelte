@@ -10,7 +10,8 @@
 	import RegisterModal from '#lib/features/auth/components/RegisterModal.svelte';
 	import UseCaseStep from '#lib/features/auth/components/onboarding/UseCaseStep.svelte';
 	import HostingStep from '#lib/features/auth/components/onboarding/HostingStep.svelte';
-	import type { RegisterRequest, SetupRequest, UseCase } from '#lib/features/auth/types/base.ts';
+	import IntentStep from '#lib/features/auth/components/onboarding/IntentStep.svelte';
+	import type { RegisterRequest, SetupRequest } from '#lib/features/auth/types/base.ts';
 	import {
 		useSetupMutation,
 		useRegisterMutation,
@@ -23,6 +24,7 @@
 	import { resolve } from '$app/paths';
 	import {
 		asksForSite,
+		ONBOARDING_STEPS,
 		onboardingStore,
 		onboardingSteps,
 		type OnboardingStep
@@ -114,7 +116,7 @@
 			isCloud(onboardingConfigData) &&
 			isLicenseSigningAvailable(onboardingConfigData)
 	);
-	let steps = $derived(onboardingSteps(asksHosting, $onboardingStore.hosting));
+	let steps = $derived(onboardingSteps(asksHosting));
 
 	// Get initial step from URL params or default
 	function getInitialStep(): Step {
@@ -142,9 +144,12 @@
 				lastPersistedStep = stateData.step; // Don't re-persist this
 			}
 
-			// Restore use case
-			if (stateData.use_case && isValidUseCase(stateData.use_case)) {
-				onboardingStore.setUseCase(stateData.use_case as UseCase);
+			// Restore the answers
+			if (stateData.use_case) {
+				onboardingStore.setUseCase(stateData.use_case, stateData.use_case_other ?? null);
+			}
+			if (stateData.intents) {
+				onboardingStore.setIntents(stateData.intents, stateData.intent_other ?? null);
 			}
 
 			// Restore org name
@@ -164,14 +169,9 @@
 		}
 	});
 
-	// Helper to validate use case
-	function isValidUseCase(useCase: string): useCase is UseCase {
-		return ['homelab', 'internal_it', 'msp'].includes(useCase);
-	}
-
-	// Helper to validate step
+	// A step saved by an older build may no longer exist.
 	function isValidStep(step: string): step is Step {
-		return ['hosting', 'use_case', 'setup', 'register'].includes(step);
+		return (ONBOARDING_STEPS as readonly string[]).includes(step);
 	}
 
 	// The step list depends on the server config, so steps are neither shown nor
@@ -188,9 +188,13 @@
 	$effect(() => {
 		if (stepInitialized && configLoaded && !isInviteFlow && currentStep !== lastPersistedStep) {
 			lastPersistedStep = currentStep;
+			const answers = onboardingStore.getState();
 			onboardingStepMutation.mutate({
 				step: currentStep,
-				use_case: useCase ?? undefined
+				use_case: answers.useCase ?? undefined,
+				use_case_other: answers.useCaseOther ?? undefined,
+				intents: answers.intents ?? undefined,
+				intent_other: answers.intentOther ?? undefined
 			});
 		}
 	});
@@ -337,6 +341,8 @@
 					onClose={handleClose}
 					onSwitchToLogin={handleSwitchToLogin}
 				/>
+			{:else if currentStep === 'intents'}
+				<IntentStep isOpen={true} onNext={goToNextStep} onClose={handleClose} />
 			{:else if currentStep === 'setup'}
 				<!-- Organization & Site Setup -->
 				<OrgSitesModal

@@ -46,11 +46,20 @@
 		common_sites,
 		common_seats,
 		common_unlimited,
-		common_yearly
+		common_yearly,
+		common_recommended,
+		billing_recommendationReason
 	} from '#lib/paraglide/messages.js';
 	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import ToggleGroup from './ToggleGroup.svelte';
-	import type { BillingPlan, PlanPickerHosting } from './types';
+	import {
+		recommendationFor,
+		type BillingPlan,
+		type PlanPickerHosting,
+		type PlanRecommendations
+	} from './types';
+	import { signupIntents } from '#lib/shared/stores/metadata.ts';
+	import { joinList } from '#lib/i18n/list.ts';
 	import type {
 		BillingPlanMetadata,
 		CredentialIntegrationMetadata,
@@ -98,6 +107,8 @@
 		showGithubStars?: boolean;
 		/** Show the Cloud / Self-Hosted toggle (and hosting tags on each card). */
 		showHosting?: boolean;
+		/** The plan the org's signup intents call for on each hosting tab, with why. */
+		recommendation?: PlanRecommendations | null;
 		/** Tab the Cloud / Self-Hosted toggle opens on (only used with showHosting). */
 		initialHosting?: PlanPickerHosting;
 		class?: string;
@@ -131,8 +142,22 @@
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
 		currentPlanType = null,
-		currentPlanLapsed = false
+		currentPlanLapsed = false,
+		recommendation = null
 	}: Props = $props();
+
+	/** One line per intent behind a recommendation: the intent, and the features it needs. */
+	function recommendationReasons(planType: string): string[] {
+		return (recommendationFor(recommendation, planType)?.reasons ?? []).map((reason) =>
+			billing_recommendationReason({
+				intent: signupIntents.getName(reason.intent),
+				features: joinList(
+					reason.features.map((id) => featureHelpers.getName(id)),
+					'conjunction'
+				)
+			})
+		);
+	}
 
 	let loadingPlanType = $state<string | null>(null);
 	let showFullComparison = $state(false);
@@ -696,6 +721,9 @@
 								<span class="text-base font-semibold text-primary lg:text-lg">
 									{billingPlanHelpers.getName(plan.type)}
 								</span>
+								{#if recommendationFor(recommendation, plan.type)}
+									<Tag label={common_recommended()} color="Blue" pill />
+								{/if}
 							</div>
 						</div>
 
@@ -729,10 +757,16 @@
 							</div>
 						</div>
 
-						<!-- Description: always rendered, so every card keeps the same grid rows -->
-						<p class="pb-4 text-center text-xs leading-relaxed text-tertiary lg:text-sm">
-							{description}
-						</p>
+						<!-- Description: always rendered, so every card keeps the same grid rows. The
+						     recommendation's reasons share its row for the same reason. -->
+						<div class="space-y-2 pb-4 text-center">
+							<p class="text-xs leading-relaxed text-tertiary lg:text-sm">
+								{description}
+							</p>
+							{#each recommendationReasons(plan.type) as reason (reason)}
+								<p class="text-xs leading-relaxed text-info">{reason}</p>
+							{/each}
+						</div>
 
 						<!-- CTA Button -->
 						<div class="py-4" style="border-color: var(--color-border)">

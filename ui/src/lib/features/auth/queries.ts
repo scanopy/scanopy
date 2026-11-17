@@ -323,24 +323,9 @@ export function isAuthenticated(user: User | null | undefined): boolean {
  * Mutation hook for saving onboarding step (and optionally use_case)
  */
 export function useOnboardingStepMutation() {
-	type UseCase = components['schemas']['UseCase'];
 	return createMutation(() => ({
-		mutationFn: async (params: {
-			step: string;
-			use_case?: UseCase;
-			referral_source?: string;
-			referral_source_other?: string;
-		}) => {
-			requireSuccess(
-				await apiClient.POST('/api/auth/onboarding-step', {
-					body: {
-						step: params.step,
-						use_case: params.use_case,
-						referral_source: params.referral_source,
-						referral_source_other: params.referral_source_other
-					}
-				})
-			);
+		mutationFn: async (params: components['schemas']['OnboardingStepRequest']) => {
+			requireSuccess(await apiClient.POST('/api/auth/onboarding-step', { body: params }));
 			return true;
 		}
 	}));

@@ -268,6 +268,7 @@ impl AuthService {
                 use_case,
                 org_name,
                 ref site,
+                answers,
             }) => {
                 // Self-hosted org count is capped by the licensed plan's
                 // `included_orgs` (Community/Standard/Plus = 1,
@@ -332,6 +333,9 @@ impl AuthService {
                             license_entitlement_at: None,
                             notifications: Default::default(),
                             use_case,
+                            use_case_other: answers.use_case_other,
+                            intents: answers.intents,
+                            intent_other: answers.intent_other,
                             license_paid_through: None,
                             license_checkin_at: None,
                             license_key_version: 0,
@@ -399,6 +403,7 @@ impl AuthService {
             org_name,
             use_case,
             site,
+            answers,
         }) = provision_org
         {
             let authentication: AuthenticatedEntity = user.clone().into();
@@ -416,6 +421,9 @@ impl AuthService {
                         org_name,
                         plan: new_org_plan,
                         use_case,
+                        use_case_other: answers.use_case_other,
+                        intents: answers.intents,
+                        intent_other: answers.intent_other,
                         site,
                     },
                     authentication,

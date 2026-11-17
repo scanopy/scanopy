@@ -1,5 +1,7 @@
 use crate::server::{
-    auth::access::Assignment, config::DeploymentType, organizations::r#impl::base::UseCase,
+    auth::access::Assignment,
+    config::DeploymentType,
+    organizations::r#impl::{base::UseCase, intent::SignupIntent},
     users::r#impl::permissions::UserOrgPermissions,
 };
 use chrono::{DateTime, Utc};
@@ -74,4 +76,47 @@ pub struct PendingSetup {
     pub site: Option<PendingSiteSetup>,
     /// Use case selection (homelab, company, msp)
     pub use_case: UseCase,
+    /// The signup's other answers. Defaulted so a session saved before they existed still loads.
+    #[serde(default)]
+    pub answers: SignupAnswers,
+}
+
+/// The signup's answers beside the use case, saved by `/onboarding-step` and stored on the org.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignupAnswers {
+    /// The text typed for "Something else" as the use case.
+    pub use_case_other: Option<String>,
+    /// `None` when the intent step was never answered, empty when it was skipped.
+    pub intents: Option<Vec<SignupIntent>>,
+    /// The text typed for "Something else" as an intent.
+    pub intent_other: Option<String>,
+}
+
+impl SignupAnswers {
+    /// Overwrite each answer `update` carries, keeping the rest.
+    pub fn merge(&mut self, update: SignupAnswers) {
+        if update.use_case_other.is_some() {
+            self.use_case_other = update.use_case_other;
+        }
+        if update.intents.is_some() {
+            self.intents = update.intents;
+        }
+        if update.intent_other.is_some() {
+            self.intent_other = update.intent_other;
+        }
+    }
+
+    /// The answers as stored on the org: free text only where "Something else" was picked, so a
+    /// signup that typed text and then chose another option keeps none of it.
+    pub fn for_use_case(self, use_case: UseCase) -> SignupAnswers {
+        let picked_other_intent = self
+            .intents
+            .as_ref()
+            .is_some_and(|intents| intents.contains(&SignupIntent::Other));
+        SignupAnswers {
+            use_case_other: self.use_case_other.filter(|_| use_case == UseCase::Other),
+            intent_other: self.intent_other.filter(|_| picked_other_intent),
+            intents: self.intents,
+        }
+    }
 }
