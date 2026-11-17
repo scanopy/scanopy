@@ -473,6 +473,7 @@ pub enum DesktopVm {
     DockerDesktop,
     OrbStack,
     Colima,
+    Wsl,
 }
 
 impl HasId for DesktopVm {
@@ -498,6 +499,7 @@ impl TypeMetadataProvider for DesktopVm {
             Self::DockerDesktop => "Docker Desktop",
             Self::OrbStack => "OrbStack",
             Self::Colima => "Colima",
+            Self::Wsl => "WSL",
         }
     }
 }
