@@ -3192,7 +3192,7 @@
 	"onboarding_commercialNoticeBody": "Scanopy Community is licensed under AGPL-3.0. For commercial use, please ensure your use complies with the license terms, or consider our <a href=\"https://scanopy.net/pricing\" class=\"underline hover:no-underline\">commercial self-hosted offering</a>.",
 	"onboarding_commercialNoticeTitle": "Commercial Use Notice",
 	"onboarding_continueLicenseTrial": "Continue with the license trial",
-	"onboarding_homelabLicenseNoticeBody": "A home network or lab needs no license. Scanopy Community runs on your own server for free, with network discovery and every topology view.",
+	"onboarding_homelabLicenseNoticeBody": "A home network or lab needs no license. Scanopy Community runs on your own server for free, with network discovery and every topology view. It includes {seats} seat and {sites} site.",
 	"onboarding_homelabLicenseNoticeTitle": "Scanopy Community is free for home use",
 	"onboarding_homelabOrgLabel": "What should we call your organization?",
 	"onboarding_homelabOrgPlaceholder": "My Homelab",
