@@ -111,7 +111,7 @@
 <GenericModal
 	{isOpen}
 	{title}
-	size="lg"
+	size="xl"
 	{onClose}
 	onOpen={handleOpen}
 	showCloseButton={false}
