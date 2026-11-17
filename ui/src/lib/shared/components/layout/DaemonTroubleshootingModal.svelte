@@ -64,7 +64,7 @@
 	size="xl"
 >
 	{#if daemon}
-		<div class="p-6">
+		<div class="min-h-0 flex-1 overflow-auto p-6">
 			<TroubleshootingChecklist
 				mode={daemon.mode}
 				serverUrl={configQuery.data?.public_url ?? ''}
