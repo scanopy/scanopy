@@ -73,6 +73,13 @@ impl SubnetService {
         authentication: AuthenticatedEntity,
         reason: UpdateReason,
     ) -> Result<Subnet> {
+        // A subnet named after its range is named after the new one.
+        if entity.base.name() == (*current.base.cidr).to_string() {
+            entity.base.name = SubnetName::new(
+                SubnetNameValue((*entity.base.cidr).to_string()),
+                entity.base.name.source(),
+            );
+        }
         let mut updated = self.close_and_clone(entity.clone()).await?;
 
         if let Some(org_id) = authentication.organization_id() {

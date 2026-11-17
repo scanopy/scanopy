@@ -29,7 +29,7 @@ use crate::server::{
 };
 
 use super::{organization, site, test_services};
-use crate::server::subnets::r#impl::base::SubnetName;
+use crate::server::subnets::r#impl::base::{SubnetName, SubnetNameValue};
 
 /// Seed a site with the two organizational catch-alls a real one is created with, plus whatever
 /// else the test wants it to hold.
@@ -763,4 +763,29 @@ async fn a_move_keeps_the_old_range_in_history() {
     assert_eq!(history.len(), 1);
     assert_eq!(history[0].base.cidr.to_string(), "10.0.6.0/24");
     assert!(history[0].valid_to().is_some());
+}
+
+/// A subnet named after its range is renamed with the move, so the list doesn't show the old
+/// range as its name. One a person named keeps the name.
+#[tokio::test]
+async fn a_move_renames_a_subnet_named_after_its_range() {
+    let (services, site_id, _container) = site_holding(&[]).await;
+    let unnamed = record(&services, site_id, "10.0.6.0/24").await;
+    let named = record(&services, site_id, "10.0.9.0/24").await;
+    let mut renamed = live_subnet(&services, named).await;
+    renamed.base.name = SubnetName::new(SubnetNameValue("Branch".into()), AttributeSource::Manual);
+    services
+        .subnet_service
+        .update(
+            &mut renamed,
+            AuthenticatedEntity::System,
+            UpdateReason::EntityRequested,
+        )
+        .await
+        .unwrap();
+
+    let moved = move_to(&services, unnamed, "10.0.4.0/22").await.unwrap();
+    assert_eq!(moved.base.name(), "10.0.4.0/22");
+    let moved = move_to(&services, named, "10.0.8.0/22").await.unwrap();
+    assert_eq!(moved.base.name(), "Branch");
 }

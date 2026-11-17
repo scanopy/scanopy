@@ -18,7 +18,12 @@
 	import { awaitingDaemon } from '#lib/features/daemons/utils.ts';
 	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
-	import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
+	import { useServicesByIds } from '#lib/features/services/queries.ts';
+	import SubnetIdentity from './SubnetIdentity.svelte';
 	import { attributeSourceLabel } from '#lib/shared/utils/attribute-source.ts';
 	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import { VlanDisplay } from '#lib/shared/components/forms/selection/display/VlanDisplay.svelte';
@@ -47,10 +52,8 @@
 		common_details,
 		common_description,
 		common_editName,
-		common_name,
 		common_next,
 		common_network,
-		common_openName,
 		common_reach,
 		common_saving,
 		common_update,
@@ -73,13 +76,11 @@
 		subnets_cidrLockDiscovered,
 		subnets_cidrLockOrganizational,
 		subnets_descriptionPlaceholder,
-		subnets_namePlaceholder,
 		subnets_noVlans,
-		subnets_openRuntime,
 		subnets_selectVlan,
 		subnets_subnetType,
-		subnets_vlanDiscovered,
-		subnets_vlansHelp
+		subnets_switchToSite,
+		subnets_vlanDiscovered
 	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
@@ -139,7 +140,8 @@
 
 	function formValues(source: Subnet): SubnetFormValues {
 		return {
-			name: source.name,
+			// Blank while the subnet is named after its range, which the name field shows.
+			name: source.name === source.cidr ? '' : source.name,
 			cidr: source.cidr,
 			description: source.description ?? '',
 			site_id: source.site_id,
@@ -244,7 +246,8 @@
 			const subnetData: Subnet = {
 				...editing(),
 				...fields,
-				name: value.name.trim(),
+				// No name names the subnet after its range.
+				name: value.name.trim() || value.cidr.trim(),
 				description: value.description.trim(),
 				cidr: value.cidr.trim()
 			};
@@ -291,56 +294,63 @@
 			? checkNewCidr(cidrInput.trim(), selectedSiteId, subnetsQuery.data ?? [])
 			: null
 	);
-	let siteName = (id: string) => sitesData.find((s) => s.id === id)?.name ?? '';
-	let subnetLabel = (s: SubnetResponse) => (s.name !== s.cidr ? `${s.name} (${s.cidr})` : s.cidr);
+	let siteOf = (id: string) => sitesData.find((s) => s.id === id);
+	let daemonOf = (id: string) => (daemonsQuery.data ?? []).find((d) => d.id === id);
+	let subnetChip = (s: SubnetResponse): ChipRef => ({
+		type: 'Subnet',
+		id: s.id,
+		data: s,
+		label: s.name
+	});
 
 	// A daemon on this site that was created but never connected is the one to fix before
 	// installing another.
 	let pendingDaemon = $derived(awaitingDaemon(daemonsQuery.data ?? [], selectedSiteId));
 	let troubleshooting = $state(false);
-	let lockingDaemon = $derived(
-		cidrLock?.type === 'DaemonInterface'
-			? ((daemonsQuery.data ?? []).find((d) => d.id === cidrLock.daemon_id) ?? null)
-			: null
+	// The runtime a container bridge's range comes from, for its chip.
+	const bridgeServiceQuery = useServicesByIds(() =>
+		cidrLock?.type === 'ContainerBridge' ? [cidrLock.service_id] : []
 	);
 
-	/** Where the range comes from and when it changes, and the record to open, if there is one. */
-	let cidrLockReason = $derived.by(
-		(): { body: string; link?: { label: string; open: () => void } } | null => {
-			if (!cidrLock || !subnet) return null;
-			switch (cidrLock.type) {
-				case 'DaemonInterface': {
-					const { daemon_id } = cidrLock;
-					const name = lockingDaemon?.name ?? '';
-					return {
-						body: subnets_cidrLockDaemonInterface({ daemon: name }),
-						link: {
-							label: common_openName({ name }),
-							open: () => navigateToEntity('Daemon', daemon_id, lockingDaemon ?? undefined)
-						}
-					};
-				}
-				case 'ContainerBridge': {
-					const { service_id } = cidrLock;
-					return {
-						body: subnets_cidrLockContainerBridge(),
-						link: {
-							label: subnets_openRuntime(),
-							open: () => navigateToEntity('Service', service_id)
-						}
-					};
-				}
-				case 'Discovered':
-					return {
-						body: subnets_cidrLockDiscovered({
-							source: attributeSourceLabel(subnet.cidr_source ?? 'Unspecified')
-						})
-					};
-				case 'Organizational':
-					return { body: subnets_cidrLockOrganizational() };
+	interface ChipRef {
+		type: EntityDiscriminants;
+		id: string;
+		data: object;
+		label: string;
+	}
+
+	/** Where the range comes from and when it changes, and the record it comes from, if any. */
+	let cidrLockReason = $derived.by((): { body: string; source?: ChipRef } | null => {
+		if (!cidrLock || !subnet) return null;
+		switch (cidrLock.type) {
+			case 'DaemonInterface': {
+				const daemon = daemonOf(cidrLock.daemon_id);
+				return {
+					body: subnets_cidrLockDaemonInterface(),
+					source: daemon
+						? { type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name }
+						: undefined
+				};
 			}
+			case 'ContainerBridge': {
+				const service = bridgeServiceQuery.data?.[0];
+				return {
+					body: subnets_cidrLockContainerBridge(),
+					source: service
+						? { type: 'Service', id: service.id, data: service, label: service.name }
+						: undefined
+				};
+			}
+			case 'Discovered':
+				return {
+					body: subnets_cidrLockDiscovered({
+						source: attributeSourceLabel(subnet.cidr_source ?? 'Unspecified')
+					})
+				};
+			case 'Organizational':
+				return { body: subnets_cidrLockOrganizational() };
 		}
-	);
+	});
 
 	async function handleSubmit() {
 		await submitForm(form);
@@ -393,8 +403,8 @@
 		...primaryAction()
 	]);
 
-	/** The step's way forward: Next, Create, or installing a daemon. None while a daemon on the
-	 *  site still has to connect, whose own buttons are the way forward. */
+	/** The step's way forward: Next, Create, or installing a daemon. While a daemon on the site
+	 *  still has to connect, troubleshooting it, not installing another. */
 	function primaryAction(): ModalAction[] {
 		if (isEditing || activeTab === 'details') {
 			return [
@@ -412,12 +422,43 @@
 			];
 		}
 		return pendingDaemon
-			? []
+			? [
+					{
+						role: 'primary',
+						label: home_setup_troubleshootConnection(),
+						onClick: () => (troubleshooting = true)
+					}
+				]
 			: [
 					{ role: 'primary', label: gettingStarted_stepDaemonLabel(), onClick: handleInstallDaemon }
 				];
 	}
 </script>
+
+{#snippet chips(refs: ChipRef[])}
+	<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+		{#each refs as ref (ref.id)}
+			<EntityTag
+				entityRef={entityRef(ref.type, ref.id, ref.data)}
+				label={ref.label}
+				icon={entities.getIconComponent(ref.type)}
+				color={entities.getColorHelper(ref.type).color}
+			/>
+		{/each}
+	</div>
+{/snippet}
+
+<!-- Under the locked CIDR field: why it is locked, and the record the range comes from. -->
+{#snippet cidrLockHint()}
+	{#if cidrLockReason}
+		<div class="text-xs text-tertiary">
+			<p>{cidrLockReason.body}</p>
+			{#if cidrLockReason.source}
+				{@render chips([cidrLockReason.source])}
+			{/if}
+		</div>
+	{/if}
+{/snippet}
 
 <GenericModal
 	{isOpen}
@@ -474,45 +515,51 @@
 
 					{#if checks?.sameHere}
 						{@const existing = checks.sameHere}
+						{@const lock = existing.cidr_lock}
+						{@const daemon =
+							lock?.type === 'DaemonInterface' ? daemonOf(lock.daemon_id) : undefined}
 						<InlineWarning
-							body={existing.cidr_lock?.type === 'DaemonInterface'
-								? subnets_existsHereInterfaced({
-										cidr: existing.cidr,
-										name: existing.name,
-										daemon:
-											(daemonsQuery.data ?? []).find(
-												(d) =>
-													existing.cidr_lock?.type === 'DaemonInterface' &&
-													d.id === existing.cidr_lock.daemon_id
-											)?.name ?? ''
-									})
-								: subnets_existsHere({ cidr: existing.cidr, name: existing.name })}
+							body={lock?.type === 'DaemonInterface'
+								? subnets_existsHereInterfaced({ cidr: existing.cidr })
+								: subnets_existsHere({ cidr: existing.cidr })}
 						>
-							<button
-								type="button"
-								class="mt-1 text-sm text-link hover:underline"
-								onclick={() => navigateToEntity('Subnet', existing.id, existing)}
-							>
-								{common_editName({ name: existing.name })}
-							</button>
+							{@render chips([
+								...(daemon
+									? [{ type: 'Daemon' as const, id: daemon.id, data: daemon, label: daemon.name }]
+									: []),
+								subnetChip(existing)
+							])}
 						</InlineWarning>
 					{/if}
 					{#each checks?.sameElsewhere ?? [] as other (other.id)}
-						<InlineInfo
-							body={subnets_existsElsewhere({ cidr: other.cidr, site: siteName(other.site_id) })}
-						/>
+						{@const site = siteOf(other.site_id)}
+						<InlineInfo body={subnets_existsElsewhere({ cidr: other.cidr })}>
+							{@render chips([
+								subnetChip(other),
+								...(site
+									? [{ type: 'Site' as const, id: site.id, data: site, label: site.name }]
+									: [])
+							])}
+							{#if site}
+								<button
+									type="button"
+									class="btn-secondary mt-2"
+									onclick={() => handleSiteChange(site.id)}
+								>
+									{subnets_switchToSite({ site: site.name })}
+								</button>
+							{/if}
+						</InlineInfo>
 					{/each}
 					{#if checks && checks.assumedInside.length > 0}
-						<InlineInfo
-							body={subnets_mergesAssumed({
-								subnets: checks.assumedInside.map(subnetLabel).join(', ')
-							})}
-						/>
+						<InlineInfo body={subnets_mergesAssumed()}>
+							{@render chips(checks.assumedInside.map(subnetChip))}
+						</InlineInfo>
 					{/if}
 					{#if checks && checks.inside.length > 0}
-						<InlineInfo
-							body={subnets_containsSubnets({ subnets: checks.inside.map(subnetLabel).join(', ') })}
-						/>
+						<InlineInfo body={subnets_containsSubnets()}>
+							{@render chips(checks.inside.map(subnetChip))}
+						</InlineInfo>
 					{/if}
 
 					<form.Field name="purpose">
@@ -532,19 +579,8 @@
 				<div class="space-y-4">
 					{#if pendingDaemon}
 						{@const daemon = pendingDaemon}
-						<InlineWarning body={subnets_finishDaemon({ daemon: daemon.name })}>
-							<div class="mt-2 flex flex-wrap gap-2">
-								<button type="button" class="btn-primary" onclick={() => (troubleshooting = true)}>
-									{home_setup_troubleshootConnection()}
-								</button>
-								<button
-									type="button"
-									class="btn-secondary"
-									onclick={() => navigateToEntity('Daemon', daemon.id, daemon)}
-								>
-									{common_openName({ name: daemon.name })}
-								</button>
-							</div>
+						<InlineWarning body={subnets_finishDaemon()}>
+							{@render chips([{ type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name }])}
 						</InlineWarning>
 					{:else}
 						<p class="text-sm text-secondary">
@@ -559,55 +595,28 @@
 						{#if !isEditing}
 							<InlineInfo body={subnets_recordNote()} />
 						{/if}
-						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-							<form.Field
-								name="name"
-								validators={{
-									onBlur: ({ value }) => required(value) || max(100)(value)
-								}}
-							>
-								{#snippet children(field)}
-									<TextInput
-										label={common_name()}
-										id="name"
-										{field}
-										placeholder={subnets_namePlaceholder()}
-										required
-									/>
-								{/snippet}
-							</form.Field>
-							<form.Field
-								name="cidr"
-								validators={{
-									onBlur: ({ value }) => required(value) || cidrNotation(value)
-								}}
-							>
-								{#snippet children(field)}
-									<TextInput
-										label={common_cidr()}
-										id="cidr"
-										{field}
-										placeholder={subnets_cidrPlaceholder()}
-										disabled={!isEditing || cidrLock !== null}
-										required
-									/>
-								{/snippet}
-							</form.Field>
-						</div>
+						<SubnetIdentity {form} cidr={cidrInput.trim()} initialName={form.state.values.name} />
 
-						{#if cidrLockReason}
-							<InlineInfo body={cidrLockReason.body}>
-								{#if cidrLockReason.link}
-									<button
-										type="button"
-										class="mt-1 text-sm text-link hover:underline"
-										onclick={cidrLockReason.link.open}
-									>
-										{cidrLockReason.link.label}
-									</button>
-								{/if}
-							</InlineInfo>
-						{/if}
+						<form.Field
+							name="cidr"
+							validators={{
+								onBlur: ({ value }) => required(value) || cidrNotation(value)
+							}}
+							listeners={{ onChange: ({ value }) => (cidrInput = value) }}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_cidr()}
+									id="cidr"
+									{field}
+									placeholder={subnets_cidrPlaceholder()}
+									disabled={!isEditing}
+									disabledReason={cidrLockReason?.body}
+									hint={cidrLockReason ? cidrLockHint : undefined}
+									required
+								/>
+							{/snippet}
+						</form.Field>
 
 						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
 							<!-- Site Selection -->
@@ -652,7 +661,6 @@
 
 						<ListManager
 							label={common_vlans()}
-							helpText={subnets_vlansHelp()}
 							placeholder={subnets_selectVlan()}
 							emptyMessage={subnets_noVlans()}
 							allowReorder={false}
