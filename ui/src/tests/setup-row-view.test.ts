@@ -21,10 +21,12 @@ const ctx: SetupRowContext = {
 		daemon: () => undefined,
 		host: () => undefined,
 		site: () => undefined,
-		credential: () => undefined
+		credential: () => undefined,
+		scan: () => undefined
 	},
 	onAnswer: vi.fn(),
-	onTroubleshoot: vi.fn()
+	onTroubleshoot: vi.fn(),
+	onRetryScans: vi.fn()
 };
 
 function click(item: SetupItem) {
@@ -70,5 +72,48 @@ describe('Setup row destinations', () => {
 		click({ type: 'RunFirstScan', daemon_id: null });
 		expect(openTab).not.toHaveBeenCalled();
 		expect(window.location.hash).toBe('discovery-scans');
+	});
+});
+
+describe('Failed scan rows', () => {
+	const SCAN = '00000000-0000-4000-8000-000000000003';
+	const RUN = '00000000-0000-4000-8000-000000000004';
+	const failed = (
+		reason: 'WatchdogTimeout' | 'SessionSilent' | 'DaemonReportedFailure',
+		nextRunFull: boolean
+	): SetupItem => ({
+		type: 'FailedScans',
+		daemon_id: DAEMON,
+		daemon_name: 'edge-01',
+		site_id: SITE,
+		reason,
+		scans: [{ scan_id: SCAN, name: 'Office LAN', run_id: RUN, next_run_full: nextRunFull }]
+	});
+
+	beforeEach(() => {
+		vi.mocked(openModal).mockClear();
+		vi.stubGlobal('window', { location: { hash: '' } });
+	});
+
+	it("sends a timed-out scan to its editor's Performance tab, with the layout guide", () => {
+		const view = setupRowView(failed('WatchdogTimeout', false), ctx);
+		view.fix.run();
+		expect(openModal).toHaveBeenCalledWith('discovery-editor', { id: SCAN, tab: 'performance' });
+		expect(view.docsUrl).toContain('#choose-a-layout');
+	});
+
+	it('links a silent scan to the connection troubleshooting guide', () => {
+		const view = setupRowView(failed('SessionSilent', false), ctx);
+		view.fix.run();
+		expect(ctx.onTroubleshoot).toHaveBeenCalled();
+		expect(view.docsUrl).toContain('#daemon-not-connecting-to-server');
+	});
+
+	it('says a full scan runs full again only when one in the row was full', () => {
+		const light = setupRowView(failed('DaemonReportedFailure', false), ctx);
+		const full = setupRowView(failed('DaemonReportedFailure', true), ctx);
+		expect(full.sentence.startsWith(light.sentence)).toBe(true);
+		expect(full.sentence.length).toBeGreaterThan(light.sentence.length);
+		expect(light.docsUrl).toBeUndefined();
 	});
 });

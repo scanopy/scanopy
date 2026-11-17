@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url';
  * Live validation of every outbound `scanopy.net/docs` link rendered by the app.
  *
  * The link set is derived from source at test time (a broad, wrapper-agnostic scan of
- * `ui/src` + `messages/en.json`), NOT a hand-maintained array — so a newly added docs link
- * is covered automatically and the test can't silently drift out of date. Links reach the UI
- * through several paths (the shared `DocsHint` component, a plain `<a>` in `Tag`, `window.open`
+ * `ui/src`, `messages/en.json` and the metadata fixtures in `ui/src/lib/data`), NOT a
+ * hand-maintained array — so a newly added docs link is covered automatically and the test
+ * can't silently drift out of date. Links reach the UI through several paths (the shared `DocsHint` component, a plain `<a>` in `Tag`, `window.open`
  * in the support cards, and raw `<a>` anchors embedded in i18n strings), so we scan for the URL
  * itself rather than any one component.
  *
@@ -27,6 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = path.resolve(__dirname, '..'); // ui/src
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const MESSAGES_FILE = path.resolve(REPO_ROOT, 'messages/en.json');
+const DATA_DIR = path.resolve(SRC_DIR, 'lib/data');
 
 // Matches a docs URL up to the first quote / whitespace / bracket / backtick that would end it.
 const DOCS_URL_RE = /https?:\/\/scanopy\.net\/docs[^\s"'`)<>\\]*/g;
@@ -63,6 +64,8 @@ function collectDocsLinks(): Occurrence[] {
 		// Exclude generated OpenAPI type declarations — their docs links are backend-owned.
 		.filter((f) => !f.endsWith('.d.ts'));
 	files.push(MESSAGES_FILE);
+	// Backend metadata carries docs links too (`ScanFailureFix` docs_url), shipped as UI fixtures.
+	files.push(...findFilesRecursively(DATA_DIR, ['.json']));
 
 	const occurrences: Occurrence[] = [];
 	for (const file of files) {

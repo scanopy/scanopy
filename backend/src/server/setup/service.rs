@@ -136,6 +136,10 @@ impl SetupService {
             .discovery_service
             .latest_runs_per_daemon(&daemon_ids)
             .await?;
+        let failed_scans = self
+            .discovery_service
+            .latest_failed_scans_per_daemon(&daemon_ids)
+            .await?;
 
         let (host_sites, subnet_sites) = match entity {
             Some(e) => (
@@ -203,6 +207,7 @@ impl SetupService {
             targetless_credentials,
             uncovered_integrations: group_by_integration(uncovered),
             run_warnings,
+            failed_scans,
             first_scan_daemon_id,
             unconfirmed_hosts,
             unconfirmed_subnets,
@@ -548,6 +553,27 @@ mod tests {
             ]
         );
         assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 5);
+    }
+
+    /// A failed scan shows only to a member who reads scans on its daemon's site.
+    #[test]
+    fn a_failed_scan_shows_only_on_the_readers_sites() {
+        let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let failed = |site_id| SetupItem::FailedScans {
+            daemon_id: Uuid::new_v4(),
+            daemon_name: "edge-01".to_string(),
+            site_id,
+            reason: crate::daemon::discovery::types::base::DiscoveryTerminalReason::SessionSilent,
+            scans: Vec::new(),
+        };
+        let shown: Vec<Vec<Uuid>> = SetupService::for_reader(
+            vec![entry(failed(mine)), entry(failed(other))],
+            &member_on(&[mine]),
+        )
+        .into_iter()
+        .map(|e| e.site_ids)
+        .collect();
+        assert_eq!(shown, [vec![mine]]);
     }
 
     /// A member sees Issues on its own sites only, and every Setup item.

@@ -181,6 +181,8 @@ impl TypeMetadataProvider for DiscoveryPhase {
     Copy,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
     Hash,
     ToSchema,
     EnumDiscriminants,
@@ -263,6 +265,148 @@ impl DiscoveryTerminalReason {
                 | DiscoveryTerminalReason::StalledNoUpdates
                 | DiscoveryTerminalReason::SessionStoppedAdvancing
         )
+    }
+
+    /// Why a recorded run ended: its stored reason, or for a run recorded before runs carried one,
+    /// the reason its phase stands for. `None` for a run that hasn't ended.
+    pub fn of_run(phase: DiscoveryPhase, reason: Option<Self>) -> Option<Self> {
+        reason.or(match phase {
+            DiscoveryPhase::Complete => Some(Self::Completed),
+            DiscoveryPhase::Cancelled => Some(Self::UserCancelled),
+            DiscoveryPhase::Failed => Some(Self::DaemonReportedFailure),
+            _ => None,
+        })
+    }
+
+    /// What the Issues row for a run that ended this way offers. `None` for a run that finished
+    /// or that someone stopped, which is no Issue.
+    pub fn issue_fix(self) -> Option<ScanFailureFix> {
+        Some(match self {
+            Self::Completed | Self::UserCancelled => return None,
+            // The error, or the daemon's logs it points to, says what to change.
+            Self::DaemonReportedFailure | Self::SessionStoppedAdvancing => ScanFailureFix::OpenRun,
+            Self::WatchdogTimeout => ScanFailureFix::RaiseMaxDuration,
+            Self::StalledNoUpdates
+            | Self::DaemonOffline
+            | Self::DaemonUnreachable
+            | Self::SessionSilent => ScanFailureFix::TroubleshootConnection,
+            Self::DaemonRestarted | Self::DaemonDroppedSession => ScanFailureFix::RetryScan,
+            Self::DaemonBusy => ScanFailureFix::RescheduleScan,
+        })
+    }
+
+    /// A one-off the next run of the scan usually gets past: another scan held the daemon, or the
+    /// daemon restarted or lost the session. An Issue waits for a second failure in a row, unless
+    /// no schedule will run the scan again.
+    pub fn clears_on_next_run(self) -> bool {
+        matches!(
+            self,
+            Self::DaemonBusy | Self::DaemonRestarted | Self::DaemonDroppedSession
+        )
+    }
+
+    /// The server lost the daemon: the cause is the daemon's connection, which the daemon's own
+    /// health reports while it lasts.
+    pub fn is_lost_connection(self) -> bool {
+        matches!(
+            self,
+            Self::StalledNoUpdates | Self::DaemonOffline | Self::DaemonUnreachable
+        )
+    }
+}
+
+/// What the Issues row for a scan that didn't finish offers, by why it ended.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    EnumIter,
+    strum::IntoStaticStr,
+)]
+pub enum ScanFailureFix {
+    /// Run the scan again: what stopped it doesn't stop the next run.
+    RetryScan,
+    /// Open the run, whose error and the daemon's logs say what failed.
+    OpenRun,
+    /// Check the daemon is running and can reach the server.
+    TroubleshootConnection,
+    /// Move the scan's schedule off another scan's on the same daemon.
+    RescheduleScan,
+    /// Give the scan more time on its Performance tab, or split its subnets across daemons.
+    RaiseMaxDuration,
+}
+
+impl ScanFailureFix {
+    /// The docs page the Issues row links to, if any.
+    pub fn docs_url(self) -> Option<&'static str> {
+        match self {
+            Self::TroubleshootConnection => Some(
+                "https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#daemon-not-connecting-to-server",
+            ),
+            Self::RaiseMaxDuration => Some(
+                "https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choose-a-layout",
+            ),
+            Self::RetryScan | Self::OpenRun | Self::RescheduleScan => None,
+        }
+    }
+}
+
+impl HasId for ScanFailureFix {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for ScanFailureFix {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            Self::RetryScan => Icon::RotateCcw,
+            Self::OpenRun => Icon::ScanSearch,
+            Self::TroubleshootConnection => Icon::Unplug,
+            Self::RescheduleScan => Icon::Clock,
+            Self::RaiseMaxDuration => Icon::Hourglass,
+        }
+    }
+}
+
+impl TypeMetadataProvider for ScanFailureFix {
+    /// The fix button's label.
+    fn name(&self) -> &'static str {
+        match self {
+            Self::RetryScan => "Run scan again",
+            Self::OpenRun => "Open the run",
+            Self::TroubleshootConnection => "Troubleshoot connection",
+            Self::RescheduleScan => "Change schedule",
+            Self::RaiseMaxDuration => "Raise max duration",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::RetryScan => "What stopped the scan doesn't stop the next run.",
+            Self::OpenRun => "The run's error and the daemon's logs say what failed.",
+            Self::TroubleshootConnection => {
+                "The daemon has to be running and able to reach the server."
+            }
+            Self::RescheduleScan => "Another scan on the same daemon was running at this time.",
+            Self::RaiseMaxDuration => {
+                "The scan needs more than its Max Discovery Duration, or fewer subnets per daemon."
+            }
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "docs_url": self.docs_url() })
     }
 }
 
@@ -355,25 +499,25 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
                 "The daemon restarted during the scan, so the scan's progress was lost. The daemon's logs show why it restarted."
             }
             DiscoveryTerminalReason::DaemonUnreachable => {
-                "The server could not reach the daemon to stop this scan. Check that the daemon is running and reachable from the server."
+                "The server could not reach the daemon to start, check on or stop this scan. Check that the daemon is running and reachable from the server."
             }
             DiscoveryTerminalReason::DaemonBusy => {
                 "The daemon was already running another scan and refused this one."
             }
             DiscoveryTerminalReason::WatchdogTimeout => {
-                "The scan ran past its maximum duration without finishing, so the daemon stopped it. Part of the scan stopped responding; the daemon's logs name the phase."
+                "The scan ran past its Max Discovery Duration, so the daemon stopped it. Raise the duration on the scan's Performance tab, or split the scan's subnets across daemons."
             }
             DiscoveryTerminalReason::DaemonOffline => {
                 "The daemon stopped checking in with the server during the scan, so no progress or cancellation could get through. Check that the daemon is running and can reach the server."
             }
             DiscoveryTerminalReason::SessionSilent => {
-                "The daemon kept checking in with the server but sent nothing about this scan for 5 minutes. The daemon's logs show where the scan stopped."
+                "The daemon kept checking in with the server but sent nothing about this scan for 5 minutes, so the server stopped waiting. Check the daemon's connection to the server."
             }
             DiscoveryTerminalReason::DaemonDroppedSession => {
                 "The daemon is running and idle but no longer had this scan, and its final report never reached the server. The daemon's logs show how the scan ended."
             }
             DiscoveryTerminalReason::SessionStoppedAdvancing => {
-                "The scan kept running for 20 minutes without finding a host or finishing a step, so the daemon stopped it. The error names the hosts the scan was still working on."
+                "The scan kept running for 20 minutes without finding a host or finishing a step, so the daemon stopped it. Check the addresses the error names: SNMP collection can take up to 15 minutes per host."
             }
         }
     }
@@ -382,6 +526,7 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
         serde_json::json!({
             "is_stall": self.is_stall(),
             "explained_by_daemon_logs": self.explained_by_daemon_logs(),
+            "issue_fix": self.issue_fix(),
         })
     }
 }

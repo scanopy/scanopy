@@ -9,6 +9,7 @@ use tower_sessions_sqlx_store::PostgresStore;
 use crate::server::credentials::r#impl::junction::{HostCredential, SiteCredential};
 use crate::server::daemons::r#impl::interfaced_subnets::DaemonInterfacedSubnet;
 use crate::server::dependencies::dependency_members::DependencyMemberRecord;
+use crate::server::discovery::r#impl::subnet_targets::DiscoverySubnet;
 use crate::server::discovery_warnings::r#impl::base::DiscoveryWarningRecord;
 use crate::server::interface_neighbors::r#impl::base::{
     InterfaceNeighborCandidate, InterfaceNeighborHost, InterfaceNeighborInterface,
@@ -72,6 +73,7 @@ pub struct StorageFactory {
     pub site_credentials: Arc<GenericPostgresStorage<SiteCredential>>,
     pub host_credentials: Arc<GenericPostgresStorage<HostCredential>>,
     pub daemon_interfaced_subnets: Arc<GenericPostgresStorage<DaemonInterfacedSubnet>>,
+    pub discovery_subnets: Arc<GenericPostgresStorage<DiscoverySubnet>>,
     pub interface_neighbor_candidates: Arc<GenericPostgresStorage<InterfaceNeighborCandidate>>,
     pub interface_neighbor_interfaces: Arc<GenericPostgresStorage<InterfaceNeighborInterface>>,
     pub interface_neighbor_hosts: Arc<GenericPostgresStorage<InterfaceNeighborHost>>,
@@ -163,6 +165,7 @@ impl StorageFactory {
             site_credentials: Arc::new(GenericPostgresStorage::new(pool.clone())),
             host_credentials: Arc::new(GenericPostgresStorage::new(pool.clone())),
             daemon_interfaced_subnets: Arc::new(GenericPostgresStorage::new(pool.clone())),
+            discovery_subnets: Arc::new(GenericPostgresStorage::new(pool.clone())),
             interface_neighbor_candidates: Arc::new(GenericPostgresStorage::new(pool.clone())),
             interface_neighbor_interfaces: Arc::new(GenericPostgresStorage::new(pool.clone())),
             interface_neighbor_hosts: Arc::new(GenericPostgresStorage::new(pool.clone())),

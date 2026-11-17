@@ -22,7 +22,12 @@ import {
 } from '#lib/features/topology/queries.ts';
 import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
 import { openTab } from '#lib/shared/stores/url-state.ts';
-import { daemonHealths, setupItems } from '#lib/shared/stores/metadata.ts';
+import {
+	daemonHealths,
+	discoveryTerminalReasons,
+	scanFailureFixes,
+	setupItems
+} from '#lib/shared/stores/metadata.ts';
 import {
 	common_answer,
 	common_getStarted,
@@ -34,6 +39,7 @@ import {
 	dependencies_createDependency,
 	gettingStarted_stepDaemonLabel,
 	gettingStarted_stepDiscoveryLabel,
+	home_failedScans_nextRunFull,
 	home_nudges_apiKeysAction,
 	home_nudges_dependenciesAction,
 	home_nudges_exploreViewsAction,
@@ -68,6 +74,7 @@ export interface SetupLookups {
 	) => (Record<string, unknown> & Parameters<typeof hostDisplayName>[0]) | undefined;
 	site: (id: string) => Record<string, unknown> | undefined;
 	credential: CredentialLookup;
+	scan: (id: string) => object | undefined;
 }
 
 /**
@@ -86,6 +93,8 @@ export interface SetupSubject {
 export interface SetupRowView {
 	title: string;
 	sentence: string;
+	/** A docs page about the fix, linked under the sentence. */
+	docsUrl?: string;
 	subjects: SetupSubject[];
 	fix: SetupFix;
 }
@@ -99,6 +108,8 @@ export interface SetupRowContext {
 	onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
 	/** Opens the daemon troubleshooting help. */
 	onTroubleshoot: () => void;
+	/** Starts a run of each of these scans. */
+	onRetryScans: (scanIds: string[]) => void;
 }
 
 function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1]) {
@@ -133,7 +144,7 @@ function daemonScans(daemonId: string) {
 
 /** What the row for `item` says and does, by item type. */
 export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowView {
-	const { setup, lookups, onAnswer, onTroubleshoot } = ctx;
+	const { setup, lookups, onAnswer, onTroubleshoot, onRetryScans } = ctx;
 	const hostSubjects = (ids: string[]) =>
 		allOf('Host', ids, (id) => {
 			const host = lookups.host(id);
@@ -156,7 +167,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			// standby has had no scan in 30 days, and starting one of its scans wakes it, so it
 			// gets its own scans, each with Run.
 			const fix: SetupFix =
-				health === 'awaiting_connection' || health === 'unreachable'
+				health === 'awaiting_connection' || health === 'unreachable' || health === 'not_checking_in'
 					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
 					: health === 'standby'
 						? { label: home_setup_runScan(), run: daemonScans(id) }
@@ -262,6 +273,52 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 									: common_openScanThatFoundIt(),
 							run: () => go('discovery-history', 'discovery-history-detail', { id: discoveryId })
 						}
+			};
+		}
+		case 'FailedScans': {
+			const { daemon_id: daemonId, daemon_name, reason, scans } = item;
+			// Newest run first: the run to open, and the scan whose schedule to move.
+			const newest = scans[0];
+			const fixType = discoveryTerminalReasons.getMetadata(reason).issue_fix ?? 'OpenRun';
+			const run: () => void = (() => {
+				switch (fixType) {
+					case 'RetryScan':
+						return () => onRetryScans(scans.map((s) => s.scan_id));
+					case 'TroubleshootConnection':
+						return onTroubleshoot;
+					case 'RescheduleScan':
+						return () =>
+							go('discovery-scans', 'discovery-editor', { id: newest?.scan_id, tab: 'schedule' });
+					case 'RaiseMaxDuration':
+						return () =>
+							go('discovery-scans', 'discovery-editor', {
+								id: newest?.scan_id,
+								tab: 'performance'
+							});
+					case 'OpenRun':
+						return () =>
+							go('discovery-history', 'discovery-history-detail', { id: newest?.run_id });
+				}
+			})();
+			return {
+				title,
+				// What ended the run, that it drew no links, and whether a full scan runs full again.
+				sentence: [
+					discoveryTerminalReasons.getDescription(reason),
+					sentence,
+					...(scans.some((s) => s.next_run_full) ? [home_failedScans_nextRunFull()] : [])
+				].join(' '),
+				docsUrl: scanFailureFixes.getMetadata(fixType).docs_url ?? undefined,
+				subjects: [
+					...scans.map((s) => ({
+						type: 'Discovery' as const,
+						id: s.scan_id,
+						label: s.name,
+						data: lookups.scan(s.scan_id)
+					})),
+					{ type: 'Daemon', id: daemonId, label: daemon_name, data: lookups.daemon(daemonId) }
+				],
+				fix: { label: scanFailureFixes.getName(fixType), run }
 			};
 		}
 		case 'UnconfirmedHosts':

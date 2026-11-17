@@ -178,6 +178,12 @@ impl DiscoveryService {
             ));
         }
 
+        // The targets as stored now: the scheduler reads its scan straight from storage, and a
+        // subnet deleted since the caller read the scan is no longer a target.
+        self.attach_subnet_targets(std::slice::from_mut(&mut discovery))
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
         // Update last_run on the discovery (covers all code paths: handler, scheduler, registration)
         discovery
             .base

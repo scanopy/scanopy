@@ -16,6 +16,7 @@ use crate::server::{
     credentials::r#impl::junction::{HostCredential, SiteCredential},
     daemons::r#impl::interfaced_subnets::DaemonInterfacedSubnet,
     dependencies::dependency_members::DependencyMemberRecord,
+    discovery::r#impl::subnet_targets::DiscoverySubnet,
     discovery_warnings::r#impl::base::DiscoveryWarningRecord,
     interface_neighbors::r#impl::base::{
         InterfaceNeighborCandidate, InterfaceNeighborHost, InterfaceNeighborInterface,
@@ -165,6 +166,14 @@ pub const SUBNET_VLAN_VLAN: Relation<SubnetVlanRecord> = Relation::to(
 pub const INTERFACED_SUBNET_DAEMON: Relation<DaemonInterfacedSubnet> =
     Relation::to(DAEMON_ID, Ownership::Owner, Ids::One(|r| Some(r.daemon_id)));
 pub const INTERFACED_SUBNET_SUBNET: Relation<DaemonInterfacedSubnet> =
+    Relation::to(SUBNET_ID, Ownership::Owner, Ids::One(|r| Some(r.subnet_id)));
+
+pub const DISCOVERY_SUBNET_DISCOVERY: Relation<DiscoverySubnet> = Relation::to(
+    DISCOVERY_ID,
+    Ownership::Owner,
+    Ids::One(|r| Some(r.discovery_id)),
+);
+pub const DISCOVERY_SUBNET_SUBNET: Relation<DiscoverySubnet> =
     Relation::to(SUBNET_ID, Ownership::Owner, Ids::One(|r| Some(r.subnet_id)));
 
 pub const SITE_CREDENTIAL_SITE: Relation<SiteCredential> =

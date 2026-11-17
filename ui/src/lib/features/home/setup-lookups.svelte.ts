@@ -2,14 +2,15 @@ import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
 import { useHostsByIds } from '#lib/features/hosts/queries.ts';
 import { useSitesQuery } from '#lib/features/sites/queries.ts';
 import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
 import { hostIdsOf } from '#lib/features/discovery/utils/warnings.ts';
 import type { SetupLookups } from './setup-row-view';
 import type { SetupListEntry } from './setup-list';
 
 /**
  * The loaded entities Setup list rows name and open. Hosts load for the rows given: an uncovered
- * integration's hosts, and the hosts a scan warning concerns, one chip each. Call during
- * component init.
+ * integration's hosts, and the hosts a scan warning concerns, one chip each. Scans load for the
+ * failed scans the rows name. Call during component init.
  */
 export function setupLookups(entries: () => SetupListEntry[]): SetupLookups {
 	const daemonsQuery = useDaemonsQuery();
@@ -28,10 +29,20 @@ export function setupLookups(entries: () => SetupListEntry[]): SetupLookups {
 		)
 	]);
 	const hostsQuery = useHostsByIds(() => hostIds);
+	const scanIds = $derived([
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		...new Set(
+			entries().flatMap(({ item }) =>
+				item.type === 'FailedScans' ? item.scans.map((s) => s.scan_id) : []
+			)
+		)
+	]);
+	const scansQuery = useDiscoveriesByIds(() => scanIds);
 	return {
 		daemon: (id) => (daemonsQuery.data ?? []).find((d) => d.id === id),
 		host: (id) => (hostsQuery.data ?? []).find((h) => h.id === id),
 		site: (id) => (sitesQuery.data ?? []).find((s) => s.id === id),
-		credential: (id) => (credentialsQuery.data ?? []).find((c) => c.id === id)
+		credential: (id) => (credentialsQuery.data ?? []).find((c) => c.id === id),
+		scan: (id) => (scansQuery.data ?? []).find((d) => d.id === id)
 	};
 }

@@ -119,6 +119,7 @@ export const COVERED_FIXTURES = [
 	{ file: 'warning-codes.json', key: 'warning_codes', kind: 'typeMetadata' },
 	// The rung each code's `category` names. Heading and sub-line for a section of the list.
 	{ file: 'warning-remedies.json', key: 'warning_remedies', kind: 'typeMetadata' },
+	{ file: 'scan-failure-fixes.json', key: 'scan_failure_fixes', kind: 'typeMetadata' },
 	{ file: 'snmp-walk-groups.json', key: 'snmp_walk_groups', kind: 'typeMetadata' },
 	{ file: 'snmp-walk-causes.json', key: 'snmp_walk_causes', kind: 'typeMetadata' },
 	{ file: 'claim-sources.json', key: 'claim_sources', kind: 'typeMetadata' },

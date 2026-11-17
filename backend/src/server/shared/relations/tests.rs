@@ -115,6 +115,12 @@ fn every_relation_reads_the_column_it_names() {
         daemon_id: id(),
         subnet_id: id(),
     });
+    reads_match_columns(
+        &crate::server::discovery::r#impl::subnet_targets::DiscoverySubnet {
+            discovery_id: id(),
+            subnet_id: id(),
+        },
+    );
     reads_match_columns(&SiteCredential {
         site_id: id(),
         credential_id: id(),

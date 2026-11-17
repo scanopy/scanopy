@@ -128,6 +128,8 @@ fn get_entity_deserializers() -> HashMap<&'static str, TableReader> {
         &mut map,
     );
 
+    register::<crate::server::discovery::r#impl::subnet_targets::DiscoverySubnet>(&mut map);
+
     register::<Interface>(&mut map);
 
     register::<InterfaceNeighborCandidate>(&mut map);

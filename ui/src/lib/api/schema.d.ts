@@ -4289,19 +4289,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-12T15:27:57.615877Z",
+             *       "created_at": "2026-11-17T16:58:18.732741Z",
              *       "first_discovery_id": null,
-             *       "id": "e6219cfd-d25e-43e5-885a-2206d82a94a5",
+             *       "id": "c2c147a9-7998-47aa-8f07-75bbb2d11a6b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-12T15:27:57.615877Z",
+             *       "last_seen_at": "2026-11-17T16:58:18.732741Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-12T15:27:57.615877Z",
-             *       "valid_from": "2026-11-12T15:27:57.615877Z",
+             *       "updated_at": "2026-11-17T16:58:18.732741Z",
+             *       "valid_from": "2026-11-17T16:58:18.732741Z",
              *       "valid_to": null
              *     }
              */
@@ -5084,7 +5084,7 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "Server",
+             *       "device_type": "IoT",
              *       "device_type_source": {
              *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *         "service_name": "nginx",
@@ -5217,19 +5217,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-12T15:27:57.575049Z",
+             *               "created_at": "2026-11-17T16:58:18.684477Z",
              *               "first_discovery_id": null,
-             *               "id": "149ca749-8b5a-44a4-9a1d-8f35d78f2b18",
+             *               "id": "b0932491-82d4-440d-ac84-49739b061334",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-12T15:27:57.575049Z",
+             *               "last_seen_at": "2026-11-17T16:58:18.684477Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-12T15:27:57.575049Z",
-             *               "valid_from": "2026-11-12T15:27:57.575049Z",
+             *               "updated_at": "2026-11-17T16:58:18.684477Z",
+             *               "valid_from": "2026-11-17T16:58:18.684477Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5242,7 +5242,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Gogs",
+             *           "service_definition": "IoT",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6274,19 +6274,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-12T15:27:57.609636Z",
+             *           "created_at": "2026-11-17T16:58:18.725748Z",
              *           "first_discovery_id": null,
-             *           "id": "113fcc87-462c-46d4-97ec-d1a95cabdccc",
+             *           "id": "69e0eec0-d235-4b85-ac11-0dd805036490",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-12T15:27:57.609636Z",
+             *           "last_seen_at": "2026-11-17T16:58:18.725748Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-12T15:27:57.609636Z",
-             *           "valid_from": "2026-11-12T15:27:57.609636Z",
+             *           "updated_at": "2026-11-17T16:58:18.725748Z",
+             *           "valid_from": "2026-11-17T16:58:18.725748Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6299,7 +6299,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Gogs",
+             *       "service_definition": "IoT",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -8005,19 +8005,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-12T15:27:57.575854Z",
+         *       "created_at": "2026-11-17T16:58:18.685206Z",
          *       "first_discovery_id": null,
-         *       "id": "a587d1c9-ccc4-40f9-8d4c-85469831b23f",
+         *       "id": "61253847-6455-4cfc-a75f-af6936248eae",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-12T15:27:57.575854Z",
+         *       "last_seen_at": "2026-11-17T16:58:18.685206Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-12T15:27:57.575854Z",
-         *       "valid_from": "2026-11-12T15:27:57.575854Z",
+         *       "updated_at": "2026-11-17T16:58:18.685206Z",
+         *       "valid_from": "2026-11-17T16:58:18.685206Z",
          *       "valid_to": null
          *     }
          */
@@ -8431,7 +8431,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "IoT",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9092,7 +9092,7 @@ export interface components {
          *     filters on its value, which reads the same in every language.
          * @enum {string}
          */
-        DaemonHealth: "unsupported" | "unreachable" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
+        DaemonHealth: "unsupported" | "unreachable" | "not_checking_in" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
         /**
          * @description Legacy heartbeat payload for backwards compatibility with pre-v0.14.0 daemons.
          *     Old daemons call POST /api/daemons/{id}/heartbeat with this payload.
@@ -11093,6 +11093,26 @@ export interface components {
             /** @description Viewer may export the diagram as an editable Visio (VSDX) file. */
             vsdx_export: boolean;
         };
+        /** @description A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish. */
+        FailedScan: {
+            /** @description The scan's name. */
+            name: string;
+            /**
+             * @description The scan's next run is a full scan again, because the full scan that didn't finish
+             *     doesn't count.
+             */
+            next_run_full: boolean;
+            /**
+             * Format: uuid
+             * @description The scan's latest run, which didn't finish.
+             */
+            run_id: string;
+            /**
+             * Format: uuid
+             * @description The scan.
+             */
+            scan_id: string;
+        };
         FdbMacs: {
             /** @description MAC addresses the switch learned on this port. A port with one learned MAC can be resolved to a neighbor link; several indicate an uplink. */
             fdb_macs?: string[];
@@ -11641,7 +11661,7 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "Server",
+         *       "device_type": "IoT",
          *       "device_type_source": {
          *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *         "service_name": "nginx",
@@ -11774,19 +11794,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-12T15:27:57.574045Z",
+         *               "created_at": "2026-11-17T16:58:18.683575Z",
          *               "first_discovery_id": null,
-         *               "id": "0f1a22f7-d820-401d-ba48-751d64023dc8",
+         *               "id": "679ed8a6-68e6-4e47-a5fb-4bdf7b91ccd9",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-12T15:27:57.574045Z",
+         *               "last_seen_at": "2026-11-17T16:58:18.683575Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-12T15:27:57.574045Z",
-         *               "valid_from": "2026-11-12T15:27:57.574045Z",
+         *               "updated_at": "2026-11-17T16:58:18.683575Z",
+         *               "valid_from": "2026-11-17T16:58:18.683575Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11799,7 +11819,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "IoT",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -15291,6 +15311,11 @@ export interface components {
             percent_off: number;
         };
         /**
+         * @description What the Issues row for a scan that didn't finish offers, by why it ended.
+         * @enum {string}
+         */
+        ScanFailureFix: "RetryScan" | "OpenRun" | "TroubleshootConnection" | "RescheduleScan" | "RaiseMaxDuration";
+        /**
          * @description Scan performance settings. Lives on the discovery entity.
          *     Numeric fields are `Option<T>` — `None` means "use daemon default".
          *     The daemon unwraps with defaults at point of use.
@@ -15517,19 +15542,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-12T15:27:57.575588Z",
+         *           "created_at": "2026-11-17T16:58:18.684974Z",
          *           "first_discovery_id": null,
-         *           "id": "d0693bfd-760a-49ed-ab32-4c676d5f8889",
+         *           "id": "2bec7db3-14cd-43da-9027-ac623182e13c",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-12T15:27:57.575588Z",
+         *           "last_seen_at": "2026-11-17T16:58:18.684974Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-12T15:27:57.575588Z",
-         *           "valid_from": "2026-11-12T15:27:57.575588Z",
+         *           "updated_at": "2026-11-17T16:58:18.684974Z",
+         *           "valid_from": "2026-11-17T16:58:18.684974Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15542,7 +15567,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Gogs",
+         *       "service_definition": "IoT",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15797,6 +15822,25 @@ export interface components {
             warnings: components["schemas"]["DiscoveryWarning"][];
         } | {
             /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            /** @description The daemon's name. */
+            daemon_name: string;
+            /** @description Why the runs ended. */
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @description The scans, newest run first. */
+            scans: components["schemas"]["FailedScan"][];
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "FailedScans";
+        } | {
+            /**
              * Format: int64
              * @description The unconfirmed hosts on the site.
              */
@@ -15874,7 +15918,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "FailedScans" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15899,6 +15943,15 @@ export interface components {
             daemon_id: string;
             /** @enum {string} */
             type: "RunWarning";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @enum {string} */
+            type: "FailedScans";
         };
         /**
          * @description Where a Setup item stands. Issues are always Open.
@@ -16988,7 +17041,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "0090024c-060e-405e-a1a3-612b44de4dd1",
+             *           "id": "5637ea37-4f33-4d75-95d8-db68f5bbdc91",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16998,23 +17051,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
+             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "32f70dd7-d122-4244-a49b-ec78410135ec",
+             *           "id": "89a60890-6f28-44c0-983f-885c4b794a17",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "4e7f2742-496d-45b7-b7fc-5e1e12c0e182",
+             *           "id": "df8343e4-f87c-4da8-8bad-a0efb4a448c1",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
+             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -17028,19 +17081,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "2a42eb3d-a650-43d4-8bfc-638630246381",
+             *         "id": "b0256ff6-9461-4df3-96b9-d0045421dc48",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "fe033ceb-773a-4ae4-9940-1185da932095",
+             *         "id": "f0fdec5c-fbfb-451b-87bb-138025e88690",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e7d9cebb-0cbf-4f8a-902e-9b2d2004be1d",
+             *         "id": "06e109ab-a367-4629-8e7b-285e161611e7",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "7cf54692-90c3-43b1-b045-6cc7fd038287",
+             *         "id": "5820d96f-7b8c-4cd9-83b4-165603e8bc87",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -17061,7 +17114,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7893f01d-e36f-41a7-b156-084f5f08f988",
+             *         "id": "ac1d31aa-e849-482c-8706-303b6e5a12b7",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -17070,19 +17123,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "11f82579-53b9-4f4f-9cdb-df3b235f38a1",
+             *         "id": "b0906390-008b-4294-bb10-3d7701d1464e",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "a45c7bb8-2ffb-48c2-86f9-ddfe9ba8e575",
+             *         "id": "6f40fe51-d1ca-4dda-bf6b-aa27965f64ab",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "1cf8f35e-5d99-4cc7-8ca4-7b3827769167",
+             *         "id": "e442a8cb-313a-465c-bd7c-7fd507f884ea",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c2711e95-628d-4d5f-9b31-6f8b151eb0b8",
+             *         "id": "96e45ff6-f64f-49db-bb02-be8fc87cdd2e",
              *         "rule": "ByStack"
              *       }
              *     ]
