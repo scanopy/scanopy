@@ -366,6 +366,34 @@ impl Subnet {
         subnet_type.apply_in_place(self.base.subnet_type.clone());
         self.base.subnet_type = subnet_type;
     }
+
+    /// Stamp what a person saving `current` in the editor asserted. Only `update_subnet` calls
+    /// this: its route is user-only, so here the edit is known to be a person's, whereas storage
+    /// sees every writer alike.
+    ///
+    /// - A name or type they changed is theirs. One sent back unchanged keeps its source: saving a
+    ///   description is not renaming the subnet.
+    /// - A range they moved is theirs, which settles the confidence ladder so the next scan
+    ///   doesn't re-correct it.
+    /// - Saving an assumed range at all confirms it, whether or not the CIDR changed.
+    pub(crate) fn stamp_person_edit(&mut self, current: &Self) {
+        if current.base.name.value() != self.base.name.value() {
+            self.base.name =
+                SubnetName::new(self.base.name.value().clone(), AttributeSource::Manual);
+        }
+        if current.base.subnet_type.value() != self.base.subnet_type.value() {
+            self.base.subnet_type =
+                SubnetTypeAttributed::new(*self.base.subnet_type.value(), AttributeSource::Manual);
+        }
+        let confirms = current.base.source.confirmation().is_unconfirmed();
+        if confirms || current.base.cidr != self.base.cidr {
+            self.base.cidr =
+                SubnetCidr::new(self.base.cidr.value().clone(), AttributeSource::Manual);
+        }
+        if confirms {
+            self.base.source = EntitySource::Manual;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -432,6 +460,36 @@ mod tests {
         incoming.base.source = EntitySource::Manual;
         incoming.preserve_immutable_fields(&existing);
         assert_eq!(incoming.base.source, EntitySource::Manual);
+    }
+
+    /// Opening an assumed range in the editor and saving it as it is confirms it, the same as
+    /// changing its CIDR would.
+    #[test]
+    fn saving_an_assumed_range_unchanged_confirms_it() {
+        let existing = assumed_range();
+        let mut request = existing.clone();
+        request.stamp_person_edit(&existing);
+        request.preserve_immutable_fields(&existing);
+        assert_eq!(request.base.source, EntitySource::Manual);
+        assert_eq!(request.base.cidr.source(), AttributeSource::Manual);
+    }
+
+    #[test]
+    fn saving_a_discovered_range_unchanged_keeps_its_reading() {
+        let mut existing = assumed_range();
+        existing.base.cidr = SubnetCidr::new(
+            existing.base.cidr.value().clone(),
+            AttributeSource::DaemonSelfReport,
+        );
+        existing.base.source = EntitySource::Discovery;
+        let mut request = existing.clone();
+        request.stamp_person_edit(&existing);
+        request.preserve_immutable_fields(&existing);
+        assert_eq!(request.base.source, EntitySource::Discovery);
+        assert_eq!(
+            request.base.cidr.source(),
+            AttributeSource::DaemonSelfReport
+        );
     }
 
     #[test]

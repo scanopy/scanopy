@@ -1,7 +1,6 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::permissions::{Authorized, Can, IsDaemon, Or, Read, Write};
 use crate::server::openapi::tags as api_tags;
-use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::list::list_page;
 use crate::server::shared::handlers::ordering::{OrderField, in_sql};
@@ -24,7 +23,7 @@ use crate::server::shared::validation::{validate_read_access, validate_site_acce
 use crate::server::sites::r#impl::Site;
 use crate::server::{
     config::AppState,
-    subnets::r#impl::base::{Subnet, SubnetCidr, SubnetName, SubnetTypeAttributed},
+    subnets::r#impl::base::Subnet,
     subnets::r#impl::create_purpose::SubnetCreatePurpose,
     subnets::r#impl::nesting::SubnetResponse,
     subnets::r#impl::types::SubnetType,
@@ -516,63 +515,35 @@ async fn update_subnet(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .ok_or_else(|| ApiError::entity_not_found::<Subnet>(id))?;
 
-    // A name or type a person changed is theirs, for the reason the range below is. One sent back
-    // unchanged keeps the stored source: saving a description is not renaming the subnet.
-    if current.base.name.value() != subnet.base.name.value() {
-        subnet.base.name =
-            SubnetName::new(subnet.base.name.value().clone(), AttributeSource::Manual);
-    }
-    if current.base.subnet_type.value() != subnet.base.subnet_type.value() {
-        subnet.base.subnet_type =
-            SubnetTypeAttributed::new(*subnet.base.subnet_type.value(), AttributeSource::Manual);
-    }
+    subnet.stamp_person_edit(&current);
 
     refuse_seeded_type(Some(current.base.subnet_type()), subnet.base.subnet_type())?;
 
-    if current.base.cidr != subnet.base.cidr {
-        // The same range sent back with a new rung is a person confirming an assumed range, which
-        // moves nothing.
-        let moves = current.base.cidr.value() != subnet.base.cidr.value();
-        if moves {
-            let interfaced = state
-                .services
-                .daemon_service
-                .interfacing_daemon_by_subnet(&[id])
-                .await?;
-            if current.cidr_lock(interfaced.get(&id).copied()).is_some() {
-                return Err(ApiError::subnet_cidr_locked());
+    if current.base.cidr.value() != subnet.base.cidr.value() {
+        let interfaced = state
+            .services
+            .daemon_service
+            .interfacing_daemon_by_subnet(&[id])
+            .await?;
+        if current.cidr_lock(interfaced.get(&id).copied()).is_some() {
+            return Err(ApiError::subnet_cidr_locked());
+        }
+
+        let refusal = state
+            .services
+            .subnet_service
+            .check_cidr_change(&current, *subnet.base.cidr)
+            .await?;
+        match refusal {
+            Ok(()) => {}
+            Err(CidrChangeRefusal::Organizational) => {
+                return Err(ApiError::subnet_cidr_organizational());
             }
-        }
-
-        // Moving the range through this endpoint is a person's assertion, so it settles the
-        // confidence ladder: `Confirmed` outranks anything a scan reads, which is what stops a
-        // corrected range being re-corrected on the next discovery. This lives here rather than in
-        // `preserve_immutable_fields` because here it is *true* — the route is `Authorized<Can<Subnet, Write>>`
-        // and no daemon can reach it — whereas storage sees every writer alike.
-        subnet.base.cidr =
-            SubnetCidr::new(subnet.base.cidr.value().clone(), AttributeSource::Manual);
-        // Confirming or correcting an assumed range is what confirms the subnet itself.
-        if current.base.source.confirmation().is_unconfirmed() {
-            subnet.base.source = EntitySource::Manual;
-        }
-
-        if moves {
-            let refusal = state
-                .services
-                .subnet_service
-                .check_cidr_change(&current, *subnet.base.cidr)
-                .await?;
-            match refusal {
-                Ok(()) => {}
-                Err(CidrChangeRefusal::Organizational) => {
-                    return Err(ApiError::subnet_cidr_organizational());
-                }
-                Err(CidrChangeRefusal::Duplicate(name)) => {
-                    return Err(ApiError::subnet_cidr_duplicate(&name));
-                }
-                Err(CidrChangeRefusal::StrandsAddress(ip)) => {
-                    return Err(ApiError::subnet_cidr_strands_address(&ip.to_string()));
-                }
+            Err(CidrChangeRefusal::Duplicate(name)) => {
+                return Err(ApiError::subnet_cidr_duplicate(&name));
+            }
+            Err(CidrChangeRefusal::StrandsAddress(ip)) => {
+                return Err(ApiError::subnet_cidr_strands_address(&ip.to_string()));
             }
         }
     }

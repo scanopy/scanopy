@@ -67,7 +67,7 @@ impl TypeMetadataProvider for SubnetCreatePurpose {
 
     fn description(&self) -> &'static str {
         match self {
-            SubnetCreatePurpose::Scan => "Find the hosts on this network.",
+            SubnetCreatePurpose::Scan => "Find the hosts on this subnet.",
             SubnetCreatePurpose::Record => {
                 "Keep it as a range, for example an address block that holds other subnets, or a \
                  network no daemon reaches."
