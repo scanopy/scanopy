@@ -2,7 +2,7 @@
 	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
 	import { MAX_ITEMS_IN_CELL, entityRef } from '#lib/shared/components/data/types.ts';
 	import { entities } from '#lib/shared/stores/metadata.ts';
-	import { common_moreItems } from '#lib/paraglide/messages.js';
+	import { common_docs, common_moreItems } from '#lib/paraglide/messages.js';
 	import type { SetupRowView } from '../setup-row-view';
 
 	let {
@@ -50,6 +50,19 @@
 		{/if}
 	</div>
 	{#if !done && view.sentence}
-		<p class="text-sm text-tertiary">{view.sentence}</p>
+		<p class="text-sm text-tertiary">
+			{view.sentence}
+			{#if view.docsUrl}
+				<a
+					href={view.docsUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="pointer-events-auto relative z-10 text-xs underline hover:text-secondary"
+					onclick={(e) => e.stopPropagation()}
+				>
+					{common_docs()}
+				</a>
+			{/if}
+		</p>
 	{/if}
 </div>

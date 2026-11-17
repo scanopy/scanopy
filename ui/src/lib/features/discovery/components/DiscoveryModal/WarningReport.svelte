@@ -55,7 +55,7 @@
 		discovery_warningAffectsAddresses,
 		discovery_warningAffectsHosts,
 		discovery_warningAffectsSubnets,
-		discovery_warningSettingDocs
+		common_docs
 	} from '#lib/paraglide/messages.js';
 	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
@@ -66,7 +66,7 @@
 	import {
 		buildWarningReport,
 		isCredentialWarning,
-		settingsDocsUrlOf,
+		docsUrlOf,
 		type WarningAffects,
 		type WarningSubject
 	} from '../../utils/warnings';
@@ -314,7 +314,7 @@
 						{@const EntryIcon = createIconComponent(entry.icon)}
 						{@const colors = createColorHelper(entry.color)}
 						{@const action = actionFor(entry, run)}
-						{@const settingsDocsUrl = settingsDocsUrlOf(entry.code)}
+						{@const docsUrl = docsUrlOf(entry.code)}
 						{@const isOpen = openRows.has(entry.key)}
 						<li class="py-1.5">
 							<div class="flex min-w-0 items-center gap-2">
@@ -341,15 +341,15 @@
 									{/if}
 								</div>
 
-								<!-- Where the setting the row's sentence names is documented. -->
-								{#if settingsDocsUrl}
+								<!-- The docs page for the row's code. -->
+								{#if docsUrl}
 									<a
-										href={settingsDocsUrl}
+										href={docsUrl}
 										target="_blank"
 										rel="noopener noreferrer"
 										class="shrink-0 text-xs text-tertiary underline hover:text-secondary"
 									>
-										{discovery_warningSettingDocs()}
+										{common_docs()}
 									</a>
 								{/if}
 

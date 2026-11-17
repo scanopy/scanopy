@@ -16,6 +16,7 @@
 	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_credential,
+		common_docs,
 		common_moreItems,
 		common_success,
 		common_unknownEntity,
@@ -28,7 +29,13 @@
 	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { credentialResultRows } from '../../utils/credentialResults';
-	import { buildWarningReport, integration, type WarningDaemon } from '../../utils/warnings';
+	import {
+		buildWarningReport,
+		docsUrlOf,
+		integration,
+		type WarningDaemon
+	} from '../../utils/warnings';
+	import { actionFor, type WarningRunContext } from '../../utils/warningActions';
 	import SshScriptRuns from './SshScriptRuns.svelte';
 
 	interface Props {
@@ -50,6 +57,14 @@
 	// cache entry. A viewer who cannot read credentials sees each row as an unknown credential.
 	const credentialsQuery = useCredentialsQuery();
 	let credentialsById = $derived(new Map((credentialsQuery.data ?? []).map((c) => [c.id, c])));
+
+	/** The run the rows' actions read their ids from, built as WarningReport builds it. */
+	let run = $derived<WarningRunContext>({
+		daemonId: payload.daemon_id,
+		siteId: payload.site_id,
+		scanId: payload.discovery_type.type === 'Rescan' ? null : (payload.discovery_id ?? null),
+		credentialOf: (id: string) => credentialsById.get(id)
+	});
 
 	let nameOfEntity = $derived((type: EntityDiscriminants, id: string) =>
 		type === 'Credential' ? credentialsById.get(id)?.name : undefined
@@ -121,8 +136,34 @@
 					<div class="space-y-2 pb-2 pl-6">
 						{#each buildWarningReport(row.warnings, nameOfEntity, daemon) as section (section.remedy)}
 							{#each section.entries as entry (entry.code)}
+								{@const action = actionFor(entry, run)}
+								{@const docsUrl = docsUrlOf(entry.code)}
 								<div class="space-y-1">
-									<p class="text-sm text-primary">{entry.title}</p>
+									<div class="flex min-w-0 items-center gap-2">
+										<p class="min-w-0 flex-1 text-sm text-primary">{entry.title}</p>
+										{#if docsUrl}
+											<a
+												href={docsUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="shrink-0 text-xs text-tertiary underline hover:text-secondary"
+											>
+												{common_docs()}
+											</a>
+										{/if}
+										{#if action}
+											{@const ActionIcon = action.icon}
+											<button
+												type="button"
+												class="btn-secondary flex max-w-56 shrink-0 items-center gap-1 py-1 text-xs"
+												title={action.label}
+												onclick={action.run}
+											>
+												<ActionIcon class="h-3.5 w-3.5 shrink-0" />
+												<span class="truncate">{action.label}</span>
+											</button>
+										{/if}
+									</div>
 									{#each entry.details as statement, i (i)}
 										<p class="text-sm text-tertiary">{statement.sentence}</p>
 									{/each}

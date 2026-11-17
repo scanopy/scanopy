@@ -1025,11 +1025,11 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 }
 
 /**
- * The docs page for the setting a code's sentence names, or `null` for a code that names none.
- * The backend publishes the path with the code.
+ * The one docs page for a code, or `null` for a code with none. The backend publishes the path
+ * with the code.
  */
-export function settingsDocsUrlOf(code: DiscoveryWarningCode): string | null {
-	const path = warningCodes.find((c) => c.id === code)?.metadata?.settings_docs_path;
+export function docsUrlOf(code: DiscoveryWarningCode): string | null {
+	const path = warningCodes.find((c) => c.id === code)?.metadata?.docs_path;
 	return path ? docsUrl(path) : null;
 }
 
