@@ -146,7 +146,7 @@
 	{isOpen}
 	title={onboarding_howWillYouUse()}
 	{onClose}
-	size="lg"
+	size="xl"
 	centerTitle={true}
 	showBackdrop={false}
 	showCloseButton={false}

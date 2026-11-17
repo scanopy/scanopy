@@ -62,7 +62,7 @@
 	{isOpen}
 	title={onboarding_whereWillScanopyRun()}
 	{onClose}
-	size="lg"
+	size="xl"
 	centerTitle={true}
 	showBackdrop={false}
 	showCloseButton={false}

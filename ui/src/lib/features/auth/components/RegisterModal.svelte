@@ -208,7 +208,7 @@
 <GenericModal
 	{isOpen}
 	title={auth_createYourAccount()}
-	size="lg"
+	size="xl"
 	{onClose}
 	onOpen={handleOpen}
 	showCloseButton={false}

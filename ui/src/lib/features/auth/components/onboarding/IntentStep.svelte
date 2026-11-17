@@ -84,7 +84,7 @@
 	{isOpen}
 	title={onboarding_intentsTitle()}
 	{onClose}
-	size="lg"
+	size="xl"
 	centerTitle={true}
 	showBackdrop={false}
 	showCloseButton={false}
