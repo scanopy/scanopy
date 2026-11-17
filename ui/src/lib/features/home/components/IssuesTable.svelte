@@ -9,6 +9,7 @@
 	import { setupItemTiers } from '#lib/shared/stores/metadata.ts';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
 	import { useIssuesListQuery } from '../queries';
 	import { entryId, type SetupItemType, type SetupListEntry } from '../setup-list';
 	import { setupRowView } from '../setup-row-view';
@@ -41,7 +42,12 @@
 	let sites = $derived(sitesQuery.data ?? []);
 	const lookups = setupLookups(() => issues);
 
-	let showTroubleshooting = $state(false);
+	const daemonsQuery = useDaemonsQuery();
+	/** The daemon whose connection help is open, if any. */
+	let troubleshootDaemonId = $state<string | null>(null);
+	let troubleshootDaemon = $derived(
+		(daemonsQuery.data ?? []).find((d) => d.id === troubleshootDaemonId)
+	);
 
 	/** What a row says and does. Issues ask no questions, so `onAnswer` is never called. */
 	function viewOf(entry: SetupListEntry) {
@@ -49,7 +55,7 @@
 			setup,
 			lookups,
 			onAnswer: () => {},
-			onTroubleshoot: () => (showTroubleshooting = true)
+			onTroubleshoot: (daemonId) => (troubleshootDaemonId = daemonId)
 		});
 	}
 
@@ -105,6 +111,7 @@
 {/if}
 
 <DaemonTroubleshootingModal
-	isOpen={showTroubleshooting}
-	onClose={() => (showTroubleshooting = false)}
+	daemon={troubleshootDaemon}
+	isOpen={troubleshootDaemonId !== null}
+	onClose={() => (troubleshootDaemonId = null)}
 />

@@ -4,7 +4,7 @@
 	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
 	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
 	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
-	import TroubleshootingChecklist from './TroubleshootingChecklist.svelte';
+	import TroubleshootingChecklist from '../../TroubleshootingChecklist.svelte';
 	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
 	import type { InstallArtifacts } from '../../../types/base';

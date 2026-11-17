@@ -20,6 +20,7 @@
 	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
 	import { openModal } from '#lib/shared/stores/modal-registry.ts';
 	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import MessageWithSlots, { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
 	import { entityRef } from '#lib/shared/components/data/types.ts';
 	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import { useServicesByIds } from '#lib/features/services/queries.ts';
@@ -61,6 +62,7 @@
 		subnets_cidrPlaceholder,
 		subnets_containsSubnets,
 		subnets_existsElsewhere,
+		common_unknown,
 		subnets_existsHere,
 		subnets_existsHereInterfaced,
 		subnets_finishDaemon,
@@ -435,15 +437,19 @@
 	}
 </script>
 
+{#snippet chip(ref: ChipRef)}
+	<EntityTag
+		entityRef={entityRef(ref.type, ref.id, ref.data)}
+		label={ref.label}
+		icon={entities.getIconComponent(ref.type)}
+		color={entities.getColorHelper(ref.type).color}
+	/>
+{/snippet}
+
 {#snippet chips(refs: ChipRef[])}
 	<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
 		{#each refs as ref (ref.id)}
-			<EntityTag
-				entityRef={entityRef(ref.type, ref.id, ref.data)}
-				label={ref.label}
-				icon={entities.getIconComponent(ref.type)}
-				color={entities.getColorHelper(ref.type).color}
-			/>
+			{@render chip(ref)}
 		{/each}
 	</div>
 {/snippet}
@@ -519,6 +525,7 @@
 						{@const daemon =
 							lock?.type === 'DaemonInterface' ? daemonOf(lock.daemon_id) : undefined}
 						<InlineWarning
+							title=""
 							body={lock?.type === 'DaemonInterface'
 								? subnets_existsHereInterfaced({ cidr: existing.cidr })
 								: subnets_existsHere({ cidr: existing.cidr })}
@@ -533,13 +540,23 @@
 					{/if}
 					{#each checks?.sameElsewhere ?? [] as other (other.id)}
 						{@const site = siteOf(other.site_id)}
-						<InlineInfo body={subnets_existsElsewhere({ cidr: other.cidr })}>
-							{@render chips([
-								subnetChip(other),
-								...(site
-									? [{ type: 'Site' as const, id: site.id, data: site, label: site.name }]
-									: [])
-							])}
+						<InlineInfo>
+							<p class="leading-6">
+								<MessageWithSlots
+									text={subnets_existsElsewhere({
+										subnet: slot('subnet'),
+										site: site ? slot('site') : common_unknown()
+									})}
+								>
+									{#snippet part(key)}
+										{#if key === 'subnet'}
+											{@render chip(subnetChip(other))}
+										{:else if site}
+											{@render chip({ type: 'Site', id: site.id, data: site, label: site.name })}
+										{/if}
+									{/snippet}
+								</MessageWithSlots>
+							</p>
 							{#if site}
 								<button
 									type="button"
@@ -579,7 +596,7 @@
 				<div class="space-y-4">
 					{#if pendingDaemon}
 						{@const daemon = pendingDaemon}
-						<InlineWarning body={subnets_finishDaemon()}>
+						<InlineWarning title="" body={subnets_finishDaemon()}>
 							{@render chips([{ type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name }])}
 						</InlineWarning>
 					{:else}
@@ -698,4 +715,8 @@
 	</form>
 </GenericModal>
 
-<DaemonTroubleshootingModal isOpen={troubleshooting} onClose={() => (troubleshooting = false)} />
+<DaemonTroubleshootingModal
+	daemon={pendingDaemon}
+	isOpen={troubleshooting}
+	onClose={() => (troubleshooting = false)}
+/>

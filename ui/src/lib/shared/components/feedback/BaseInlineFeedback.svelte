@@ -74,7 +74,9 @@
 					</ul>
 				{/if}
 				{#if children}
-					<div class="mt-1 text-sm {textColor}">{@render children()}</div>
+					<div class={`${title || body || items?.length ? 'mt-1' : ''} text-sm ${textColor}`}>
+						{@render children()}
+					</div>
 				{/if}
 			</div>
 			{#if dismissableKey}

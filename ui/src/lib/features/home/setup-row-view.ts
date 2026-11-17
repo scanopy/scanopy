@@ -97,8 +97,8 @@ export interface SetupRowContext {
 	lookups: SetupLookups;
 	/** Opens the question a question item asks. */
 	onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
-	/** Opens the daemon troubleshooting help. */
-	onTroubleshoot: () => void;
+	/** Opens the connection help for one daemon. */
+	onTroubleshoot: (daemonId: string) => void;
 }
 
 function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1]) {
@@ -151,7 +151,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			// standby has had no scan in 30 days, so it gets a scan to schedule.
 			const fix: SetupFix =
 				health === 'awaiting_connection' || health === 'unreachable'
-					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
+					? { label: home_setup_troubleshootConnection(), run: () => onTroubleshoot(id) }
 					: health === 'standby'
 						? { label: home_setup_scheduleScan(), run: () => go('discovery-scans') }
 						: health === 'outdated' ||
