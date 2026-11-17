@@ -317,7 +317,7 @@ impl TypeMetadataProvider for ServiceCategory {
             Unknown => "Unknown",
             Custom => "Custom",
             Scanopy => "Scanopy",
-            OpenPorts => "Unclaimed Ports",
+            OpenPorts => "Open Ports",
             NetworkIdentities => "Network Identities",
         }
     }
@@ -365,7 +365,7 @@ impl TypeMetadataProvider for ServiceCategory {
             Unknown => "Services that could not be identified",
             Custom => "User-defined custom services",
             Scanopy => "Scanopy platform services",
-            OpenPorts => "Open ports, HTTP or otherwise, without a matched service",
+            OpenPorts => "Unclaimed open ports without a matched service",
             NetworkIdentities => "Addresses and MACs a host presents beyond its own NICs",
         }
     }

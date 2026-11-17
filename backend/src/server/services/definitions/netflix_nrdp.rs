@@ -3,6 +3,7 @@ use crate::server::services::definitions::{ServiceDefinitionFactory, create_serv
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::services::r#impl::definitions::{DeviceTypeImplication, ServiceDefinition};
 use crate::server::services::r#impl::patterns::Pattern;
+use crate::server::shared::logos::Logo;
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct NetflixNrdp;
@@ -24,6 +25,9 @@ impl ServiceDefinition for NetflixNrdp {
     // So it names no device type: a TV's or console's own definition says what the host is.
     fn device_type(&self) -> DeviceTypeImplication {
         DeviceTypeImplication::Nothing
+    }
+    fn logo(&self) -> Option<Logo> {
+        Some(Logo::Netflix)
     }
 
     // The Netflix app answers on 9080 with `Server: NRDP/<version>`.

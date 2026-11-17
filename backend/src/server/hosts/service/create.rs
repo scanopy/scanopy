@@ -1352,17 +1352,14 @@ impl HostService {
                     let (handed_over, conflicting_bindings): (Vec<Binding>, Vec<Binding>) =
                         conflicting_bindings.into_iter().partition(|b| {
                             port_claim(b).is_some_and(|claim| {
-                                !held_by_open_ports(
-                                    &claim,
-                                    &existing_services_for_match,
-                                    &reassigned,
-                                ) && turnover
-                                    .holders_handing_over(
-                                        &[claim],
-                                        &existing_services_for_match,
-                                        &reassigned,
-                                    )
-                                    .is_some_and(|holders| !holders.is_empty())
+                                !held_by_open_ports(&claim, &existing_services_for_match)
+                                    && turnover
+                                        .holders_handing_over(
+                                            &[claim],
+                                            &existing_services_for_match,
+                                            &reassigned,
+                                        )
+                                        .is_some_and(|holders| !holders.is_empty())
                             })
                         });
                     let handed_over_claims: Vec<(Uuid, Option<Uuid>)> =
@@ -1384,17 +1381,17 @@ impl HostService {
                     }
                     let mut valid_bindings = valid_bindings;
                     valid_bindings.extend(handed_over);
-                    // Unclaimed Open Ports takes nothing back: no placeholder yields to it.
                     let (reclaimed, _dropped): (Vec<Binding>, Vec<Binding>) =
-                        conflicting_bindings.into_iter().partition(|b| {
-                            port_claim(b).is_some_and(|claim| {
-                                held_by_open_ports(
-                                    &claim,
-                                    &existing_services_for_match,
-                                    &reassigned,
-                                )
+                        if ServiceDefinitionExt::is_open_ports(&reassigned.base.service_definition)
+                        {
+                            (vec![], conflicting_bindings)
+                        } else {
+                            conflicting_bindings.into_iter().partition(|b| {
+                                port_claim(b).is_some_and(|claim| {
+                                    held_by_open_ports(&claim, &existing_services_for_match)
+                                })
                             })
-                        });
+                        };
                     let claims: Vec<(Uuid, Option<Uuid>)> =
                         reclaimed.iter().filter_map(port_claim).collect();
                     if !claims.is_empty() {
@@ -1508,10 +1505,10 @@ impl HostService {
                     full_bindings.extend(conflicting_bindings);
                     reassigned.base.bindings = full_bindings;
                 } else {
-                    // Check if all conflicts are with placeholder services (Unclaimed Open Ports,
-                    // Web Service). When a new service definition is added and a host is
-                    // re-scanned, the new service's ports conflict with placeholders from the
-                    // prior scan. The specific service should reclaim those ports.
+                    // Check if all conflicts are with the Unclaimed Open Ports service.
+                    // When a new service definition is added and a host is re-scanned,
+                    // the new service's ports conflict with OpenPorts from the prior scan.
+                    // The specific service should reclaim those ports.
                     let conflicting_claims: Vec<(Uuid, Option<Uuid>)> =
                         conflicting_bindings.iter().filter_map(port_claim).collect();
 
@@ -1527,14 +1524,14 @@ impl HostService {
                         .filter(|holders| {
                             !conflicting_claims.is_empty()
                                 && conflicting_claims.iter().all(|claim| {
-                                    held_by_open_ports(
-                                        claim,
-                                        &existing_services_for_match,
-                                        &reassigned,
-                                    ) || existing_services_for_match.iter().any(|s| {
-                                        holders.contains(&s.id)
-                                            && s.base.bindings.iter().any(|b| overlaps(b, claim))
-                                    })
+                                    held_by_open_ports(claim, &existing_services_for_match)
+                                        || existing_services_for_match.iter().any(|s| {
+                                            holders.contains(&s.id)
+                                                && s.base
+                                                    .bindings
+                                                    .iter()
+                                                    .any(|b| overlaps(b, claim))
+                                        })
                                 })
                         });
 
@@ -1544,9 +1541,7 @@ impl HostService {
                         // so the new service can be created.
                         let open_ports_claims: Vec<(Uuid, Option<Uuid>)> = conflicting_claims
                             .iter()
-                            .filter(|claim| {
-                                held_by_open_ports(claim, &existing_services_for_match, &reassigned)
-                            })
+                            .filter(|claim| held_by_open_ports(claim, &existing_services_for_match))
                             .copied()
                             .collect();
                         if !open_ports_claims.is_empty() {

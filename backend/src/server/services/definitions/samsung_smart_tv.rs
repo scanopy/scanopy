@@ -4,6 +4,7 @@ use crate::server::services::definitions::{ServiceDefinitionFactory, create_serv
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::services::r#impl::definitions::{DeviceTypeImplication, ServiceDefinition};
 use crate::server::services::r#impl::patterns::Pattern;
+use crate::server::shared::logos::Logo;
 
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct SamsungSmartTv;
@@ -20,6 +21,9 @@ impl ServiceDefinition for SamsungSmartTv {
     }
     fn device_type(&self) -> DeviceTypeImplication {
         DeviceTypeImplication::Is(DeviceType::SmartTv)
+    }
+    fn logo(&self) -> Option<Logo> {
+        Some(Logo::Samsung)
     }
 
     // A Tizen TV answers `/api/v2/` without authentication with a JSON description of itself,

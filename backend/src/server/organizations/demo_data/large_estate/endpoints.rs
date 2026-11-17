@@ -462,7 +462,7 @@ const SERVER_ROLES: &[ServerRole] = &[
         role: Role::Servers,
         prefix: "web",
         description: "Intranet web server",
-        services: &[("Microsoft IIS", "Intranet", Some(PortType::Https))],
+        services: &[("Web Service", "Intranet", Some(PortType::Https))],
     },
 ];
 

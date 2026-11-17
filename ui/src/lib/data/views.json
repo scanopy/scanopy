@@ -647,7 +647,7 @@
                 "color": "Sky",
                 "icon": "binary",
                 "id": "OpenPorts",
-                "label": "Unclaimed Ports"
+                "label": "Open Ports"
               },
               {
                 "color": "Amber",
@@ -1165,7 +1165,7 @@
                 "color": "Sky",
                 "icon": "binary",
                 "id": "OpenPorts",
-                "label": "Unclaimed Ports"
+                "label": "Open Ports"
               },
               {
                 "color": "Amber",
@@ -1688,7 +1688,7 @@
                 "color": "Sky",
                 "icon": "binary",
                 "id": "OpenPorts",
-                "label": "Unclaimed Ports"
+                "label": "Open Ports"
               },
               {
                 "color": "Amber",

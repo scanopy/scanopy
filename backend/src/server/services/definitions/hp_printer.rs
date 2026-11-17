@@ -28,7 +28,7 @@ impl ServiceDefinition for HpPrinter {
         // The embedded web server titles its page with the model on 80, 8080 and 443 alike. The
         // pages are requested at `/`, the path the other web definitions request, so the printer
         // answers one request per port rather than two. Requested at `""`, an M110w's 8080 page
-        // matched Web Service in a full scan and not this definition.
+        // fell through to the generic HTTP match in a full scan and not this definition.
         //
         // The certificate on 443 is issued by the printer itself under `O=HP Inc, OU=IPG`, the
         // imaging and printing group, so it names an HP printer where the page does not load.

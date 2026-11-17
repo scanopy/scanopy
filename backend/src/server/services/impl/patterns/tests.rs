@@ -2092,28 +2092,6 @@ fn every_recog_product_a_definition_names_exists_in_the_vendored_data() {
     );
 }
 
-/// Web Service binds the ports that answered HTTP and are still unbound, and stands down once a
-/// product holds them.
-#[test]
-fn a_web_service_takes_only_unbound_ports_that_answered_http() {
-    let ctx = TestContext::new();
-    let web = ServiceDefinitionRegistry::find_by_id("Web Service").expect("Web Service exists");
-    // The context's one response is on 80. 2222 is open and answered nothing.
-    let all_ports = vec![PortType::Http, PortType::new_tcp(2222)];
-    let baseline = ctx.create_baseline_params(&all_ports);
-
-    let params = ctx.create_params_with_ports(&baseline, &all_ports);
-    let result = web
-        .discovery_pattern()
-        .matches(&params)
-        .expect("80 answered HTTP");
-    assert_eq!(result.ports, vec![PortType::Http]);
-
-    let unbound = vec![PortType::new_tcp(2222)];
-    let params = ctx.create_params_with_ports(&baseline, &unbound);
-    assert!(web.discovery_pattern().matches(&params).is_err());
-}
-
 /// An optional part binds its ports when present and is never evidence: the match rests on what
 /// sits beside it.
 #[test]
