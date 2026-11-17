@@ -5825,6 +5825,10 @@ export interface components {
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
             data?: {
+                /** @description The text typed for "Something else" as an intent. */
+                intent_other?: string | null;
+                /** @description The intents saved so far. `None` until the intent step is answered. */
+                intents?: components["schemas"]["SignupIntent"][] | null;
                 /** @description Organization name from pending setup */
                 org_name?: string | null;
                 site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -5836,6 +5840,8 @@ export interface components {
                 /** @description Current onboarding step (if any) */
                 step?: string | null;
                 use_case?: components["schemas"]["UseCase"] | null;
+                /** @description The text typed for "Something else" as the use case. */
+                use_case_other?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5894,6 +5900,8 @@ export interface components {
                  *     yet started doesn't count.
                  */
                 readonly daemon_connected: boolean;
+                /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+                readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -13546,6 +13554,10 @@ export interface components {
         };
         /** @description Response from onboarding state endpoint */
         OnboardingStateResponse: {
+            /** @description The text typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /** @description The intents saved so far. `None` until the intent step is answered. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Organization name from pending setup */
             org_name?: string | null;
             site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -13557,12 +13569,20 @@ export interface components {
             /** @description Current onboarding step (if any) */
             step?: string | null;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case. */
+            use_case_other?: string | null;
         };
         /** @description Request to save onboarding step */
         OnboardingStepRequest: {
+            /** @description The text typed for "Something else" as an intent: 3 to 200 characters once trimmed. */
+            intent_other?: string | null;
+            /** @description What the signup wants Scanopy to do. An empty list records a skip. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Identifier of the onboarding step the user has reached. */
             step: string;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case: 3 to 200 characters once trimmed. */
+            use_case_other?: string | null;
         };
         /**
          * @description Direction for ORDER BY clauses.
@@ -13620,6 +13640,13 @@ export interface components {
             readonly discount_save_offer_percent_off?: number | null;
             /** @description Whether a payment method is on file. */
             readonly has_payment_method?: boolean;
+            /** @description What the signup typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /**
+             * @description What the signup wants Scanopy to do. `None` when never asked (orgs created before the
+             *     question, invites); empty when the signup skipped it.
+             */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /**
              * Format: date-time
              * @description Most recent save-offer-discount application. NULL = never. Drives the
@@ -13681,6 +13708,11 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+            /**
+             * @description What the signup typed for "Something else" as the use case. `None` for any other use
+             *     case, and for orgs created before it was asked.
+             */
+            use_case_other?: string | null;
         };
         /** @description The signed-in user's organization, with what the server derives about it. */
         OrganizationResponse: components["schemas"]["Organization"] & {
@@ -13689,6 +13721,8 @@ export interface components {
              *     yet started doesn't count.
              */
             readonly daemon_connected: boolean;
+            /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+            readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -14590,6 +14624,17 @@ export interface components {
              */
             trial_days: number;
         };
+        PlanRecommendation: {
+            /** @description The recommended plan's type, as in `BillingPlan.type`. */
+            plan: string;
+            /** @description The intents that call for this plan rather than the one below it. */
+            reasons: components["schemas"]["RecommendationReason"][];
+        };
+        /** @description The recommendation on each hosting tab of the plan picker. */
+        PlanRecommendations: {
+            cloud?: components["schemas"]["PlanRecommendation"] | null;
+            self_hosted?: components["schemas"]["PlanRecommendation"] | null;
+        };
         /**
          * @description Derived subscription status — our domain enum, never Stripe's raw status.
          *     Stripe webhook events map to typed `BillingOperation` variants at reception
@@ -15091,6 +15136,15 @@ export interface components {
             sys_names: string[];
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
+        };
+        /**
+         * @description One picked intent the recommended plan serves, and the features it needs that the plan below
+         *     lacks. On the lowest plan, every feature the intent needs.
+         */
+        RecommendationReason: {
+            /** @description Feature ids, as in `features.json`. */
+            features: string[];
+            intent: components["schemas"]["SignupIntent"];
         };
         /** @description The Setup item a client finished. */
         RecordSetupRequest: {
@@ -16057,6 +16111,8 @@ export interface components {
             /** @description The shared topology record. */
             topology: components["schemas"]["Topology"];
         };
+        /** @enum {string} */
+        SignupIntent: "current_diagram" | "inventory" | "audit_evidence" | "troubleshooting" | "client_documentation" | "workloads" | "other";
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -16764,6 +16820,12 @@ export interface components {
              * @description The site this entity belongs to.
              */
             site_id: string;
+            /**
+             * @description The view the topology tab opens on: the one the organization's intents call for, when
+             *     the site has the data for it (`TopologyView::starting_for`). Worked out on each list
+             *     read, never stored.
+             */
+            readonly starting_view?: components["schemas"]["TopologyView"];
         };
         /**
          * @description Bundle of entities + the built graph that feed the topology render, export,
@@ -17439,8 +17501,11 @@ export interface components {
          * @enum {string}
          */
         UpstreamSupport: "Vendor" | "Undocumented";
-        /** @enum {string} */
-        UseCase: "homelab" | "internal_it" | "msp" | "other";
+        /**
+         * @description Declaration order is the order the signup step lists the options in.
+         * @enum {string}
+         */
+        UseCase: "internal_it" | "msp" | "homelab" | "other";
         User: components["schemas"]["UserBase"] & {
             /**
              * Format: date-time

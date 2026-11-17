@@ -23,6 +23,7 @@ use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::DiscoveryType;
 use crate::server::email::messages::EmailCategory;
 use crate::server::hosts::r#impl::device_type::DeviceType;
+use crate::server::organizations::r#impl::{base::UseCase, intent::SignupIntent};
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
@@ -501,6 +502,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
 
     let cancel_reasons: Vec<TypeMetadata> = CancelReason::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&cancel_reasons, output_dir, "cancel-reasons.json");
+
+    // The signup's two questions: whose network, and what Scanopy should do.
+    let use_cases: Vec<TypeMetadata> = UseCase::iter().map(|u| u.to_metadata()).collect();
+    write_fixture(&use_cases, output_dir, "use-cases.json");
+    let signup_intents: Vec<TypeMetadata> = SignupIntent::iter().map(|i| i.to_metadata()).collect();
+    write_fixture(&signup_intents, output_dir, "signup-intents.json");
 
     let save_offers: Vec<TypeMetadata> = SaveOffer::iter().map(|o| o.to_metadata()).collect();
     write_fixture(&save_offers, output_dir, "save-offers.json");

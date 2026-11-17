@@ -144,11 +144,14 @@
 	// subscriber to its key, so holding it while the tab is off-screen keeps the
 	// bundle — and the discovery SSE stream's throttled refetch of it — off pages
 	// that are not showing a graph.
+	// Also held until the topology rows arrive: they carry the view the tab opens on
+	// (`starting_view`), and the query is keyed by view, so fetching first would pull the default
+	// view's whole bundle and then the starting view's.
 	const topologyDataQuery = useTopologyDataQuery(
 		() => $selectedSiteId ?? undefined,
 		() => $selectedSnapshotId ?? undefined,
 		() => $activeView,
-		() => isActive
+		() => isActive && !topologiesQuery.isPending
 	);
 
 	// Derived data
@@ -223,6 +226,26 @@
 		const siteId = $selectedSiteId;
 		if (!siteId) return null;
 		return topologiesData.find((t) => t.site_id === siteId) ?? null;
+	});
+
+	// Open each site on the view the server picked from the org's intents (`starting_view`), once
+	// per site in a session. A `?view=` link, or a view the user switched to, wins: once the
+	// view differs from the last one set here, the user chose it.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const startingViewSites = new Set<string>();
+	let lastStartingView: string | null = null;
+	let userPickedView = false;
+	$effect(() => {
+		const row = currentTopologyRow;
+		if (!row?.starting_view || startingViewSites.has(row.site_id)) return;
+		startingViewSites.add(row.site_id);
+		const current = get(activeView);
+		if (urlParams.view || (lastStartingView !== null && current !== lastStartingView)) {
+			userPickedView = true;
+		}
+		if (userPickedView) return;
+		lastStartingView = row.starting_view;
+		activeView.set(row.starting_view);
 	});
 
 	// What the user can do on the site this topology belongs to.

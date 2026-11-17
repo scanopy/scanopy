@@ -6,6 +6,7 @@ use validator::Validate;
 
 use crate::server::auth::access::AccessGrants;
 use crate::server::organizations::r#impl::base::UseCase;
+use crate::server::organizations::r#impl::intent::SignupIntent;
 use crate::server::users::r#impl::base::User;
 
 /// The signed-in user, with what they can do.
@@ -199,6 +200,15 @@ pub struct OnboardingStepRequest {
     /// Use case selection (homelab, company, msp)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_case: Option<UseCase>,
+    /// The text typed for "Something else" as the use case: 3 to 200 characters once trimmed.
+    #[serde(default)]
+    pub use_case_other: Option<String>,
+    /// What the signup wants Scanopy to do. An empty list records a skip.
+    #[serde(default)]
+    pub intents: Option<Vec<SignupIntent>>,
+    /// The text typed for "Something else" as an intent: 3 to 200 characters once trimmed.
+    #[serde(default)]
+    pub intent_other: Option<String>,
 }
 
 /// Site data in onboarding state response
@@ -217,6 +227,12 @@ pub struct OnboardingStateResponse {
     pub step: Option<String>,
     /// Use case selection (homelab, company, msp)
     pub use_case: Option<UseCase>,
+    /// The text typed for "Something else" as the use case.
+    pub use_case_other: Option<String>,
+    /// The intents saved so far. `None` until the intent step is answered.
+    pub intents: Option<Vec<SignupIntent>>,
+    /// The text typed for "Something else" as an intent.
+    pub intent_other: Option<String>,
     /// Organization name from pending setup
     pub org_name: Option<String>,
     /// Site from pending setup (with name and ID)

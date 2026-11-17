@@ -5,7 +5,7 @@ use crate::server::{
     },
     credentials::r#impl::types::serialize_secret_value,
     license::types::LicenseKeyType,
-    organizations::r#impl::base::UseCase,
+    organizations::r#impl::{base::UseCase, intent::SignupIntent},
     services::r#impl::definitions::ServiceDefinition,
     shared::api_key_common::ApiKeyType,
 };
@@ -153,6 +153,15 @@ pub enum AuthOperation {
         #[serde(default)]
         plan: Option<BillingPlan>,
         use_case: UseCase,
+        /// The text typed for "Something else" as the use case.
+        #[serde(default)]
+        use_case_other: Option<String>,
+        /// What the signup wants Scanopy to do. `None` when not asked, empty when skipped.
+        #[serde(default)]
+        intents: Option<Vec<SignupIntent>>,
+        /// The text typed for "Something else" as an intent.
+        #[serde(default)]
+        intent_other: Option<String>,
         /// The first site requested at signup. `None` for a self-hosted license buyer.
         #[serde(default)]
         site: Option<PendingSiteSetup>,

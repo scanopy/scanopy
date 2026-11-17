@@ -159,6 +159,7 @@ async fn sign_up(state: &AppState, site: Option<PendingSiteSetup>) -> Uuid {
                 org_name: "Acme".to_string(),
                 site,
                 use_case: UseCase::InternalIt,
+                answers: Default::default(),
             }),
             permissions: None,
             site_assignments: Vec::new(),

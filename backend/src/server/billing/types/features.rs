@@ -263,26 +263,39 @@ impl Feature {
 
     /// Returns the ID of the lowest-tier cloud plan that includes this feature.
     pub fn minimum_plan(&self) -> Option<&'static str> {
+        self.minimum_plan_on(&CLOUD_LADDER).map(|disc| disc.into())
+    }
+
+    /// The lowest plan on `ladder` that includes this feature.
+    pub fn minimum_plan_on(
+        &self,
+        ladder: &[BillingPlanDiscriminants],
+    ) -> Option<BillingPlanDiscriminants> {
         use super::base::BillingPlan;
 
         let feature_id = self.id();
-        let cloud_tiers = [
-            BillingPlanDiscriminants::Free,
-            BillingPlanDiscriminants::Pro,
-            BillingPlanDiscriminants::Business,
-            BillingPlanDiscriminants::Enterprise,
-        ];
-
-        for disc in &cloud_tiers {
-            if let Some(plan) = BillingPlan::default_for_discriminant(*disc)
-                && plan.has_feature(feature_id)
-            {
-                return Some(plan.id());
-            }
-        }
-        None
+        ladder.iter().copied().find(|disc| {
+            BillingPlan::default_for_discriminant(*disc)
+                .is_some_and(|plan| plan.has_feature(feature_id))
+        })
     }
 }
+
+/// The cloud plans sold today, lowest first. Starter and Team still exist for orgs that hold
+/// them but are no longer sold, so nothing is recommended or "available from" on them.
+pub const CLOUD_LADDER: [BillingPlanDiscriminants; 4] = [
+    BillingPlanDiscriminants::Free,
+    BillingPlanDiscriminants::Pro,
+    BillingPlanDiscriminants::Business,
+    BillingPlanDiscriminants::Enterprise,
+];
+
+/// The self-hosted plans sold today, lowest first.
+pub const SELF_HOSTED_LADDER: [BillingPlanDiscriminants; 3] = [
+    BillingPlanDiscriminants::Community,
+    BillingPlanDiscriminants::SelfHostedStandard,
+    BillingPlanDiscriminants::SelfHostedPlus,
+];
 
 impl EntityMetadataProvider for Feature {
     fn color(&self) -> Color {

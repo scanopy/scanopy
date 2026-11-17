@@ -9,7 +9,10 @@ use std::collections::{BTreeSet, HashSet};
 use semver::Version;
 use uuid::Uuid;
 
-use super::types::{SetupItem, SetupItemDiscriminants, SetupItemState, SetupListEntry};
+use super::types::{
+    SetupItem, SetupItemDiscriminants, SetupItemState, SetupItemTier, SetupListEntry,
+};
+use crate::server::organizations::r#impl::intent::SignupIntent;
 use crate::{
     daemon::discovery::types::warnings::{DiscoveryWarning, DiscoveryWarningCode},
     server::{
@@ -96,6 +99,9 @@ pub struct SetupContext {
     pub plan: BillingPlan,
     /// Whether this is Scanopy Cloud. The two questions are asked only there.
     pub cloud: bool,
+    /// What the signup wants Scanopy to do, which moves the Setup steps it names up the list.
+    /// Empty when never asked or skipped.
+    pub intents: Vec<SignupIntent>,
     /// The resources the user may write. `None` in the sweep, which acts for the whole org and
     /// passes every write check.
     pub can_write: Option<BTreeSet<Resource>>,
@@ -110,6 +116,25 @@ impl SetupContext {
         self.can_write
             .as_ref()
             .is_none_or(|writable| writable.contains(&resource))
+    }
+
+    /// Where a type sorts in the list: Issues and the first steps (daemon, first scan, topology)
+    /// keep their place, then the Setup steps the org's intents name, then the rest. Ties keep
+    /// declaration order. Locks are unaffected, so a step moved up can still read Locked.
+    pub fn list_rank(&self, item_type: SetupItemDiscriminants) -> u8 {
+        use SetupItemDiscriminants as T;
+        match item_type {
+            _ if item_type.tier() == SetupItemTier::Issue => 0,
+            T::InstallDaemon | T::RunFirstScan | T::OpenTopology => 1,
+            _ if self
+                .intents
+                .iter()
+                .any(|intent| intent.setup_items().contains(&item_type)) =>
+            {
+                2
+            }
+            _ => 3,
+        }
     }
 
     /// Whether the dependency tutorial is done, recorded or shown done by the org's rows.
@@ -436,6 +461,7 @@ mod tests {
             has_manual_interface_credential: false,
             plan: get_enterprise_plan(),
             cloud: true,
+            intents: Vec::new(),
             can_write: Some(Resource::iter().collect()),
         }
     }
@@ -906,5 +932,65 @@ mod tests {
         ))));
         assert!(!is_setup_issue_warning(&orphaned));
         assert!(is_setup_issue_warning(&time_limit()));
+    }
+
+    fn listed(ctx: &SetupContext) -> Vec<T> {
+        crate::server::setup::service::SetupService::list(ctx)
+            .iter()
+            .map(|entry| T::from(&entry.item))
+            .collect()
+    }
+
+    /// An intent moves the steps it names to just after the first steps, and the list keeps
+    /// every entry and its lock. With no intents the list keeps declaration order.
+    #[test]
+    fn intents_move_their_steps_up_without_unlocking_them() {
+        let base = recorded(ctx(), &[T::InstallDaemon, T::RunFirstScan]);
+        let unordered = listed(&base);
+        assert!(
+            unordered
+                .windows(2)
+                .all(|pair| T::iter().position(|t| t == pair[0])
+                    <= T::iter().position(|t| t == pair[1])),
+            "{unordered:?}"
+        );
+
+        for intent in SignupIntent::iter() {
+            let mut with_intent = base.clone();
+            with_intent.intents = vec![intent];
+            let ordered = listed(&with_intent);
+
+            let mut sorted_back = ordered.clone();
+            sorted_back.sort_by_key(|t| T::iter().position(|d| d == *t));
+            let mut expected = unordered.clone();
+            expected.sort_by_key(|t| T::iter().position(|d| d == *t));
+            assert_eq!(
+                sorted_back, expected,
+                "{intent:?} dropped or added an entry"
+            );
+
+            let after_topology = ordered
+                .iter()
+                .position(|t| *t == T::OpenTopology)
+                .map(|i| i + 1);
+            let named: Vec<T> = ordered
+                .iter()
+                .copied()
+                .filter(|t| intent.setup_items().contains(t))
+                .collect();
+            if let (Some(start), false) = (after_topology, named.is_empty()) {
+                assert_eq!(ordered[start..start + named.len()], named[..], "{intent:?}");
+            }
+        }
+
+        // The dependency tutorial moves up but stays locked until the topology is opened.
+        let mut troubleshooting = base.clone();
+        troubleshooting.intents = vec![SignupIntent::Troubleshooting];
+        let entries = crate::server::setup::service::SetupService::list(&troubleshooting);
+        let tutorial = entries
+            .iter()
+            .find(|e| T::from(&e.item) == T::DependencyTutorial)
+            .expect("listed");
+        assert_eq!(tutorial.state, SetupItemState::Locked);
     }
 }

@@ -215,6 +215,7 @@ impl SetupService {
                 .await?,
             plan: org.base.plan,
             cloud: self.deployment_type == DeploymentType::Cloud,
+            intents: org.base.intents.clone().unwrap_or_default(),
             can_write: entity.map(|e| {
                 Resource::iter()
                     .filter(|r| e.can(*r, Action::Write))
@@ -223,11 +224,15 @@ impl SetupService {
         })
     }
 
-    /// Every type's entries in declaration order, which groups them by tier.
+    /// Every type's entries in declaration order, which groups them by tier, with the Setup
+    /// steps the org's intents name moved up ([`SetupContext::list_rank`]).
     pub fn list(ctx: &SetupContext) -> Vec<SetupListEntry> {
-        SetupItemDiscriminants::iter()
+        let mut entries: Vec<SetupListEntry> = SetupItemDiscriminants::iter()
             .flat_map(|t| t.items(ctx))
-            .collect()
+            .collect();
+        // Stable, so entries of one rank keep declaration order.
+        entries.sort_by_key(|entry| ctx.list_rank(SetupItemDiscriminants::from(&entry.item)));
+        entries
     }
 
     /// Record each Setup type the org's rows show done and `organizations.setup` doesn't hold

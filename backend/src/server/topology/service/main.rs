@@ -298,6 +298,30 @@ impl TopologyService {
             .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))
     }
 
+    /// The view the topology tab opens on for `site_id`: the one the org's intents call for,
+    /// when the site has the data for it. An org with no intents opens on the default view
+    /// without the support lookup.
+    pub async fn starting_view(
+        &self,
+        organization_id: Uuid,
+        site_id: Uuid,
+    ) -> Result<TopologyView, Error> {
+        let intents = self
+            .organization_service
+            .get_by_id(&organization_id)
+            .await?
+            .and_then(|org| org.base.intents)
+            .unwrap_or_default();
+        if intents
+            .iter()
+            .all(|intent| intent.topology_view() == TopologyView::default())
+        {
+            return Ok(TopologyView::default());
+        }
+        let support = self.get_view_support(site_id).await?;
+        Ok(TopologyView::starting_for(&intents, &support))
+    }
+
     /// The request options a new topology in `organization_id` starts with.
     pub async fn default_request_options(
         &self,

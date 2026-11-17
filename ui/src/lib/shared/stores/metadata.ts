@@ -3,6 +3,8 @@ import type { components } from '#lib/api/schema';
 import serviceDefinitionsJson from '#lib/data/service-definitions.json';
 import subnetTypesJson from '#lib/data/subnet-types.json';
 import subnetCreatePurposesJson from '#lib/data/subnet-create-purposes.json';
+import useCasesJson from '#lib/data/use-cases.json';
+import signupIntentsJson from '#lib/data/signup-intents.json';
 import edgeTypesJson from '#lib/data/edge-types.json';
 import dependencyTypesJson from '#lib/data/dependency-types.json';
 import entitiesJson from '#lib/data/entities.json';
@@ -126,6 +128,8 @@ export interface MetadataRegistry {
 	service_definitions: TypeMetadata[];
 	subnet_types: TypeMetadata[];
 	subnet_create_purposes: TypeMetadata[];
+	use_cases: TypeMetadata[];
+	signup_intents: TypeMetadata[];
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
@@ -365,6 +369,8 @@ export const metadata = writable<MetadataRegistry>({
 	service_definitions: serviceDefinitionsJson,
 	subnet_types: subnetTypesJson,
 	subnet_create_purposes: subnetCreatePurposesJson,
+	use_cases: useCasesJson,
+	signup_intents: signupIntentsJson,
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
@@ -565,6 +571,16 @@ export const subnetTypes = createTypeMetadataHelpers<'subnet_types', SubnetTypeM
 /** The create flow's first question: what the subnet is for. */
 export const subnetCreatePurposes = createTypeMetadataHelpers<'subnet_create_purposes', object>(
 	'subnet_create_purposes'
+);
+/** The signup's first question: whose network the org documents. */
+export const useCases = createTypeMetadataHelpers<'use_cases', object>('use_cases');
+export interface SignupIntentMetadata {
+	/** The credential categories (`credential-types.json` `category`) the daemon wizard lists first. */
+	credential_categories: string[];
+}
+/** The signup's second question: what the org wants Scanopy to do. */
+export const signupIntents = createTypeMetadataHelpers<'signup_intents', SignupIntentMetadata>(
+	'signup_intents'
 );
 export const edgeTypes = createTypeMetadataHelpers<'edge_types', EdgeTypeMetadata>('edge_types');
 export const dependencyTypes = createTypeMetadataHelpers<

@@ -75,6 +75,9 @@ export const COVERED_FIXTURES = [
 	{ file: 'inspector-sections.json', key: 'inspector_sections', kind: 'typeMetadata' },
 	{ file: 'ports.json', key: 'ports', kind: 'typeMetadata' },
 	{ file: 'cancel-reasons.json', key: 'cancel_reasons', kind: 'typeMetadata' },
+	// The signup's two questions: whose network (`UseCase`) and what Scanopy should do.
+	{ file: 'use-cases.json', key: 'use_cases', kind: 'typeMetadata' },
+	{ file: 'signup-intents.json', key: 'signup_intents', kind: 'typeMetadata' },
 	{ file: 'save-offers.json', key: 'save_offers', kind: 'typeMetadata' },
 	{ file: 'plan-statuses.json', key: 'plan_statuses', kind: 'typeMetadata' },
 	{ file: 'plan-limits.json', key: 'plan_limits', kind: 'typeMetadata' },

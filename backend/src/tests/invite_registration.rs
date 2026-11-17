@@ -283,6 +283,7 @@ async fn an_uninvited_sign_up_with_registration_enabled_creates_a_new_org() {
                     site_id: Uuid::new_v4(),
                 }),
                 use_case: crate::server::organizations::r#impl::base::UseCase::Other,
+                answers: Default::default(),
             },
         )
         .await

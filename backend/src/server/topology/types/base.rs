@@ -75,6 +75,12 @@ pub struct TopologyBase {
     pub site_id: Uuid,
     /// Saved layout and view settings for this topology.
     pub options: TopologyOptions,
+    /// The view the topology tab opens on: the one the organization's intents call for, when
+    /// the site has the data for it (`TopologyView::starting_for`). Worked out on each list
+    /// read, never stored.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub starting_view: TopologyView,
     // The per-view node/edge graph is no longer persisted — it's a pure
     // function of entities + `options` and is built on request by the read
     // path (`build_view_graphs`). The row holds only the user's grouping
@@ -87,6 +93,7 @@ impl TopologyBase {
         Self {
             site_id,
             options: TopologyOptions::default(),
+            starting_view: TopologyView::default(),
         }
     }
 }
