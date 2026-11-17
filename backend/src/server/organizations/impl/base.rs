@@ -76,7 +76,7 @@ impl EntityMetadataProvider for UseCase {
             UseCase::InternalIt => Icon::Building2,
             UseCase::Msp => Icon::Users,
             UseCase::Homelab => Icon::House,
-            UseCase::Other => Icon::Boxes,
+            UseCase::Other => Icon::MessageCircle,
         }
     }
 }

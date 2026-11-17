@@ -16,24 +16,32 @@ use crate::server::{
     billing::types::features::Feature,
     credentials::r#impl::types::CredentialCategory,
     setup::types::SetupItemDiscriminants,
-    shared::types::{
-        Color, Icon,
-        metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+    shared::{
+        concepts::Concept,
+        entities::EntityDiscriminants,
+        product_area::ProductArea,
+        types::{
+            Color, Icon,
+            metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+        },
     },
     topology::types::views::TopologyView,
 };
 
-/// Free text answering "Something else" is trimmed and must be this long, in characters.
-pub const OTHER_ANSWER_MIN_CHARS: usize = 3;
+/// Free text answering "Something else" is optional, and at most this long once trimmed.
 pub const OTHER_ANSWER_MAX_CHARS: usize = 200;
 
-/// The trimmed answer, or `None` when its length is outside the allowed range.
-pub fn other_answer(text: &str) -> Option<String> {
+/// A "Something else" answer longer than [`OTHER_ANSWER_MAX_CHARS`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct OtherAnswerTooLong;
+
+/// The trimmed answer, `None` when it is blank, or an error when it is too long.
+pub fn other_answer(text: &str) -> Result<Option<String>, OtherAnswerTooLong> {
     let trimmed = text.trim();
-    let chars = trimmed.chars().count();
-    (OTHER_ANSWER_MIN_CHARS..=OTHER_ANSWER_MAX_CHARS)
-        .contains(&chars)
-        .then(|| trimmed.to_string())
+    if trimmed.chars().count() > OTHER_ANSWER_MAX_CHARS {
+        return Err(OtherAnswerTooLong);
+    }
+    Ok((!trimmed.is_empty()).then(|| trimmed.to_string()))
 }
 
 #[derive(
@@ -136,12 +144,13 @@ impl EntityMetadataProvider for SignupIntent {
 
     fn icon(&self) -> Icon {
         match self {
-            Self::CurrentDiagram => Icon::Network,
-            Self::Inventory => Icon::List,
-            Self::AuditEvidence => Icon::ClipboardCheck,
-            Self::Troubleshooting => Icon::Cable,
-            Self::ClientDocumentation => Icon::Share2,
-            Self::Workloads => Icon::Container,
+            // Each intent wears the icon of the product area, concept or entity it is about.
+            Self::CurrentDiagram => ProductArea::Topology.icon(),
+            Self::Inventory => ProductArea::Inventory.icon(),
+            Self::AuditEvidence => ProductArea::Security.icon(),
+            Self::Troubleshooting => Concept::L2.icon(),
+            Self::ClientDocumentation => EntityDiscriminants::Share.icon(),
+            Self::Workloads => Concept::Workloads.icon(),
             Self::Other => Icon::MessageCircle,
         }
     }
@@ -175,18 +184,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_other_answer_is_trimmed_and_bounded() {
+    fn an_other_answer_is_optional_trimmed_and_capped() {
         assert_eq!(
-            other_answer("  a school project  ").as_deref(),
-            Some("a school project")
+            other_answer("  a school project  "),
+            Ok(Some("a school project".to_string()))
         );
-        assert_eq!(other_answer("  ab  "), None);
+        assert_eq!(other_answer("ab"), Ok(Some("ab".to_string())));
+        assert_eq!(other_answer(""), Ok(None));
+        assert_eq!(other_answer("   "), Ok(None));
         assert_eq!(
-            other_answer(&"x".repeat(OTHER_ANSWER_MAX_CHARS)).map(|s| s.len()),
-            Some(200)
+            other_answer(&"x".repeat(OTHER_ANSWER_MAX_CHARS + 1)),
+            Err(OtherAnswerTooLong)
         );
-        assert_eq!(other_answer(&"x".repeat(OTHER_ANSWER_MAX_CHARS + 1)), None);
-        // Characters, not bytes: three accented letters are three characters.
-        assert!(other_answer("été").is_some());
+        // Characters, not bytes: 200 accented letters fit.
+        assert!(other_answer(&"é".repeat(OTHER_ANSWER_MAX_CHARS)).is_ok());
     }
 }

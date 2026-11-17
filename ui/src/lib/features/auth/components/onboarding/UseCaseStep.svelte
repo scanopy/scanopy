@@ -61,7 +61,7 @@
 
 	const form = createForm(() => ({
 		defaultValues: { use_case_other: $onboardingStore.useCaseOther ?? '' },
-		onSubmit: ({ value }) => choose('other', value.use_case_other.trim())
+		onSubmit: ({ value }) => choose('other', value.use_case_other.trim() || null)
 	}));
 
 	/** The notice a choice needs before the next step, if any. */
@@ -246,7 +246,6 @@
 												id="use-case-other"
 												{field}
 												placeholder={onboarding_somethingElsePlaceholder()}
-												required={true}
 												autofocus
 											/>
 										{/snippet}

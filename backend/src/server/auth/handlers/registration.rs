@@ -5,9 +5,7 @@ use crate::server::auth::email_domain::{DomainCheck, check_email_domain};
 use crate::server::auth::r#impl::api::CheckEmailResponse;
 use crate::server::auth::r#impl::base::SignupAnswers;
 use crate::server::openapi::tags as api_tags;
-use crate::server::organizations::r#impl::intent::{
-    OTHER_ANSWER_MAX_CHARS, OTHER_ANSWER_MIN_CHARS, other_answer,
-};
+use crate::server::organizations::r#impl::intent::{OTHER_ANSWER_MAX_CHARS, other_answer};
 use crate::server::shared::types::api::ApiJson;
 
 /// Check whether an email is available
@@ -366,21 +364,19 @@ pub async fn apply_onboarding_answers(session: &Session, pending_setup: &mut Pen
     pending_setup.answers = answers.for_use_case(pending_setup.use_case);
 }
 
-/// The answers in an `/onboarding-step` request, with free text trimmed. A text answer outside
-/// 3 to 200 characters is refused.
+/// The answers in an `/onboarding-step` request, with free text trimmed and a blank one dropped.
+/// A text answer over 200 characters is refused.
 fn answers_from_request(request: &OnboardingStepRequest) -> Result<SignupAnswers, ApiError> {
     let text = |value: &Option<String>| -> Result<Option<String>, ApiError> {
-        value
-            .as_deref()
-            .map(|text| {
-                other_answer(text).ok_or_else(|| {
-                    ApiError::bad_request(&format!(
-                        "An answer to \"Something else\" must be {OTHER_ANSWER_MIN_CHARS} to \
-                         {OTHER_ANSWER_MAX_CHARS} characters"
-                    ))
-                })
-            })
-            .transpose()
+        let Some(text) = value.as_deref() else {
+            return Ok(None);
+        };
+        other_answer(text).map_err(|_| {
+            ApiError::bad_request(&format!(
+                "An answer to \"Something else\" must be at most {OTHER_ANSWER_MAX_CHARS} \
+                 characters"
+            ))
+        })
     };
     Ok(SignupAnswers {
         use_case_other: text(&request.use_case_other)?,
@@ -538,12 +534,15 @@ mod tests {
         }
     }
 
-    /// A step request carrying a "Something else" answer out of bounds is refused whole, so
-    /// nothing it carries is saved. Answers within bounds are stored trimmed, and each intent once.
+    /// A step request carrying a "Something else" answer over the limit is refused whole, so
+    /// nothing it carries is saved. A blank answer is dropped, others are stored trimmed, and
+    /// each intent once.
     #[test]
     fn onboarding_answers_are_bounded_trimmed_and_deduplicated() {
-        assert!(answers_from_request(&step(Some("ab"), None, None)).is_err());
         assert!(answers_from_request(&step(None, None, Some(&"x".repeat(201)))).is_err());
+        let blank = answers_from_request(&step(Some("   "), Some(vec![]), Some(""))).unwrap();
+        assert_eq!(blank.use_case_other, None);
+        assert_eq!(blank.intent_other, None);
 
         let answers = answers_from_request(&step(
             Some("  a school project "),
