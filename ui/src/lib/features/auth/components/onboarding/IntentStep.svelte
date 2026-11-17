@@ -38,7 +38,7 @@
 			intent_other: $onboardingStore.intentOther ?? ''
 		},
 		onSubmit: ({ value }) => {
-			const other = value.intents.includes('other') ? value.intent_other.trim() : null;
+			const other = value.intents.includes('other') ? value.intent_other.trim() || null : null;
 			record(value.intents, other, false);
 		}
 	}));
@@ -132,7 +132,6 @@
 													id="intent-other"
 													{field}
 													placeholder={onboarding_somethingElsePlaceholder()}
-													required={true}
 													autofocus
 												/>
 											{/snippet}
