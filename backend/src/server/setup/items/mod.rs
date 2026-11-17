@@ -82,6 +82,8 @@ pub struct FailedScanRun {
     /// The latest run, which didn't finish.
     pub run_id: Uuid,
     pub reason: DiscoveryTerminalReason,
+    /// The error the run ended with, if it has one.
+    pub error: Option<String>,
     /// The run before it didn't finish either.
     pub previous_run_failed: bool,
     /// An enabled schedule runs the scan again.

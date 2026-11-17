@@ -40,7 +40,6 @@ import {
 	dependencies_createDependency,
 	gettingStarted_stepDaemonLabel,
 	gettingStarted_stepDiscoveryLabel,
-	home_failedScans_connectionGuide,
 	home_failedScans_layoutGuide,
 	home_failedScans_nextRunFull,
 	home_nudges_apiKeysAction,
@@ -312,14 +311,12 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 							go('discovery-history', 'discovery-history-detail', { id: newest?.run_id });
 				}
 			})();
-			// What the fix's docs section teaches: splitting a scan that runs too long across
-			// daemons, or repairing the daemon's connection to the server.
+			// What the fix's docs section teaches: splitting a scan that runs too long across daemons.
 			const guideLabel = ((): string | undefined => {
 				switch (fixType) {
 					case 'RaiseMaxDuration':
 						return home_failedScans_layoutGuide();
 					case 'TroubleshootConnection':
-						return home_failedScans_connectionGuide();
 					case 'RetryScan':
 					case 'RescheduleScan':
 					case 'OpenRun':
@@ -329,9 +326,14 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			const guideUrl = scanFailureFixes.getMetadata(fixType).docs_url;
 			return {
 				title,
-				// What ended the run, that it drew no links, and whether a full scan runs full again.
+				// What ended the run, the newest run's error, that it drew no links, and whether a full
+				// scan runs full again.
 				sentence: [
 					discoveryTerminalReasons.getDescription(reason),
+					// The daemon's text, which often ends without a full stop.
+					...(newest?.error
+						? [/[.!?]$/.test(newest.error) ? newest.error : `${newest.error}.`]
+						: []),
 					sentence,
 					...(scans.some((s) => s.next_run_full) ? [home_failedScans_nextRunFull()] : [])
 				].join(' '),

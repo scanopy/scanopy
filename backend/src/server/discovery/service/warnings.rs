@@ -234,8 +234,9 @@ fn failed_scan_runs(
     runs: &[Discovery],
     scans: &HashMap<Uuid, Discovery>,
 ) -> Vec<FailedScanRun> {
-    // Each scan's runs' end reasons, newest first, in the order its newest run appears.
-    let mut by_scan: Vec<(Uuid, Vec<(Uuid, Option<DiscoveryTerminalReason>)>)> = Vec::new();
+    // Each scan's runs' end reasons and errors, newest first, in the order its newest run appears.
+    type Ended<'a> = (Uuid, Option<DiscoveryTerminalReason>, Option<&'a String>);
+    let mut by_scan: Vec<(Uuid, Vec<Ended>)> = Vec::new();
     for run in runs {
         let RunType::Historical { results } = &run.base.run_type else {
             continue;
@@ -243,10 +244,14 @@ fn failed_scan_runs(
         let Some(scan_id) = results.discovery_id else {
             continue;
         };
-        let reason = DiscoveryTerminalReason::of_run(results.phase, results.reason);
+        let ended = (
+            run.id,
+            DiscoveryTerminalReason::of_run(results.phase, results.reason),
+            results.error.as_ref(),
+        );
         match by_scan.iter_mut().find(|(id, _)| *id == scan_id) {
-            Some((_, ended)) => ended.push((run.id, reason)),
-            None => by_scan.push((scan_id, vec![(run.id, reason)])),
+            Some((_, runs)) => runs.push(ended),
+            None => by_scan.push((scan_id, vec![ended])),
         }
     }
     let failed =
@@ -255,7 +260,7 @@ fn failed_scan_runs(
         .into_iter()
         .filter_map(|(scan_id, ended)| {
             let scan = scans.get(&scan_id)?;
-            let &(run_id, Some(reason)) = ended.first()? else {
+            let &(run_id, Some(reason), error) = ended.first()? else {
                 return None;
             };
             failed(Some(reason)).then(|| FailedScanRun {
@@ -264,7 +269,8 @@ fn failed_scan_runs(
                 scan_name: scan.base.name.clone(),
                 run_id,
                 reason,
-                previous_run_failed: ended.get(1).is_some_and(|&(_, r)| failed(r)),
+                error: error.cloned(),
+                previous_run_failed: ended.get(1).is_some_and(|&(_, r, _)| failed(r)),
                 scheduled: scan.base.run_type.is_scheduled_enabled(),
                 next_run_full: scan.next_run_is_full_scan,
             })
@@ -323,14 +329,18 @@ mod tests {
         list.iter().map(|s| (s.id, (*s).clone())).collect()
     }
 
-    /// Each reason a run can fail with makes its scan a failed scan. A run that completed, or that
-    /// someone cancelled, doesn't.
+    /// Each reason a run can fail with makes its scan a failed scan, carrying the run's error. A run
+    /// that completed, or that someone cancelled, doesn't.
     #[test]
     fn a_scan_whose_latest_run_failed_is_listed_with_its_reason() {
         use strum::IntoEnumIterator;
         let s = scan(false);
         for reason in DiscoveryTerminalReason::iter() {
-            let found = failed_scan_runs(Uuid::nil(), &[failed(&s, reason)], &scans(&[&s]));
+            let mut run = failed(&s, reason);
+            if let RunType::Historical { results } = &mut run.base.run_type {
+                results.error = Some("raw socket denied".to_string());
+            }
+            let found = failed_scan_runs(Uuid::nil(), &[run], &scans(&[&s]));
             let listed = !matches!(
                 reason,
                 DiscoveryTerminalReason::Completed | DiscoveryTerminalReason::UserCancelled
@@ -338,6 +348,7 @@ mod tests {
             assert_eq!(found.len(), usize::from(listed), "{reason:?}");
             if listed {
                 assert_eq!(found[0].reason, reason);
+                assert_eq!(found[0].error.as_deref(), Some("raw socket denied"));
             }
         }
     }
