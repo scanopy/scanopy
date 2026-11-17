@@ -156,6 +156,8 @@
 	let showCreateDaemonModal = $state(false);
 	/** The site a deep link opened the wizard on (`sites` prefill), for a site with no daemon. */
 	let createDaemonSiteId = $state<string | null>(null);
+	// The network a person was creating a subnet for when they chose to install a daemon there.
+	let createDaemonCidr = $state<string | null>(null);
 	let showDaemonEditor = $state(false);
 	let editingDaemon = $state<Daemon | null>(null);
 
@@ -163,6 +165,7 @@
 	$effect(() => {
 		if ($modalState.name === 'create-daemon' && !showCreateDaemonModal && can('Daemon', 'Write')) {
 			createDaemonSiteId = $modalState.prefill?.sites ?? null;
+			createDaemonCidr = $modalState.prefill?.cidr ?? null;
 			showCreateDaemonModal = true;
 		}
 	});
@@ -319,6 +322,7 @@
 
 	function handleCloseCreateDaemon() {
 		showCreateDaemonModal = false;
+		createDaemonCidr = null;
 		// Only redirect to Setup if no daemons AND we're still on the daemons tab
 		// (user may have navigated away via "View Topology" button)
 		if (daemonsData.length === 0 && window.location.hash === '#daemons') {
@@ -440,6 +444,7 @@
 	isOpen={showCreateDaemonModal}
 	name="create-daemon"
 	siteId={createDaemonSiteId}
+	expectedCidr={createDaemonCidr}
 	onClose={handleCloseCreateDaemon}
 	onNavigate={(tab) => {
 		window.location.hash = tab;

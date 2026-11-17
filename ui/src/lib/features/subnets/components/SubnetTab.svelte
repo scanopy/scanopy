@@ -11,7 +11,7 @@
 	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import type { Subnet, SubnetResponse } from '../types/base';
+	import type { Subnet, SubnetCreatePurpose, SubnetResponse } from '../types/base';
 	import DataControls from '#lib/shared/components/data/DataControls.svelte';
 	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
 	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
@@ -322,9 +322,9 @@
 		}
 	}
 
-	async function handleSubnetCreate(data: Subnet) {
+	async function handleSubnetCreate(data: Subnet, purpose: SubnetCreatePurpose) {
 		try {
-			await createSubnetMutation.mutateAsync(data);
+			await createSubnetMutation.mutateAsync({ subnet: data, purpose });
 			showSubnetEditor = false;
 			editingSubnet = null;
 		} catch {

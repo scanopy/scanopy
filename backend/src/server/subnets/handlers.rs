@@ -25,6 +25,7 @@ use crate::server::sites::r#impl::Site;
 use crate::server::{
     config::AppState,
     subnets::r#impl::base::{Subnet, SubnetCidr, SubnetName, SubnetTypeAttributed},
+    subnets::r#impl::create_purpose::SubnetCreatePurpose,
     subnets::r#impl::nesting::SubnetResponse,
     subnets::r#impl::types::SubnetType,
     subnets::service::CidrChangeRefusal,
@@ -368,11 +369,20 @@ async fn get_all_subnets(
     }
 }
 
+/// Why a person is creating a subnet, sent by the create flow.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct CreateSubnetQuery {
+    /// What the subnet is for. Sent with the `subnet_created` event; nothing stores it.
+    #[param(inline)]
+    pub purpose: Option<SubnetCreatePurpose>,
+}
+
 /// Create subnet
 #[utoipa::path(
     post,
     path = "",
     tag = Subnet::ENTITY_NAME_PLURAL,
+    params(CreateSubnetQuery),
     request_body = Subnet,
     responses(
         (status = 200, description = "Subnet created successfully", body = ApiResponse<Subnet>),
@@ -383,6 +393,7 @@ async fn get_all_subnets(
 async fn create_subnet(
     state: State<Arc<AppState>>,
     auth: Authorized<Or<Can<Subnet, Write>, IsDaemon>>,
+    Query(query): Query<CreateSubnetQuery>,
     ApiJson(mut request): ApiJson<Subnet>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {
     let site_ids = auth.site_ids();
@@ -456,10 +467,13 @@ async fn create_subnet(
             // `Discovery` for a row it typed.
             request.set_source(EntitySource::Manual);
             let service = Subnet::get_service(&state);
-            let created = service.create(request, entity).await.map_err(|e| {
-                tracing::error!(error = %e, "Failed to create subnet");
-                ApiError::internal_error(&e.to_string())
-            })?;
+            let created = service
+                .create_for(request, entity, query.purpose)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to create subnet");
+                    ApiError::internal_error(&e.to_string())
+                })?;
             Json(ApiResponse::success(created))
         }
     };

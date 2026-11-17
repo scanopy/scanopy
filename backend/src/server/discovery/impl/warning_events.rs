@@ -84,7 +84,11 @@ impl Operation for DiscoveryWarningCode {
         self.to_string()
     }
 
-    fn metadata<'a>(&'a self, scope: &'a DiscoveryWarningScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        scope: &'a DiscoveryWarningScope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         DiscoveryWarningMetadata {
             session_id: scope.session_id,
             site_id: scope.site_id,

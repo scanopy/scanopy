@@ -26231,7 +26231,10 @@ export interface operations {
     };
     create_subnet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description What the subnet is for. Sent with the `subnet_created` event; nothing stores it. */
+                purpose?: ("Scan" | "Record") | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;

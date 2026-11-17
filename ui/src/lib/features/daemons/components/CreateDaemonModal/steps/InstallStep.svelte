@@ -47,7 +47,9 @@
 		daemons_troubleshoot_troubleTitle,
 		daemons_troubleshoot_troubleTitleServerPoll,
 		daemons_troubleshoot_connectedTitle,
+		daemons_connectedCoversCidr,
 		daemons_connectedFindingNetworks,
+		daemons_connectedMissesCidr,
 		daemons_connectedNetworksIntro,
 		daemons_troubleshoot_connectedDesc,
 		daemons_troubleshoot_testingConnection,
@@ -79,6 +81,8 @@
 		connectionStatus?: DaemonConnectionStatus;
 		/** The networks its host is on, which its first scan covers. Empty until the daemon reports them. */
 		daemonNetworks?: SubnetResponse[];
+		/** The network this daemon is being installed for, from subnet create. */
+		expectedCidr?: string | null;
 		onViewDiscovery?: () => void;
 		onAdvanced?: (() => void) | null;
 		daemonMode?: DaemonMode;
@@ -106,6 +110,7 @@
 		isFirstDaemon = false,
 		connectionStatus = 'idle',
 		daemonNetworks = [],
+		expectedCidr = null,
 		onViewDiscovery,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
@@ -344,6 +349,13 @@
 								</li>
 							{/each}
 						</ul>
+						{#if expectedCidr}
+							<p class="mt-3 text-sm text-secondary">
+								{daemonNetworks.some((n) => n.cidr === expectedCidr)
+									? daemons_connectedCoversCidr({ cidr: expectedCidr })
+									: daemons_connectedMissesCidr({ cidr: expectedCidr })}
+							</p>
+						{/if}
 					{/if}
 				</div>
 				<button type="button" class="btn-primary" onclick={() => onViewDiscovery?.()}>

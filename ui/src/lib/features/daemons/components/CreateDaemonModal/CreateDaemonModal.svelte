@@ -106,9 +106,19 @@
 		name?: string;
 		/** The site the wizard opens on, as when Home asks for a daemon on a site with none. */
 		siteId?: string | null;
+		/** The network the daemon is being installed for, from subnet create. The connected state says
+		 *  whether the host is on it. */
+		expectedCidr?: string | null;
 	}
 
-	let { isOpen = false, onClose, onNavigate, name = undefined, siteId = null }: Props = $props();
+	let {
+		isOpen = false,
+		onClose,
+		onNavigate,
+		name = undefined,
+		siteId = null,
+		expectedCidr = null
+	}: Props = $props();
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
@@ -964,6 +974,7 @@
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
 							{daemonNetworks}
+							{expectedCidr}
 							onAdvanced={() => (showAdvanced = true)}
 							artifacts={installArtifacts}
 							daemonMode={(formValues.mode as DaemonMode) ?? 'daemon_poll'}

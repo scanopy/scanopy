@@ -12070,6 +12070,28 @@
         ],
         "summary": "Create subnet",
         "operationId": "create_subnet",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "description": "What the subnet is for. Sent with the `subnet_created` event; nothing stores it.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Scan",
+                    "Record"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

@@ -4,13 +4,21 @@
 	import { required, max, cidrNotation } from '#lib/shared/components/forms/validators.ts';
 	import { createEmptySubnetFormData } from '../../queries';
 	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
-	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import { entities, subnetCreatePurposes, subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
-	import type { Subnet, SubnetResponse } from '../../types/base';
+	import type { Subnet, SubnetCreatePurpose, SubnetResponse } from '../../types/base';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import RadioGroup from '#lib/shared/components/forms/input/RadioGroup.svelte';
+	import DaemonTroubleshootingModal from '#lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import { checkNewCidr } from '../../create-checks';
+	import { useSubnetsQuery } from '../../queries';
+	import { awaitingDaemon } from '#lib/features/daemons/utils.ts';
 	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
-	import { navigateToEntity } from '#lib/shared/stores/modal-registry.ts';
+	import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
 	import { attributeSourceLabel } from '#lib/shared/utils/attribute-source.ts';
 	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import { VlanDisplay } from '#lib/shared/components/forms/selection/display/VlanDisplay.svelte';
@@ -30,19 +38,35 @@
 	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_tags,
+		common_back,
 		common_cancel,
 		common_cidr,
 		common_create,
 		common_delete,
 		common_deleting,
+		common_details,
 		common_description,
 		common_editName,
 		common_name,
+		common_next,
+		common_network,
 		common_openName,
+		common_reach,
 		common_saving,
 		common_update,
 		common_vlans,
 		subnets_cidrPlaceholder,
+		subnets_containsSubnets,
+		subnets_existsElsewhere,
+		subnets_existsHere,
+		subnets_existsHereInterfaced,
+		subnets_finishDaemon,
+		subnets_mergesAssumed,
+		subnets_purposeQuestion,
+		subnets_reachNoDaemon,
+		subnets_recordNote,
+		gettingStarted_stepDaemonLabel,
+		home_setup_troubleshootConnection,
 		subnets_createSubnet,
 		subnets_cidrLockContainerBridge,
 		subnets_cidrLockDaemonInterface,
@@ -66,7 +90,8 @@
 	interface Props {
 		subnet?: SubnetResponse | null;
 		isOpen?: boolean;
-		onCreate: (data: Subnet) => Promise<void> | void;
+		/** With what the subnet is for, which travels on the `subnet_created` event. */
+		onCreate: (data: Subnet, purpose: SubnetCreatePurpose) => Promise<void> | void;
 		onUpdate: (id: string, data: Subnet) => Promise<void> | void;
 		onClose: () => void;
 		onDelete?: ((id: string) => Promise<void> | void) | null;
@@ -104,6 +129,8 @@
 		subnet_type: Subnet['subnet_type'];
 		tags: string[];
 		vlan_ids: string[];
+		/** The create flow's first answer. Sent as a query param, not part of the subnet. */
+		purpose: SubnetCreatePurpose;
 	}
 
 	function editing(): Subnet {
@@ -118,8 +145,64 @@
 			site_id: source.site_id,
 			subnet_type: source.subnet_type,
 			tags: source.tags,
-			vlan_ids: source.vlan_ids ?? []
+			vlan_ids: source.vlan_ids ?? [],
+			purpose: 'Scan'
 		};
+	}
+
+	// The create flow's steps. Its first answer decides the rest: a network to scan goes on to how
+	// Scanopy reaches it, a network to record goes on to its details. Editing is one page.
+	type Step = 'network' | 'reach' | 'details';
+	let purpose = $state<SubnetCreatePurpose>('Scan');
+	let steps = $derived<Step[]>(purpose === 'Scan' ? ['network', 'reach'] : ['network', 'details']);
+	let activeTab = $state<Step>('network');
+	let furthestReached = $state(0);
+	let stepIndex = $derived(steps.indexOf(activeTab));
+	let tabs: ModalTab[] = $derived(
+		isEditing
+			? []
+			: steps.map((step, i) => ({
+					id: step,
+					label:
+						step === 'network'
+							? common_network()
+							: step === 'reach'
+								? common_reach()
+								: common_details(),
+					disabled: i > furthestReached
+				}))
+	);
+
+	let purposeOptions = $derived(
+		subnetCreatePurposes.getItems().map((p) => ({
+			value: p.id as SubnetCreatePurpose,
+			label: subnetCreatePurposes.getName(p.id),
+			helpText: subnetCreatePurposes.getDescription(p.id)
+		}))
+	);
+
+	function handleInstallDaemon() {
+		const cidr = cidrInput.trim();
+		onClose();
+		window.location.hash = 'daemons';
+		openModal('create-daemon', { prefill: { sites: selectedSiteId, cidr } });
+	}
+
+	async function handleNext() {
+		const valid = await validateForm(form);
+		if (!valid || checks?.sameHere) return;
+		furthestReached = Math.max(furthestReached, stepIndex + 1);
+		activeTab = steps[stepIndex + 1];
+	}
+
+	function handleBack() {
+		if (stepIndex > 0) activeTab = steps[stepIndex - 1];
+	}
+
+	function handlePurposeChange(value: SubnetCreatePurpose) {
+		purpose = value;
+		// The steps after the first change with the answer, so none of them counts as visited.
+		furthestReached = 0;
 	}
 
 	// The site and VLANs the VLAN picker reads. Kept as state because the form's own values aren't
@@ -157,9 +240,10 @@
 	const form = createForm(() => ({
 		defaultValues: formValues(createEmptySubnetFormData('')),
 		onSubmit: async ({ value }) => {
+			const { purpose: chosenPurpose, ...fields } = value;
 			const subnetData: Subnet = {
 				...editing(),
-				...value,
+				...fields,
 				name: value.name.trim(),
 				description: value.description.trim(),
 				cidr: value.cidr.trim()
@@ -170,7 +254,7 @@
 				if (isEditing && subnet) {
 					await onUpdate(subnet.id, subnetData);
 				} else {
-					await onCreate(subnetData);
+					await onCreate(subnetData, chosenPurpose);
 				}
 			} finally {
 				loading = false;
@@ -184,12 +268,36 @@
 		form.reset(defaults);
 		selectedSiteId = defaults.site_id;
 		selectedVlanIds = defaults.vlan_ids;
+		purpose = defaults.purpose;
+		cidrInput = defaults.cidr;
+		activeTab = 'network';
+		furthestReached = 0;
 	}
 
 	// The server says which ranges come from the network and can't be moved by hand.
 	let cidrLock = $derived(subnet?.cidr_lock ?? null);
 
-	const daemonsQuery = useDaemonsQuery({ enabled: () => cidrLock?.type === 'DaemonInterface' });
+	// For the daemon a locked range names, and for a daemon awaiting its first connection in create.
+	const daemonsQuery = useDaemonsQuery({
+		enabled: () => !isEditing || cidrLock?.type === 'DaemonInterface'
+	});
+
+	// The range typed in the first step, kept as state for the checks below (the form's own value
+	// isn't tracked by `$derived`).
+	let cidrInput = $state('');
+	const subnetsQuery = useSubnetsQuery();
+	let checks = $derived(
+		!isEditing && cidrInput && !cidrNotation(cidrInput)
+			? checkNewCidr(cidrInput.trim(), selectedSiteId, subnetsQuery.data ?? [])
+			: null
+	);
+	let siteName = (id: string) => sitesData.find((s) => s.id === id)?.name ?? '';
+	let subnetLabel = (s: SubnetResponse) => (s.name !== s.cidr ? `${s.name} (${s.cidr})` : s.cidr);
+
+	// A daemon on this site that was created but never connected is the one to fix before
+	// installing another.
+	let pendingDaemon = $derived(awaitingDaemon(daemonsQuery.data ?? [], selectedSiteId));
+	let troubleshooting = $state(false);
 	let lockingDaemon = $derived(
 		cidrLock?.type === 'DaemonInterface'
 			? ((daemonsQuery.data ?? []).find((d) => d.id === cidrLock.daemon_id) ?? null)
@@ -279,13 +387,36 @@
 				]
 			: []),
 		{ role: 'cancel', label: common_cancel(), onClick: onClose, disabled: loading || deleting },
-		{
-			role: 'primary',
-			label: loading ? common_saving() : saveLabel,
-			onClick: handleSubmit,
-			disabled: loading || deleting
-		}
+		...(!isEditing && stepIndex > 0
+			? [{ role: 'secondary' as const, label: common_back(), onClick: handleBack }]
+			: []),
+		...primaryAction()
 	]);
+
+	/** The step's way forward: Next, Create, or installing a daemon. None while a daemon on the
+	 *  site still has to connect, whose own buttons are the way forward. */
+	function primaryAction(): ModalAction[] {
+		if (isEditing || activeTab === 'details') {
+			return [
+				{
+					role: 'primary',
+					label: loading ? common_saving() : saveLabel,
+					onClick: handleSubmit,
+					disabled: loading || deleting
+				}
+			];
+		}
+		if (activeTab === 'network') {
+			return [
+				{ role: 'primary', label: common_next(), onClick: handleNext, disabled: !!checks?.sameHere }
+			];
+		}
+		return pendingDaemon
+			? []
+			: [
+					{ role: 'primary', label: gettingStarted_stepDaemonLabel(), onClick: handleInstallDaemon }
+				];
+	}
 </script>
 
 <GenericModal
@@ -298,6 +429,10 @@
 	{onClose}
 	onOpen={handleOpen}
 	showCloseButton={true}
+	{tabs}
+	{activeTab}
+	tabStyle="stepper"
+	onTabChange={(id) => (activeTab = id as Step)}
 	{actions}
 >
 	{#snippet headerIcon()}
@@ -313,131 +448,240 @@
 		class="flex min-h-0 flex-1 flex-col"
 	>
 		<div class="min-h-0 flex-1 overflow-auto p-6">
-			<div class="space-y-8">
-				<!-- Subnet Details Section -->
+			{#if !isEditing && activeTab === 'network'}
 				<div class="space-y-4">
-					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-						<form.Field
-							name="name"
-							validators={{
-								onBlur: ({ value }) => required(value) || max(100)(value)
-							}}
-						>
-							{#snippet children(field)}
-								<TextInput
-									label={common_name()}
-									id="name"
-									{field}
-									placeholder={subnets_namePlaceholder()}
-									required
-								/>
-							{/snippet}
-						</form.Field>
-						<form.Field
-							name="cidr"
-							validators={{
-								onBlur: ({ value }) => required(value) || cidrNotation(value)
-							}}
-						>
-							{#snippet children(field)}
-								<TextInput
-									label={common_cidr()}
-									id="cidr"
-									{field}
-									placeholder={subnets_cidrPlaceholder()}
-									disabled={cidrLock !== null}
-									required
-								/>
-							{/snippet}
-						</form.Field>
-					</div>
+					<form.Field name="site_id">
+						{#snippet children()}
+							<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
+						{/snippet}
+					</form.Field>
 
-					{#if cidrLockReason}
-						<InlineInfo body={cidrLockReason.body}>
-							{#if cidrLockReason.link}
-								<button
-									type="button"
-									class="mt-1 text-sm text-link hover:underline"
-									onclick={cidrLockReason.link.open}
-								>
-									{cidrLockReason.link.label}
-								</button>
-							{/if}
-						</InlineInfo>
-					{/if}
-
-					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-						<!-- Site Selection -->
-						<form.Field name="site_id">
-							{#snippet children(field)}
-								<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-							{/snippet}
-						</form.Field>
-
-						<!-- Subnet Type -->
-						<form.Field name="subnet_type">
-							{#snippet children(field)}
-								<RichSelect
-									label={subnets_subnetType()}
-									selectedValue={field.state.value}
-									options={subnetTypeOptions}
-									displayComponent={SimpleOptionDisplay}
-									showSearch={true}
-									onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
-								/>
-							{/snippet}
-						</form.Field>
-					</div>
-
-					<!-- Description Field -->
 					<form.Field
-						name="description"
-						validators={{
-							onBlur: ({ value }) => max(500)(value || '')
-						}}
+						name="cidr"
+						validators={{ onBlur: ({ value }) => required(value) || cidrNotation(value) }}
+						listeners={{ onChange: ({ value }) => (cidrInput = value) }}
 					>
 						{#snippet children(field)}
-							<TextArea
-								label={common_description()}
-								id="description"
+							<TextInput
+								label={common_cidr()}
+								id="cidr"
 								{field}
-								placeholder={subnets_descriptionPlaceholder()}
-								rows={3}
+								placeholder={subnets_cidrPlaceholder()}
+								required
 							/>
 						{/snippet}
 					</form.Field>
 
-					<ListManager
-						label={common_vlans()}
-						helpText={subnets_vlansHelp()}
-						placeholder={subnets_selectVlan()}
-						emptyMessage={subnets_noVlans()}
-						allowReorder={false}
-						allowItemEdit={false}
-						showSearch={true}
-						options={vlanOptions}
-						items={selectedVlans}
-						optionDisplayComponent={VlanDisplay}
-						itemDisplayComponent={VlanDisplay}
-						itemRemoveUnavailable={(vlan) =>
-							disabledWhen(discoveredVlanIds.includes(vlan.id), subnets_vlanDiscovered())}
-						onAdd={(id) => setVlanIds([...selectedVlanIds, id])}
-						onRemove={(index) => setVlanIds(selectedVlanIds.filter((_, i) => i !== index))}
-					/>
+					{#if checks?.sameHere}
+						{@const existing = checks.sameHere}
+						<InlineWarning
+							body={existing.cidr_lock?.type === 'DaemonInterface'
+								? subnets_existsHereInterfaced({
+										cidr: existing.cidr,
+										name: existing.name,
+										daemon:
+											(daemonsQuery.data ?? []).find(
+												(d) =>
+													existing.cidr_lock?.type === 'DaemonInterface' &&
+													d.id === existing.cidr_lock.daemon_id
+											)?.name ?? ''
+									})
+								: subnets_existsHere({ cidr: existing.cidr, name: existing.name })}
+						>
+							<button
+								type="button"
+								class="mt-1 text-sm text-link hover:underline"
+								onclick={() => navigateToEntity('Subnet', existing.id, existing)}
+							>
+								{common_editName({ name: existing.name })}
+							</button>
+						</InlineWarning>
+					{/if}
+					{#each checks?.sameElsewhere ?? [] as other (other.id)}
+						<InlineInfo
+							body={subnets_existsElsewhere({ cidr: other.cidr, site: siteName(other.site_id) })}
+						/>
+					{/each}
+					{#if checks && checks.assumedInside.length > 0}
+						<InlineInfo
+							body={subnets_mergesAssumed({
+								subnets: checks.assumedInside.map(subnetLabel).join(', ')
+							})}
+						/>
+					{/if}
+					{#if checks && checks.inside.length > 0}
+						<InlineInfo
+							body={subnets_containsSubnets({ subnets: checks.inside.map(subnetLabel).join(', ') })}
+						/>
+					{/if}
 
-					<!-- Tags -->
-					<form.Field name="tags">
+					<form.Field name="purpose">
 						{#snippet children(field)}
-							<TagPickerInline
-								entityType="Subnet"
-								label={common_tags()}
-								selectedTagIds={field.state.value || []}
-								onChange={(tags) => field.handleChange(tags)}
+							<RadioGroup
+								label={subnets_purposeQuestion()}
+								id="purpose"
+								{field}
+								options={purposeOptions}
+								value={purpose}
+								onChange={handlePurposeChange}
 							/>
 						{/snippet}
 					</form.Field>
 				</div>
-			</div>
+			{:else if !isEditing && activeTab === 'reach'}
+				<div class="space-y-4">
+					{#if pendingDaemon}
+						{@const daemon = pendingDaemon}
+						<InlineWarning body={subnets_finishDaemon({ daemon: daemon.name })}>
+							<div class="mt-2 flex flex-wrap gap-2">
+								<button type="button" class="btn-primary" onclick={() => (troubleshooting = true)}>
+									{home_setup_troubleshootConnection()}
+								</button>
+								<button
+									type="button"
+									class="btn-secondary"
+									onclick={() => navigateToEntity('Daemon', daemon.id, daemon)}
+								>
+									{common_openName({ name: daemon.name })}
+								</button>
+							</div>
+						</InlineWarning>
+					{:else}
+						<p class="text-sm text-secondary">
+							{subnets_reachNoDaemon({ cidr: cidrInput.trim() })}
+						</p>
+					{/if}
+				</div>
+			{:else}
+				<div class="space-y-8">
+					<!-- Subnet Details Section -->
+					<div class="space-y-4">
+						{#if !isEditing}
+							<InlineInfo body={subnets_recordNote()} />
+						{/if}
+						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+							<form.Field
+								name="name"
+								validators={{
+									onBlur: ({ value }) => required(value) || max(100)(value)
+								}}
+							>
+								{#snippet children(field)}
+									<TextInput
+										label={common_name()}
+										id="name"
+										{field}
+										placeholder={subnets_namePlaceholder()}
+										required
+									/>
+								{/snippet}
+							</form.Field>
+							<form.Field
+								name="cidr"
+								validators={{
+									onBlur: ({ value }) => required(value) || cidrNotation(value)
+								}}
+							>
+								{#snippet children(field)}
+									<TextInput
+										label={common_cidr()}
+										id="cidr"
+										{field}
+										placeholder={subnets_cidrPlaceholder()}
+										disabled={!isEditing || cidrLock !== null}
+										required
+									/>
+								{/snippet}
+							</form.Field>
+						</div>
+
+						{#if cidrLockReason}
+							<InlineInfo body={cidrLockReason.body}>
+								{#if cidrLockReason.link}
+									<button
+										type="button"
+										class="mt-1 text-sm text-link hover:underline"
+										onclick={cidrLockReason.link.open}
+									>
+										{cidrLockReason.link.label}
+									</button>
+								{/if}
+							</InlineInfo>
+						{/if}
+
+						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+							<!-- Site Selection -->
+							<form.Field name="site_id">
+								{#snippet children(field)}
+									<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
+								{/snippet}
+							</form.Field>
+
+							<!-- Subnet Type -->
+							<form.Field name="subnet_type">
+								{#snippet children(field)}
+									<RichSelect
+										label={subnets_subnetType()}
+										selectedValue={field.state.value}
+										options={subnetTypeOptions}
+										displayComponent={SimpleOptionDisplay}
+										showSearch={true}
+										onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
+									/>
+								{/snippet}
+							</form.Field>
+						</div>
+
+						<!-- Description Field -->
+						<form.Field
+							name="description"
+							validators={{
+								onBlur: ({ value }) => max(500)(value || '')
+							}}
+						>
+							{#snippet children(field)}
+								<TextArea
+									label={common_description()}
+									id="description"
+									{field}
+									placeholder={subnets_descriptionPlaceholder()}
+									rows={3}
+								/>
+							{/snippet}
+						</form.Field>
+
+						<ListManager
+							label={common_vlans()}
+							helpText={subnets_vlansHelp()}
+							placeholder={subnets_selectVlan()}
+							emptyMessage={subnets_noVlans()}
+							allowReorder={false}
+							allowItemEdit={false}
+							showSearch={true}
+							options={vlanOptions}
+							items={selectedVlans}
+							optionDisplayComponent={VlanDisplay}
+							itemDisplayComponent={VlanDisplay}
+							itemRemoveUnavailable={(vlan) =>
+								disabledWhen(discoveredVlanIds.includes(vlan.id), subnets_vlanDiscovered())}
+							onAdd={(id) => setVlanIds([...selectedVlanIds, id])}
+							onRemove={(index) => setVlanIds(selectedVlanIds.filter((_, i) => i !== index))}
+						/>
+
+						<!-- Tags -->
+						<form.Field name="tags">
+							{#snippet children(field)}
+								<TagPickerInline
+									entityType="Subnet"
+									label={common_tags()}
+									selectedTagIds={field.state.value || []}
+									onChange={(tags) => field.handleChange(tags)}
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		{#if isEditing && subnet}
@@ -445,3 +689,5 @@
 		{/if}
 	</form>
 </GenericModal>
+
+<DaemonTroubleshootingModal isOpen={troubleshooting} onClose={() => (troubleshooting = false)} />
