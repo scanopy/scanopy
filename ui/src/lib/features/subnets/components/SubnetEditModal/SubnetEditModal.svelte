@@ -304,6 +304,14 @@
 		data: s,
 		label: s.name
 	});
+	let siteChip = (id: string): ChipRef | undefined => {
+		const site = siteOf(id);
+		return site && { type: 'Site', id: site.id, data: site, label: site.name };
+	};
+	let daemonChip = (id: string): ChipRef | undefined => {
+		const daemon = daemonOf(id);
+		return daemon && { type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name };
+	};
 
 	// A daemon on this site that was created but never connected is the one to fix before
 	// installing another.
@@ -446,6 +454,20 @@
 	/>
 {/snippet}
 
+<!-- A message whose `slot(key)` parameters render as the chips in `refs`. -->
+{#snippet sentence(text: string, refs: Record<string, ChipRef | undefined>)}
+	<p class="leading-6">
+		<MessageWithSlots {text}>
+			{#snippet part(key)}
+				{@const ref = refs[key]}
+				{#if ref}
+					{@render chip(ref)}
+				{/if}
+			{/snippet}
+		</MessageWithSlots>
+	</p>
+{/snippet}
+
 {#snippet chips(refs: ChipRef[])}
 	<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
 		{#each refs as ref (ref.id)}
@@ -523,40 +545,35 @@
 						{@const existing = checks.sameHere}
 						{@const lock = existing.cidr_lock}
 						{@const daemon =
-							lock?.type === 'DaemonInterface' ? daemonOf(lock.daemon_id) : undefined}
-						<InlineWarning
-							title=""
-							body={lock?.type === 'DaemonInterface'
-								? subnets_existsHereInterfaced({ cidr: existing.cidr })
-								: subnets_existsHere({ cidr: existing.cidr })}
-						>
-							{@render chips([
-								...(daemon
-									? [{ type: 'Daemon' as const, id: daemon.id, data: daemon, label: daemon.name }]
-									: []),
-								subnetChip(existing)
-							])}
+							lock?.type === 'DaemonInterface' ? daemonChip(lock.daemon_id) : undefined}
+						{@const site = siteChip(existing.site_id)}
+						<InlineWarning title="">
+							{@render sentence(
+								daemon
+									? subnets_existsHereInterfaced({
+											subnet: slot('subnet'),
+											site: site ? slot('site') : common_unknown(),
+											daemon: slot('daemon')
+										})
+									: subnets_existsHere({
+											subnet: slot('subnet'),
+											site: site ? slot('site') : common_unknown()
+										}),
+								{ subnet: subnetChip(existing), site, daemon }
+							)}
 						</InlineWarning>
 					{/if}
 					{#each checks?.sameElsewhere ?? [] as other (other.id)}
 						{@const site = siteOf(other.site_id)}
+						{@const siteRef = siteChip(other.site_id)}
 						<InlineInfo>
-							<p class="leading-6">
-								<MessageWithSlots
-									text={subnets_existsElsewhere({
-										subnet: slot('subnet'),
-										site: site ? slot('site') : common_unknown()
-									})}
-								>
-									{#snippet part(key)}
-										{#if key === 'subnet'}
-											{@render chip(subnetChip(other))}
-										{:else if site}
-											{@render chip({ type: 'Site', id: site.id, data: site, label: site.name })}
-										{/if}
-									{/snippet}
-								</MessageWithSlots>
-							</p>
+							{@render sentence(
+								subnets_existsElsewhere({
+									subnet: slot('subnet'),
+									site: siteRef ? slot('site') : common_unknown()
+								}),
+								{ subnet: subnetChip(other), site: siteRef }
+							)}
 							{#if site}
 								<button
 									type="button"
