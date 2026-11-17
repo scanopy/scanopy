@@ -109,8 +109,8 @@ export interface SetupRowContext {
 	lookups: SetupLookups;
 	/** Opens the question a question item asks. */
 	onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
-	/** Opens the daemon troubleshooting help. */
-	onTroubleshoot: () => void;
+	/** Opens the connection help for one daemon. */
+	onTroubleshoot: (daemonId: string) => void;
 	/** Starts a run of each of these scans. */
 	onRetryScans: (scanIds: string[]) => void;
 }
@@ -171,7 +171,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			// gets its own scans, each with Run.
 			const fix: SetupFix =
 				health === 'awaiting_connection' || health === 'unreachable' || health === 'not_checking_in'
-					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
+					? { label: home_setup_troubleshootConnection(), run: () => onTroubleshoot(id) }
 					: health === 'standby'
 						? { label: home_setup_runScan(), run: daemonScans(id) }
 						: health === 'outdated' ||
@@ -297,7 +297,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 					case 'RetryScan':
 						return () => onRetryScans(scans.map((s) => s.scan_id));
 					case 'TroubleshootConnection':
-						return onTroubleshoot;
+						return () => onTroubleshoot(daemonId);
 					case 'RescheduleScan':
 						return () =>
 							go('discovery-scans', 'discovery-editor', { id: newest?.scan_id, tab: 'schedule' });

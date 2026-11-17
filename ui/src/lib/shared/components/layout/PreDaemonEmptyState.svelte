@@ -56,7 +56,11 @@
 			</button>
 		</div>
 	</EmptyState>
-	<DaemonTroubleshootingModal isOpen={troubleshooting} onClose={() => (troubleshooting = false)} />
+	<DaemonTroubleshootingModal
+		daemon={pending}
+		isOpen={troubleshooting}
+		onClose={() => (troubleshooting = false)}
+	/>
 {:else}
 	<EmptyState
 		IconComponent={Server as IconComponent}

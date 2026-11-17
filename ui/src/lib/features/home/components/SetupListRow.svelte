@@ -32,8 +32,8 @@
 		hasEmail?: boolean;
 		/** Opens the question a question item asks. */
 		onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
-		/** Opens the daemon troubleshooting help. */
-		onTroubleshoot: () => void;
+		/** Opens the connection help for one daemon. */
+		onTroubleshoot: (daemonId: string) => void;
 	} = $props();
 
 	let item = $derived(entry.item);
