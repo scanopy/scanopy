@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url';
  * hand-maintained array — so a newly added docs link is covered automatically and the test
  * can't silently drift out of date. Links reach the UI through several paths (the shared `DocsHint` component, a plain `<a>` in `Tag`, `window.open`
  * in the support cards, and raw `<a>` anchors embedded in i18n strings), so we scan for the URL
- * itself rather than any one component.
+ * itself rather than any one component. Root-relative paths are covered too: literal
+ * `docsUrl('/docs/…')` calls, and every warning code's `docs_path` in `warning-codes.json`.
  *
  * Each unique URL is fetched live and must return 2xx. If a URL carries a `#fragment`, the page
  * body must actually contain that anchor (`id="fragment"`) — a valid page with a stale anchor is
@@ -29,8 +30,13 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const MESSAGES_FILE = path.resolve(REPO_ROOT, 'messages/en.json');
 const DATA_DIR = path.resolve(SRC_DIR, 'lib/data');
 
+const WARNING_CODES_FILE = path.resolve(SRC_DIR, 'lib/data/warning-codes.json');
+const DOCS_ORIGIN = 'https://scanopy.net';
+
 // Matches a docs URL up to the first quote / whitespace / bracket / backtick that would end it.
 const DOCS_URL_RE = /https?:\/\/scanopy\.net\/docs[^\s"'`)<>\\]*/g;
+// A `docsUrl('/docs/…')` call with a literal path, which `docsUrl` composes onto the docs origin.
+const DOCS_PATH_CALL_RE = /docsUrl\(\s*['"`](\/docs[^'"`\s]*)['"`]\s*\)/g;
 
 const ATTEMPTS = 3;
 const BACKOFF_MS = [500, 1000, 2000];
@@ -70,9 +76,35 @@ function collectDocsLinks(): Occurrence[] {
 	const occurrences: Occurrence[] = [];
 	for (const file of files) {
 		const content = fs.readFileSync(file, 'utf8');
+		const lineOf = (index: number | undefined) => content.slice(0, index).split('\n').length;
 		for (const match of content.matchAll(DOCS_URL_RE)) {
-			const line = content.slice(0, match.index).split('\n').length;
-			occurrences.push({ url: match[0], file: path.relative(REPO_ROOT, file), line });
+			occurrences.push({
+				url: match[0],
+				file: path.relative(REPO_ROOT, file),
+				line: lineOf(match.index)
+			});
+		}
+		for (const match of content.matchAll(DOCS_PATH_CALL_RE)) {
+			occurrences.push({
+				url: `${DOCS_ORIGIN}${match[1]}`,
+				file: path.relative(REPO_ROOT, file),
+				line: lineOf(match.index)
+			});
+		}
+	}
+
+	// Warning codes carry their docs page as a root-relative path the UI composes.
+	const warningCodes: { id: string; metadata?: { docs_path?: string | null } }[] = JSON.parse(
+		fs.readFileSync(WARNING_CODES_FILE, 'utf8')
+	);
+	for (const code of warningCodes) {
+		const docsPath = code.metadata?.docs_path;
+		if (docsPath) {
+			occurrences.push({
+				url: `${DOCS_ORIGIN}${docsPath}`,
+				file: `${path.relative(REPO_ROOT, WARNING_CODES_FILE)} (${code.id})`,
+				line: 0
+			});
 		}
 	}
 	return occurrences;

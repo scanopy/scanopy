@@ -59,7 +59,7 @@ impl From<&os_info::Info> for HostOs {
     }
 }
 
-/// The desktop container VM this daemon runs inside, if any: Docker Desktop, OrbStack or Colima.
+/// The desktop VM this daemon runs inside, if any: Docker Desktop, OrbStack, Colima or WSL.
 ///
 /// Docker Desktop and OrbStack name themselves in the kernel release (`6.12.54-linuxkit`,
 /// `6.12.0-orbstack-00302-g8a5c3f`), so the daemon's own `uname` is enough. Colima runs a stock
@@ -67,6 +67,11 @@ impl From<&os_info::Info> for HostOs {
 /// `colima` or `colima-<profile>`. The engine's `info` counts only when its kernel is the daemon's
 /// own, which is what makes the daemon a container in that VM. A daemon installed on the machine
 /// itself can reach the same engine through a socket, and it sees the LAN.
+///
+/// WSL2's kernel release reads `5.15.153.1-microsoft-standard-WSL2`. Docker Desktop on Windows
+/// runs on that same kernel, so an engine that names Docker Desktop is checked first. WSL1 has no
+/// Linux kernel (`4.4.0-19041-Microsoft`) and shares Windows' network stack, so it sees the LAN and
+/// is not matched.
 pub fn desktop_vm(
     kernel_release: &str,
     engine_info: Option<&bollard::models::SystemInfo>,
@@ -78,13 +83,20 @@ pub fn desktop_vm(
     if release.contains("orbstack") {
         return Some(DesktopVm::OrbStack);
     }
-    let info = engine_info.filter(|info| info.kernel_version.as_deref() == Some(kernel_release))?;
-    match info.operating_system.as_deref().map(str::trim) {
+    let info = engine_info.filter(|info| info.kernel_version.as_deref() == Some(kernel_release));
+    match info
+        .and_then(|info| info.operating_system.as_deref())
+        .map(str::trim)
+    {
         Some("Docker Desktop") => return Some(DesktopVm::DockerDesktop),
         Some("OrbStack") => return Some(DesktopVm::OrbStack),
         _ => {}
     }
-    info.name
+    if release.contains("microsoft") && release.contains("wsl") {
+        return Some(DesktopVm::Wsl);
+    }
+    info?
+        .name
         .as_deref()
         .filter(|name| *name == "colima" || name.starts_with("colima-"))
         .map(|_| DesktopVm::Colima)
@@ -169,6 +181,27 @@ mod tests {
             desktop_vm(ubuntu, Some(&engine("OrbStack", "orbstack", ubuntu))),
             Some(DesktopVm::OrbStack)
         );
+    }
+
+    #[test]
+    fn a_daemon_in_wsl2_is_in_wsl_unless_its_engine_is_docker_desktop() {
+        let wsl2 = "5.15.153.1-microsoft-standard-WSL2";
+        assert_eq!(desktop_vm(wsl2, None), Some(DesktopVm::Wsl));
+        // Docker Engine installed inside the WSL distribution.
+        assert_eq!(
+            desktop_vm(wsl2, Some(&engine("Ubuntu 24.04.1 LTS", "DESKTOP-1", wsl2))),
+            Some(DesktopVm::Wsl)
+        );
+        // Docker Desktop's WSL2 backend runs on the same kernel.
+        assert_eq!(
+            desktop_vm(
+                wsl2,
+                Some(&engine("Docker Desktop", "docker-desktop", wsl2))
+            ),
+            Some(DesktopVm::DockerDesktop)
+        );
+        // WSL1 shares Windows' network stack, so it sees the LAN.
+        assert_eq!(desktop_vm("4.4.0-19041-Microsoft", None), None);
     }
 
     #[test]

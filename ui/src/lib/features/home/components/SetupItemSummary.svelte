@@ -51,7 +51,9 @@
 		{/if}
 	</div>
 	{#if !done && view.sentence}
-		<p class="text-sm text-tertiary">{view.sentence}</p>
+		<p class="text-sm text-tertiary">
+			{view.sentence}
+		</p>
 	{/if}
 	{#if !done && view.docsUrl}
 		<a

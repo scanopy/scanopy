@@ -736,10 +736,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses hold devices, install a daemon on {cidr} to scan them from inside it, or turn on Trust Port-Only Detections in the scan's settings to record a host wherever a port answers."
             }
             Self::ScanTimeLimitWithEstimate => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::ScanTimeLimit => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::DcpSweepTimedOut => {
                 "The PROFINET device sweep did not finish within {seconds}s, so devices that answer only to it are missing from this scan. The next scan runs the sweep again. If it repeats, report a bug."
@@ -836,7 +836,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             "issue_category": self.issue_category().map(|c| c.id()),
             "snmp_check": self.snmp_check(),
             "snmp_check_group": self.snmp_check_group(),
-            "settings_docs_path": self.settings_docs_path(),
+            "docs_path": self.docs_path(),
         })
     }
 }
@@ -845,14 +845,19 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
 const SCAN_SETTINGS_DOCS_PATH: &str = "/docs/using-scanopy/discovery/scans/#scan-settings";
 /// The docs section listing every daemon configuration parameter.
 const DAEMON_SETTINGS_DOCS_PATH: &str = "/docs/reference/daemon-configuration/#parameter-reference";
+/// The firewalled-segments guide's section on credentials for hosts behind the firewall.
+const FIREWALLED_SEGMENT_CREDENTIALS_DOCS_PATH: &str =
+    "/docs/guides/networking/firewalled-segments/#credentials-for-hosts-in-the-segment";
 
 impl DiscoveryWarningCode {
-    /// The docs page for the setting this code's description names, as a root-relative path the
-    /// UI turns into a link beside the row. `None` for a code that names no setting.
+    /// The one docs page for this code, as a root-relative path the UI turns into a link beside the
+    /// row. `None` for a code with no page.
     ///
-    /// A description that tells the reader to change a setting links to where that setting is
-    /// documented. The test below holds every scan-setting label to that.
-    pub fn settings_docs_path(&self) -> Option<&'static str> {
+    /// Where the row has an action button that opens the setting, the link may explain the warning
+    /// instead. Where there is no action, a description that tells the reader to change a setting
+    /// links to where that setting is documented, and the test below holds every scan-setting label
+    /// to that.
+    pub fn docs_path(&self) -> Option<&'static str> {
         match self {
             Self::ArpSweepTruncated
             | Self::IcmpSweepTruncated
@@ -865,6 +870,10 @@ impl DiscoveryWarningCode {
             // `CredentialTlsFailed` names a daemon setting too, and its row's button already
             // opens the daemon configuration guide.
             Self::InterfaceFilterMatchedNothing => Some(DAEMON_SETTINGS_DOCS_PATH),
+
+            // The row's button opens the credential's targets; the guide explains why a host past a
+            // firewall was not scanned.
+            Self::CredentialTargetNotScanned => Some(FIREWALLED_SEGMENT_CREDENTIALS_DOCS_PATH),
 
             _ => None,
         }
@@ -1161,7 +1170,7 @@ mod tests {
                 .find(|label| code.description().contains(label.as_str()));
             if let Some(label) = named {
                 assert!(
-                    code.settings_docs_path().is_some(),
+                    code.docs_path().is_some(),
                     "{} names {label} and links no docs page",
                     code.id()
                 );

@@ -28,6 +28,7 @@ import {
 	scanFailureFixes,
 	setupItems
 } from '#lib/shared/stores/metadata.ts';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
 import {
 	common_answer,
 	common_getStarted,
@@ -183,11 +184,20 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 									label: home_setup_openDaemon(),
 									run: () => navigateToEntity('Daemon', id, lookups.daemon(id))
 								};
+			// A daemon that never connected can't report why. Security software blocking it is the
+			// cause the docs single out.
+			const docs =
+				health === 'awaiting_connection'
+					? docsUrl(
+							'/docs/setting-up-daemons/troubleshooting-setup/#daemon-never-connects-security-software-blocks-it'
+						)
+					: undefined;
 			return {
 				title,
 				sentence: daemonHealths.getDescription(health),
 				subjects: [{ type: 'Daemon', id, label: name, data: lookups.daemon(id) }],
-				fix
+				fix,
+				docsUrl: docs
 			};
 		}
 		case 'UncoveredIntegration': {
