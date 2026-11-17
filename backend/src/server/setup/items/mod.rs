@@ -144,7 +144,9 @@ impl SetupContext {
     fn can_write(&self, resource: Resource) -> bool {
         self.can_write
             .as_ref()
-            .is_none_or(
+            .is_none_or(|writable| writable.contains(&resource))
+    }
+
     /// Where a type sorts in the list: Issues and the first steps (daemon, first scan, topology)
     /// keep their place, then the Setup steps the org's intents name, then the rest. Ties keep
     /// declaration order. Locks are unaffected, so a step moved up can still read Locked.
@@ -162,8 +164,6 @@ impl SetupContext {
             }
             _ => 3,
         }
-    }
-|writable| writable.contains(&resource))
     }
 
     /// Whether the dependency tutorial is done, recorded or shown done by the org's rows.
