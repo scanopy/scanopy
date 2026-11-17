@@ -801,7 +801,7 @@
 	"daemons_installCopiedToastDocker": "Command copied! Save it as docker-compose.yml and run docker compose up -d, then confirm below.",
 	"daemons_installCopiedToastLinux": "Command copied! Run it on your server to install the daemon as a service, then confirm below.",
 	"daemons_installCopiedToastMac": "Command copied! Run it in Terminal to install the daemon as a service, then confirm below.",
-	"daemons_installCopiedToastWindows": "Command copied! Run it in PowerShell to install the daemon as a service, then confirm below.",
+	"daemons_installCopiedToastWindows": "Command copied! Run it in PowerShell as Administrator to install the daemon as a service, then confirm below.",
 	"daemons_installCopyCommand": "Copy Command",
 	"daemons_installIveRunCommand": "I've run the install command",
 	"daemons_installIveStartedDocker": "I've started the Docker container",

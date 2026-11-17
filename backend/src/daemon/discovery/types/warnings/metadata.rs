@@ -736,10 +736,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses hold devices, install a daemon on {cidr} to scan them from inside it, or turn on Trust Port-Only Detections in the scan's settings to record a host wherever a port answers."
             }
             Self::ScanTimeLimitWithEstimate => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::ScanTimeLimit => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::DcpSweepTimedOut => {
                 "The PROFINET device sweep did not finish within {seconds}s, so devices that answer only to it are missing from this scan. The next scan runs the sweep again. If it repeats, report a bug."

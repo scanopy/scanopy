@@ -65,9 +65,9 @@ export interface WarningRunContext {
  * names the change.
  */
 const SCAN_SETTING_FIXES = new Map<WarningEntry['code'], { tab: string; label: () => string }>([
-	// Max Discovery Duration lives on Detection, not Performance.
-	['ScanTimeLimit', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
-	['ScanTimeLimitWithEstimate', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
+	// Max Discovery Duration lives on Performance.
+	['ScanTimeLimit', { tab: 'performance', label: () => discovery_fixRaiseTimeLimit() }],
+	['ScanTimeLimitWithEstimate', { tab: 'performance', label: () => discovery_fixRaiseTimeLimit() }],
 	// Not CredentialCollectionTimedOut: its limit is the integration's own, per host, which no
 	// scan setting moves.
 	// The guests' subnet is added to the scan's targets.
