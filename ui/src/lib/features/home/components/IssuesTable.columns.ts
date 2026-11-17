@@ -4,7 +4,15 @@ import { defineFields } from '#lib/shared/components/data/types.ts';
 import { siteItems } from '#lib/features/sites/columns.ts';
 import type { Site } from '#lib/features/sites/types.ts';
 import { issueCategories, setupItems } from '#lib/shared/stores/metadata.ts';
-import { common_category, common_issue, common_sites } from '#lib/paraglide/messages.js';
+import {
+	common_category,
+	common_health,
+	common_integration,
+	common_issue,
+	common_sites,
+	home_issues_type,
+	home_issues_warningCode
+} from '#lib/paraglide/messages.js';
 import { issueCategoryOf, type SetupListEntry } from '../setup-list';
 
 type IssueOrderField = components['schemas']['IssueOrderField'];
@@ -91,6 +99,35 @@ export function issueColumns(ctx: IssueColumnsContext) {
 					group: 'relationships',
 					getItems: (entry) => siteItems(entry.site_ids, ctx.sites())
 				}
+			},
+			// The wire values of the Issue's enums, as the CSV export writes them.
+			{
+				key: 'issue_type',
+				label: home_issues_type(),
+				type: 'string',
+				getValue: (entry) => entry.item.type,
+				display: { group: 'identity', hiddenByDefault: true }
+			},
+			{
+				key: 'health',
+				label: common_health(),
+				type: 'string',
+				getValue: (entry) => (entry.item.type === 'DaemonHealth' ? entry.item.health : ''),
+				display: { group: 'status', hiddenByDefault: true }
+			},
+			{
+				key: 'integration',
+				label: common_integration(),
+				type: 'string',
+				getValue: (entry) => ('integration' in entry.item ? entry.item.integration : ''),
+				display: { group: 'identity', hiddenByDefault: true }
+			},
+			{
+				key: 'warning_code',
+				label: home_issues_warningCode(),
+				type: 'string',
+				getValue: (entry) => (entry.item.type === 'RunWarnings' ? entry.item.code : ''),
+				display: { group: 'status', hiddenByDefault: true }
 			}
 		]
 	);

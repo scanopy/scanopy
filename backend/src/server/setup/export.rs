@@ -9,12 +9,19 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use super::types::{OpenSetupItem, SetupItem, SetupItemDiscriminants, SetupListEntry};
-use crate::server::shared::{
-    entities::EntityDiscriminants,
-    services::entity_fields::{RelatedSource, build_csv},
-    types::{
-        entity_field::{EntityField, FieldFormat, FieldGroup, Hop},
-        metadata::TypeMetadataProvider,
+use crate::{
+    daemon::discovery::types::warnings::DiscoveryWarningCode,
+    server::{
+        credentials::r#impl::types::CredentialIntegration,
+        daemons::r#impl::api::DaemonHealth,
+        shared::{
+            entities::EntityDiscriminants,
+            services::entity_fields::{RelatedSource, build_csv},
+            types::{
+                entity_field::{EntityField, FieldFormat, FieldGroup, Hop},
+                metadata::TypeMetadataProvider,
+            },
+        },
     },
 };
 
@@ -23,8 +30,11 @@ use crate::server::shared::{
 /// drops out.
 pub const ISSUE_CSV_FIELDS: &[EntityField] = &[
     EntityField::new("issue", "Issue", FieldGroup::Identity),
+    EntityField::new("issue_type", "Issue type", FieldGroup::Identity),
     EntityField::new("category", "Category", FieldGroup::Identity),
-    EntityField::new("tier", "Tier", FieldGroup::Identity),
+    EntityField::new("health", "Health", FieldGroup::Status),
+    EntityField::new("integration", "Integration", FieldGroup::Identity),
+    EntityField::new("warning_code", "Warning code", FieldGroup::Status),
     EntityField::new("daemons", "Daemons", FieldGroup::Relationships)
         .via(
             &[Hop::Parent {
@@ -64,13 +74,16 @@ pub const ISSUE_CSV_FIELDS: &[EntityField] = &[
     EntityField::new("opened_at", "Opened", FieldGroup::Status).format(FieldFormat::Timestamp),
 ];
 
-/// One Issue as its CSV row reads it: labels from the same metadata the Issues table shows, and
-/// the ids of the entities it names.
+/// One Issue as its CSV row reads it: labels from the same metadata the Issues table shows, the
+/// wire values of the Issue's enums, and the ids of the entities it names.
 #[derive(Serialize, Debug, PartialEq)]
 pub struct IssueCsvRow {
     issue: &'static str,
+    issue_type: SetupItemDiscriminants,
     category: &'static str,
-    tier: &'static str,
+    health: Option<DaemonHealth>,
+    integration: Option<CredentialIntegration>,
+    warning_code: Option<DiscoveryWarningCode>,
     daemon_ids: Vec<Uuid>,
     credential_ids: Vec<Uuid>,
     host_ids: Vec<Uuid>,
@@ -89,20 +102,40 @@ impl IssueCsvRow {
         let mut daemon_ids = Vec::new();
         let mut credential_ids = BTreeSet::new();
         let mut host_ids = BTreeSet::new();
+        let (mut health, mut integration, mut warning_code) = (None, None, None);
         match item {
-            SetupItem::DaemonHealth { daemon_id, .. } => daemon_ids.push(*daemon_id),
-            SetupItem::UncoveredIntegration { host_ids: ids, .. } => {
-                host_ids.extend(ids.iter().copied())
+            SetupItem::DaemonHealth {
+                daemon_id,
+                health: status,
+                ..
+            } => {
+                daemon_ids.push(*daemon_id);
+                health = Some(*status);
             }
-            SetupItem::TargetlessCredential { credential_id, .. } => {
+            SetupItem::UncoveredIntegration {
+                host_ids: ids,
+                integration: of,
+                ..
+            } => {
+                host_ids.extend(ids.iter().copied());
+                integration = Some(*of);
+            }
+            SetupItem::TargetlessCredential {
+                credential_id,
+                integration: of,
+                ..
+            } => {
                 credential_ids.insert(*credential_id);
+                integration = Some(*of);
             }
             SetupItem::RunWarnings {
                 daemon_id,
+                code,
                 warnings,
                 ..
             } => {
                 daemon_ids.push(*daemon_id);
+                warning_code = Some(*code);
                 for warning in warnings {
                     let mut warning = warning.clone();
                     let slots = warning.entity_id_slots();
@@ -115,8 +148,11 @@ impl IssueCsvRow {
         }
         Self {
             issue,
+            issue_type: SetupItemDiscriminants::from(item),
             category: item.issue_category().map(|c| c.name()).unwrap_or_default(),
-            tier: entry.tier.name(),
+            health,
+            integration,
+            warning_code,
             daemon_ids,
             credential_ids: credential_ids.into_iter().collect(),
             host_ids: host_ids.into_iter().collect(),
@@ -145,10 +181,7 @@ pub async fn issues_csv<S: RelatedSource>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::server::{
-        credentials::r#impl::types::CredentialIntegration, daemons::r#impl::api::DaemonHealth,
-        setup::types::SetupItemState,
-    };
+    use crate::server::setup::types::SetupItemState;
     use async_trait::async_trait;
     use serde_json::{Value, json};
     use std::collections::HashMap;
@@ -241,12 +274,26 @@ mod tests {
             })
             .collect();
 
+        // A cell holds the enum's wire value, as the API sends it.
+        let wire = |value: Value| value.as_str().unwrap().to_string();
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["daemons"], "Edge daemon");
         assert_eq!(rows[0]["sites"], "Office");
         assert!(!rows[0]["opened_at"].is_empty());
+        assert_eq!(
+            rows[0]["issue_type"],
+            wire(json!(SetupItemDiscriminants::DaemonHealth))
+        );
+        assert_eq!(rows[0]["health"], wire(json!(DaemonHealth::Unreachable)));
+        assert_eq!(rows[0]["integration"], "");
         assert_eq!(rows[1]["hosts"], "printer");
         assert_eq!(rows[1]["daemons"], "");
         assert_eq!(rows[1]["opened_at"], "");
+        assert_eq!(
+            rows[1]["integration"],
+            wire(json!(CredentialIntegration::Snmp))
+        );
+        assert_eq!(rows[1]["health"], "");
+        assert_eq!(rows[1]["warning_code"], "");
     }
 }
