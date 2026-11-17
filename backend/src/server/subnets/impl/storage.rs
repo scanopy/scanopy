@@ -265,9 +265,7 @@ impl Entity for Subnet {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Subnet
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Subnet;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Subnet";
     const ENTITY_NAME_PLURAL: &'static str = "Subnets";

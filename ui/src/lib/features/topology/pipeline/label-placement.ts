@@ -231,8 +231,9 @@ export function placeLabels(
 			boxHoldsName
 		});
 	}
-	return placed
+	const shown = placed
 		.filter((label) => label.boxHoldsName || !smallBoxBlocked)
-		.slice(0, MAX_LABELS)
-		.map(({ boxHoldsName: _, ...label }) => label);
+		.slice(0, MAX_LABELS);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropped from the result
+	return shown.map(({ boxHoldsName: _, ...label }) => label);
 }

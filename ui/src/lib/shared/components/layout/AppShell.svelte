@@ -225,16 +225,13 @@
 				const token = page.url.searchParams.get('token');
 				const isDemo = page.url.hostname === 'demo.scanopy.net';
 				if (token) {
-					// eslint-disable-next-line svelte/no-navigation-without-resolve
 					goto(`${resolve('login')}?token=${token}`);
 				} else if (isDemo) {
 					goto(resolve('login'));
 				} else if (typeof localStorage !== 'undefined' && localStorage.getItem('hasAccount')) {
 					// Preserve the query string so UTM params survive for analytics
-					// eslint-disable-next-line svelte/no-navigation-without-resolve
 					goto(`${resolve('login')}${page.url.search}`);
 				} else {
-					// eslint-disable-next-line svelte/no-navigation-without-resolve
 					goto(`${resolve('onboarding')}${page.url.search}`);
 				}
 			}
@@ -275,7 +272,6 @@
 				waitForBillingActivation()
 					.then((activated) => {
 						if (activated) {
-							// eslint-disable-next-line svelte/no-navigation-without-resolve
 							goto(getRoute());
 						}
 					})
@@ -308,7 +304,6 @@
 		if (!isSharePage && !isOnboardingPage) {
 			const correctRoute = getRoute();
 			if (page.url.pathname !== correctRoute) {
-				// eslint-disable-next-line svelte/no-navigation-without-resolve
 				goto(correctRoute);
 			}
 		}

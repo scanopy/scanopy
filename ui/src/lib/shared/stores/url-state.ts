@@ -29,8 +29,8 @@ interface ScopeRule {
 }
 
 export const URL_SCOPES: Record<UrlScope, ScopeRule> = {
-	// `integration`, `hosts` and `sites` are the modal's prefill params (`PREFILL_PARAMS`).
-	modal: { keys: ['modal', 'id', 'tab', 'subEntityId', 'integration', 'hosts', 'sites'] },
+	// `integration`, `hosts`, `sites` and `cidr` are the modal's prefill params (`PREFILL_PARAMS`).
+	modal: { keys: ['modal', 'id', 'tab', 'subEntityId', 'integration', 'hosts', 'sites', 'cidr'] },
 	topology: { keys: ['topologyId', 'view'], tab: 'topology' },
 	// The palette's params are the search endpoint's, and a list may use the same names
 	// (`tag_ids`), so the list steps out while the palette is open and comes back on close. `q` is

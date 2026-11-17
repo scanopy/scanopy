@@ -60,6 +60,7 @@ export function issueColumns(ctx: IssueColumnsContext) {
 				filterLabel: (id) => issueCategories.getName(id),
 				getFilterValue: categoryOf,
 				display: {
+					group: 'identity',
 					getItems: (entry) => {
 						const id = categoryOf(entry);
 						return [
@@ -86,7 +87,10 @@ export function issueColumns(ctx: IssueColumnsContext) {
 				filterOptions: ctx.issueSites(),
 				filterLabel: (id) => ctx.sites().find((s) => s.id === id)?.name ?? id,
 				getFilterValue: (entry) => entry.site_ids,
-				display: { getItems: (entry) => siteItems(entry.site_ids, ctx.sites()) }
+				display: {
+					group: 'relationships',
+					getItems: (entry) => siteItems(entry.site_ids, ctx.sites())
+				}
 			}
 		]
 	);

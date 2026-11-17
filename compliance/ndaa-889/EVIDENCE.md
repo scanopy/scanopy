@@ -8,19 +8,19 @@
 | Field | Value |
 |-------|-------|
 | Standard | NDAA FY2019 Section 889 (covered-entity components) |
-| Generated (UTC) | 2026-11-05T14:43:51Z |
+| Generated (UTC) | 2026-11-14T19:23:08Z |
 | Repository | `scanopy/scanopy` |
-| Assessed commit | `707de20ea497da4e34a6a73371963a79f9dbaf10` (707de20-dirty) |
-| Components assessed | 10020 |
+| Assessed commit | `093d888fd69888a414dc762531663a776c63cb41` (093d888-dirty) |
+| Components assessed | 9999 |
 | Prohibited-entity hits | 0 |
-| Reviewed exceptions | 2 |
+| Reviewed exceptions | 1 |
 | SBOM generator | syft 1.45.1 |
-| Matcher | `tools/889/check-889.sh` @ 707de20 |
-| Vendor list | `tools/889/889-vendors.txt` @ 707de20 (sha256 `7f018a32dda6755f02f07a70cd76bc3e0a07c180a4dcf1bf7b23a118a663d611`) |
+| Matcher | `tools/889/check-889.sh` @ 093d888 |
+| Vendor list | `tools/889/889-vendors.txt` @ 093d888 (sha256 `7f018a32dda6755f02f07a70cd76bc3e0a07c180a4dcf1bf7b23a118a663d611`) |
 
 ## Scope assessed
 
-- Source tree at commit `707de20ea497da4e34a6a73371963a79f9dbaf10`
+- Source tree at commit `093d888fd69888a414dc762531663a776c63cb41`
 - Image: `server` (`latest`)
 - Image: `daemon` (`latest`)
 
@@ -31,7 +31,7 @@ with `tools/889/check-889.sh` against the committed Section 889 covered-entity
 vendor list. **No component originating with a covered entity (Huawei, ZTE,
 Hytera, Hikvision, Dahua) or a known subsidiary/affiliate was found.**
 
-2 reviewed exception(s) were suppressed as documented
+1 reviewed exception(s) were suppressed as documented
 false positives (see [889-allow.txt](889-allow.txt) and [summary.txt](summary.txt)).
 
 ## Files in this bundle

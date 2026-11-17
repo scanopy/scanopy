@@ -83,6 +83,8 @@ pub struct FailedScanRun {
     pub previous_run_failed: bool,
     /// An enabled schedule runs the scan again.
     pub scheduled: bool,
+    /// The scan's next run is a full scan: this run was one, and didn't count.
+    pub next_run_full: bool,
 }
 
 /// Rows whose count completes a Setup item.

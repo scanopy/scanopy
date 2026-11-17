@@ -21,6 +21,7 @@ use uuid::Uuid;
 use crate::server::discovery_warnings::r#impl::base::RangeEvidence;
 use crate::server::shared::handlers::tree::{TreePosition, tree_position};
 use crate::server::subnets::r#impl::base::{Subnet, SubnetCidrValue};
+use crate::server::subnets::r#impl::cidr_lock::CidrLock;
 
 impl SubnetCidrValue {
     /// Addresses a host can hold in this range.
@@ -70,6 +71,13 @@ pub struct SubnetResponse {
     /// assumed one no scan created.
     #[schema(read_only, required)]
     pub range_evidence: Option<RangeEvidence>,
+    /// Why this range can't be changed by hand, or `null` when it can.
+    #[schema(read_only, required)]
+    pub cidr_lock: Option<CidrLock>,
+    /// The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+    /// only the rest are a person's to change.
+    #[schema(read_only, required)]
+    pub discovered_vlan_ids: Vec<Uuid>,
 }
 
 /// Whether a subnet takes part in nesting at all.
@@ -184,6 +192,9 @@ pub fn responses(
                 nesting_depth: position.map_or(0, |p| p.depth),
                 nesting_root_id: position.map(|p| p.root_id),
                 range_evidence: None,
+                // Needs the daemon side, which the handler attaches. See `Subnet::cidr_lock`.
+                cidr_lock: None,
+                discovered_vlan_ids: Vec::new(),
             }
         })
         .collect()

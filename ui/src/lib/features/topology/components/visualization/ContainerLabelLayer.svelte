@@ -73,6 +73,7 @@
 		// depth. A match inside a collapsed container is not a node here, and the search reports
 		// the collapsed container in its place.
 		const parentOf = new Map(nodes.map((node) => [node.id, node.parentId]));
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const matches = new Set<string>();
 		for (const id of [...$searchMatchNodeIds, ...$searchMatchContainerMap.keys()]) {
 			if (!parentOf.has(id)) continue;

@@ -196,6 +196,7 @@ async fn get_topology_data(
                     SetupOperation::Completed {
                         item_type,
                         subject_id: None,
+                        answers: None,
                     },
                     entity.clone(),
                 )

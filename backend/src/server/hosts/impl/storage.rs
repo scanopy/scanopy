@@ -361,9 +361,7 @@ impl Entity for Host {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Host
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Host;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Host";
     const ENTITY_NAME_PLURAL: &'static str = "Hosts";

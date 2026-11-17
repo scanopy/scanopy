@@ -2,7 +2,7 @@
 
 use super::*;
 
-/// The answers a question item collected. Empty when the user skipped the question.
+/// The answers a question item collected.
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq)]
 #[serde(tag = "type")]
 pub enum SetupAnswers {
@@ -29,15 +29,18 @@ pub enum SetupAnswers {
     Deserialize,
 ))]
 pub enum SetupOperation {
-    /// A recorded item finished. Stored in `setup`.
+    /// A recorded item finished: done, or for a question, answered or skipped. Stored in `setup`.
     Completed {
         item_type: SetupItemDiscriminants,
         subject_id: Option<Uuid>,
+        /// A question's answers. `None` for every other item, and for a skipped question.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        answers: Option<SetupAnswers>,
     },
-    /// A question item was answered (or skipped, with empty answers). Stored in `setup`.
-    Answered {
-        item_type: SetupItemDiscriminants,
-        answers: SetupAnswers,
+    /// The sweep saw an item open that it hadn't seen open before.
+    Opened {
+        key: SetupItemKey,
+        tier: SetupItemTier,
     },
     /// The sweep saw an open item clear.
     Resolved {
@@ -60,10 +63,8 @@ impl SetupOperation {
     /// events, which store nothing there.
     pub fn recorded_item_type(&self) -> Option<SetupItemDiscriminants> {
         match self {
-            Self::Completed { item_type, .. } | Self::Answered { item_type, .. } => {
-                Some(*item_type)
-            }
-            Self::Resolved { .. } | Self::Stuck { .. } => None,
+            Self::Completed { item_type, .. } => Some(*item_type),
+            Self::Opened { .. } | Self::Resolved { .. } | Self::Stuck { .. } => None,
         }
     }
 
@@ -72,21 +73,22 @@ impl SetupOperation {
     /// nested lookup.
     pub fn metadata(&self) -> SetupOperationMetadata<'_> {
         let (key, tier, plan, trial_end, hours_open) = match self {
-            Self::Completed { .. } | Self::Answered { .. } => {
+            Self::Completed { .. } => {
                 return SetupOperationMetadata::Recorded(self);
             }
+            Self::Opened { key, tier } => (key, tier, None, None, None),
             Self::Resolved {
                 key,
                 tier,
                 hours_open,
-            } => (key, tier, None, None, hours_open),
+            } => (key, tier, None, None, Some(*hours_open)),
             Self::Stuck {
                 key,
                 tier,
                 plan,
                 trial_end,
                 hours_open,
-            } => (key, tier, Some(plan), Some(*trial_end), hours_open),
+            } => (key, tier, Some(plan), Some(*trial_end), Some(*hours_open)),
         };
         let (entity_id, daemon_id, warning_code, reason) = match key {
             SetupItemKey::Org { .. } => (None, None, None, None),
@@ -108,7 +110,7 @@ impl SetupOperation {
             tier: *tier,
             plan,
             trial_end,
-            hours_open: *hours_open,
+            hours_open,
         })
     }
 }
@@ -121,7 +123,7 @@ pub enum SetupOperationMetadata<'a> {
     Swept(SweptItemMetadata<'a>),
 }
 
-/// A Resolved or Stuck event with its key's fields at the top level.
+/// An Opened, Resolved or Stuck event with its key's fields at the top level.
 #[derive(Serialize)]
 pub struct SweptItemMetadata<'a> {
     #[serde(rename = "type")]
@@ -140,5 +142,7 @@ pub struct SweptItemMetadata<'a> {
     plan: Option<&'a BillingPlan>,
     #[serde(skip_serializing_if = "Option::is_none")]
     trial_end: Option<DateTime<Utc>>,
-    hours_open: u32,
+    /// Hours since the sweep first saw the item open. Absent on Opened.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hours_open: Option<u32>,
 }

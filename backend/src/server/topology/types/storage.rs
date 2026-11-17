@@ -88,9 +88,7 @@ impl Entity for Topology {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Topology
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Topology;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Topology";
     const ENTITY_NAME_PLURAL: &'static str = "Topologies";

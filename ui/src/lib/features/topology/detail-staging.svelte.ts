@@ -79,10 +79,14 @@ export function createDetailStaging(): DetailStaging {
 	/** Nodes that have their detail. Reactive per id: a grant re-renders that node only. */
 	const ready = new SvelteSet<string>();
 	/** Mounted nodes still waiting, in the order they mounted. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const waiting = new Set<string>();
 	/** The waiting nodes that are on screen. Served before the rest. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const waitingOnScreen = new Set<string>();
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const onScreen = new Set<string>();
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const elementOf = new Map<string, Element>();
 	const idOf = new WeakMap<Element, string>();
 	const stage = $state({ active: false });

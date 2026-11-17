@@ -97,6 +97,10 @@ export const ERROR_CODES = {
 	ip_address_out_of_range: "IP address '{ip}' is not within subnet '{subnet}' range",
 	subnet_type_seeded_per_site:
 		"Every site already has its own {subnet_type} subnet, so a new one can't be created",
+	subnet_cidr_locked: "This range is read from the network, so it can't be changed here",
+	subnet_cidr_organizational: '0.0.0.0/0 is the range of the Internet and Remote Network subnets',
+	subnet_cidr_duplicate: "Subnet '{subnet}' already has this range",
+	subnet_cidr_strands_address: "The new range doesn't hold {ip}, and no other subnet does either",
 	daemon_site_mismatch: 'Cannot send updates for a different site',
 	daemon_identity_mismatch: 'Cannot send updates for a different daemon',
 	daemon_standby:
@@ -212,6 +216,10 @@ export interface ErrorParams {
 	discovery_session_not_found: { id: string | number };
 	ip_address_out_of_range: { ip: string | number; subnet: string | number };
 	subnet_type_seeded_per_site: { subnet_type: string | number };
+	subnet_cidr_locked: Record<string, never>;
+	subnet_cidr_organizational: Record<string, never>;
+	subnet_cidr_duplicate: { subnet: string | number };
+	subnet_cidr_strands_address: { ip: string | number };
 	daemon_site_mismatch: Record<string, never>;
 	daemon_identity_mismatch: Record<string, never>;
 	daemon_standby: Record<string, never>;

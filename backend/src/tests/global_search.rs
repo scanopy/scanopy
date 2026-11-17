@@ -189,7 +189,6 @@ async fn tags_narrow_every_type_to_entities_carrying_all_of_them() {
         async move {
             storage
                 .entity_tags
-                .inner()
                 .create(&EntityTag::new(EntityTagBase::new(
                     entity_id,
                     entity_type,

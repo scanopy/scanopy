@@ -14,7 +14,7 @@ use crate::server::{
         types::api::ApiResult,
     },
     subnets::{
-        handlers::{SubnetFilterQuery, SubnetOrderField},
+        handlers::{SubnetFilterQuery, SubnetOrderField, subnet_responses},
         r#impl::{base::Subnet, nesting::SubnetResponse},
         service::SubnetService,
     },
@@ -119,11 +119,7 @@ impl PaginatedList for Subnet {
         rows: Vec<Subnet>,
         query: &SubnetFilterQuery,
     ) -> ApiResult<Vec<SubnetResponse>> {
-        Ok(state
-            .services
-            .subnet_service
-            .with_usage(rows, query.at)
-            .await?)
+        subnet_responses(state, rows, query.at).await
     }
 
     fn groups_as_tree(field: &SubnetOrderField) -> bool {

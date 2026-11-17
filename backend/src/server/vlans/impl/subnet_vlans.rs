@@ -12,21 +12,61 @@ use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
 use crate::server::shared::storage::{
-    child::ChildStorableEntity,
     snapshot::{FkMaps, Snapshotable},
     traits::{SqlValue, Storable},
 };
+
+/// Who linked a subnet to a VLAN. Each side rebuilds only its own links: a scan replaces the
+/// `Discovery` set from the interfaces it found, and a subnet edit replaces the `Manual` set.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    strum::IntoStaticStr,
+    strum::EnumString,
+)]
+pub enum SubnetVlanSource {
+    /// Derived from the native VLAN of the interfaces on the subnet.
+    #[default]
+    Discovery,
+    /// Set by a person on the subnet.
+    Manual,
+}
 
 /// The base data for a SubnetVlanRecord junction record
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct SubnetVlanRecordBase {
     pub subnet_id: Uuid,
     pub vlan_id: Uuid,
+    #[serde(default)]
+    pub source: SubnetVlanSource,
 }
 
 impl SubnetVlanRecordBase {
+    /// A link discovery found.
     pub fn new(subnet_id: Uuid, vlan_id: Uuid) -> Self {
-        Self { subnet_id, vlan_id }
+        Self {
+            subnet_id,
+            vlan_id,
+            source: SubnetVlanSource::Discovery,
+        }
+    }
+
+    /// A link a person set.
+    pub fn manual(subnet_id: Uuid, vlan_id: Uuid) -> Self {
+        Self {
+            subnet_id,
+            vlan_id,
+            source: SubnetVlanSource::Manual,
+        }
     }
 }
 
@@ -93,6 +133,11 @@ impl Storable for SubnetVlanRecord {
         "subnet_vlans"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::SUBNET_VLAN_SUBNET, &R::SUBNET_VLAN_VLAN]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn new(base: Self::BaseData) -> Self {
@@ -113,6 +158,7 @@ impl Storable for SubnetVlanRecord {
                 "valid_from",
                 "valid_to",
                 "lineage_id",
+                "source",
             ],
             vec![
                 SqlValue::Uuid(self.id),
@@ -122,6 +168,7 @@ impl Storable for SubnetVlanRecord {
                 SqlValue::Timestamp(self.valid_from),
                 SqlValue::OptionTimestamp(self.valid_to),
                 SqlValue::OptionalUuid(self.lineage_id),
+                SqlValue::String(<&str>::from(self.base.source).to_string()),
             ],
         ))
     }
@@ -136,6 +183,10 @@ impl Storable for SubnetVlanRecord {
             base: SubnetVlanRecordBase {
                 subnet_id: row.get("subnet_id"),
                 vlan_id: row.get("vlan_id"),
+                source: row
+                    .get::<String, _>("source")
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("unknown subnet_vlans.source"))?,
             },
         })
     }
@@ -174,16 +225,5 @@ impl Snapshotable for SubnetVlanRecord {
         if let Some(closed) = maps.vlans.get(&self.base.vlan_id) {
             self.base.vlan_id = *closed;
         }
-    }
-}
-
-// Written from the subnet's side (the end-of-scan reconcile), so the subnet is the parent.
-impl ChildStorableEntity for SubnetVlanRecord {
-    fn parent_column() -> &'static str {
-        "subnet_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.subnet_id
     }
 }

@@ -699,6 +699,34 @@ impl ApiError {
         )
     }
 
+    /// Bad request (400) - a person tried to move a range read from the network
+    pub fn subnet_cidr_locked() -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, ErrorCode::SubnetCidrLocked)
+    }
+
+    /// Bad request (400) - a person tried to move a subnet to `0.0.0.0/0`
+    pub fn subnet_cidr_organizational() -> Self {
+        Self::coded(StatusCode::BAD_REQUEST, ErrorCode::SubnetCidrOrganizational)
+    }
+
+    /// Bad request (400) - another subnet on the site already has the requested range
+    pub fn subnet_cidr_duplicate(subnet: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::SubnetCidrDuplicate {
+                subnet: subnet.to_string(),
+            },
+        )
+    }
+
+    /// Bad request (400) - the requested range would leave an address in no subnet
+    pub fn subnet_cidr_strands_address(ip: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::SubnetCidrStrandsAddress { ip: ip.to_string() },
+        )
+    }
+
     // === Share errors ===
 
     /// Forbidden (403) - password required for share
@@ -892,6 +920,12 @@ impl From<anyhow::Error> for ApiError {
             return Self::bad_request(&validation_err.0);
         }
 
+        // A database error keeps its status mapping and its text stays in the log, wherever in
+        // the chain it sits (storage wraps it with context).
+        if let Some(sqlx_err) = err.chain().find_map(|e| e.downcast_ref::<sqlx::Error>()) {
+            return sqlx_err.into();
+        }
+
         // All other anyhow errors are internal server errors
         let msg = err.to_string();
         tracing::error!("Internal error: {}", msg);
@@ -901,7 +935,13 @@ impl From<anyhow::Error> for ApiError {
 
 impl From<sqlx::Error> for ApiError {
     fn from(err: sqlx::Error) -> Self {
-        match &err {
+        Self::from(&err)
+    }
+}
+
+impl From<&sqlx::Error> for ApiError {
+    fn from(err: &sqlx::Error) -> Self {
+        match err {
             sqlx::Error::RowNotFound => {
                 tracing::warn!("Database error: row not found");
                 Self::not_found("Row not found".to_string())

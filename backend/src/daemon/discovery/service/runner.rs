@@ -724,6 +724,28 @@ fn own_addresses_in_subnets(own: Vec<IPAddress>, subnets: &[Subnet]) -> Vec<IPAd
         .collect()
 }
 
+/// Warn when this daemon runs inside Docker Desktop, OrbStack or Colima, whose VM network keeps
+/// ARP, mDNS and LLDP off the LAN. `docker` is the engine the daemon reached, if any: Colima is
+/// named only by the engine's `info`.
+async fn report_desktop_vm(ops: &DiscoveryOps, docker: Option<&bollard::Docker>) {
+    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+    use crate::daemon::utils::host_os::{desktop_vm, kernel_release};
+
+    let Some(kernel) = kernel_release() else {
+        return;
+    };
+    let engine_info = match docker {
+        Some(client) => client.info().await.ok(),
+        None => None,
+    };
+    let Some(vm) = desktop_vm(&kernel, engine_info.as_ref()) else {
+        return;
+    };
+    if let Ok(session) = ops.get_session().await {
+        session.push_warning(DiscoveryWarning::DaemonInDesktopVm { vm });
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -790,27 +812,5 @@ mod tests {
                 ("10.0.0.3".to_string(), vpn.id)
             ]
         );
-    }
-}
-
-/// Warn when this daemon runs inside Docker Desktop, OrbStack or Colima, whose VM network keeps
-/// ARP, mDNS and LLDP off the LAN. `docker` is the engine the daemon reached, if any: Colima is
-/// named only by the engine's `info`.
-async fn report_desktop_vm(ops: &DiscoveryOps, docker: Option<&bollard::Docker>) {
-    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
-    use crate::daemon::utils::host_os::{desktop_vm, kernel_release};
-
-    let Some(kernel) = kernel_release() else {
-        return;
-    };
-    let engine_info = match docker {
-        Some(client) => client.info().await.ok(),
-        None => None,
-    };
-    let Some(vm) = desktop_vm(&kernel, engine_info.as_ref()) else {
-        return;
-    };
-    if let Ok(session) = ops.get_session().await {
-        session.push_warning(DiscoveryWarning::DaemonInDesktopVm { vm });
     }
 }

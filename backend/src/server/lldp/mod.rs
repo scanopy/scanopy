@@ -11,7 +11,6 @@ pub use resolver::LldpResolver;
 pub use snapshot::LldpInventorySnapshot;
 
 use crate::server::shared::storage::pg_value::strip_nuls;
-use crate::server::shared::storage::traits::Unique;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use strum_macros::VariantNames;
@@ -86,7 +85,7 @@ pub enum LldpPortId {
 /// has no way to look up (a code-side gap, or a subtype that genuinely carries no usable
 /// identity), while [`Self::NotFound`] means the lookup ran correctly and the device simply isn't
 /// in this site's inventory (an operator-side gap — scan it and the link appears).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IdentityResolution {
     /// Matched exactly one entity.
     Resolved(Uuid),
@@ -102,7 +101,11 @@ pub enum IdentityResolution {
     /// choose between them. The case this exists for is a switch that reports its chassis base MAC
     /// as `ifPhysAddress` on every port — legal SNMP, and common on D-Link/TP-Link/Omada/UniFi —
     /// where a MAC names the device but no single port on it (GH #668).
-    Ambiguous,
+    ///
+    /// Carries what it matched, distinct and in the order the lookup found them: hosts for a host
+    /// lookup, interfaces for a port lookup. The warning an unresolved neighbour raises names these
+    /// hosts, so a person can merge them when they are one device recorded twice.
+    Ambiguous(Vec<Uuid>),
 }
 
 impl IdentityResolution {
@@ -118,12 +121,26 @@ impl IdentityResolution {
         }
     }
 
-    /// The storage layer's verdict, carried through unchanged.
-    pub fn from_unique(found: Unique<Uuid>) -> Self {
-        match found {
-            Unique::One(id) => Self::Resolved(id),
-            Unique::None => Self::NotFound,
-            Unique::Multiple => Self::Ambiguous,
+    /// The verdict over every row a lookup on a non-unique column returned, each given as the
+    /// entity it identifies: none is [`Self::NotFound`], one row is [`Self::Resolved`], and more
+    /// than one is [`Self::Ambiguous`] with the distinct entities behind them.
+    ///
+    /// The verdict counts *rows*, as `Storage::get_unique` does, so two rows naming one entity
+    /// stay ambiguous. A lookup that collapses rows to entities first does so before calling this.
+    pub fn from_matches(rows: impl IntoIterator<Item = Uuid>) -> Self {
+        let rows: Vec<Uuid> = rows.into_iter().collect();
+        match rows.as_slice() {
+            [] => Self::NotFound,
+            [only] => Self::Resolved(*only),
+            _ => {
+                let mut distinct = Vec::new();
+                for id in rows {
+                    if !distinct.contains(&id) {
+                        distinct.push(id);
+                    }
+                }
+                Self::Ambiguous(distinct)
+            }
         }
     }
 
@@ -132,8 +149,16 @@ impl IdentityResolution {
     /// Ambiguity is not a stopping condition: two devices sharing a chassis id may still be told
     /// apart by their `sysName`, so a later tier is worth trying. What it must not do is vanish —
     /// see `resolve_host_id`, which remembers it for the terminal verdict.
-    fn is_unresolved(self) -> bool {
+    fn is_unresolved(&self) -> bool {
         !matches!(self, Self::Resolved(_))
+    }
+
+    /// The candidates an ambiguous verdict matched, `None` for any other verdict.
+    pub fn ambiguous_candidates(&self) -> Option<&[Uuid]> {
+        match self {
+            Self::Ambiguous(ids) => Some(ids),
+            _ => None,
+        }
     }
 }
 
@@ -185,7 +210,7 @@ impl AdvertisedIdentity<'_> {
         site_id: Uuid,
     ) -> IdentityResolution {
         let mut strategy_ran = false;
-        let mut saw_ambiguous = false;
+        let mut ambiguous: Option<Vec<Uuid>> = None;
 
         // The address outranks the name: it is the far end's own statement of where it lives,
         // while `sysName` is a label an operator assigned and a vendor may have defaulted.
@@ -195,7 +220,7 @@ impl AdvertisedIdentity<'_> {
             if !by_address.is_unresolved() {
                 return by_address;
             }
-            saw_ambiguous |= by_address == IdentityResolution::Ambiguous;
+            remember_ambiguous(&mut ambiguous, by_address);
         }
 
         if let Some(sys_name) = self.sys_name.map(str::trim).filter(|s| !s.is_empty()) {
@@ -204,14 +229,30 @@ impl AdvertisedIdentity<'_> {
             if !by_sys_name.is_unresolved() {
                 return by_sys_name;
             }
-            saw_ambiguous |= by_sys_name == IdentityResolution::Ambiguous;
+            remember_ambiguous(&mut ambiguous, by_sys_name);
         }
 
-        match (saw_ambiguous, strategy_ran) {
-            (true, _) => IdentityResolution::Ambiguous,
-            (false, true) => IdentityResolution::NotFound,
-            (false, false) => IdentityResolution::NoStrategy,
-        }
+        terminal_verdict(ambiguous, strategy_ran)
+    }
+}
+
+/// Keep the candidates of the first tier on a ladder that matched several hosts. Tiers run
+/// strongest first, so the first set comes from the most specific identifier.
+fn remember_ambiguous(first: &mut Option<Vec<Uuid>>, tier: IdentityResolution) {
+    if first.is_none()
+        && let IdentityResolution::Ambiguous(ids) = tier
+    {
+        *first = Some(ids);
+    }
+}
+
+/// A ladder's verdict when no tier resolved: several hosts outrank none, and none outranks
+/// nothing to look up.
+fn terminal_verdict(ambiguous: Option<Vec<Uuid>>, strategy_ran: bool) -> IdentityResolution {
+    match (ambiguous, strategy_ran) {
+        (Some(ids), _) => IdentityResolution::Ambiguous(ids),
+        (None, true) => IdentityResolution::NotFound,
+        (None, false) => IdentityResolution::NoStrategy,
     }
 }
 
@@ -360,7 +401,7 @@ impl LldpChassisId {
         // than returned on the spot, because a later tier may still tell the candidates apart —
         // but it must outrank `NotFound` at the end, since "this names two devices" and "this
         // names none" call for opposite things from an operator.
-        let mut saw_ambiguous = false;
+        let mut ambiguous: Option<Vec<Uuid>> = None;
 
         let by_subtype = match self {
             Self::MacAddress(mac) => resolver.find_host_by_mac(mac, site_id).await,
@@ -376,7 +417,7 @@ impl LldpChassisId {
         if !by_subtype.is_unresolved() {
             return by_subtype;
         }
-        saw_ambiguous |= by_subtype == IdentityResolution::Ambiguous;
+        remember_ambiguous(&mut ambiguous, by_subtype);
 
         let identifier = self.identifier();
         if !identifier.is_empty() {
@@ -385,7 +426,7 @@ impl LldpChassisId {
             if !by_chassis.is_unresolved() {
                 return by_chassis;
             }
-            saw_ambiguous |= by_chassis == IdentityResolution::Ambiguous;
+            remember_ambiguous(&mut ambiguous, by_chassis);
         }
 
         // Tiers 2 and 3, which need nothing from the chassis id and are therefore shared with CDP.
@@ -395,13 +436,9 @@ impl LldpChassisId {
             return by_advertised;
         }
         strategy_ran |= by_advertised != IdentityResolution::NoStrategy;
-        saw_ambiguous |= by_advertised == IdentityResolution::Ambiguous;
+        remember_ambiguous(&mut ambiguous, by_advertised);
 
-        match (saw_ambiguous, strategy_ran) {
-            (true, _) => IdentityResolution::Ambiguous,
-            (false, true) => IdentityResolution::NotFound,
-            (false, false) => IdentityResolution::NoStrategy,
-        }
+        terminal_verdict(ambiguous, strategy_ran)
     }
 }
 
@@ -1071,59 +1108,48 @@ mod resolution_tests {
         interfaces: Vec<FakeInterface>,
     }
 
-    impl FakeInventory {
-        /// The same 0 / 1 / many verdict `Storage::get_unique` returns, so these fakes cannot
-        /// quietly disagree with the database about what "identifies a row" means.
-        ///
-        /// It is still a re-implementation, and that is the ceiling on what these tests can
-        /// prove: they pin the *ladder*, not the queries. The query behaviour is covered against
-        /// a real Postgres in `crate::tests::lldp_resolution`.
-        fn only<T>(mut matches: Vec<T>) -> Unique<T> {
-            match matches.len() {
-                0 => Unique::None,
-                1 => matches.pop().map(Unique::One).unwrap_or(Unique::None),
-                _ => Unique::Multiple,
-            }
-        }
-    }
-
+    // Every lookup below hands its matching rows to `IdentityResolution::from_matches`, the same
+    // 0 / 1 / many verdict the production resolvers give, so these fakes cannot quietly disagree
+    // with the database about what "identifies a row" means.
+    //
+    // It is still a re-implementation, and that is the ceiling on what these tests can prove: they
+    // pin the *ladder*, not the queries. The query behaviour is covered against a real Postgres in
+    // `crate::tests::lldp_resolution`.
     #[async_trait]
     impl LldpResolver for FakeInventory {
         async fn find_host_by_mac(&self, mac: &str, _site_id: Uuid) -> IdentityResolution {
             // Collapsed to distinct hosts before the single-match rule, exactly as the production
             // resolver does: many ports of one switch carrying the chassis MAC is one host.
-            let hosts: Vec<Uuid> = self
+            let mut hosts: Vec<Uuid> = Vec::new();
+            for interface in self
                 .interfaces
                 .iter()
                 .filter(|i| i.mac.as_deref() == Some(mac))
-                .map(|i| i.host_id)
-                .collect::<std::collections::HashSet<_>>()
-                .into_iter()
-                .collect();
+            {
+                if !hosts.contains(&interface.host_id) {
+                    hosts.push(interface.host_id);
+                }
+            }
 
-            IdentityResolution::from_unique(Self::only(hosts))
+            IdentityResolution::from_matches(hosts)
         }
 
         async fn find_host_by_ip(&self, ip: &IpAddr, _site_id: Uuid) -> IdentityResolution {
-            IdentityResolution::from_unique(
-                Self::only(
-                    self.hosts
-                        .iter()
-                        .filter(|h| h.addresses.contains(ip))
-                        .collect(),
-                )
-                .map(|h| h.id),
+            IdentityResolution::from_matches(
+                self.hosts
+                    .iter()
+                    .filter(|h| h.addresses.contains(ip))
+                    .map(|h| h.id),
             )
         }
 
         async fn find_host_by_if_name(&self, name: &str, _site_id: Uuid) -> IdentityResolution {
-            IdentityResolution::from_unique(Self::only(
+            IdentityResolution::from_matches(
                 self.interfaces
                     .iter()
                     .filter(|i| i.if_descr.as_deref() == Some(name))
-                    .map(|i| i.host_id)
-                    .collect(),
-            ))
+                    .map(|i| i.host_id),
+            )
         }
 
         async fn find_host_by_chassis_id(
@@ -1131,14 +1157,11 @@ mod resolution_tests {
             chassis_id: &str,
             _site_id: Uuid,
         ) -> IdentityResolution {
-            IdentityResolution::from_unique(
-                Self::only(
-                    self.hosts
-                        .iter()
-                        .filter(|h| h.chassis_id.as_deref() == Some(chassis_id))
-                        .collect(),
-                )
-                .map(|h| h.id),
+            IdentityResolution::from_matches(
+                self.hosts
+                    .iter()
+                    .filter(|h| h.chassis_id.as_deref() == Some(chassis_id))
+                    .map(|h| h.id),
             )
         }
 
@@ -1147,31 +1170,22 @@ mod resolution_tests {
             sys_name: &str,
             _site_id: Uuid,
         ) -> IdentityResolution {
-            IdentityResolution::from_unique(
-                Self::only(
-                    self.hosts
-                        .iter()
-                        .filter(|h| h.sys_name.as_deref() == Some(sys_name))
-                        .collect(),
-                )
-                .map(|h| h.id),
+            IdentityResolution::from_matches(
+                self.hosts
+                    .iter()
+                    .filter(|h| h.sys_name.as_deref() == Some(sys_name))
+                    .map(|h| h.id),
             )
         }
 
         async fn find_interface_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
-            let matches: Vec<Uuid> = self
-                .interfaces
-                .iter()
-                .filter(|i| i.host_id == host_id && i.mac.as_deref() == Some(mac))
-                .filter(|i| i.is_physical())
-                .map(|i| i.id)
-                .collect();
-
-            match matches.len() {
-                0 => IdentityResolution::NotFound,
-                1 => IdentityResolution::Resolved(matches[0]),
-                _ => IdentityResolution::Ambiguous,
-            }
+            IdentityResolution::from_matches(
+                self.interfaces
+                    .iter()
+                    .filter(|i| i.host_id == host_id && i.mac.as_deref() == Some(mac))
+                    .filter(|i| i.is_physical())
+                    .map(|i| i.id),
+            )
         }
 
         async fn find_interface_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {
@@ -1284,8 +1298,9 @@ mod resolution_tests {
                 .await,
             // The MAC tier found nothing and the sysName tier found two. The ladder keeps
             // descending past an ambiguous tier — a later one may still tell them apart — but
-            // the verdict it carries out must be the ambiguity, not the miss before it.
-            IdentityResolution::Ambiguous
+            // the verdict it carries out must be the ambiguity, not the miss before it, and it
+            // names both hosts.
+            IdentityResolution::Ambiguous(inventory.hosts.iter().map(|h| h.id).collect())
         );
     }
 
@@ -1669,7 +1684,7 @@ mod resolution_tests {
         let port = LldpPortId::MacAddress("00:ad:24:af:4e:00".to_string());
         assert_eq!(
             port.resolve_interface_id(&inventory, switch).await,
-            IdentityResolution::Ambiguous
+            IdentityResolution::Ambiguous(inventory.interfaces.iter().map(|i| i.id).collect())
         );
     }
 
@@ -1799,8 +1814,8 @@ mod resolution_tests {
                 .await,
             // Ambiguous rather than NotFound: the MAC names two devices we have discovered, not
             // zero. An operator told "not found" goes looking for a device that is already
-            // scanned — twice, which is the thing to fix.
-            IdentityResolution::Ambiguous
+            // scanned — twice, which is the thing to fix. It names both, so they can be merged.
+            IdentityResolution::Ambiguous(inventory.interfaces.iter().map(|i| i.host_id).collect())
         );
     }
 

@@ -220,6 +220,9 @@ pub struct FailedScan {
     pub name: String,
     /// The scan's latest run, which didn't finish.
     pub run_id: Uuid,
+    /// The scan's next run is a full scan again, because the full scan that didn't finish
+    /// doesn't count.
+    pub next_run_full: bool,
 }
 
 /// Which group of the Setup list an item sits in, in display order.
@@ -438,8 +441,9 @@ impl SetupItemDiscriminants {
         self.tier() == SetupItemTier::Setup
     }
 
-    /// Whether the trial sweep reports an Open item of this type left a day: every Issue, and the
-    /// first steps without which Scanopy maps nothing.
+    /// Whether the Setup sweep reports an Open item of this type opening and clearing, and on a
+    /// trial, left open a day: every Issue, and the first steps without which Scanopy maps
+    /// nothing.
     pub fn alerts_when_stuck(self) -> bool {
         match self {
             Self::DaemonHealth
@@ -602,7 +606,9 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             }
             Self::SiteWithoutDaemon => "Nothing on this site is scanned until it has a daemon.",
             Self::RunWarnings => "The daemon's latest scan couldn't read part of your network.",
-            Self::FailedScans => "The latest run of these scans stopped before it finished.",
+            Self::FailedScans => {
+                "Physical links weren't drawn, because a scan draws them only when it finishes."
+            }
             Self::UnconfirmedHosts => {
                 "Other devices reported these hosts, and no scan has reached them yet. Confirm, merge or dismiss them."
             }

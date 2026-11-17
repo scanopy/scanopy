@@ -8,10 +8,12 @@
 	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
 	import type { InstallArtifacts } from '../../../types/base';
+	import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
+	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import type { DaemonMode } from '../../../types/base';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useTestReachabilityMutation, useRetryDaemonConnectionMutation } from '../../../queries';
-	import AnimatedProgressBar from '#lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
+	import AnimatedProgressBar from '#lib/shared/components/data/AnimatedProgressBar.svelte';
 	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
 	import OsSelector from '../../OsSelector.svelte';
 	import {
@@ -45,6 +47,10 @@
 		daemons_troubleshoot_troubleTitle,
 		daemons_troubleshoot_troubleTitleServerPoll,
 		daemons_troubleshoot_connectedTitle,
+		daemons_connectedCoversCidr,
+		daemons_connectedFindingNetworks,
+		daemons_connectedMissesCidr,
+		daemons_connectedNetworksIntro,
 		daemons_troubleshoot_connectedDesc,
 		daemons_troubleshoot_testingConnection,
 		daemons_troubleshoot_reachablePolling,
@@ -73,6 +79,10 @@
 		hasErrors: boolean;
 		isFirstDaemon?: boolean;
 		connectionStatus?: DaemonConnectionStatus;
+		/** The networks its host is on, which its first scan covers. Empty until the daemon reports them. */
+		daemonNetworks?: SubnetResponse[];
+		/** The network this daemon is being installed for, from subnet create. */
+		expectedCidr?: string | null;
 		onViewDiscovery?: () => void;
 		onAdvanced?: (() => void) | null;
 		daemonMode?: DaemonMode;
@@ -99,6 +109,8 @@
 		hasErrors,
 		isFirstDaemon = false,
 		connectionStatus = 'idle',
+		daemonNetworks = [],
+		expectedCidr = null,
 		onViewDiscovery,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
@@ -323,6 +335,28 @@
 					<p class="mt-1 text-sm text-secondary">
 						{daemons_troubleshoot_connectedDesc()}
 					</p>
+				</div>
+				<div class="w-full max-w-md text-left">
+					{#if daemonNetworks.length === 0}
+						<p class="text-center text-sm text-tertiary">{daemons_connectedFindingNetworks()}</p>
+					{:else}
+						<p class="mb-2 text-sm text-secondary">{daemons_connectedNetworksIntro()}</p>
+						<ul class="space-y-1">
+							{#each daemonNetworks as network (network.id)}
+								<li class="flex items-center justify-between gap-4 text-sm">
+									<span class="font-mono text-primary">{network.cidr}</span>
+									<span class="text-tertiary">{subnetTypes.getName(network.subnet_type)}</span>
+								</li>
+							{/each}
+						</ul>
+						{#if expectedCidr}
+							<p class="mt-3 text-sm text-secondary">
+								{daemonNetworks.some((n) => n.cidr === expectedCidr)
+									? daemons_connectedCoversCidr({ cidr: expectedCidr })
+									: daemons_connectedMissesCidr({ cidr: expectedCidr })}
+							</p>
+						{/if}
+					{/if}
 				</div>
 				<button type="button" class="btn-primary" onclick={() => onViewDiscovery?.()}>
 					{common_viewTopology()}

@@ -35,7 +35,7 @@ impl HostService {
     /// slot, so the "does this pairing agree with the host the ladder settled on" check that used
     /// to be a separate `paired_host == host_id` comparison is now the lookup itself.
     pub(super) fn pair_reciprocally(
-        port: IdentityResolution,
+        port: &IdentityResolution,
         interface_id: Uuid,
         host_id: Uuid,
         reciprocal: &HashMap<(Uuid, Uuid), Uuid>,
@@ -126,6 +126,10 @@ impl HostService {
                 } else {
                     IdentityResolution::NoStrategy
                 };
+                let resolved = match resolution {
+                    IdentityResolution::Resolved(id) => Some(id),
+                    _ => None,
+                };
                 host_of.insert(candidate.id, resolution);
 
                 // `None` is unknown, not stale — a candidate the resolver could not date (should
@@ -133,7 +137,7 @@ impl HostService {
                 let evidence_current = candidate.created_at >= evidence_cutoff;
 
                 // A device naming itself contributes no adjacency and must never pair.
-                if let IdentityResolution::Resolved(remote_host_id) = resolution
+                if let Some(remote_host_id) = resolved
                     && remote_host_id != interface.base.host_id
                 {
                     let bucket = ports_between
@@ -235,7 +239,7 @@ impl HostService {
             resolver
                 .find_interface_by_mac(&mac.to_string(), bound.base.host_id)
                 .await,
-            IdentityResolution::Ambiguous
+            IdentityResolution::Ambiguous(_)
         ) {
             Ok(PortBinding::Reopen(remote_host_id))
         } else {
@@ -473,7 +477,7 @@ mod reciprocal_tests {
 
         assert!(
             HostService::pair_reciprocally(
-                IdentityResolution::Resolved(named),
+                &IdentityResolution::Resolved(named),
                 local,
                 host,
                 &reciprocal,
@@ -492,7 +496,7 @@ mod reciprocal_tests {
 
         assert!(
             HostService::pair_reciprocally(
-                IdentityResolution::Ambiguous,
+                &IdentityResolution::Ambiguous(vec![Uuid::new_v4(), Uuid::new_v4()]),
                 local,
                 Uuid::new_v4(),
                 &reciprocal,

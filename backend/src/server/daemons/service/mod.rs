@@ -55,13 +55,12 @@ use crate::server::hosts::service::{HostLimitContext, HostService};
 use crate::server::organizations::service::OrganizationService;
 use crate::server::setup::types::{SetupItemDiscriminants, SetupOperation};
 use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_storage};
-use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
+use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event, OrgScope};
 use crate::server::shared::events::types::{BillingOperation, EntityOperation};
 use crate::server::shared::legacy::rewrite_response_for_legacy_daemon;
 use crate::server::shared::services::traits::{CrudService, EventBusService};
-use crate::server::shared::storage::child::{GenericChildStorage, ParentRef};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::generic::GenericPostgresStorage;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
@@ -131,7 +130,7 @@ impl DaemonLimits {
 pub struct DaemonService {
     // Storage and core dependencies
     daemon_storage: Arc<GenericPostgresStorage<Daemon>>,
-    interfaced_subnet_storage: Arc<GenericChildStorage<DaemonInterfacedSubnet>>,
+    interfaced_subnet_storage: Arc<GenericPostgresStorage<DaemonInterfacedSubnet>>,
     client: reqwest::Client,
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
@@ -213,7 +212,7 @@ impl CrudService<Daemon> for DaemonService {
 
         if let Some(entity_tag_service) = self.entity_tag_service() {
             entity_tag_service
-                .remove_all_for_entity(entity.id(), <Daemon as Entity>::entity_type())
+                .remove_all_for_entity(entity.id(), <Daemon as Entity>::ENTITY_TYPE)
                 .await?;
         }
 

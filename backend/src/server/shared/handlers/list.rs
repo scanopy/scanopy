@@ -60,7 +60,7 @@ impl<O: OrderField> ListOrdering<O> {
         default_order: &str,
     ) -> (StorableFilter<T>, String) {
         self.tag_group.apply(
-            T::entity_type(),
+            T::ENTITY_TYPE,
             self.group_by,
             self.order_by,
             self.direction,
@@ -279,6 +279,16 @@ pub fn computed_page<L: ListRows>(
     );
     PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset)
         .with_optional_group_counts(group_counts)
+}
+
+/// Every row of a list built in code that passes `query`, in the order its pages show them: what
+/// a CSV export of the list writes.
+pub fn computed_rows<L: ListRows>(rows: Vec<L::Item>, query: &L::Query) -> Vec<L::Item> {
+    let unpaged = PaginationParams {
+        limit: Some(0),
+        offset: None,
+    };
+    computed_page::<L>(rows, query, unpaged).data
 }
 
 /// A page of a list grouped by tree. SQL can't place a row under a parent it hasn't read, so

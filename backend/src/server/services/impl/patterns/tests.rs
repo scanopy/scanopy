@@ -8,6 +8,8 @@ use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 use crate::server::services::r#impl::base::Service;
 use crate::server::services::r#impl::virtualization::ServiceVirtualization;
 use crate::server::shared::attribution::AttributeSource;
+use crate::server::subnets::r#impl::base::SubnetTypeAttributed;
+use crate::server::subnets::r#impl::types::SubnetType;
 use crate::tests::{organization, site};
 use uuid::Uuid;
 
@@ -330,7 +332,19 @@ fn definition_matches_status(
     headers: &[(&str, &str)],
     body: &str,
 ) -> bool {
-    let ctx = TestContext::new();
+    definition_matches_in(&TestContext::new(), id, port, path, status, headers, body)
+}
+
+/// Whether the registered definition `id` matches one response on the host and subnet of `ctx`.
+fn definition_matches_in(
+    ctx: &TestContext,
+    id: &str,
+    port: PortType,
+    path: &str,
+    status: u16,
+    headers: &[(&str, &str)],
+    body: &str,
+) -> bool {
     let service =
         ServiceDefinitionRegistry::find_by_id(id).unwrap_or_else(|| panic!("{id} is registered"));
     let ports = vec![port];
@@ -662,56 +676,91 @@ fn test_jenkins_https_header_detection() {
     );
 }
 
+/// A self-hosted dashboard links to the tools it monitors. Each link names the vendor's site, and
+/// none makes this page that vendor's service.
+const LINKS_TO_VENDORS: &str = "<!DOCTYPE html><html><head><title>Homelab</title></head><body><ul><li><a href=\"https://grafana.com/docs/\">Grafana docs</a></li><li><a href=\"https://www.jenkins.io/\">Jenkins</a></li><li><a href=\"https://www.portainer.io/\">Portainer</a></li><li><a href=\"https://appwrite.io/docs\">Appwrite</a></li></ul></body></html>";
+
 #[test]
-fn test_jenkins_http8080_body_detection() {
-    let ctx = TestContext::new();
-    let service = ServiceDefinitionRegistry::find_by_id("Jenkins")
-        .expect("Jenkins service should be registered");
+fn a_page_linking_a_vendor_site_is_not_that_vendors_service() {
+    for (id, port, path) in [
+        ("Grafana", PortType::Http3000, "/"),
+        ("Grafana", PortType::Http, "/"),
+        ("Jenkins", PortType::Http8080, "/"),
+        ("Portainer", PortType::Http9000, "/"),
+        ("Portainer", PortType::Https9443, "/"),
+        ("Appwrite", PortType::Http, "/console"),
+    ] {
+        assert!(
+            !definition_matches_response(id, port, path, &[NGINX], LINKS_TO_VENDORS),
+            "{id} matched a page that only links to its vendor"
+        );
+    }
+}
 
-    let ports = vec![PortType::Http8080];
-    let endpoint_responses = vec![EndpointResponse {
-        endpoint: Endpoint::for_pattern(PortType::Http8080, "/")
-            .use_ip(ctx.ip_address.base.ip_address),
-        body: "powered by jenkins.io".to_string(),
-        headers: HashMap::new(),
-        status: 200,
-        over_tls: false,
-        set_cookies: Vec::new(),
-    }];
-    let client_responses = HashMap::new();
-    let baseline = ServiceMatchBaselineParams {
-        subnet: &ctx.subnet,
-        ip_address: &ctx.ip_address,
-        all_ports: &ports,
-        endpoint_responses: &endpoint_responses,
-        virtualization_metadata: &ctx.virtualization,
-        virtualization_service_id: None,
-        client_responses: &client_responses,
-        managed_device: &None,
-        dns_sd: &None,
-        certificates: &[],
-        fingerprints: &[],
-    };
-    let params = DiscoverySessionServiceMatchParams {
-        host_id: &ctx.host_id,
-        gateway_ips: &ctx.gateway_ips,
-        daemon_id: &ctx.daemon_id,
-        site_id: &ctx.site_id,
-        discovery_type: &ctx.discovery_type,
-        baseline_params: &baseline,
-        service_params: ServiceMatchServiceParams {
-            service_definition: service.clone(),
-            matched_services: &ctx.matched_services,
-            claimed_ports: &ctx.claimed_ports,
-            unbound_ports: &ports,
-        },
-    };
+/// A WireGuard server's dashboard is reached on its tunnel address, so the tunnel subnet is where
+/// a scan finds it.
+#[test]
+fn wg_dashboard_is_identified_on_a_vpn_tunnel_subnet() {
+    let mut ctx = TestContext::new();
+    ctx.subnet.base.subnet_type = SubnetTypeAttributed::unattributed(SubnetType::VpnTunnel);
+    let page = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"application-name\" content=\"WGDashboard\"><title>WGDashboard</title></head><body><div id=\"app\"></div></body></html>";
+    assert!(definition_matches_in(
+        &ctx,
+        "WGDashboard",
+        PortType::new_tcp(10086),
+        "/",
+        200,
+        &[("server", "gunicorn")],
+        page
+    ));
+}
 
-    let result = service.discovery_pattern().matches(&params);
-    assert!(
-        result.is_ok(),
-        "Jenkins should keep matching the existing HTTP 8080 body signature"
-    );
+#[test]
+fn vendor_web_apps_are_identified_by_their_own_markers() {
+    let grafana = "<!DOCTYPE html><html lang=\"en\"><head><title>Grafana</title></head><body class=\"theme-dark app-grafana\"><div id=\"reactRoot\"></div></body></html>";
+    assert!(definition_matches_response(
+        "Grafana",
+        PortType::Http3000,
+        "/login",
+        &[],
+        grafana
+    ));
+    // Anonymous access serves the same shell at `/` instead of redirecting to `/login`.
+    assert!(definition_matches_response(
+        "Grafana",
+        PortType::Http3000,
+        "/",
+        &[],
+        grafana
+    ));
+
+    // A secured Jenkins answers 403 and still names itself in `X-Jenkins`.
+    assert!(definition_matches_status(
+        "Jenkins",
+        PortType::Http8080,
+        "/",
+        403,
+        &[("x-jenkins", "2.541.3")],
+        "Authentication required"
+    ));
+
+    let portainer = "<!DOCTYPE html><html lang=\"en\" ng-app=\"portainer\" ng-strict-di data-edition=\"CE\"><head><title>Portainer</title></head><body></body></html>";
+    assert!(definition_matches_response(
+        "Portainer",
+        PortType::Https9443,
+        "/",
+        &[],
+        portainer
+    ));
+
+    let appwrite = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"apple-mobile-web-app-title\" content=\"Appwrite Console\" /></head><body></body></html>";
+    assert!(definition_matches_response(
+        "Appwrite",
+        PortType::Http,
+        "/console",
+        &[],
+        appwrite
+    ));
 }
 
 #[test]
@@ -2089,4 +2138,127 @@ fn an_optional_part_binds_beside_the_evidence_and_never_alone() {
         Some(vec![PortType::Http, PortType::new_tcp(1400)])
     );
     assert_eq!(ports_bound(vec![PortType::new_tcp(1400)]), None);
+}
+
+/// What a Tizen TV's `/api/v2/` sends, cut to the fields that identify it.
+const TIZEN_API: &str = "{\"device\":{\"OS\":\"Tizen\",\"PowerState\":\"on\",\"type\":\"Samsung SmartTV\"},\"name\":\"Living Room TV\",\"type\":\"Samsung SmartTV\",\"version\":\"2.0.25\"}";
+/// A DIAL server's application document for Netflix.
+const DIAL_NETFLIX: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><service xmlns=\"urn:dial-multiscreen-org:schemas:dial\" dialVer=\"2.2\"><name>Netflix</name><state>stopped</state></service>";
+
+/// A Samsung TV names itself on its remote API and takes its DIAL server's port with it.
+#[test]
+fn a_samsung_tv_is_identified_by_its_remote_api_and_binds_its_dial_server() {
+    let api: Response = (PortType::new_tcp(8001), "/api/v2/", 200, &[], TIZEN_API);
+    let dial: Response = (
+        PortType::Http8080,
+        "/ws/apps/Netflix",
+        200,
+        &[("server", "WebServer")],
+        DIAL_NETFLIX,
+    );
+    let allshare: Response = (
+        PortType::new_tcp(9110),
+        "/",
+        400,
+        &[("server", "UPnP/1.1 Samsung AllShare Server/1.0")],
+        "<s:Envelope><s:Body><s:Fault></s:Fault></s:Body></s:Envelope>",
+    );
+    let ports = [
+        PortType::new_tcp(8001),
+        PortType::Http8080,
+        PortType::new_tcp(9110),
+    ];
+    assert_eq!(
+        definition_binds_on_host(
+            "Samsung Smart TV",
+            OTHER_MAC,
+            &ports,
+            &[api, dial, allshare]
+        ),
+        Some(vec![
+            PortType::new_tcp(8001),
+            PortType::Http8080,
+            PortType::new_tcp(9110)
+        ])
+    );
+    assert_eq!(
+        definition_binds_on_host("Samsung Smart TV", OTHER_MAC, &ports, &[api]),
+        Some(vec![PortType::new_tcp(8001)])
+    );
+
+    // Another product's JSON on 8001, with a DIAL server and an AllShare server, names no Samsung
+    // TV: those only come with one.
+    let other: Response = (
+        PortType::new_tcp(8001),
+        "/api/v2/",
+        200,
+        &[],
+        "{\"device\":{\"OS\":\"Linux\"}}",
+    );
+    assert!(!definition_matches_host(
+        "Samsung Smart TV",
+        OTHER_MAC,
+        &ports,
+        &[other, dial, allshare]
+    ));
+}
+
+#[test]
+fn netflix_nrdp_is_identified_by_its_server_header() {
+    assert!(definition_matches_status(
+        "Netflix (NRDP)",
+        PortType::new_tcp(9080),
+        "/",
+        200,
+        &[("server", "NRDP/2024.1.6.0")],
+        "status=ok"
+    ));
+    // Promtail's default port is 9080 too.
+    assert!(!definition_matches_status(
+        "Netflix (NRDP)",
+        PortType::new_tcp(9080),
+        "/",
+        200,
+        &[],
+        "<a href=\"/targets\">Promtail</a>"
+    ));
+}
+
+/// A TV with Cast built in advertises `_googlecast._tcp` and gets Google Cast on the port it names.
+/// On a Chromecast or Google Home, whose definitions ran first and hold 8009, it stands down.
+#[test]
+fn google_cast_binds_the_advertised_port_unless_a_cast_device_holds_it() {
+    use crate::server::services::definitions::google_cast::GoogleCast;
+
+    let mut ctx = TestContext::new();
+    let scanned = vec![PortType::new_tcp(8009), PortType::new_tcp(8008)];
+    ctx.dns_sd = Some(announcing_on(
+        DnsSdServiceType::GOOGLE_CAST,
+        &["md=S95F"],
+        8009,
+    ));
+    ctx.endpoint_responses = vec![EndpointResponse {
+        endpoint: Endpoint::for_pattern(PortType::new_tcp(8008), "/setup/eureka_info")
+            .use_ip(ctx.ip_address.base.ip_address),
+        body: "{\"build_version\":\"721674079\",\"cast_build_revision\":\"1.68.721674079\"}"
+            .to_string(),
+        headers: HashMap::new(),
+        status: 200,
+        over_tls: false,
+        set_cookies: Vec::new(),
+    }];
+    let baseline = ctx.create_baseline_params(&scanned);
+    let params = ctx.create_params_with_ports(&baseline, &scanned);
+    let cast = GoogleCast
+        .discovery_pattern()
+        .matches(&params)
+        .expect("an advertised Cast receiver matches");
+    assert_eq!(cast.ports.len(), scanned.len());
+    assert!(scanned.iter().all(|port| cast.ports.contains(port)));
+
+    ctx.claimed_ports = scanned.clone();
+    let unbound = vec![];
+    let baseline = ctx.create_baseline_params(&scanned);
+    let params = ctx.create_params_with_ports(&baseline, &unbound);
+    assert!(GoogleCast.discovery_pattern().matches(&params).is_err());
 }

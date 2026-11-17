@@ -2,6 +2,7 @@
 //! back onto `discovery_type`'s `subnet_ids` wherever a scan is read through this service or
 //! dispatched. See [`DiscoverySubnet`].
 use super::*;
+use crate::server::shared::relations as R;
 
 impl DiscoveryService {
     /// Replace `discovery`'s target rows with the subnets its type names. A historical run keeps
@@ -26,10 +27,7 @@ impl DiscoveryService {
             })
             .collect();
         self.subnet_target_storage
-            .save_for_parent(
-                &ParentRef::new(EntityDiscriminants::Discovery, discovery.id),
-                &rows,
-            )
+            .replace_for(&R::DISCOVERY_SUBNET_DISCOVERY.at(discovery.id), &rows)
             .await?;
         Ok(())
     }
@@ -46,7 +44,21 @@ impl DiscoveryService {
         if ids.is_empty() {
             return Ok(());
         }
-        let mut by_scan = self.subnet_target_storage.get_for_parents(&ids).await?;
+        // Ordered by hand: the junction has no `created_at` for the default order to sort by.
+        let mut by_scan: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
+        for row in self
+            .subnet_target_storage
+            .get_all_ordered(
+                StorableFilter::new_from_uuids_column(R::DISCOVERY_SUBNET_DISCOVERY.column, &ids),
+                "subnet_id ASC",
+            )
+            .await?
+        {
+            by_scan
+                .entry(row.discovery_id)
+                .or_default()
+                .push(row.subnet_id);
+        }
         for discovery in discoveries
             .iter_mut()
             .filter(|d| d.base.run_type.is_live_config())
@@ -54,13 +66,7 @@ impl DiscoveryService {
             let Some(targets) = discovery.base.discovery_type.subnet_targets_mut() else {
                 continue;
             };
-            let mut ids: Vec<Uuid> = by_scan
-                .remove(&discovery.id)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|row| row.subnet_id)
-                .collect();
-            ids.sort();
+            let ids = by_scan.remove(&discovery.id).unwrap_or_default();
             *targets = (!ids.is_empty()).then_some(ids);
         }
         Ok(())

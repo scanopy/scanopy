@@ -255,9 +255,7 @@ impl Entity for Organization {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Organization
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Organization;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Organization";
     const ENTITY_NAME_PLURAL: &'static str = "Organizations";

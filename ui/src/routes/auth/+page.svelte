@@ -18,11 +18,9 @@
 			const params = new SvelteURLSearchParams();
 			if (orgName) params.set('org_name', orgName);
 			params.set('invited_by', invitedBy);
-			// eslint-disable-next-line svelte/no-navigation-without-resolve
 			goto(`${resolve('onboarding')}?${params.toString()}`, { replace: true });
 		} else if (token) {
 			// Password reset flow: redirect to login with token
-			// eslint-disable-next-line svelte/no-navigation-without-resolve
 			goto(`${resolve('login')}?token=${token}`, { replace: true });
 		} else {
 			// Default: redirect to login

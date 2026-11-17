@@ -403,6 +403,7 @@ mod tests {
             matched_by: HostMatchedBy::Mac,
             ip_addresses: rows,
             same_device: vec![],
+            inferred_twins: vec![],
         }
     }
 

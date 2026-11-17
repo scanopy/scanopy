@@ -218,8 +218,9 @@ impl DemoData {
         let vlans = generate_vlans(&sites, &tags, organization_id, now);
         let (interfaces, neighbor_updates) =
             generate_interfaces(&sites, &hosts, &ip_addresses, &vlans, now);
-        let subnet_vlan_records =
+        let mut subnet_vlan_records =
             generate_subnet_vlan_records(&interfaces, &hosts_with_services, now);
+        subnet_vlan_records.extend(generate_manual_subnet_vlan_records(&subnets, &vlans, now));
         let mut daemons = generate_daemons(&sites, &hosts, now, user_id);
         let daemon_interfaced_subnets = generate_daemon_interfaced_subnets(&daemons, &ip_addresses);
         let api_keys = generate_api_keys(&daemons, now);
@@ -331,7 +332,7 @@ use sites::generate_sites;
 use subnets::generate_subnets;
 use tags::{generate_tag_groups, generate_tags};
 use topologies::generate_topologies;
-use vlans::{generate_subnet_vlan_records, generate_vlans};
+use vlans::{generate_manual_subnet_vlan_records, generate_subnet_vlan_records, generate_vlans};
 
 // ============================================================================
 // Host/Service builder helpers, shared by hosts.rs and interfaces.rs

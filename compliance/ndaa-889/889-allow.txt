@@ -16,10 +16,11 @@
 #   Prefer a version-independent name match so version bumps don't reopen it.
 # ==============================================================================
 
-# esbuild and rollup publish one optional platform package per cross-compilation
+# esbuild, rollup and rolldown publish one optional platform package per cross-compilation
 # target; one target is Huawei's OpenHarmony OS. These packages are published by
-# the esbuild / rollup OSS projects (not Huawei) and contain only that bundler's
+# the esbuild / rollup / rolldown OSS projects (not Huawei) and contain only that bundler's
 # prebuilt binary for the OpenHarmony target. They match the "openharmony"
 # vendor pattern but are not covered-entity components.
 @esbuild/openharmony;internal review;2026-06-18;esbuild OSS cross-compile target stub, not a Huawei component
 @rollup/rollup-openharmony;internal review;2026-06-18;rollup OSS cross-compile target stub, not a Huawei component
+@rolldown/binding-openharmony;internal review;2026-11-12;rolldown OSS cross-compile target stub (via vite 8), not a Huawei component

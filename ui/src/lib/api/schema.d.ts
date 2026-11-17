@@ -1551,11 +1551,32 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the dashboard's Issues
+         * List dashboard Issues
          * @description One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
          *     summary.
          */
         get: operations["get_dashboard_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/issues/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export dashboard Issues to CSV
+         * @description Every Issue the caller sees that matches the filters, in the list's order, ignoring `limit`
+         *     and `offset`.
+         */
+        get: operations["export_dashboard_issues_csv"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3390,8 +3411,11 @@ export interface paths {
         get: operations["get_subnet_by_id"];
         /**
          * Update subnet
-         * @description Updates subnet properties. If the CIDR is being changed, validates that
-         *     all existing ip_addresses on this subnet have IPs within the new CIDR range.
+         * @description Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon
+         *     interface, a container bridge, a device, or the Internet and Remote Network rows), on
+         *     `0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be
+         *     left in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one
+         *     are merged into it, and addresses are re-filed in the most specific subnet that holds them.
          */
         put: operations["update_subnet"];
         post?: never;
@@ -4265,19 +4289,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T19:50:38.693717Z",
+             *       "created_at": "2026-11-17T16:58:18.732741Z",
              *       "first_discovery_id": null,
-             *       "id": "2ea304e0-ca3c-4f23-b874-a0002e4b8c15",
+             *       "id": "c2c147a9-7998-47aa-8f07-75bbb2d11a6b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T19:50:38.693717Z",
+             *       "last_seen_at": "2026-11-17T16:58:18.732741Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T19:50:38.693717Z",
-             *       "valid_from": "2026-11-09T19:50:38.693717Z",
+             *       "updated_at": "2026-11-17T16:58:18.732741Z",
+             *       "valid_from": "2026-11-17T16:58:18.732741Z",
              *       "valid_to": null
              *     }
              */
@@ -4699,8 +4723,8 @@ export interface components {
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
                 /**
-                 * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
-                 *     Suggestions.
+                 * @description The organization's Setup steps as the caller sees them. Issues are paged from
+                 *     `/dashboard/issues`.
                  */
                 setup_items: components["schemas"]["SetupListEntry"][];
                 /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
@@ -5193,19 +5217,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T19:50:38.657784Z",
+             *               "created_at": "2026-11-17T16:58:18.684477Z",
              *               "first_discovery_id": null,
-             *               "id": "60b11167-c69a-427f-aee2-6a313eaf84eb",
+             *               "id": "b0932491-82d4-440d-ac84-49739b061334",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T19:50:38.657784Z",
+             *               "last_seen_at": "2026-11-17T16:58:18.684477Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T19:50:38.657784Z",
-             *               "valid_from": "2026-11-09T19:50:38.657784Z",
+             *               "updated_at": "2026-11-17T16:58:18.684477Z",
+             *               "valid_from": "2026-11-17T16:58:18.684477Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -6250,19 +6274,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T19:50:38.688265Z",
+             *           "created_at": "2026-11-17T16:58:18.725748Z",
              *           "first_discovery_id": null,
-             *           "id": "22e04d1f-a090-43bb-8813-9a7f627cd33a",
+             *           "id": "69e0eec0-d235-4b85-ac11-0dd805036490",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T19:50:38.688265Z",
+             *           "last_seen_at": "2026-11-17T16:58:18.725748Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T19:50:38.688265Z",
-             *           "valid_from": "2026-11-09T19:50:38.688265Z",
+             *           "updated_at": "2026-11-17T16:58:18.725748Z",
+             *           "valid_from": "2026-11-17T16:58:18.725748Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6690,6 +6714,12 @@ export interface components {
         ApiResponse_SubnetResponse: {
             /** @description A subnet together with what is derived from the rest of its site. */
             data?: components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -7975,19 +8005,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T19:50:38.658561Z",
+         *       "created_at": "2026-11-17T16:58:18.685206Z",
          *       "first_discovery_id": null,
-         *       "id": "e07e39ae-235f-45ea-bb06-f70d5991867e",
+         *       "id": "61253847-6455-4cfc-a75f-af6936248eae",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T19:50:38.658561Z",
+         *       "last_seen_at": "2026-11-17T16:58:18.685206Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T19:50:38.658561Z",
-         *       "valid_from": "2026-11-09T19:50:38.658561Z",
+         *       "updated_at": "2026-11-17T16:58:18.685206Z",
+         *       "valid_from": "2026-11-17T16:58:18.685206Z",
          *       "valid_to": null
          *     }
          */
@@ -8237,6 +8267,30 @@ export interface components {
         CheckEmailResponse: {
             /** @description Whether the address has no account yet, and so can be registered. */
             available: boolean;
+        };
+        /** @description Why a subnet's range can't be changed by hand. `None` on a subnet means it can. */
+        CidrLock: {
+            /** @enum {string} */
+            type: "Organizational";
+        } | {
+            /**
+             * Format: uuid
+             * @description The runtime service that owns the bridge.
+             */
+            service_id: string;
+            /** @enum {string} */
+            type: "ContainerBridge";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that reports it.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "DaemonInterface";
+        } | {
+            /** @enum {string} */
+            type: "Discovered";
         };
         /**
          * @description Where a device's claim about itself came from.
@@ -9251,8 +9305,8 @@ export interface components {
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
             /**
-             * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
-             *     Suggestions.
+             * @description The organization's Setup steps as the caller sees them. Issues are paged from
+             *     `/dashboard/issues`.
              */
             setup_items: components["schemas"]["SetupListEntry"][];
             /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
@@ -11044,6 +11098,11 @@ export interface components {
             /** @description The scan's name. */
             name: string;
             /**
+             * @description The scan's next run is a full scan again, because the full scan that didn't finish
+             *     doesn't count.
+             */
+            next_run_full: boolean;
+            /**
              * Format: uuid
              * @description The scan's latest run, which didn't finish.
              */
@@ -11735,19 +11794,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T19:50:38.656868Z",
+         *               "created_at": "2026-11-17T16:58:18.683575Z",
          *               "first_discovery_id": null,
-         *               "id": "d4a198bf-37b6-4bc3-b9aa-0b75908e2988",
+         *               "id": "679ed8a6-68e6-4e47-a5fb-4bdf7b91ccd9",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T19:50:38.656868Z",
+         *               "last_seen_at": "2026-11-17T16:58:18.683575Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T19:50:38.656868Z",
-         *               "valid_from": "2026-11-09T19:50:38.656868Z",
+         *               "updated_at": "2026-11-17T16:58:18.683575Z",
+         *               "valid_from": "2026-11-17T16:58:18.683575Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -14164,8 +14223,8 @@ export interface components {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
                 /**
-                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-                 *     step still Open.
+                 * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+                 *     a day: an Issue, or a first step still Open.
                  */
                 alerts_when_stuck: boolean;
                 item: components["schemas"]["SetupItem"];
@@ -14191,6 +14250,12 @@ export interface components {
         PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: (components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -15249,7 +15314,7 @@ export interface components {
          * @description What the Issues row for a scan that didn't finish offers, by why it ended.
          * @enum {string}
          */
-        ScanFailureFix: "RetryScan" | "OpenRun" | "TroubleshootConnection" | "RescheduleScan";
+        ScanFailureFix: "RetryScan" | "OpenRun" | "TroubleshootConnection" | "RescheduleScan" | "RaiseMaxDuration";
         /**
          * @description Scan performance settings. Lives on the discovery entity.
          *     Numeric fields are `Option<T>` — `None` means "use daemon default".
@@ -15477,19 +15542,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T19:50:38.658293Z",
+         *           "created_at": "2026-11-17T16:58:18.684974Z",
          *           "first_discovery_id": null,
-         *           "id": "bf26dfce-123c-46c5-b531-f43278a564d4",
+         *           "id": "2bec7db3-14cd-43da-9027-ac623182e13c",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T19:50:38.658293Z",
+         *           "last_seen_at": "2026-11-17T16:58:18.684974Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T19:50:38.658293Z",
-         *           "valid_from": "2026-11-09T19:50:38.658293Z",
+         *           "updated_at": "2026-11-17T16:58:18.684974Z",
+         *           "valid_from": "2026-11-17T16:58:18.684974Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15777,7 +15842,7 @@ export interface components {
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed hosts on the sites the user reads.
+             * @description The unconfirmed hosts on the site.
              */
             count: number;
             /**
@@ -15790,7 +15855,7 @@ export interface components {
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed subnets on the sites the user reads.
+             * @description The unconfirmed subnets on the site.
              */
             count: number;
             /**
@@ -15904,8 +15969,8 @@ export interface components {
          */
         SetupListEntry: {
             /**
-             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-             *     step still Open.
+             * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+             *     a day: an Issue, or a first step still Open.
              */
             alerts_when_stuck: boolean;
             item: components["schemas"]["SetupItem"];
@@ -16458,8 +16523,9 @@ export interface components {
             virtualization_service_id: string | null;
             /**
              * @description VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of
-             *     `Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,
-             *     so anything sent here on create/update is ignored by `to_params`.
+             *     `Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;
+             *     the ones discovery found stay whatever is sent, since the next scan would restore them. Not a
+             *     column on `subnets`: `SubnetService` writes the junction.
              */
             vlan_ids?: string[];
         };
@@ -16483,6 +16549,12 @@ export interface components {
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at" | "source" | "managed_by" | "utilization";
         /** @description A subnet together with what is derived from the rest of its site. */
         SubnetResponse: components["schemas"]["Subnet"] & {
+            readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+            /**
+             * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+             *     only the rest are a person's to change.
+             */
+            discovered_vlan_ids: string[];
             /**
              * Format: int32
              * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -17188,12 +17260,22 @@ export interface components {
         };
         /** @description A daemon that has never checked in, as the create wizard lists it. */
         UnconnectedDaemon: {
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the daemon was created.
+             */
             created_at: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The daemon's id.
+             */
             id: string;
+            /** @description The daemon's name, as set when it was created. */
             name: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The site the daemon was created on.
+             */
             site_id: string;
         };
         /** @description A neighbour advertised by a local interface whose far end could not be placed on a host. */
@@ -17209,6 +17291,13 @@ export interface components {
              *     looking at costs another round trip to the operator (GH #668).
              */
             address: string | null;
+            /**
+             * @description The hosts on this site the identifier matched, for an ambiguous one: the records a person
+             *     merges when they are one device. Empty for a neighbour that matched nothing, and on warnings
+             *     stored before it was carried. Comes from the server's site-scoped lookups, never from a
+             *     daemon's report.
+             */
+            candidate_host_ids: string[];
             /**
              * Format: uuid
              * @description The local device that saw the neighbour, not the far end — the far end is what could not
@@ -21175,6 +21264,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
+                };
+            };
+        };
+    };
+    export_dashboard_issues_csv: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file containing Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };
@@ -26155,7 +26284,10 @@ export interface operations {
     };
     create_subnet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description What the subnet is for. Sent with the `subnet_created` event; nothing stores it. */
+                purpose?: ("Scan" | "Record") | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -26441,7 +26573,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Subnet"];
                 };
             };
-            /** @description CIDR change would orphan existing ip_addresses */
+            /** @description The CIDR can't be changed to the one requested */
             400: {
                 headers: {
                     [name: string]: unknown;

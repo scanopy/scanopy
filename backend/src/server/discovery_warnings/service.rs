@@ -8,16 +8,18 @@ use crate::{
     daemon::discovery::types::warnings::DiscoveryWarning,
     server::{
         discovery_warnings::r#impl::base::{DiscoveryWarningRecord, RangeEvidence},
-        shared::storage::{child::GenericChildStorage, filter::StorableFilter, traits::Storage},
+        shared::storage::{
+            filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage,
+        },
     },
 };
 
 pub struct DiscoveryWarningService {
-    storage: Arc<GenericChildStorage<DiscoveryWarningRecord>>,
+    storage: Arc<GenericPostgresStorage<DiscoveryWarningRecord>>,
 }
 
 impl DiscoveryWarningService {
-    pub fn new(storage: Arc<GenericChildStorage<DiscoveryWarningRecord>>) -> Self {
+    pub fn new(storage: Arc<GenericPostgresStorage<DiscoveryWarningRecord>>) -> Self {
         Self { storage }
     }
 
@@ -35,7 +37,7 @@ impl DiscoveryWarningService {
             .iter()
             .map(|w| DiscoveryWarningRecord::from_warning(discovery_id, site_id, w))
             .collect();
-        self.storage.inner().create_many(&records).await?;
+        self.storage.create_many(&records).await?;
         Ok(())
     }
 
@@ -54,7 +56,6 @@ impl DiscoveryWarningService {
             .uuids_column("discovery_id", discovery_ids);
         let records = self
             .storage
-            .inner()
             .get_all_ordered(filter, "code ASC, id ASC")
             .await?;
 
@@ -86,7 +87,6 @@ impl DiscoveryWarningService {
             .uuids_column("host_id", &host_ids);
         let records = self
             .storage
-            .inner()
             .get_all_ordered(filter, "created_at ASC, id ASC")
             .await?;
 
@@ -127,7 +127,6 @@ impl DiscoveryWarningService {
             .uuids_column("subnet_id", &subnet_ids);
         let records = self
             .storage
-            .inner()
             .get_all_ordered(filter, "created_at DESC, id ASC")
             .await?;
 

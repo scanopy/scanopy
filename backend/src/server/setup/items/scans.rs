@@ -76,6 +76,7 @@ pub(super) fn failed_scan_items(ctx: &SetupContext) -> Vec<SetupItem> {
             scan_id: run.scan_id,
             name: run.scan_name.clone(),
             run_id: run.run_id,
+            next_run_full: run.next_run_full,
         };
         let existing = items.iter_mut().find_map(|item| match item {
             SetupItem::FailedScans {

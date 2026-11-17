@@ -318,7 +318,11 @@ impl Operation for DiscoveryDigestOperation {
         format!("discovery_digest_{self}").into()
     }
 
-    fn metadata<'a>(&'a self, _scope: &'a DiscoveryDigestScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        _scope: &'a DiscoveryDigestScope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         let Self::Computed { payload } = self;
         DiscoveryDigestMetadata {
             session_id: payload.session_id,

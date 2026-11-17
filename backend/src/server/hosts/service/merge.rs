@@ -62,6 +62,7 @@ impl HostService {
                 ip_addresses: ip_addresses_by_host.remove(&h.id).unwrap_or_default(),
                 virtualization: h.base.virtualization_metadata.clone(),
                 virtualization_interface_id: h.base.virtualization_interface_id,
+                inferred: matches!(h.base.source, EntitySource::Inferred { .. }),
             })
             .collect();
 
@@ -89,6 +90,16 @@ impl HostService {
         let same_device = self
             .find_same_device(site_id, incoming_ip_addresses, matched_id, &candidates)
             .await?;
+        // A host already proven the same device by its addresses is merged once, through that.
+        let inferred_twins: Vec<SameDevice> = inferred_hosts_sharing_chassis_id(
+            incoming_ip_addresses,
+            incoming_chassis_id,
+            matched_id,
+            &candidates,
+        )
+        .into_iter()
+        .filter(|twin| !same_device.iter().any(|s| s.host_id == twin.host_id))
+        .collect();
 
         let host_ip_addresses = candidates
             .into_iter()
@@ -104,6 +115,7 @@ impl HostService {
                 matched_by,
                 ip_addresses: host_ip_addresses,
                 same_device,
+                inferred_twins,
             }))
     }
 

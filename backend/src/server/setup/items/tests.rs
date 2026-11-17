@@ -532,6 +532,7 @@ fn failed_run(daemon: &SetupDaemon, reason: DiscoveryTerminalReason) -> FailedSc
         reason,
         previous_run_failed: false,
         scheduled: false,
+        next_run_full: false,
     }
 }
 

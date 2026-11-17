@@ -217,6 +217,15 @@ pub enum ErrorCode {
     // === Subnet ===
     /// Internet and Remote Network ranges are seeded for every site and can't be created
     SubnetTypeSeededPerSite { subnet_type: String },
+    /// The range was read from the network (a daemon interface, a container bridge, a device, or a
+    /// seeded row), so a new one typed here would be replaced on the next report
+    SubnetCidrLocked,
+    /// A range of `0.0.0.0/0` is the Internet and Remote Network rows' own
+    SubnetCidrOrganizational,
+    /// Another subnet on the site already has this range
+    SubnetCidrDuplicate { subnet: String },
+    /// Moving the range would leave an address it holds in no subnet
+    SubnetCidrStrandsAddress { ip: String },
 
     // === Daemon ===
     /// Cannot send updates for a different site
@@ -453,6 +462,16 @@ impl ErrorCode {
             Self::SubnetTypeSeededPerSite { .. } => {
                 "Every site already has its own {subnet_type} subnet, so a new one can't be created"
             }
+            Self::SubnetCidrLocked => {
+                "This range is read from the network, so it can't be changed here"
+            }
+            Self::SubnetCidrOrganizational => {
+                "0.0.0.0/0 is the range of the Internet and Remote Network subnets"
+            }
+            Self::SubnetCidrDuplicate { .. } => "Subnet '{subnet}' already has this range",
+            Self::SubnetCidrStrandsAddress { .. } => {
+                "The new range doesn't hold {ip}, and no other subnet does either"
+            }
 
             // Daemon
             Self::DaemonSiteMismatch => "Cannot send updates for a different site",
@@ -580,6 +599,8 @@ impl ErrorCode {
             | Self::CredentialLoginRequired
             | Self::CredentialLoginInvalid
             | Self::CredentialLoginNotUsed
+            | Self::SubnetCidrLocked
+            | Self::SubnetCidrOrganizational
             | Self::DatabaseError => None,
 
             // Billing with params
@@ -646,6 +667,8 @@ impl ErrorCode {
             Self::SubnetTypeSeededPerSite { subnet_type } => {
                 Some(json_map! { "subnet_type" => subnet_type })
             }
+            Self::SubnetCidrDuplicate { subnet } => Some(json_map! { "subnet" => subnet }),
+            Self::SubnetCidrStrandsAddress { ip } => Some(json_map! { "ip" => ip }),
             Self::DaemonVersionTooOld {
                 daemon_version,
                 last_unsupported_version,

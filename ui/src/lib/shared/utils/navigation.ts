@@ -25,7 +25,6 @@ export function getRoute(): string {
  */
 export async function navigate(): Promise<void> {
 	const route = getRoute();
-	// eslint-disable-next-line svelte/no-navigation-without-resolve
 	await goto(route);
 }
 
@@ -41,6 +40,5 @@ export async function navigateWithModal(
 	url.searchParams.set('modal', modalName);
 	if (opts?.id) url.searchParams.set('id', opts.id);
 	if (opts?.tab) url.searchParams.set('tab', opts.tab);
-	// eslint-disable-next-line svelte/no-navigation-without-resolve
 	await goto(url.pathname + url.search);
 }

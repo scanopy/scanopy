@@ -23,7 +23,6 @@ use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
 use crate::server::shared::events::types::{EntityOperation, UpdateReason};
 use crate::server::shared::services::traits::{CrudService, EventBusService};
-use crate::server::shared::storage::child::{GenericChildStorage, ParentRef};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::generic::GenericPostgresStorage;
 use crate::server::shared::storage::traits::{Entity, PaginatedResult, Storable, Storage, Unique};
@@ -55,7 +54,7 @@ pub struct DiscoveryService {
     self_ref: Weak<Self>,
     discovery_storage: Arc<GenericPostgresStorage<Discovery>>,
     /// Each scan's target subnets. See [`DiscoverySubnet`].
-    subnet_target_storage: Arc<GenericChildStorage<DiscoverySubnet>>,
+    subnet_target_storage: Arc<GenericPostgresStorage<DiscoverySubnet>>,
     sessions: RwLock<HashMap<Uuid, DiscoveryUpdatePayload>>, // session_id -> session state mapping
     daemon_sessions: RwLock<HashMap<Uuid, Vec<Uuid>>>,       // daemon_id -> session_id mapping
     discovery_sessions: RwLock<HashMap<Uuid, Uuid>>, // discovery_id -> session_id mapping (enforces one active session per discovery)

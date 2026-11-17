@@ -22,6 +22,11 @@ impl Storable for Port {
         "ports"
     }
 
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::PORT_HOST]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn is_live_row(&self) -> bool {
@@ -221,9 +226,7 @@ impl Entity for Port {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Port
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Port;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Port";
     const ENTITY_NAME_PLURAL: &'static str = "Ports";

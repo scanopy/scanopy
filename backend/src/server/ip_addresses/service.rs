@@ -5,7 +5,7 @@ use crate::server::{
     ip_addresses::r#impl::base::IPAddress,
     shared::{
         events::{bus::EventBus, types::UpdateReason},
-        services::traits::{ChildCrudService, CrudService, EventBusService},
+        services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage},
         types::api::ValidationError,
     },
@@ -43,8 +43,6 @@ impl CrudService<IPAddress> for IPAddressService {
         None
     }
 }
-
-impl ChildCrudService<IPAddress> for IPAddressService {}
 
 impl IPAddressService {
     pub fn new(storage: Arc<GenericPostgresStorage<IPAddress>>, event_bus: Arc<EventBus>) -> Self {

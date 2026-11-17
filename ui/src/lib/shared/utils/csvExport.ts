@@ -53,6 +53,17 @@ export async function downloadCsv(
 		return;
 	}
 
+	await downloadCsvFrom(apiPath, params);
+}
+
+/**
+ * Download the CSV export at `/api/v1/{apiPath}/export/csv` with the given filter parameters,
+ * saved as `{apiPath}.csv`. For a list that isn't one entity's, such as `dashboard/issues`.
+ */
+export async function downloadCsvFrom(
+	apiPath: string,
+	params: CsvExportParams | URLSearchParams
+): Promise<void> {
 	const baseUrl = getServerUrl();
 	const url = new URL(`/api/v1/${apiPath}/export/csv`, baseUrl);
 
@@ -73,7 +84,7 @@ export async function downloadCsv(
 	const blobUrl = URL.createObjectURL(blob);
 	const link = document.createElement('a');
 	link.href = blobUrl;
-	link.download = `${apiPath.replace('/', '-')}.csv`;
+	link.download = `${apiPath.replaceAll('/', '-')}.csv`;
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);

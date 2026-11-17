@@ -11,10 +11,7 @@ use sqlx::{Row, postgres::PgRow};
 use std::fmt::Display;
 use uuid::Uuid;
 
-use crate::server::shared::storage::{
-    child::ChildStorableEntity,
-    traits::{SqlValue, Storable},
-};
+use crate::server::shared::storage::traits::{SqlValue, Storable};
 
 /// A scan's target subnet.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -39,6 +36,11 @@ impl Storable for DiscoverySubnet {
 
     fn table_name() -> &'static str {
         "discovery_subnets"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::DISCOVERY_SUBNET_DISCOVERY, &R::DISCOVERY_SUBNET_SUBNET]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -67,15 +69,5 @@ impl Storable for DiscoverySubnet {
             discovery_id: row.get("discovery_id"),
             subnet_id: row.get("subnet_id"),
         })
-    }
-}
-
-impl ChildStorableEntity for DiscoverySubnet {
-    fn parent_column() -> &'static str {
-        "discovery_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.discovery_id
     }
 }

@@ -337,9 +337,7 @@ impl Entity for Share {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Share
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Share;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Share";
     const ENTITY_NAME_PLURAL: &'static str = "Shares";

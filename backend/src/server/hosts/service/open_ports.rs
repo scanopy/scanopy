@@ -1,10 +1,13 @@
-//! Taking ports back from Unclaimed Open Ports while a discovery payload is stored.
+//! Taking ports back from the placeholder services while a discovery payload is stored.
 //!
-//! Unclaimed Open Ports holds the ports a scan found open with no service to give them to. A
-//! service that later claims one of them takes it, whether the service is new to the host or was
-//! stored by an earlier scan, so the placeholder never outranks a real owner (GH #784).
+//! Unclaimed Open Ports holds the ports a scan found open with no service to give them to, and
+//! Web Service holds those of them that answered HTTP. A service that later claims one of them
+//! takes it, whether the service is new to the host or was stored by an earlier scan, so a
+//! placeholder never outranks a real owner (GH #784).
 use super::stale_ports::{overlaps, taken_claims};
 use super::*;
+use crate::server::services::definitions::open_ports::OpenPorts;
+use crate::server::shared::types::metadata::HasId;
 
 /// A port binding as the (port, address) claim the conflict checks compare.
 pub(crate) fn port_claim(binding: &Binding) -> Option<(Uuid, Option<Uuid>)> {
@@ -17,12 +20,27 @@ pub(crate) fn port_claim(binding: &Binding) -> Option<(Uuid, Option<Uuid>)> {
     }
 }
 
-/// Whether an Unclaimed Open Ports service among `services` binds the port of `claim` at an
-/// overlapping address (an unscoped binding overlaps every address).
-pub(crate) fn held_by_open_ports(claim: &(Uuid, Option<Uuid>), services: &[Service]) -> bool {
+/// Whether `placeholder` gives its ports up to `claimant`. Unclaimed Open Ports ranks below Web
+/// Service, and both below an identified service, so a placeholder yields to any claimant but
+/// its own definition and Unclaimed Open Ports.
+fn yields_to(placeholder: &Service, claimant: &Service) -> bool {
+    let definition = |s: &Service| s.base.service_definition.id();
+    ServiceDefinitionExt::is_open_ports(&placeholder.base.service_definition)
+        && placeholder.id != claimant.id
+        && definition(placeholder) != definition(claimant)
+        && definition(claimant) != OpenPorts.id()
+}
+
+/// Whether a placeholder among `services` that yields to `claimant` binds the port of `claim` at
+/// an overlapping address (an unscoped binding overlaps every address).
+pub(crate) fn held_by_open_ports(
+    claim: &(Uuid, Option<Uuid>),
+    services: &[Service],
+    claimant: &Service,
+) -> bool {
     let (port_id, claim_iface) = claim;
     services.iter().any(|s| {
-        ServiceDefinitionExt::is_open_ports(&s.base.service_definition)
+        yields_to(s, claimant)
             && s.base.bindings.iter().any(|b| {
                 b.port_id() == Some(*port_id) && bindings_overlap(claim_iface, &b.ip_address_id())
             })
@@ -30,9 +48,9 @@ pub(crate) fn held_by_open_ports(claim: &(Uuid, Option<Uuid>), services: &[Servi
 }
 
 impl HostService {
-    /// Remove `claims` from the host's Unclaimed Open Ports service, deleting the service when no
-    /// binding is left, and mirror the change in `services` so later services in the payload see
-    /// it.
+    /// Remove `claims` from every placeholder service on the host that yields to `claimant`,
+    /// deleting a placeholder when no binding is left, and mirror the change in `services` so
+    /// later services in the payload see it.
     pub(crate) async fn reclaim_from_open_ports(
         &self,
         claims: &[(Uuid, Option<Uuid>)],
@@ -44,39 +62,35 @@ impl HostService {
             to_service_id: claimant.id,
             by: claimant.base.service_definition.clone(),
         };
-        let Some(open_ports) = services
-            .iter_mut()
-            .find(|s| ServiceDefinitionExt::is_open_ports(&s.base.service_definition))
-        else {
-            return;
-        };
-        let reclaimed = taken_claims(open_ports, claims);
-        if reclaimed.is_empty() {
-            return;
-        }
-        let open_ports_id = open_ports.id;
-        open_ports
-            .base
-            .bindings
-            .retain(|b| !claims.iter().any(|claim| overlaps(b, claim)));
-        let remaining_bindings = open_ports.base.bindings.len();
+        for placeholder in services.iter_mut().filter(|s| yields_to(s, claimant)) {
+            let reclaimed = taken_claims(placeholder, claims);
+            if reclaimed.is_empty() {
+                continue;
+            }
+            let placeholder_id = placeholder.id;
+            placeholder
+                .base
+                .bindings
+                .retain(|b| !claims.iter().any(|claim| overlaps(b, claim)));
+            let remaining_bindings = placeholder.base.bindings.len();
 
-        // The taken bindings go first, so deleting the emptied service below reports none of them
-        // as deleted with it.
-        let _ = self
-            .service_service
-            .remove_port_bindings(
-                &open_ports_id,
-                &reclaimed,
-                authentication.clone(),
-                reason.clone(),
-            )
-            .await;
-        if remaining_bindings == 0 {
+            // The taken bindings go first, so deleting the emptied service below reports none of
+            // them as deleted with it.
             let _ = self
                 .service_service
-                .delete(&open_ports_id, authentication, reason)
+                .remove_port_bindings(
+                    &placeholder_id,
+                    &reclaimed,
+                    authentication.clone(),
+                    reason.clone(),
+                )
                 .await;
+            if remaining_bindings == 0 {
+                let _ = self
+                    .service_service
+                    .delete(&placeholder_id, authentication.clone(), reason.clone())
+                    .await;
+            }
         }
     }
 }

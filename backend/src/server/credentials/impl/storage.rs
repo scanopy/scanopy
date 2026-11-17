@@ -138,9 +138,7 @@ impl Entity for Credential {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Credential
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Credential;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Credential";
     const ENTITY_NAME_PLURAL: &'static str = "Credentials";

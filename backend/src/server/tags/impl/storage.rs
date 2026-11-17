@@ -181,9 +181,7 @@ impl Entity for Tag {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Tag
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Tag;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Tag";
     const ENTITY_NAME_PLURAL: &'static str = "Tags";

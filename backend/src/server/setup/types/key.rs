@@ -77,8 +77,8 @@ pub struct SetupListEntry {
     /// The group of the list the item sits in.
     pub tier: SetupItemTier,
     pub state: SetupItemState,
-    /// Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-    /// step still Open.
+    /// Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+    /// a day: an Issue, or a first step still Open.
     pub alerts_when_stuck: bool,
     /// The sites the item is about, which the list can be narrowed to. Empty for an item about
     /// the whole org, which shows whatever sites are picked.
@@ -100,7 +100,7 @@ impl SetupListEntry {
     }
 }
 
-/// An Issue or first step the trial sweep saw open, and since when.
+/// An Issue or first step the Setup sweep saw open, and since when.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OpenSetupItem {
     pub key: SetupItemKey,

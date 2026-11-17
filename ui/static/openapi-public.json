@@ -12070,6 +12070,28 @@
         ],
         "summary": "Create subnet",
         "operationId": "create_subnet",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "description": "What the subnet is for. Sent with the `subnet_created` event; nothing stores it.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Scan",
+                    "Record"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12520,7 +12542,7 @@
           "Subnets"
         ],
         "summary": "Update subnet",
-        "description": "Updates subnet properties. If the CIDR is being changed, validates that\nall existing ip_addresses on this subnet have IPs within the new CIDR range.",
+        "description": "Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon\ninterface, a container bridge, a device, or the Internet and Remote Network rows), on\n`0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be\nleft in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one\nare merged into it, and addresses are re-filed in the most specific subnet that holds them.",
         "operationId": "update_subnet",
         "parameters": [
           {
@@ -12556,7 +12578,7 @@
             }
           },
           "400": {
-            "description": "CIDR change would orphan existing ip_addresses",
+            "description": "The CIDR can't be changed to the one requested",
             "content": {
               "application/json": {
                 "schema": {
@@ -16553,9 +16575,25 @@
             "required": [
               "sites",
               "plan_usage",
-              "setup_items"
+              "setup_items",
+              "issue_count",
+              "issue_site_ids"
             ],
             "properties": {
+              "issue_count": {
+                "type": "integer",
+                "format": "int64",
+                "description": "The Issues the caller sees, on every site.",
+                "minimum": 0
+              },
+              "issue_site_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "The sites those Issues are on, which the Issues list can be narrowed to."
+              },
               "plan_usage": {
                 "$ref": "#/components/schemas/PlanUsage",
                 "description": "Current usage against the organization's plan allowances."
@@ -16565,14 +16603,14 @@
                 "items": {
                   "$ref": "#/components/schemas/SetupListEntry"
                 },
-                "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
+                "description": "The organization's Setup steps as the caller sees them. Issues are paged from\n`/dashboard/issues`."
               },
               "sites": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/SiteSummary"
                 },
-                "description": "Per-site counts for every site the caller can see."
+                "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
               }
             }
           },
@@ -17609,7 +17647,7 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "IoT",
+              "device_type": "Server",
               "device_type_source": {
                 "service_id": "550e8400-e29b-41d4-a716-446655440007",
                 "service_name": "nginx",
@@ -19881,9 +19919,32 @@
                   "usable_addresses",
                   "nesting_depth",
                   "nesting_root_id",
-                  "range_evidence"
+                  "range_evidence",
+                  "cidr_lock",
+                  "discovered_vlan_ids"
                 ],
                 "properties": {
+                  "cidr_lock": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/CidrLock",
+                        "description": "Why this range can't be changed by hand, or `null` when it can."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "discovered_vlan_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "readOnly": true
+                    },
+                    "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                  },
                   "nesting_depth": {
                     "type": "integer",
                     "format": "int32",
@@ -23601,6 +23662,87 @@
           }
         }
       },
+      "CidrLock": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Organizational",
+            "description": "The Internet or Remote Network row, which holds every address of its kind.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Organizational"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainerBridge",
+            "description": "A container runtime's bridge network, reported by the runtime on its host.",
+            "required": [
+              "service_id",
+              "type"
+            ],
+            "properties": {
+              "service_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The runtime service that owns the bridge."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ContainerBridge"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonInterface",
+            "description": "A network a daemon's host has an interface on. The daemon reports its range.",
+            "required": [
+              "daemon_id",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that reports it."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DaemonInterface"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Discovered",
+            "description": "A range discovery read from the network, such as a device's address table.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Discovered"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Why a subnet's range can't be changed by hand. `None` on a subnet means it can."
+      },
       "ClaimSource": {
         "type": "string",
         "description": "Where a device's claim about itself came from.\n\nNamed rather than folded into a sentence because the operator's next step depends on it: a\nwrong `ifNumber` is a firmware bug to report upstream, while a set bridge bit over an empty\nbridge table is usually a missing SNMP view or VLAN context on their side.",
@@ -25932,9 +26074,25 @@
         "required": [
           "sites",
           "plan_usage",
-          "setup_items"
+          "setup_items",
+          "issue_count",
+          "issue_site_ids"
         ],
         "properties": {
+          "issue_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The Issues the caller sees, on every site.",
+            "minimum": 0
+          },
+          "issue_site_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The sites those Issues are on, which the Issues list can be narrowed to."
+          },
           "plan_usage": {
             "$ref": "#/components/schemas/PlanUsage",
             "description": "Current usage against the organization's plan allowances."
@@ -25944,14 +26102,14 @@
             "items": {
               "$ref": "#/components/schemas/SetupListEntry"
             },
-            "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
+            "description": "The organization's Setup steps as the caller sees them. Issues are paged from\n`/dashboard/issues`."
           },
           "sites": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SiteSummary"
             },
-            "description": "Per-site counts for every site the caller can see."
+            "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
           }
         }
       },
@@ -28907,6 +29065,300 @@
             }
           },
           {
+            "type": "object",
+            "title": "ArpSweepTruncated",
+            "description": "An interfaced subnet holds more addresses than the ARP Scan Cutoff allows, so the ARP sweep\ncovered only the first part of it.",
+            "required": [
+              "subnet_id",
+              "cidr",
+              "addresses_swept",
+              "subnet_addresses",
+              "cutoff",
+              "code"
+            ],
+            "properties": {
+              "addresses_swept": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses the sweep covered.",
+                "minimum": 0
+              },
+              "cidr": {
+                "type": "string",
+                "description": "The subnet, in CIDR notation."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "ArpSweepTruncated"
+                ]
+              },
+              "cutoff": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The ARP Scan Cutoff in force, as a prefix length.",
+                "minimum": 0
+              },
+              "subnet_addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses the subnet holds.",
+                "minimum": 0
+              },
+              "subnet_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The subnet, so the UI can link it. `None` once that subnet has been deleted."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IcmpSweepTruncated",
+            "description": "The ping sweep's target list reached the ARP Scan Cutoff before it covered every subnet.",
+            "required": [
+              "addresses_pinged",
+              "cutoff",
+              "cidrs_left_out",
+              "code"
+            ],
+            "properties": {
+              "addresses_pinged": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses the sweep pinged.",
+                "minimum": 0
+              },
+              "cidrs_left_out": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The subnets the sweep cut short or never reached, in CIDR notation."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "IcmpSweepTruncated"
+                ]
+              },
+              "cutoff": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The ARP Scan Cutoff in force, as a prefix length.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SubnetProbedWithoutInterface",
+            "description": "A subnet the daemon has no interface on took a long time to probe address by address,\ncounting only the addresses that turned out to hold nothing.",
+            "required": [
+              "subnet_id",
+              "cidr",
+              "addresses",
+              "minutes",
+              "code"
+            ],
+            "properties": {
+              "addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses probed in it that held nothing.",
+                "minimum": 0
+              },
+              "cidr": {
+                "type": "string",
+                "description": "The subnet, in CIDR notation."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "SubnetProbedWithoutInterface"
+                ]
+              },
+              "minutes": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The share of the run those probes took, in minutes.",
+                "minimum": 0
+              },
+              "subnet_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The subnet, so the UI can link it. `None` once that subnet has been deleted."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainerSubnetScanned",
+            "description": "A container bridge network was scanned over the network, which the container runtime's\nown listing makes redundant.",
+            "required": [
+              "subnet_id",
+              "cidr",
+              "code"
+            ],
+            "properties": {
+              "cidr": {
+                "type": "string",
+                "description": "The subnet, in CIDR notation."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "ContainerSubnetScanned"
+                ]
+              },
+              "subnet_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The subnet, so the UI can link it. `None` once that subnet has been deleted."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DeepScanConcurrencyReduced",
+            "description": "The daemon's file-descriptor limit let it deep-scan fewer hosts at once than it otherwise\nwould.",
+            "required": [
+              "fd_limit",
+              "concurrency",
+              "expected_concurrency",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "DeepScanConcurrencyReduced"
+                ]
+              },
+              "concurrency": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Hosts deep-scanned at once under that limit.",
+                "minimum": 0
+              },
+              "expected_concurrency": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Hosts it deep-scans at once when the limit is not the constraint.",
+                "minimum": 0
+              },
+              "fd_limit": {
+                "type": "integer",
+                "format": "int64",
+                "description": "The daemon process's file-descriptor limit.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "PortScanDescriptorsExhausted",
+            "description": "The port scan ran out of file descriptors mid-run, so some ports were never probed.",
+            "required": [
+              "reductions",
+              "lowest_batch_size",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "PortScanDescriptorsExhausted"
+                ]
+              },
+              "lowest_batch_size": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The smallest port batch it fell back to.",
+                "minimum": 0
+              },
+              "reductions": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Times the scan shrank its batch after running out.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InterfaceFilterMatchedNothing",
+            "description": "The daemon's interface filter names no interface on its host, so it had no subnet of its\nown to scan.",
+            "required": [
+              "filters",
+              "interfaces",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "InterfaceFilterMatchedNothing"
+                ]
+              },
+              "filters": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The filter values configured on the daemon."
+              },
+              "interfaces": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The interfaces the host has."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ArpSweepUnavailable",
+            "description": "The daemon could not send ARP, so it found hosts by probing ports and recorded no MAC\naddresses.",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "ArpSweepUnavailable"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IcmpSweepUnavailable",
+            "description": "The daemon could not send pings, so hosts that answer only to ping were not found.",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "IcmpSweepUnavailable"
+                ]
+              }
+            }
+          },
+          {
             "allOf": [
               {
                 "$ref": "#/components/schemas/UnmatchedNeighbour",
@@ -29275,6 +29727,15 @@
           "DcpSweepTimedOut",
           "IcmpSweepTimedOut",
           "ReverseDnsTimedOut",
+          "ArpSweepTruncated",
+          "IcmpSweepTruncated",
+          "SubnetProbedWithoutInterface",
+          "ContainerSubnetScanned",
+          "DeepScanConcurrencyReduced",
+          "PortScanDescriptorsExhausted",
+          "InterfaceFilterMatchedNothing",
+          "ArpSweepUnavailable",
+          "IcmpSweepUnavailable",
           "LldpNeighbourNotFound",
           "LldpNeighbourAmbiguous",
           "LldpPortNoStrategy",
@@ -32404,7 +32865,7 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "IoT",
+          "device_type": "Server",
           "device_type_source": {
             "service_id": "550e8400-e29b-41d4-a716-446655440007",
             "service_name": "nginx",
@@ -34427,6 +34888,25 @@
             "description": "Invoice number printed on the PDF, which a remittance references. Absent\nuntil Stripe finalizes the invoice."
           }
         }
+      },
+      "IssueCategory": {
+        "type": "string",
+        "description": "What an Issue's fix is about, which groups the Issues list, in display order.",
+        "enum": [
+          "Daemons",
+          "Credentials",
+          "Devices",
+          "Scans",
+          "Review"
+        ]
+      },
+      "IssueOrderField": {
+        "type": "string",
+        "description": "What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.",
+        "enum": [
+          "category",
+          "type"
+        ]
       },
       "Ixy": {
         "type": "object",
@@ -36904,7 +37384,7 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "IoT",
+                "device_type": "Server",
                 "device_type_source": {
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "service_name": "nginx",
@@ -37366,6 +37846,76 @@
           }
         }
       },
+      "PaginatedApiResponse_SetupListEntry": {
+        "type": "object",
+        "description": "Response type for paginated list endpoints (pagination is always present in meta)",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One Setup list row as the dashboard serves it: the item, with its identity, its tier and its\nstate.",
+              "required": [
+                "key",
+                "tier",
+                "state",
+                "alerts_when_stuck",
+                "site_ids",
+                "item"
+              ],
+              "properties": {
+                "alerts_when_stuck": {
+                  "type": "boolean",
+                  "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
+                },
+                "item": {
+                  "$ref": "#/components/schemas/SetupItem"
+                },
+                "key": {
+                  "$ref": "#/components/schemas/SetupItemKey",
+                  "description": "The item's identity: the same item on the next load has the same key."
+                },
+                "site_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "description": "The sites the item is about, which the list can be narrowed to. Empty for an item about\nthe whole org, which shows whatever sites are picked."
+                },
+                "state": {
+                  "$ref": "#/components/schemas/SetupItemState"
+                },
+                "tier": {
+                  "$ref": "#/components/schemas/SetupItemTier",
+                  "description": "The group of the list the item sits in."
+                }
+              }
+            },
+            "description": "The page of results. Empty when nothing matched the query."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginatedApiMeta",
+            "description": "API and server version metadata, plus pagination counters."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
       "PaginatedApiResponse_SubnetResponse": {
         "type": "object",
         "description": "Response type for paginated list endpoints (pagination is always present in meta)",
@@ -37389,9 +37939,32 @@
                     "usable_addresses",
                     "nesting_depth",
                     "nesting_root_id",
-                    "range_evidence"
+                    "range_evidence",
+                    "cidr_lock",
+                    "discovered_vlan_ids"
                   ],
                   "properties": {
+                    "cidr_lock": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/CidrLock",
+                          "description": "Why this range can't be changed by hand, or `null` when it can."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "readOnly": true
+                    },
+                    "discovered_vlan_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                      },
+                      "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                    },
                     "nesting_depth": {
                       "type": "integer",
                       "format": "int32",
@@ -40565,6 +41138,7 @@
             "title": "UnconfirmedHosts",
             "description": "Hosts known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40572,8 +41146,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed hosts on the sites the user reads.",
+                "description": "The unconfirmed hosts on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the hosts are on."
               },
               "type": {
                 "type": "string",
@@ -40588,6 +41167,7 @@
             "title": "UnconfirmedSubnets",
             "description": "Subnets known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40595,8 +41175,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed subnets on the sites the user reads.",
+                "description": "The unconfirmed subnets on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the subnets are on."
               },
               "type": {
                 "type": "string",
@@ -40992,7 +41577,7 @@
         "properties": {
           "alerts_when_stuck": {
             "type": "boolean",
-            "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+            "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
           },
           "item": {
             "$ref": "#/components/schemas/SetupItem"
@@ -42080,10 +42665,9 @@
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "format": "uuid",
-                  "readOnly": true
+                  "format": "uuid"
                 },
-                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,\nso anything sent here on create/update is ignored by `to_params`."
+                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;\nthe ones discovery found stay whatever is sent, since the next scan would restore them. Not a\ncolumn on `subnets`: `SubnetService` writes the junction."
               }
             }
           }
@@ -42151,9 +42735,32 @@
               "usable_addresses",
               "nesting_depth",
               "nesting_root_id",
-              "range_evidence"
+              "range_evidence",
+              "cidr_lock",
+              "discovered_vlan_ids"
             ],
             "properties": {
+              "cidr_lock": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CidrLock",
+                    "description": "Why this range can't be changed by hand, or `null` when it can."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "readOnly": true
+              },
+              "discovered_vlan_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "readOnly": true
+                },
+                "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+              },
               "nesting_depth": {
                 "type": "integer",
                 "format": "int32",
@@ -43562,18 +44169,22 @@
         "properties": {
           "created_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When the daemon was created."
           },
           "id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The daemon's id."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The daemon's name, as set when it was created."
           },
           "site_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The site the daemon was created on."
           }
         }
       },
@@ -43585,7 +44196,8 @@
           "if_descr",
           "identifier",
           "sys_name",
-          "address"
+          "address",
+          "candidate_host_ids"
         ],
         "properties": {
           "address": {
@@ -43594,6 +44206,14 @@
               "null"
             ],
             "description": "The address the far end published for itself — `lldpRemManAddr`, a `NetworkAddress` port\nid, or `cdpCacheAddress` — where it sent a usable one.\n\nCarried because it is the difference between two reports that otherwise read identically:\n\"the far end told us where it lives and this site holds no such address\" is a device\nnobody has scanned, while \"it told us nothing\" is a device that cannot be placed no matter\nhow much of the network is scanned. Without it, deciding which of the two a fleet is\nlooking at costs another round trip to the operator (GH #668)."
+          },
+          "candidate_host_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The hosts on this site the identifier matched, for an ambiguous one: the records a person\nmerges when they are one device. Empty for a neighbour that matched nothing, and on warnings\nstored before it was carried. Comes from the server's site-scoped lookups, never from a\ndaemon's report."
           },
           "host_id": {
             "type": [

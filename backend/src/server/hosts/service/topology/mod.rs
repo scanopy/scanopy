@@ -32,21 +32,22 @@ impl AdvertisedPortKey {
 /// scanned and the operator can close it, `Ambiguous` is a device that *is* scanned but reports one
 /// identifier for many ports, and `NoStrategy` is a gap on our side. Reporting all three as "did
 /// not resolve" is what made a device-level edge un-triagable without a customer snmpwalk (GH #668).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum UnresolvedReason {
     NoStrategy,
     NotFound,
-    Ambiguous,
+    /// With what the identifier matched: hosts for a far-end device, interfaces for a port.
+    Ambiguous(Vec<Uuid>),
 }
 
 impl UnresolvedReason {
     /// `None` for a resolution that succeeded — there is nothing to report.
-    fn from_resolution(resolution: IdentityResolution) -> Option<Self> {
+    fn from_resolution(resolution: &IdentityResolution) -> Option<Self> {
         match resolution {
             IdentityResolution::Resolved(_) => None,
             IdentityResolution::NoStrategy => Some(Self::NoStrategy),
             IdentityResolution::NotFound => Some(Self::NotFound),
-            IdentityResolution::Ambiguous => Some(Self::Ambiguous),
+            IdentityResolution::Ambiguous(ids) => Some(Self::Ambiguous(ids.clone())),
         }
     }
 }
@@ -69,8 +70,13 @@ fn unmatched_neighbour_warning(
     evidence: &InterfaceNeighborEvidence,
     identifier: String,
     sys_name: Option<String>,
-    reason: UnresolvedReason,
+    reason: &UnresolvedReason,
 ) -> Option<DiscoveryWarning> {
+    // The hosts an ambiguous identifier named, which come from the site-scoped snapshot.
+    let candidate_host_ids = match reason {
+        UnresolvedReason::Ambiguous(ids) => ids.clone(),
+        UnresolvedReason::NotFound | UnresolvedReason::NoStrategy => Vec::new(),
+    };
     let detail = UnmatchedNeighbour {
         host_id: Some(interface.base.host_id),
         if_descr: interface.base.if_descr.clone().unwrap_or_default(),
@@ -80,10 +86,11 @@ fn unmatched_neighbour_warning(
             .advertised_identity()
             .address
             .map(|addr| addr.to_string()),
+        candidate_host_ids,
     };
     match reason {
         UnresolvedReason::NotFound => Some(DiscoveryWarning::LldpNeighbourNotFound(detail)),
-        UnresolvedReason::Ambiguous => Some(DiscoveryWarning::LldpNeighbourAmbiguous(detail)),
+        UnresolvedReason::Ambiguous(_) => Some(DiscoveryWarning::LldpNeighbourAmbiguous(detail)),
         UnresolvedReason::NoStrategy => None,
     }
 }
@@ -102,9 +109,9 @@ fn unmatched_neighbour_warning(
 fn unplaced_far_end(
     interface: &Interface,
     evidence: &InterfaceNeighborEvidence,
-    reason: UnresolvedReason,
+    reason: &UnresolvedReason,
 ) -> Option<UnplacedFarEnd> {
-    if reason != UnresolvedReason::NotFound {
+    if *reason != UnresolvedReason::NotFound {
         return None;
     }
     // The chassis id for LLDP, the device id for CDP. Both are what the far end calls itself, and
@@ -160,7 +167,7 @@ fn unresolved_port_warning(
     match reason {
         UnresolvedReason::NoStrategy => DiscoveryWarning::LldpPortNoStrategy(detail),
         UnresolvedReason::NotFound => DiscoveryWarning::LldpPortNotFound(detail),
-        UnresolvedReason::Ambiguous => DiscoveryWarning::LldpPortAmbiguous(detail),
+        UnresolvedReason::Ambiguous(_) => DiscoveryWarning::LldpPortAmbiguous(detail),
     }
 }
 
@@ -420,17 +427,17 @@ impl HostService {
                 let resolved_neighbor = if let Some(ref chassis_id) = evidence.lldp_chassis_id {
                     let host = host_of
                         .get(&candidate.id)
-                        .copied()
+                        .cloned()
                         .unwrap_or(IdentityResolution::NoStrategy);
-                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                    if let Some(reason) = UnresolvedReason::from_resolution(&host) {
                         warnings.extend(unmatched_neighbour_warning(
                             interface,
                             evidence,
                             chassis_id.identifier(),
                             evidence.lldp_sys_name.clone(),
-                            reason,
+                            &reason,
                         ));
-                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                        unplaced.extend(unplaced_far_end(interface, evidence, &reason));
                     }
                     match stats.record_host(host) {
                         None => None,
@@ -457,7 +464,7 @@ impl HostService {
                                 },
                             };
                             let port = match HostService::pair_reciprocally(
-                                port,
+                                &port,
                                 interface.id,
                                 host_id,
                                 &reciprocal,
@@ -468,7 +475,7 @@ impl HostService {
                                 }
                                 None => port,
                             };
-                            if let Some(reason) = UnresolvedReason::from_resolution(port) {
+                            if let Some(reason) = UnresolvedReason::from_resolution(&port) {
                                 warnings.push(unresolved_port_warning(
                                     interface,
                                     evidence,
@@ -483,17 +490,17 @@ impl HostService {
                 } else if let Some(ref device_id) = evidence.cdp_device_id {
                     let host = host_of
                         .get(&candidate.id)
-                        .copied()
+                        .cloned()
                         .unwrap_or(IdentityResolution::NoStrategy);
-                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                    if let Some(reason) = UnresolvedReason::from_resolution(&host) {
                         warnings.extend(unmatched_neighbour_warning(
                             interface,
                             evidence,
                             device_id.clone(),
                             None,
-                            reason,
+                            &reason,
                         ));
-                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                        unplaced.extend(unplaced_far_end(interface, evidence, &reason));
                     }
                     match stats.record_host(host) {
                         None => None,
@@ -505,7 +512,7 @@ impl HostService {
                                 None => IdentityResolution::NoStrategy,
                             };
                             let port = match HostService::pair_reciprocally(
-                                port,
+                                &port,
                                 interface.id,
                                 host_id,
                                 &reciprocal,
@@ -516,7 +523,7 @@ impl HostService {
                                 }
                                 None => port,
                             };
-                            if let Some(reason) = UnresolvedReason::from_resolution(port) {
+                            if let Some(reason) = UnresolvedReason::from_resolution(&port) {
                                 warnings.push(unresolved_port_warning(
                                     interface,
                                     evidence,
@@ -536,9 +543,9 @@ impl HostService {
                     // address, so it names no *port* — but it does name a device.
                     let host = host_of
                         .get(&candidate.id)
-                        .copied()
+                        .cloned()
                         .unwrap_or(IdentityResolution::NoStrategy);
-                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                    if let Some(reason) = UnresolvedReason::from_resolution(&host) {
                         warnings.extend(unmatched_neighbour_warning(
                             interface,
                             evidence,
@@ -547,9 +554,9 @@ impl HostService {
                                 .map(|addr| addr.to_string())
                                 .unwrap_or_default(),
                             None,
-                            reason,
+                            &reason,
                         ));
-                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                        unplaced.extend(unplaced_far_end(interface, evidence, &reason));
                     }
                     stats
                         .record_host(host)

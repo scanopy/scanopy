@@ -415,6 +415,8 @@ const HANDLER_CHECKED: &[(&str, &str, &str)] = &[
         "scope_discovery_report",
     ),
     ("DiscoveryType", "subnet_ids", "scope_discovery_report"),
+    // Cleared unless the subnet is on the daemon's site, before the foreign-key insert.
+    ("DiscoveryWarning", "subnet_id", "scope_discovery_report"),
     (
         "CredentialRunResult",
         "credential_id",
@@ -519,6 +521,7 @@ const DAEMON_REPORTED_UNCHECKED: &[(&str, &str)] = &[
     ("ProvisionalSubnet", "seen_by_host_ids"),
     ("ProvisionalSubnet", "subnet_id"),
     ("UnconfirmedHost", "host_id"),
+    ("UnmatchedNeighbour", "candidate_host_ids"),
     ("UnmatchedNeighbour", "host_id"),
     ("UnresolvedPort", "host_id"),
     ("UnresolvedPort", "remote_host_id"),

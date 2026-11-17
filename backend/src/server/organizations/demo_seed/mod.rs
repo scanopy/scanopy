@@ -56,7 +56,7 @@ fn collect_entity_tags<T: Entity>(entities: &[T], out: &mut Vec<EntityTag>) {
             for &tag_id in tags {
                 out.push(EntityTag::new(EntityTagBase::new(
                     entity.id(),
-                    T::entity_type(),
+                    T::ENTITY_TYPE,
                     tag_id,
                 )));
             }

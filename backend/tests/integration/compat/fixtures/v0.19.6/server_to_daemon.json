@@ -383,13 +383,6 @@
         },
         "success": true
       }
-    },
-    {
-      "method": "GET",
-      "path": "/favicon.ico",
-      "request_body": {},
-      "response_status": 404,
-      "response_body": {}
     }
   ]
 }

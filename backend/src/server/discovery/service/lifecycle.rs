@@ -5,7 +5,7 @@ impl DiscoveryService {
     #[allow(clippy::too_many_arguments)]
     pub async fn new(
         discovery_storage: Arc<GenericPostgresStorage<Discovery>>,
-        subnet_target_storage: Arc<GenericChildStorage<DiscoverySubnet>>,
+        subnet_target_storage: Arc<GenericPostgresStorage<DiscoverySubnet>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
         credential_service: Arc<CredentialService>,

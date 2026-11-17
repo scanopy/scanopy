@@ -558,18 +558,19 @@ impl TypeMetadataProvider for EdgeType {
     }
 }
 
+use crate::server::shared::{relations as R, storage::relation::Reference};
 use EntityDiscriminants as E;
 
 const DEPENDENCY_FIELDS: &[EntityField] =
     &[
         EntityField::new("dependency_id", "Dependency", FieldGroup::Relationships)
-            .entity(&[Hop::parent(E::Dependency, "dependency_id")])
+            .entity(&[Hop::parent(R::DEPENDENCY_ID)])
             .summary(),
     ];
 const SAME_HOST_FIELDS: &[EntityField] =
     &[
         EntityField::new("host_id", "Host", FieldGroup::Relationships)
-            .entity(&[Hop::parent(E::Host, "host_id")])
+            .entity(&[Hop::parent(R::HOST_ID)])
             .summary(),
     ];
 const HYPERVISOR_FIELDS: &[EntityField] = &[EntityField::new(
@@ -577,55 +578,70 @@ const HYPERVISOR_FIELDS: &[EntityField] = &[EntityField::new(
     "Hypervisor",
     FieldGroup::Virtualization,
 )
-.entity(&[Hop::parent(E::Service, "hypervisor_service_id")])
+.entity(&[Hop::parent(Reference::new(
+    E::Service,
+    "hypervisor_service_id",
+))])
 .summary()];
 const NETWORK_IDENTITY_FIELDS: &[EntityField] = &[EntityField::new(
     "identities_service_id",
     "Identity Service",
     FieldGroup::Relationships,
 )
-.entity(&[Hop::parent(E::Service, "identities_service_id")])
+.entity(&[Hop::parent(Reference::new(
+    E::Service,
+    "identities_service_id",
+))])
 .summary()];
 const CONTAINER_RUNTIME_FIELDS: &[EntityField] = &[
     EntityField::new("host_id", "Host", FieldGroup::Relationships)
-        .entity(&[Hop::parent(E::Host, "host_id")]),
+        .entity(&[Hop::parent(R::HOST_ID)]),
     EntityField::new("service_id", "Runtime", FieldGroup::Virtualization)
-        .entity(&[Hop::parent(E::Service, "service_id")])
+        .entity(&[Hop::parent(R::SERVICE_ID)])
         .summary(),
     EntityField::new(
         "containerized_service_ids",
         "Containers",
         FieldGroup::Virtualization,
     )
-    .entity(&[Hop::parent(E::Service, "containerized_service_ids")])
+    .entity(&[Hop::parent(Reference::new(
+        E::Service,
+        "containerized_service_ids",
+    ))])
     .many(),
     EntityField::new("subnet_ids", "Bridge Subnets", FieldGroup::Network)
-        .entity(&[Hop::parent(E::Subnet, "subnet_ids")])
+        .entity(&[Hop::parent(R::SUBNET_IDS)])
         .many(),
 ];
 const SAME_CONTAINER_FIELDS: &[EntityField] =
     &[
         EntityField::new("service_id", "Service", FieldGroup::Relationships)
-            .entity(&[Hop::parent(E::Service, "service_id")])
+            .entity(&[Hop::parent(R::SERVICE_ID)])
             .summary(),
     ];
 const PROTOCOL: EntityField = EntityField::new("protocol", "Protocol", FieldGroup::Network)
     .metadata(MetadataFixture::DiscoveryProtocols);
 const PHYSICAL_LINK_FIELDS: &[EntityField] = &[
     EntityField::new("source_entity_id", "From Interface", FieldGroup::Network)
-        .entity(&[Hop::parent(E::Interface, "source_entity_id")])
+        .entity(&[Hop::parent(Reference::new(
+            E::Interface,
+            "source_entity_id",
+        ))])
         .summary(),
     EntityField::new("target_entity_id", "To Interface", FieldGroup::Network)
-        .entity(&[Hop::parent(E::Interface, "target_entity_id")])
+        .entity(&[Hop::parent(Reference::new(
+            E::Interface,
+            "target_entity_id",
+        ))])
         .summary(),
     PROTOCOL,
 ];
 const NEIGHBOR_LINK_FIELDS: &[EntityField] = &[
     EntityField::new("source_host_id", "From Host", FieldGroup::Relationships)
-        .entity(&[Hop::parent(E::Host, "source_host_id")])
+        .entity(&[Hop::parent(Reference::new(E::Host, "source_host_id"))])
         .summary(),
     EntityField::new("target_host_id", "To Host", FieldGroup::Relationships)
-        .entity(&[Hop::parent(E::Host, "target_host_id")])
+        .entity(&[Hop::parent(Reference::new(E::Host, "target_host_id"))])
         .summary(),
     PROTOCOL,
 ];

@@ -266,6 +266,7 @@ fn failed_scan_runs(
                 reason,
                 previous_run_failed: ended.get(1).is_some_and(|&(_, r)| failed(r)),
                 scheduled: scan.base.run_type.is_scheduled_enabled(),
+                next_run_full: scan.next_run_is_full_scan,
             })
         })
         .collect()

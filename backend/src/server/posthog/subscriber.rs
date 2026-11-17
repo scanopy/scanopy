@@ -571,6 +571,7 @@ mod tests {
                         SetupOperation::Completed {
                             item_type: SetupItemDiscriminants::InstallDaemon,
                             subject_id: Some(Uuid::new_v4()),
+                            answers: None,
                         },
                     ),
                     organization_id,
@@ -585,6 +586,7 @@ mod tests {
                         SetupOperation::Completed {
                             item_type: SetupItemDiscriminants::RunFirstScan,
                             subject_id: Some(Uuid::new_v4()),
+                            answers: None,
                         },
                     ),
                     organization_id,

@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import type { components } from '#lib/api/schema';
 import serviceDefinitionsJson from '#lib/data/service-definitions.json';
 import subnetTypesJson from '#lib/data/subnet-types.json';
+import subnetCreatePurposesJson from '#lib/data/subnet-create-purposes.json';
 import edgeTypesJson from '#lib/data/edge-types.json';
 import dependencyTypesJson from '#lib/data/dependency-types.json';
 import entitiesJson from '#lib/data/entities.json';
@@ -125,6 +126,7 @@ export interface CredentialTypeMetadata {
 export interface MetadataRegistry {
 	service_definitions: TypeMetadata[];
 	subnet_types: TypeMetadata[];
+	subnet_create_purposes: TypeMetadata[];
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
@@ -367,6 +369,7 @@ export interface ContainerTypeMetadata {
 export const metadata = writable<MetadataRegistry>({
 	service_definitions: serviceDefinitionsJson,
 	subnet_types: subnetTypesJson,
+	subnet_create_purposes: subnetCreatePurposesJson,
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
@@ -565,6 +568,10 @@ export const serviceDefinitions = createTypeMetadataHelpers<
 export const subnetTypes = createTypeMetadataHelpers<'subnet_types', SubnetTypeMetadata>(
 	'subnet_types'
 );
+/** The create flow's first question: what the subnet is for. */
+export const subnetCreatePurposes = createTypeMetadataHelpers<'subnet_create_purposes', object>(
+	'subnet_create_purposes'
+);
 export const edgeTypes = createTypeMetadataHelpers<'edge_types', EdgeTypeMetadata>('edge_types');
 export const dependencyTypes = createTypeMetadataHelpers<
 	'dependency_types',
@@ -665,11 +672,17 @@ export const discoveryTerminalReasons = createTypeMetadataHelpers<
 	'discovery_terminal_reasons',
 	DiscoveryTerminalReasonMetadata
 >('discovery_terminal_reasons');
-/** The fix an Issues row for a scan that didn't finish offers (button label, icon), keyed by
- *  `ScanFailureFix`. */
-export const scanFailureFixes = createTypeMetadataHelpers<'scan_failure_fixes', object>(
-	'scan_failure_fixes'
-);
+/** What `ScanFailureFix` metadata carries. */
+export interface ScanFailureFixMetadata {
+	/** The docs page the row links to. */
+	docs_url: string | null;
+}
+/** The fix an Issues row for a scan that didn't finish offers (button label, icon, docs link),
+ *  keyed by `ScanFailureFix`. */
+export const scanFailureFixes = createTypeMetadataHelpers<
+	'scan_failure_fixes',
+	ScanFailureFixMetadata
+>('scan_failure_fixes');
 export const billingPlans = createTypeMetadataHelpers<'billing_plans', BillingPlanMetadata>(
 	'billing_plans'
 );

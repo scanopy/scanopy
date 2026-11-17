@@ -3,6 +3,7 @@
 
 use std::borrow::Cow;
 
+use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -67,7 +68,11 @@ impl Operation for SetupOperation {
         format!("setup_{self}").into()
     }
 
-    fn metadata<'a>(&'a self, _scope: &'a OrgScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        _scope: &'a OrgScope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         SetupOperation::metadata(self)
     }
 }
@@ -138,6 +143,9 @@ struct EntityMetadata {
     entity_id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     site_id: Option<Uuid>,
+    /// Why a person created a subnet, from the create flow. Absent on every other event.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    purpose: Option<SubnetCreatePurpose>,
 }
 
 impl Operation for EntityOperation {
@@ -185,13 +193,18 @@ impl Operation for EntityOperation {
         }
     }
 
-    fn metadata<'a>(&'a self, scope: &'a EntityScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        scope: &'a EntityScope,
+        flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         EntityMetadata {
             entity_id: scope.entity_id(),
             site_id: match scope {
                 EntityScope::Site { site_id, .. } => Some(*site_id),
                 EntityScope::Org { .. } => None,
             },
+            purpose: flags.subnet_create_purpose,
         }
     }
 }
@@ -228,7 +241,11 @@ impl Operation for DiscoveryPhase {
         format!("discovery_{}", to_snake_case(self.id())).into()
     }
 
-    fn metadata<'a>(&'a self, scope: &'a DiscoveryScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        scope: &'a DiscoveryScope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         DiscoveryMetadata {
             session_id: scope.session_id,
             site_id: scope.site_id,
@@ -368,6 +385,7 @@ pub(crate) mod tests {
                     SetupOperation::Completed {
                         item_type: crate::server::setup::types::SetupItemDiscriminants::Tags,
                         subject_id: None,
+                        answers: None,
                     },
                     system(),
                 ),

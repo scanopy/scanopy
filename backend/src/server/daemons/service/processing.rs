@@ -1503,6 +1503,7 @@ impl DaemonService {
                     SetupOperation::Completed {
                         item_type: SetupItemDiscriminants::InstallDaemon,
                         subject_id: Some(daemon_id),
+                        answers: None,
                     },
                     AuthenticatedEntity::System,
                 )

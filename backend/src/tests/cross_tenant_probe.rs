@@ -824,6 +824,11 @@ const NO_RESOURCE_CHECK: &[(&str, &str)] = &[
         "the caller's own onboarding answer",
     ),
     (
+        "post /api/v1/organizations/setup",
+        "the org's own onboarding progress: the dependency tutorial, or a question the two routes \
+         above answer, dismissed unanswered. `recorded_by_client` refuses every other item",
+    ),
+    (
         "put /api/v1/users/{id}",
         "refuses anyone but the record's own user",
     ),

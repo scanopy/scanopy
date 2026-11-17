@@ -161,9 +161,7 @@ impl Entity for Discovery {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Discovery
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Discovery;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Discovery";
     const ENTITY_NAME_PLURAL: &'static str = "Discoveries";
