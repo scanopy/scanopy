@@ -868,29 +868,32 @@
 			.finally(() => {
 				noteRunEnd();
 				setLoadInProgress(false);
-				endLoadOfRun(scope);
-				clearTimeout(longRunTimer);
-				runIsLong = false;
+				// Only re-run if an input actually differs from what the run
+				// consumed. Most mid-run writes are the pipeline's own (prepare
+				// seeding collapse state) or derived stores re-emitting an
+				// identical value during option hydration — re-running for those
+				// costs two elk.layout() calls and changes nothing.
+				let rerun = false;
 				if (pendingReload) {
 					pendingReload = false;
-					// Only re-run if an input actually differs from what the run
-					// consumed. Most mid-run writes are the pipeline's own (prepare
-					// seeding collapse state) or derived stores re-emitting an
-					// identical value during option hydration — re-running for those
-					// costs two elk.layout() calls and changes nothing.
 					const consumed = inFlightInputs;
-					inFlightInputs = null;
-					if (consumed) {
-						const changed = reloadInputsDiff(consumed, currentReloadInputs());
-						if (changed.length === 0) {
-							perf.count('reload-suppressed');
-							return;
-						}
-						for (const field of changed) perf.count(`reload-cause:${field}`);
+					const changed = consumed ? reloadInputsDiff(consumed, currentReloadInputs()) : null;
+					if (changed?.length === 0) perf.count('reload-suppressed');
+					else {
+						for (const field of changed ?? []) perf.count(`reload-cause:${field}`);
+						rerun = true;
 					}
-					triggerLoad('pending');
 				}
 				inFlightInputs = null;
+				// A re-run is the same load: the bar stays up and the re-run continues it from the
+				// stage this run reached. Ending it here would start the re-run's bar from zero.
+				if (rerun) {
+					triggerLoad('pending');
+				} else {
+					endLoadOfRun(scope);
+					clearTimeout(longRunTimer);
+					runIsLong = false;
+				}
 			});
 	}
 
