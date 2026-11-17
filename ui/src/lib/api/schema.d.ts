@@ -11095,6 +11095,8 @@ export interface components {
         };
         /** @description A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish. */
         FailedScan: {
+            /** @description The error the run ended with, if it has one. */
+            error?: string | null;
             /** @description The scan's name. */
             name: string;
             /**

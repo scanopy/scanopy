@@ -80,14 +80,15 @@ describe('Failed scan rows', () => {
 	const RUN = '00000000-0000-4000-8000-000000000004';
 	const failed = (
 		reason: 'WatchdogTimeout' | 'SessionSilent' | 'DaemonReportedFailure',
-		nextRunFull: boolean
+		nextRunFull: boolean,
+		error: string | null = null
 	): SetupItem => ({
 		type: 'FailedScans',
 		daemon_id: DAEMON,
 		daemon_name: 'edge-01',
 		site_id: SITE,
 		reason,
-		scans: [{ scan_id: SCAN, name: 'Office LAN', run_id: RUN, next_run_full: nextRunFull }]
+		scans: [{ scan_id: SCAN, name: 'Office LAN', run_id: RUN, error, next_run_full: nextRunFull }]
 	});
 
 	const open = vi.fn();
@@ -106,12 +107,11 @@ describe('Failed scan rows', () => {
 		expect(open.mock.calls[0][0]).toContain('#choose-a-layout');
 	});
 
-	it('offers a silent scan the connection troubleshooting guide', () => {
+	it('sends a silent scan to the troubleshooting help, with no guide beside it', () => {
 		const view = setupRowView(failed('SessionSilent', false), ctx);
 		view.fix.run();
 		expect(ctx.onTroubleshoot).toHaveBeenCalled();
-		view.guide?.run();
-		expect(open.mock.calls[0][0]).toContain('#daemon-not-connecting-to-server');
+		expect(view.guide).toBeUndefined();
 	});
 
 	it('says a full scan runs full again only when one in the row was full', () => {
@@ -120,5 +120,15 @@ describe('Failed scan rows', () => {
 		expect(full.sentence.startsWith(light.sentence)).toBe(true);
 		expect(full.sentence.length).toBeGreaterThan(light.sentence.length);
 		expect(light.guide).toBeUndefined();
+	});
+
+	it("tells the newest run's error on the row", () => {
+		const bare = setupRowView(failed('DaemonReportedFailure', false), ctx);
+		const withError = setupRowView(
+			failed('DaemonReportedFailure', false, 'Port scan failed: raw socket denied'),
+			ctx
+		);
+		expect(withError.sentence).toContain('Port scan failed: raw socket denied');
+		expect(bare.sentence).not.toContain('Port scan failed');
 	});
 });

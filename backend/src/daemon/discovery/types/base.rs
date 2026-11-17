@@ -346,13 +346,13 @@ impl ScanFailureFix {
     /// The docs page the Issues row links to, if any.
     pub fn docs_url(self) -> Option<&'static str> {
         match self {
-            Self::TroubleshootConnection => Some(
-                "https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#daemon-not-connecting-to-server",
-            ),
             Self::RaiseMaxDuration => Some(
                 "https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choose-a-layout",
             ),
-            Self::RetryScan | Self::OpenRun | Self::RescheduleScan => None,
+            Self::RetryScan
+            | Self::OpenRun
+            | Self::RescheduleScan
+            | Self::TroubleshootConnection => None,
         }
     }
 }
@@ -394,7 +394,9 @@ impl TypeMetadataProvider for ScanFailureFix {
     fn description(&self) -> &'static str {
         match self {
             Self::RetryScan => "What stopped the scan doesn't stop the next run.",
-            Self::OpenRun => "The run's error and the daemon's logs say what failed.",
+            Self::OpenRun => {
+                "The run shows its error, and the command that prints the daemon's log lines for it."
+            }
             Self::TroubleshootConnection => {
                 "The daemon has to be running and able to reach the server."
             }
@@ -490,13 +492,13 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
                 "Someone stopped this scan before it finished."
             }
             DiscoveryTerminalReason::DaemonReportedFailure => {
-                "The daemon reported an error and stopped the scan. The error message says what failed."
+                "The daemon reported an error and stopped the scan."
             }
             DiscoveryTerminalReason::StalledNoUpdates => {
                 "The server heard nothing from the daemon for 5 minutes and stopped waiting. Check that the daemon is running and can reach the server."
             }
             DiscoveryTerminalReason::DaemonRestarted => {
-                "The daemon restarted during the scan, so the scan's progress was lost. The daemon's logs show why it restarted."
+                "The daemon restarted during the scan, so the scan's progress was lost."
             }
             DiscoveryTerminalReason::DaemonUnreachable => {
                 "The server could not reach the daemon to start, check on or stop this scan. Check that the daemon is running and reachable from the server."
@@ -514,7 +516,7 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
                 "The daemon kept checking in with the server but sent nothing about this scan for 5 minutes, so the server stopped waiting. Check the daemon's connection to the server."
             }
             DiscoveryTerminalReason::DaemonDroppedSession => {
-                "The daemon is running and idle but no longer had this scan, and its final report never reached the server. The daemon's logs show how the scan ended."
+                "The daemon is running and idle but no longer had this scan, and its final report never reached the server."
             }
             DiscoveryTerminalReason::SessionStoppedAdvancing => {
                 "The scan kept running for 20 minutes without finding a host or finishing a step, so the daemon stopped it. Check the addresses the error names: SNMP collection can take up to 15 minutes per host."

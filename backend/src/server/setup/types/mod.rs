@@ -220,6 +220,8 @@ pub struct FailedScan {
     pub name: String,
     /// The scan's latest run, which didn't finish.
     pub run_id: Uuid,
+    /// The error the run ended with, if it has one.
+    pub error: Option<String>,
     /// The scan's next run is a full scan again, because the full scan that didn't finish
     /// doesn't count.
     pub next_run_full: bool,

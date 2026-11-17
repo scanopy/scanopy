@@ -530,6 +530,7 @@ fn failed_run(daemon: &SetupDaemon, reason: DiscoveryTerminalReason) -> FailedSc
         scan_name: "Office LAN".to_string(),
         run_id: Uuid::new_v4(),
         reason,
+        error: None,
         previous_run_failed: false,
         scheduled: false,
         next_run_full: false,

@@ -15765,7 +15765,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.7"
+            "example": "0.20.0"
           }
         },
         "example": {
@@ -25700,6 +25700,7 @@
         "enum": [
           "unsupported",
           "unreachable",
+          "not_checking_in",
           "standby",
           "awaiting_connection",
           "deprecated",
@@ -30889,6 +30890,43 @@
           "vsdx_export": {
             "type": "boolean",
             "description": "Viewer may export the diagram as an editable Visio (VSDX) file."
+          }
+        }
+      },
+      "FailedScan": {
+        "type": "object",
+        "description": "A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish.",
+        "required": [
+          "scan_id",
+          "name",
+          "run_id",
+          "next_run_full"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The error the run ended with, if it has one."
+          },
+          "name": {
+            "type": "string",
+            "description": "The scan's name."
+          },
+          "next_run_full": {
+            "type": "boolean",
+            "description": "The scan's next run is a full scan again, because the full scan that didn't finish\ndoesn't count."
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The scan's latest run, which didn't finish."
+          },
+          "scan_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The scan."
           }
         }
       },
@@ -36554,7 +36592,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.7"
+            "example": "0.20.0"
           }
         },
         "example": {
@@ -39940,6 +39978,17 @@
           }
         }
       },
+      "ScanFailureFix": {
+        "type": "string",
+        "description": "What the Issues row for a scan that didn't finish offers, by why it ended.",
+        "enum": [
+          "RetryScan",
+          "OpenRun",
+          "TroubleshootConnection",
+          "RescheduleScan",
+          "RaiseMaxDuration"
+        ]
+      },
       "ScanSettings": {
         "type": "object",
         "description": "Scan performance settings. Lives on the discovery entity.\nNumeric fields are `Option<T>` — `None` means \"use daemon default\".\nThe daemon unwraps with defaults at point of use.",
@@ -41135,6 +41184,52 @@
           },
           {
             "type": "object",
+            "title": "FailedScans",
+            "description": "A daemon's scans whose latest run ended the same way short of finishing.",
+            "required": [
+              "daemon_id",
+              "daemon_name",
+              "site_id",
+              "reason",
+              "scans",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that ran the scans."
+              },
+              "daemon_name": {
+                "type": "string",
+                "description": "The daemon's name."
+              },
+              "reason": {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                "description": "Why the runs ended."
+              },
+              "scans": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FailedScan"
+                },
+                "description": "The scans, newest run first."
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the daemon scans."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "FailedScans"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "UnconfirmedHosts",
             "description": "Hosts known only from other devices' reports, which the user may review.",
             "required": [
@@ -41450,6 +41545,7 @@
           "TargetlessCredential",
           "SiteWithoutDaemon",
           "RunWarnings",
+          "FailedScans",
           "UnconfirmedHosts",
           "UnconfirmedSubnets",
           "InstallDaemon",
@@ -41539,6 +41635,32 @@
                 "type": "string",
                 "enum": [
                   "RunWarning"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "FailedScans",
+            "description": "A daemon's scans whose latest runs ended the same way short of finishing.",
+            "required": [
+              "daemon_id",
+              "reason",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that ran the scans."
+              },
+              "reason": {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "FailedScans"
                 ]
               }
             }
