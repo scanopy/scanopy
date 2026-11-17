@@ -39,6 +39,8 @@ import {
 	dependencies_createDependency,
 	gettingStarted_stepDaemonLabel,
 	gettingStarted_stepDiscoveryLabel,
+	home_failedScans_connectionGuide,
+	home_failedScans_layoutGuide,
 	home_failedScans_nextRunFull,
 	home_nudges_apiKeysAction,
 	home_nudges_dependenciesAction,
@@ -93,10 +95,10 @@ export interface SetupSubject {
 export interface SetupRowView {
 	title: string;
 	sentence: string;
-	/** A docs page about the fix, linked under the sentence. */
-	docsUrl?: string;
 	subjects: SetupSubject[];
 	fix: SetupFix;
+	/** A docs section for a fix the button can't make, offered beside it. */
+	guide?: SetupFix;
 }
 
 /** What a row reads and calls besides its item. */
@@ -300,6 +302,21 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 							go('discovery-history', 'discovery-history-detail', { id: newest?.run_id });
 				}
 			})();
+			// What the fix's docs section teaches: splitting a scan that runs too long across
+			// daemons, or repairing the daemon's connection to the server.
+			const guideLabel = ((): string | undefined => {
+				switch (fixType) {
+					case 'RaiseMaxDuration':
+						return home_failedScans_layoutGuide();
+					case 'TroubleshootConnection':
+						return home_failedScans_connectionGuide();
+					case 'RetryScan':
+					case 'RescheduleScan':
+					case 'OpenRun':
+						return undefined;
+				}
+			})();
+			const guideUrl = scanFailureFixes.getMetadata(fixType).docs_url;
 			return {
 				title,
 				// What ended the run, that it drew no links, and whether a full scan runs full again.
@@ -308,7 +325,6 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 					sentence,
 					...(scans.some((s) => s.next_run_full) ? [home_failedScans_nextRunFull()] : [])
 				].join(' '),
-				docsUrl: scanFailureFixes.getMetadata(fixType).docs_url ?? undefined,
 				subjects: [
 					...scans.map((s) => ({
 						type: 'Discovery' as const,
@@ -318,7 +334,14 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 					})),
 					{ type: 'Daemon', id: daemonId, label: daemon_name, data: lookups.daemon(daemonId) }
 				],
-				fix: { label: scanFailureFixes.getName(fixType), run }
+				fix: { label: scanFailureFixes.getName(fixType), run },
+				guide:
+					guideLabel && guideUrl
+						? {
+								label: guideLabel,
+								run: () => window.open(guideUrl, '_blank', 'noopener,noreferrer')
+							}
+						: undefined
 			};
 		}
 		case 'UnconfirmedHosts':

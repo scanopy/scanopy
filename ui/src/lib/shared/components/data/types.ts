@@ -66,6 +66,8 @@ export interface RowAction {
 	isOpen?: boolean;
 	/** The row shows the label beside the icon, rather than in a tooltip. */
 	showLabel?: boolean;
+	/** The row's main action: a labeled action drawn as a filled button. */
+	primary?: boolean;
 	onClick: () => void;
 	/**
 	 * Runs the action on every selected row, given their ids. With it, the action runs in the

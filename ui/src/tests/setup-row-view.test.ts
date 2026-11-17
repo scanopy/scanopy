@@ -90,23 +90,28 @@ describe('Failed scan rows', () => {
 		scans: [{ scan_id: SCAN, name: 'Office LAN', run_id: RUN, next_run_full: nextRunFull }]
 	});
 
+	const open = vi.fn();
+
 	beforeEach(() => {
 		vi.mocked(openModal).mockClear();
-		vi.stubGlobal('window', { location: { hash: '' } });
+		open.mockClear();
+		vi.stubGlobal('window', { location: { hash: '' }, open });
 	});
 
-	it("sends a timed-out scan to its editor's Performance tab, with the layout guide", () => {
+	it("sends a timed-out scan to its editor's Performance tab, with the layout guide beside it", () => {
 		const view = setupRowView(failed('WatchdogTimeout', false), ctx);
 		view.fix.run();
 		expect(openModal).toHaveBeenCalledWith('discovery-editor', { id: SCAN, tab: 'performance' });
-		expect(view.docsUrl).toContain('#choose-a-layout');
+		view.guide?.run();
+		expect(open.mock.calls[0][0]).toContain('#choose-a-layout');
 	});
 
-	it('links a silent scan to the connection troubleshooting guide', () => {
+	it('offers a silent scan the connection troubleshooting guide', () => {
 		const view = setupRowView(failed('SessionSilent', false), ctx);
 		view.fix.run();
 		expect(ctx.onTroubleshoot).toHaveBeenCalled();
-		expect(view.docsUrl).toContain('#daemon-not-connecting-to-server');
+		view.guide?.run();
+		expect(open.mock.calls[0][0]).toContain('#daemon-not-connecting-to-server');
 	});
 
 	it('says a full scan runs full again only when one in the row was full', () => {
@@ -114,6 +119,6 @@ describe('Failed scan rows', () => {
 		const full = setupRowView(failed('DaemonReportedFailure', true), ctx);
 		expect(full.sentence.startsWith(light.sentence)).toBe(true);
 		expect(full.sentence.length).toBeGreaterThan(light.sentence.length);
-		expect(light.docsUrl).toBeUndefined();
+		expect(light.guide).toBeUndefined();
 	});
 });

@@ -43,9 +43,11 @@
 					disabled={!!action.unavailable}
 					use:tooltip
 					data-tooltip={resolveTooltip(action)}
-					class="{toolbarButtonClass(
-						action.tone
-					)} flex items-center gap-1.5 px-2 py-1 text-xs whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+					class="{action.primary
+						? 'btn-primary'
+						: toolbarButtonClass(
+								action.tone
+							)} flex items-center gap-1.5 px-2 py-1 text-xs whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{action.label}
 					<action.icon size={14} class={action.animation || ''} />
