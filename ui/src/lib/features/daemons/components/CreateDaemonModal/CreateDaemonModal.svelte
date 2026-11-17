@@ -311,9 +311,11 @@
 		return 'scanopy-daemon';
 	}
 
-	// Auto-select first site when SelectSite is hidden (first daemon)
+	// Default to the first site whenever none of the user's sites is selected: on a first daemon,
+	// where the picker is hidden, and when the configure step mounts late (after the email
+	// verification notice clears) with nothing chosen.
 	$effect(() => {
-		if (isFirstDaemon && !selectedSiteId && sitesData.length > 0) {
+		if (sitesData.length > 0 && !sitesData.some((s) => s.id === selectedSiteId)) {
 			selectedSiteId = sitesData[0].id;
 		}
 	});
@@ -557,7 +559,7 @@
 	async function handleNext() {
 		if (activeTab === 'configure') {
 			// Provisioning would be refused; the notice above the form says why.
-			if (provisionRefused) return;
+			if (provisionRefused || !selectedSiteId) return;
 			const fields = getVisibleFieldIds(formValues);
 			const isValid = await validateForm(form, fields);
 
@@ -859,7 +861,7 @@
 							})
 						: common_next(),
 					onClick: handleNext,
-					disabled: isTestingReachability || provisionRefused,
+					disabled: isTestingReachability || provisionRefused || !selectedSiteId,
 					large: true,
 					busy: isTestingReachability
 				}
