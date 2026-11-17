@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight } from '@lucide/svelte';
+	import { ArrowRight, BookOpen } from '@lucide/svelte';
 	import DataControls from '#lib/shared/components/data/DataControls.svelte';
 	import Loading from '#lib/shared/components/feedback/Loading.svelte';
 	import DaemonTroubleshootingModal from '#lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
@@ -56,19 +56,39 @@
 		});
 	}
 
-	/** One action per Issue: its fix, named on the row. Only the button runs it. */
+	/**
+	 * An Issue's fix, named on the row as its primary button, and the docs section for a fix the
+	 * button can't make beside it when there is one. Only the buttons run them.
+	 */
 	function issueActions(entry: SetupListEntry): RowAction[] {
-		const fix = viewOf(entry).fix;
+		const { fix, guide } = viewOf(entry);
 		return [
 			{
 				label: fix.label,
 				icon: ArrowRight,
 				showLabel: true,
+				primary: true,
 				onClick: () => {
-					trackEvent('setup_item_action_clicked', { item_type: entry.item.type });
+					trackEvent('setup_item_action_clicked', { item_type: entry.item.type, action: 'fix' });
 					fix.run();
 				}
-			}
+			},
+			...(guide
+				? [
+						{
+							label: guide.label,
+							icon: BookOpen,
+							showLabel: true,
+							onClick: () => {
+								trackEvent('setup_item_action_clicked', {
+									item_type: entry.item.type,
+									action: 'guide'
+								});
+								guide.run();
+							}
+						}
+					]
+				: [])
 		];
 	}
 

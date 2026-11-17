@@ -2,8 +2,7 @@
 	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
 	import { MAX_ITEMS_IN_CELL, entityRef } from '#lib/shared/components/data/types.ts';
 	import { entities } from '#lib/shared/stores/metadata.ts';
-	import { common_moreItems, home_issues_readGuide } from '#lib/paraglide/messages.js';
-	import { ExternalLink } from '@lucide/svelte';
+	import { common_moreItems } from '#lib/paraglide/messages.js';
 	import type { SetupRowView } from '../setup-row-view';
 
 	let {
@@ -54,14 +53,5 @@
 		<p class="text-sm text-tertiary">
 			{view.sentence}
 		</p>
-	{/if}
-	{#if !done && view.docsUrl}
-		<a
-			href={view.docsUrl}
-			target="_blank"
-			rel="external noopener noreferrer"
-			class="pointer-events-auto relative z-10 text-sm text-blue-500 hover:underline"
-			>{home_issues_readGuide()}<ExternalLink class="ml-0.5 inline h-3 w-3" /></a
-		>
 	{/if}
 </div>
