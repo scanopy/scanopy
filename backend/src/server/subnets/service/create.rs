@@ -2,7 +2,75 @@
 use super::*;
 use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 
+/// `existing` as a reading of `incoming` leaves it, and whether that corrected its range.
+///
+/// The name and type go by the same ladder as the range. A placeholder name (the CIDR,
+/// `Unspecified`) takes the name a controller gives the network, and a type guessed from an
+/// interface name takes the controller's own; a value a person set is never displaced. This also
+/// repairs the rows the interface-name heuristic once typed as container bridges (#663): those are
+/// stored `Unspecified`.
+///
+/// `apply_cidr` refuses anything less authoritative than what is stored, so an inference never
+/// displaces a reading and nothing displaces a range a person confirmed.
+fn refresh_matched(existing: &Subnet, incoming: &Subnet) -> (Subnet, bool) {
+    let mut refreshed = existing.clone();
+    refreshed.last_seen_at = incoming.last_seen_at;
+    refreshed
+        .base
+        .name
+        .apply_in_place(incoming.base.name.clone());
+    refreshed
+        .base
+        .subnet_type
+        .apply_in_place(incoming.base.subnet_type.clone());
+    if let Some(owner) = incoming.owner_for_ownerless_bridge(existing) {
+        refreshed.base.virtualization_service_id = Some(owner);
+    }
+    let corrected = refreshed.apply_cidr(*incoming.base.cidr, incoming.base.cidr.source());
+    (refreshed, corrected)
+}
+
 impl SubnetService {
+    /// Resolve the subnets a daemon on `site_id` reports it is attached to, returning their ids.
+    ///
+    /// Reads the site's subnets once. A reported subnet that matches a stored one and would change
+    /// nothing on it but `last_seen_at` resolves to that row with no write. Anything else (a new
+    /// range, a correction of an assumed one, a name or type to take) goes through
+    /// [`Self::create_for`]. A daemon may name only its own site, so the site comes from the
+    /// caller, never the report. A subnet that fails to resolve is logged and left out.
+    pub async fn resolve_reported(
+        &self,
+        site_id: Uuid,
+        reported: Vec<Subnet>,
+        authentication: AuthenticatedEntity,
+    ) -> Result<Vec<Uuid>, anyhow::Error> {
+        let stored = self
+            .storage
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
+            .await?;
+        let mut ids = Vec::with_capacity(reported.len());
+        for mut subnet in reported {
+            subnet.base.site_id = site_id;
+            let unchanged = stored
+                .iter()
+                .find(|existing| matches_existing_subnet(&subnet, existing))
+                .filter(|existing| {
+                    let (refreshed, corrected) = refresh_matched(existing, &subnet);
+                    !corrected
+                        && changes(*existing, &refreshed, Subnet::LOG_IGNORED_PATHS).is_empty()
+                });
+            if let Some(existing) = unchanged {
+                ids.push(existing.id);
+                continue;
+            }
+            match self.create_for(subnet, authentication.clone(), None).await {
+                Ok(resolved) => ids.push(resolved.id),
+                Err(e) => tracing::warn!(error = ?e, "Failed to resolve interfaced subnet"),
+            }
+        }
+        Ok(ids)
+    }
+
     /// [`CrudService::create`], with why a person created the subnet when the create flow says so.
     /// The purpose rides on the `Created` event; a row that matched an existing one sends none.
     pub async fn create_for(
@@ -81,33 +149,11 @@ impl SubnetService {
                 // `ScanContext`) so all entities in one submission share one
                 // timestamp; for non-discovery callers the value is whatever
                 // they put on the entity.
-                let mut refreshed = existing_subnet.clone();
-                refreshed.last_seen_at = subnet.last_seen_at;
-
-                // The name and type by the same ladder as the range. A placeholder name (the
-                // CIDR, `Unspecified`) takes the name a controller gives the network, and a type
-                // guessed from an interface name takes the controller's own; a value a person set
-                // is never displaced. This also repairs the rows the interface-name heuristic once
-                // typed as container bridges (#663): those are stored `Unspecified`.
-                refreshed.base.name.apply_in_place(subnet.base.name.clone());
-                refreshed
-                    .base
-                    .subnet_type
-                    .apply_in_place(subnet.base.subnet_type.clone());
-
-                if let Some(owner) = subnet.owner_for_ownerless_bridge(existing_subnet) {
-                    refreshed.base.virtualization_service_id = Some(owner);
-                }
-
-                // The confidence ladder, finally applied. `apply_cidr` refuses anything less
-                // authoritative than what is stored, so an inference never displaces a reading and
-                // nothing displaces a range a person confirmed. Without this the incoming rung was
-                // dropped on the floor here and `Inferred` could only ever be cleared by hand.
                 let before = (
                     *existing_subnet.base.cidr,
                     existing_subnet.base.cidr.source(),
                 );
-                let corrected = refreshed.apply_cidr(*subnet.base.cidr, subnet.base.cidr.source());
+                let (mut refreshed, corrected) = refresh_matched(existing_subnet, &subnet);
 
                 self.storage.update(&mut refreshed).await?;
 

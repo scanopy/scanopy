@@ -44,9 +44,10 @@ pub struct DaemonStatus {
     #[serde(default)]
     pub capabilities: LegacyCapabilities,
     /// The subnets the daemon's host is attached to, as its last session classified them. The
-    /// server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
-    /// the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
-    /// them once after each session; older daemons send them on every report.
+    /// server resolves these via SubnetService::resolve_reported (match by CIDR, create the new
+    /// ones) and replaces the daemon's interfaced subnets with them when the set differs. Absent:
+    /// leave them as they are. A daemon sends them once after each session; older daemons send
+    /// them on every report.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interfaced_subnets: Option<Vec<Subnet>>,
     /// A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were

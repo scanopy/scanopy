@@ -1079,7 +1079,7 @@ async fn receive_work_request(
     state
         .services
         .daemon_service
-        .process_status(daemon_id, status.clone(), auth.entity.clone())
+        .process_status_for(daemon.clone(), status.clone(), auth.entity.clone())
         .await?;
 
     // Before dispatch and the cancellation read: a session the daemon dropped ends here, and the
