@@ -1,8 +1,10 @@
 # Quarterly reminder to review the NDAA Section 889 prohibited-vendor list.
 # Opens (or refreshes) a tracking issue prompting a maintainer to re-pull SAM.gov
 # (FAR 52.204-25) and review ASPI, then update tools/889/889-vendors.txt. The
-# matcher stays offline; this job never edits the list itself. See
-# tools/889/889-check.md for why automated fetch-and-PR was deferred.
+# issue carries a feed check (tools/889/889-candidates.sh): the 889 parties and
+# their ownership-derived affiliates from a hash-checked us-restricted-parties
+# release, with the ones no vendor pattern covers yet. The matcher stays
+# offline; this job never edits the list itself. See tools/889/889-check.md.
 name: 889 Vendor List Refresh
 
 on:
@@ -10,18 +12,39 @@ on:
     # 09:00 UTC on the 1st of Jan, Apr, Jul, Oct (quarterly)
     - cron: '0 9 1 1,4,7,10 *'
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'us-restricted-parties release tag to check (default: newest data-* release)'
+        required: false
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
   remind:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+
+      # A feed failure must not stop the reminder: it is reported in the issue
+      # and the review falls back to the manual checklist.
+      - name: Check the vendor list against the 889 feed
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: |
+          if ./tools/889/889-candidates.sh ${RELEASE:+--release "$RELEASE"} > "$RUNNER_TEMP/candidates.md"; then
+            cat "$RUNNER_TEMP/candidates.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "_Feed check failed; see the workflow run log. Use the manual checklist above._" > "$RUNNER_TEMP/candidates.md"
+          fi
+
       - name: Open or update the quarterly review issue
         uses: actions/github-script@v9
         with:
           script: |
+            const fs = require('fs');
+            const feed = fs.readFileSync(`${process.env.RUNNER_TEMP}/candidates.md`, 'utf8');
             const title = 'Quarterly review: NDAA Section 889 vendor list';
             const body = [
               'Time for the quarterly review of `tools/889/889-vendors.txt`.',
@@ -36,6 +59,8 @@ jobs:
               '- [ ] Re-check `tools/889/889-allow.txt` exceptions still apply.',
               '',
               'Methodology and rationale: `tools/889/889-check.md`.',
+              '',
+              feed,
             ].join('\n');
 
             const existing = await github.rest.issues.listForRepo({
@@ -53,7 +78,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: n,
-                body: 'Quarterly reminder: this 889 vendor-list review is still open.',
+                body: ['Quarterly reminder: this 889 vendor-list review is still open.', '', feed].join('\n'),
               });
               return;
             }
