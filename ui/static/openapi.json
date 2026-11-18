@@ -50031,11 +50031,12 @@
         "type": "string",
         "enum": [
           "current_diagram",
+          "troubleshooting",
+          "workloads",
+          "application_dependencies",
+          "client_documentation",
           "inventory",
           "audit_evidence",
-          "troubleshooting",
-          "client_documentation",
-          "workloads",
           "other"
         ]
       },
