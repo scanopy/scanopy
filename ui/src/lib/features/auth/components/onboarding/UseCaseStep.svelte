@@ -12,6 +12,7 @@
 	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { otherAnswer } from './otherAnswer';
+	import billingPlansJson from '#lib/data/billing-plans.json';
 	import {
 		auth_scanopyLogo,
 		common_back,
@@ -45,6 +46,9 @@
 	/** Where a home user installs Scanopy Community. */
 	const COMMUNITY_INSTALL_URL =
 		'https://scanopy.net/docs/self-hosted-server/installation/?edition=community';
+
+	/** Community's seat and site limits, read from the plan fixture so the notice follows them. */
+	const community = billingPlansJson.find((plan) => plan.id === 'Community')?.metadata;
 
 	const configQuery = useConfigQuery();
 	let configData = $derived(configQuery.data);
@@ -196,7 +200,10 @@
 					{:else}
 						<InlineInfo
 							title={onboarding_homelabLicenseNoticeTitle()}
-							body={onboarding_homelabLicenseNoticeBody()}
+							body={onboarding_homelabLicenseNoticeBody({
+								seats: community?.included_seats ?? 1,
+								sites: community?.included_sites ?? 1
+							})}
 						/>
 					{/if}
 				</div>
