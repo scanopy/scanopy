@@ -53,6 +53,7 @@ pub mod billing_emails_zero_amount;
 pub mod cloud_setup;
 pub mod cross_tenant_probe;
 pub mod daemon_check_in_updates;
+pub mod daemon_poll_writes;
 pub mod daemon_report_scope;
 pub mod default_credentials;
 pub mod deletion_reasons;

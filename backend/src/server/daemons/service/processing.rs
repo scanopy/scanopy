@@ -37,10 +37,27 @@ impl DaemonService {
         status: DaemonStatus,
         auth: AuthenticatedEntity,
     ) -> Result<(), ApiError> {
-        let mut daemon = self
+        let daemon = self
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        self.process_status_for(daemon, status, auth).await
+    }
+
+    /// [`Self::process_status`] for a daemon the caller has just loaded.
+    ///
+    /// Runs on every poll, so it writes only what the report changed. `last_seen` moves every
+    /// time, in one row write with no event when nothing else did. Name, mode, version and OS go
+    /// through the full update, interfaced subnets are created only when new or changed, and the
+    /// junction is rewritten only when the set differs.
+    pub async fn process_status_for(
+        &self,
+        mut daemon: Daemon,
+        status: DaemonStatus,
+        auth: AuthenticatedEntity,
+    ) -> Result<(), ApiError> {
+        let daemon_id = daemon.id;
+        let stored = daemon.clone();
         let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, status.os)?;
@@ -73,33 +90,33 @@ impl DaemonService {
         //     referential-integrity gap is exactly what this table fixes).
         //   • A report that carries no list leaves the junction as the last one set it.
         let carries_interfaced_subnets = status.interfaced_subnets.is_some();
-        let subnet_ids: Option<Vec<Uuid>> = if supports_unified_discovery(
-            daemon.base.version.as_ref(),
-        ) {
-            match status.interfaced_subnets {
-                Some(subnets) => {
-                    let mut resolved_ids = Vec::new();
-                    for subnet in subnets {
-                        match self.subnet_service.create(subnet, auth.clone()).await {
-                            Ok(resolved) => resolved_ids.push(resolved.id),
-                            Err(e) => {
-                                tracing::warn!(error = ?e, "Failed to resolve interfaced subnet");
-                            }
+        let subnet_ids: Option<Vec<Uuid>> =
+            if supports_unified_discovery(daemon.base.version.as_ref()) {
+                match status.interfaced_subnets {
+                    // A failed read of the site's subnets leaves the junction as it was rather than
+                    // emptying it.
+                    Some(subnets) => match self
+                        .subnet_service
+                        .resolve_reported(daemon.base.site_id, subnets, auth.clone())
+                        .await
+                    {
+                        Ok(ids) => Some(ids),
+                        Err(e) => {
+                            tracing::warn!(error = ?e, "Failed to resolve interfaced subnets");
+                            None
                         }
-                    }
-                    Some(resolved_ids)
+                    },
+                    None => None,
                 }
-                None => None,
-            }
-        } else {
-            Some(
-                self.filter_existing_subnet_ids(
-                    &status.capabilities.interfaced_subnet_ids,
-                    daemon.base.site_id,
+            } else {
+                Some(
+                    self.filter_existing_subnet_ids(
+                        &status.capabilities.interfaced_subnet_ids,
+                        daemon.base.site_id,
+                    )
+                    .await,
                 )
-                .await,
-            )
-        };
+            };
 
         if let Some(subnet_ids) = subnet_ids {
             self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
@@ -108,8 +125,16 @@ impl DaemonService {
 
         let host_id = daemon.base.host_id;
         let site_id = daemon.base.site_id;
-        self.update(&mut daemon, auth, UpdateReason::DaemonStatusReported)
-            .await?;
+        let mut liveness_only = daemon.clone();
+        liveness_only.base.last_seen = stored.base.last_seen;
+        if liveness_only == stored {
+            // Nothing a subscriber or the entity log records (`last_seen` is in the daemon's
+            // ignored paths), so no event and no re-read.
+            self.storage().update(&mut daemon).await?;
+        } else {
+            self.update(&mut daemon, auth, UpdateReason::DaemonStatusReported)
+                .await?;
+        }
 
         self.refresh_interfaces_if_changed(
             daemon_id,

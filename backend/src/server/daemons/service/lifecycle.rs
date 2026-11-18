@@ -138,7 +138,21 @@ impl DaemonService {
         daemon_id: &Uuid,
         subnet_ids: &[Uuid],
     ) -> Result<(), ApiError> {
-        let rows: Vec<DaemonInterfacedSubnet> = subnet_ids
+        // Every status report carries the set, and it rarely changes: read it and write only a
+        // different one. A failed read falls through to the write.
+        let wanted: std::collections::BTreeSet<Uuid> = subnet_ids.iter().copied().collect();
+        let filter =
+            StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
+        if let Ok(stored) = self
+            .interfaced_subnet_storage
+            .get_all_ordered(filter, "subnet_id ASC")
+            .await
+            && stored.len() == wanted.len()
+            && stored.iter().all(|row| wanted.contains(&row.subnet_id))
+        {
+            return Ok(());
+        }
+        let rows: Vec<DaemonInterfacedSubnet> = wanted
             .iter()
             .map(|subnet_id| DaemonInterfacedSubnet {
                 daemon_id: *daemon_id,
