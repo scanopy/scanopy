@@ -984,9 +984,9 @@ mod tests {
         }
 
         // The dependency tutorial moves up but stays locked until the topology is opened.
-        let mut troubleshooting = base.clone();
-        troubleshooting.intents = vec![SignupIntent::Troubleshooting];
-        let entries = crate::server::setup::service::SetupService::list(&troubleshooting);
+        let mut applications = base.clone();
+        applications.intents = vec![SignupIntent::ApplicationDependencies];
+        let entries = crate::server::setup::service::SetupService::list(&applications);
         let tutorial = entries
             .iter()
             .find(|e| T::from(&e.item) == T::DependencyTutorial)

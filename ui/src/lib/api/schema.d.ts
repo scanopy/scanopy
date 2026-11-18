@@ -16112,7 +16112,7 @@ export interface components {
             topology: components["schemas"]["Topology"];
         };
         /** @enum {string} */
-        SignupIntent: "current_diagram" | "inventory" | "audit_evidence" | "troubleshooting" | "client_documentation" | "workloads" | "other";
+        SignupIntent: "current_diagram" | "troubleshooting" | "workloads" | "application_dependencies" | "client_documentation" | "inventory" | "audit_evidence" | "other";
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",

@@ -61,11 +61,12 @@ pub fn other_answer(text: &str) -> Result<Option<String>, OtherAnswerTooLong> {
 #[strum(serialize_all = "snake_case")]
 pub enum SignupIntent {
     CurrentDiagram,
+    Troubleshooting,
+    Workloads,
+    ApplicationDependencies,
+    ClientDocumentation,
     Inventory,
     AuditEvidence,
-    Troubleshooting,
-    ClientDocumentation,
-    Workloads,
     Other,
 }
 
@@ -75,15 +76,16 @@ impl SignupIntent {
     pub fn features(self) -> &'static [Feature] {
         match self {
             Self::CurrentDiagram => &[Feature::NetworkTopology, Feature::ScheduledDiscovery],
+            Self::Troubleshooting => &[Feature::NetworkTopology],
+            Self::Workloads => &[Feature::WorkloadMapping],
+            Self::ApplicationDependencies => &[Feature::ApplicationMapping],
+            Self::ClientDocumentation => &[Feature::Sharing],
             Self::Inventory => &[Feature::DeviceInventory, Feature::CsvExport],
             Self::AuditEvidence => &[
-                Feature::ConfluenceExport,
-                Feature::DrawioExport,
-                Feature::VsdxExport,
+                Feature::AuditLogs,
+                Feature::SnapshotRetentionDays,
+                Feature::PdfExport,
             ],
-            Self::Troubleshooting => &[Feature::NetworkTopology],
-            Self::ClientDocumentation => &[Feature::Sharing],
-            Self::Workloads => &[Feature::WorkloadMapping, Feature::ApplicationMapping],
             Self::Other => &[],
         }
     }
@@ -93,15 +95,14 @@ impl SignupIntent {
     pub fn setup_items(self) -> &'static [SetupItemDiscriminants] {
         use SetupItemDiscriminants as T;
         match self {
-            Self::Troubleshooting => &[
-                T::DependencyTutorial,
-                T::Dependencies,
-                T::InterfaceCredential,
-            ],
-            Self::Workloads => &[T::ApplicationTags],
+            // Which port a device is on comes from SNMP interface data.
+            Self::Troubleshooting => &[T::InterfaceCredential],
+            Self::ApplicationDependencies => {
+                &[T::ApplicationTags, T::DependencyTutorial, T::Dependencies]
+            }
             Self::Inventory => &[T::InterfaceCredential, T::Tags],
             Self::ClientDocumentation => &[T::MultiSite, T::Share],
-            Self::CurrentDiagram | Self::AuditEvidence | Self::Other => &[],
+            Self::CurrentDiagram | Self::Workloads | Self::AuditEvidence | Self::Other => &[],
         }
     }
 
@@ -110,6 +111,7 @@ impl SignupIntent {
         match self {
             Self::Troubleshooting => TopologyView::L2Physical,
             Self::Workloads => TopologyView::Workloads,
+            Self::ApplicationDependencies => TopologyView::Application,
             Self::CurrentDiagram
             | Self::Inventory
             | Self::AuditEvidence
@@ -123,6 +125,8 @@ impl SignupIntent {
         use CredentialCategory as C;
         match self {
             Self::Workloads => &[C::Containers, C::Virtualization],
+            // Docker and Podman report the services an application is built from.
+            Self::ApplicationDependencies => &[C::Containers],
             Self::CurrentDiagram | Self::Inventory | Self::Troubleshooting => {
                 &[C::NetworkMonitoring, C::NetworkController]
             }
@@ -151,6 +155,7 @@ impl EntityMetadataProvider for SignupIntent {
             Self::Troubleshooting => Concept::L2.icon(),
             Self::ClientDocumentation => EntityDiscriminants::Share.icon(),
             Self::Workloads => Concept::Workloads.icon(),
+            Self::ApplicationDependencies => Concept::Application.icon(),
             Self::Other => Icon::MessageCircle,
         }
     }
@@ -159,12 +164,17 @@ impl EntityMetadataProvider for SignupIntent {
 impl TypeMetadataProvider for SignupIntent {
     fn name(&self) -> &'static str {
         match self {
-            Self::CurrentDiagram => "Keep a current diagram of the network",
-            Self::Inventory => "Keep an inventory of devices and addresses",
-            Self::AuditEvidence => "Produce evidence for an audit or compliance requirement",
-            Self::Troubleshooting => "Find what is connected where when something breaks",
-            Self::ClientDocumentation => "Document client networks and share them",
-            Self::Workloads => "See which services and containers run where",
+            Self::CurrentDiagram => "Replace network maps I've been drawing by hand",
+            Self::Troubleshooting => "Find which switch and port a device is on during an outage",
+            Self::Workloads => "See which VMs and containers go down when I restart a host",
+            Self::ApplicationDependencies => {
+                "Know which applications break when a server or service goes down"
+            }
+            Self::ClientDocumentation => "Give my clients a live map of their network",
+            Self::Inventory => "Find every device on the network, with its IP and MAC address",
+            Self::AuditEvidence => {
+                "Keep a dated record of the network for audits and change reviews"
+            }
             Self::Other => "Something else",
         }
     }
