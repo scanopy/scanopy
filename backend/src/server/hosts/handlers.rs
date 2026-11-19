@@ -1108,7 +1108,7 @@ async fn create_host_discovery(
 /// - **Ports**: Transferred to destination. If a port with the same number and protocol already
 ///   exists, bindings are remapped to use the existing port.
 /// - **Services**: Transferred to destination with deduplication.
-///   See [upsert behavior](https://scanopy.net/docs/discovery/#upsert-behavior) for details.
+///   See [upsert behavior](https://scanopy.net/docs/using-scanopy/discovery/naming-and-deduplication/#upsert-behavior) for details.
 ///
 /// ### Restrictions
 ///

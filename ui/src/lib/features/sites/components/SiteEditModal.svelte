@@ -40,6 +40,8 @@
 		sites_createSite,
 		sites_credentialHelp,
 		sites_credentialHelpLinkText,
+		sites_planningHelp,
+		sites_planningHelpLinkText,
 		sites_siteNamePlaceholder,
 		sites_staleAfterHours,
 		sites_staleAfterHoursHelp,
@@ -261,6 +263,12 @@
 								{field}
 								placeholder={sites_siteNamePlaceholder()}
 								required
+							/>
+							<DocsHint
+								class="mt-1"
+								text={sites_planningHelp()}
+								href="https://scanopy.net/docs/plan-your-deployment/sites/"
+								linkText={sites_planningHelpLinkText()}
 							/>
 						{/snippet}
 					</form.Field>
