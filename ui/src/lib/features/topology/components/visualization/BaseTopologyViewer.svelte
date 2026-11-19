@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { writable, derived, get, type Writable } from 'svelte/store';
+	import { writable, derived, get } from 'svelte/store';
 	import {
 		SvelteFlow,
 		MiniMap,
@@ -52,9 +52,6 @@
 	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		baseFlowEdges,
-		selectedNodes,
-		selectedEdge as selectedEdgeStore,
-		selectedNode as selectedNodeStore,
 		topologyOptions,
 		optionsPanelExpanded,
 		updateTopologyOptions,
@@ -126,9 +123,10 @@
 		clearSelection,
 		handleModifierNodeClick,
 		handleBoxSelect,
+		useSelectionStores,
 		type SelectionStores
 	} from '../../selection';
-	import { onMount, tick, setContext, getContext } from 'svelte';
+	import { onMount, tick, setContext } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
 	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 	import { containerTypes } from '#lib/shared/stores/metadata.ts';
@@ -215,18 +213,13 @@
 		topologyContext.set(topology);
 	});
 
-	// Resolve selection stores from context (share/embed) or fall back to global stores.
-	// We pass the store *reference* through, not its value, so $/get() don't apply.
-	/* eslint-disable svelte/require-store-reactive-access */
-	const selNodeStore = getContext<Writable<Node | null>>('selectedNode') ?? selectedNodeStore;
-	const selEdgeStore = getContext<Writable<Edge | null>>('selectedEdge') ?? selectedEdgeStore;
-	const selNodesStore = getContext<Writable<Node[]>>('selectedNodes') ?? selectedNodes;
-	/* eslint-enable svelte/require-store-reactive-access */
-	const selectionStores: SelectionStores = {
+	// Selection stores from context (share/embed), or the global ones.
+	const selectionStores: SelectionStores = useSelectionStores();
+	const {
 		selectedNode: selNodeStore,
 		selectedEdge: selEdgeStore,
 		selectedNodes: selNodesStore
-	};
+	} = selectionStores;
 
 	/**
 	 * Node count at or above which the collapse fade is skipped in favour of a single store write.

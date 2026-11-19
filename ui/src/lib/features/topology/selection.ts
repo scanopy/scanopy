@@ -1,3 +1,4 @@
+import { getContext } from 'svelte';
 import { get, type Writable } from 'svelte/store';
 import type { Node, Edge } from '@xyflow/svelte';
 import type { TopologyNode } from './types/base';
@@ -37,6 +38,18 @@ const defaultStores: SelectionStores = {
 	selectedEdge: globalSelectedEdge,
 	selectedNodes: globalSelectedNodes
 };
+
+/**
+ * The selection stores in effect: a share or embed's own, from context, or the global ones. Call
+ * during component initialisation, as `getContext` requires.
+ */
+export function useSelectionStores(): SelectionStores {
+	return {
+		selectedNode: getContext<Writable<Node | null>>('selectedNode') ?? defaultStores.selectedNode,
+		selectedEdge: getContext<Writable<Edge | null>>('selectedEdge') ?? defaultStores.selectedEdge,
+		selectedNodes: getContext<Writable<Node[]>>('selectedNodes') ?? defaultStores.selectedNodes
+	};
+}
 
 export function selectNode(node: Node, stores: SelectionStores = defaultStores) {
 	cancelDependencyEdit();

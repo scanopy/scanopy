@@ -8,24 +8,40 @@
 	import {
 		common_source,
 		common_target,
+		topology_focusLink,
+		topology_focusNode,
 		topology_neighborEvidence
 	} from '#lib/paraglide/messages.js';
 	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
 	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
+	import HostLinkTrace from '../shared/HostLinkTrace.svelte';
+	import type { Edge } from '@xyflow/svelte';
+	import { useSvelteFlow } from '@xyflow/svelte';
+	import { Crosshair } from '@lucide/svelte';
+	import { focusLink, focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
 	import { formatRelativeTime } from '#lib/shared/utils/formatting.ts';
 
 	let {
+		edge,
 		sourceEntityId,
 		targetEntityId,
 		protocol
 	}: {
+		edge?: Edge;
 		sourceEntityId?: string;
 		targetEntityId?: string;
 		protocol?: components['schemas']['DiscoveryProtocol'];
 	} = $props();
+
+	const flow = useSvelteFlow();
+
+	/** Moves the camera onto the outermost container of one end of the link. */
+	function focusEnd(nodeId: string) {
+		focusNodes(flow, [outermostNode(nodeId, flow.getInternalNode)]);
+	}
 
 	const topo = useTopology();
 	const topoStore = topo.fromContext ? topo.store : null;
@@ -79,11 +95,21 @@
 </script>
 
 <div class="space-y-4">
-	{#if protocol}
-		<div class="flex items-center gap-2">
+	<div class="flex items-center gap-2">
+		{#if protocol}
 			<Tag {...discoveryProtocols.getTag(protocol)} />
-		</div>
-	{/if}
+		{/if}
+		{#if edge}
+			{@const current = edge}
+			<button
+				class="btn-icon ml-auto p-0.5"
+				onclick={() => focusLink(flow, current)}
+				title={topology_focusLink()}
+			>
+				<Crosshair class="h-3.5 w-3.5" />
+			</button>
+		{/if}
+	</div>
 
 	{#if evidenceRow?.neighbor_seen_at}
 		<div class="flex items-center gap-2 text-sm">
@@ -103,6 +129,14 @@
 			iconClass={entities.getColorHelper('Interface').icon}
 			description={null}
 		>
+			{#snippet actions()}
+				{#if edge}
+					{@const end = edge.source}
+					<button class="btn-icon p-0.5" onclick={() => focusEnd(end)} title={topology_focusNode()}>
+						<Crosshair class="h-3.5 w-3.5" />
+					</button>
+				{/if}
+			{/snippet}
 			<div class="space-y-1">
 				{#if sourceHost}
 					<div class="card-static card">
@@ -127,6 +161,14 @@
 						/>
 					</div>
 				{/if}
+				{#if edge && topology && sourceHost}
+					<HostLinkTrace
+						{edge}
+						hostId={sourceHost.id}
+						{topology}
+						sectionId="edge:PhysicalLink:source:links"
+					/>
+				{/if}
 			</div>
 		</InspectorSection>
 	{/if}
@@ -139,6 +181,14 @@
 			iconClass={entities.getColorHelper('Interface').icon}
 			description={null}
 		>
+			{#snippet actions()}
+				{#if edge}
+					{@const end = edge.target}
+					<button class="btn-icon p-0.5" onclick={() => focusEnd(end)} title={topology_focusNode()}>
+						<Crosshair class="h-3.5 w-3.5" />
+					</button>
+				{/if}
+			{/snippet}
 			<div class="space-y-1">
 				{#if targetHost}
 					<div class="card-static card">
@@ -162,6 +212,14 @@
 							displayComponent={InterfaceDisplay}
 						/>
 					</div>
+				{/if}
+				{#if edge && topology && targetHost}
+					<HostLinkTrace
+						{edge}
+						hostId={targetHost.id}
+						{topology}
+						sectionId="edge:PhysicalLink:target:links"
+					/>
 				{/if}
 			</div>
 		</InspectorSection>

@@ -121,6 +121,7 @@ export function boundsOfNodes(nodes: readonly BoundableNode[]): Rect | null {
 /** The parts of an adopted SvelteFlow node `boundsOfAdoptedNodes` reads. */
 export interface AdoptedNode {
 	internals: { positionAbsolute: { x: number; y: number } };
+	parentId?: string;
 	measured?: { width?: number; height?: number };
 	width?: number;
 	height?: number;
@@ -163,4 +164,24 @@ export interface FocusableFlow {
 export function focusNodes(flow: FocusableFlow, ids: readonly string[]): void {
 	const bounds = boundsOfAdoptedNodes(ids, flow.getInternalNode);
 	if (bounds) void flow.fitBounds(bounds, { padding: 0.5, duration: 300 });
+}
+
+/** The outermost container a node sits in, or the node itself when it sits in none. */
+export function outermostNode(
+	id: string,
+	lookup: (id: string) => Pick<AdoptedNode, 'parentId'> | undefined
+): string {
+	let current = id;
+	for (let parent = lookup(current)?.parentId; parent; parent = lookup(current)?.parentId) {
+		current = parent;
+	}
+	return current;
+}
+
+/** Move the camera onto both ends of a link: the outermost containers its endpoints sit in. */
+export function focusLink(flow: FocusableFlow, edge: { source: string; target: string }): void {
+	focusNodes(flow, [
+		outermostNode(edge.source, flow.getInternalNode),
+		outermostNode(edge.target, flow.getInternalNode)
+	]);
 }

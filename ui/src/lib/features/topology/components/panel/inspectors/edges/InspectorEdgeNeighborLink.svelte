@@ -8,21 +8,37 @@
 	import {
 		common_source,
 		common_target,
+		topology_focusLink,
+		topology_focusNode,
 		topology_neighborLinkPortsUnknown
 	} from '#lib/paraglide/messages.js';
 	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
 	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
+	import HostLinkTrace from '../shared/HostLinkTrace.svelte';
+	import type { Edge } from '@xyflow/svelte';
+	import { useSvelteFlow } from '@xyflow/svelte';
+	import { Crosshair } from '@lucide/svelte';
+	import { focusLink, focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
 
 	let {
+		edge,
 		sourceHostId,
 		targetHostId,
 		protocol
 	}: {
+		edge?: Edge;
 		sourceHostId?: string;
 		targetHostId?: string;
 		protocol?: components['schemas']['DiscoveryProtocol'];
 	} = $props();
+
+	const flow = useSvelteFlow();
+
+	/** Moves the camera onto the outermost container of one end of the link. */
+	function focusEnd(nodeId: string) {
+		focusNodes(flow, [outermostNode(nodeId, flow.getInternalNode)]);
+	}
 
 	const topo = useTopology();
 	const topoStore = topo.fromContext ? topo.store : null;
@@ -38,11 +54,21 @@
 </script>
 
 <div class="space-y-4">
-	{#if protocol}
-		<div class="flex items-center gap-2">
+	<div class="flex items-center gap-2">
+		{#if protocol}
 			<Tag {...discoveryProtocols.getTag(protocol)} />
-		</div>
-	{/if}
+		{/if}
+		{#if edge}
+			{@const current = edge}
+			<button
+				class="btn-icon ml-auto p-0.5"
+				onclick={() => focusLink(flow, current)}
+				title={topology_focusLink()}
+			>
+				<Crosshair class="h-3.5 w-3.5" />
+			</button>
+		{/if}
+	</div>
 
 	<!-- A forwarding-table link says what that evidence is; an LLDP/CDP one that the ports are
 	     unknown. -->
@@ -60,16 +86,34 @@
 			iconClass={entities.getColorHelper('Host').icon}
 			description={null}
 		>
-			<div class="card-static card">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-						compact: true,
-						hideTags: ['guest']
-					}}
-					item={sourceHost}
-					displayComponent={HostDisplay}
-				/>
+			{#snippet actions()}
+				{#if edge}
+					{@const end = edge.source}
+					<button class="btn-icon p-0.5" onclick={() => focusEnd(end)} title={topology_focusNode()}>
+						<Crosshair class="h-3.5 w-3.5" />
+					</button>
+				{/if}
+			{/snippet}
+			<div class="space-y-2">
+				<div class="card-static card">
+					<EntityDisplayWrapper
+						context={{
+							services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
+							compact: true,
+							hideTags: ['guest']
+						}}
+						item={sourceHost}
+						displayComponent={HostDisplay}
+					/>
+				</div>
+				{#if edge && topology}
+					<HostLinkTrace
+						{edge}
+						hostId={sourceHost.id}
+						{topology}
+						sectionId="edge:NeighborLink:source:links"
+					/>
+				{/if}
 			</div>
 		</InspectorSection>
 	{/if}
@@ -82,16 +126,34 @@
 			iconClass={entities.getColorHelper('Host').icon}
 			description={null}
 		>
-			<div class="card-static card">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-						compact: true,
-						hideTags: ['guest']
-					}}
-					item={targetHost}
-					displayComponent={HostDisplay}
-				/>
+			{#snippet actions()}
+				{#if edge}
+					{@const end = edge.target}
+					<button class="btn-icon p-0.5" onclick={() => focusEnd(end)} title={topology_focusNode()}>
+						<Crosshair class="h-3.5 w-3.5" />
+					</button>
+				{/if}
+			{/snippet}
+			<div class="space-y-2">
+				<div class="card-static card">
+					<EntityDisplayWrapper
+						context={{
+							services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
+							compact: true,
+							hideTags: ['guest']
+						}}
+						item={targetHost}
+						displayComponent={HostDisplay}
+					/>
+				</div>
+				{#if edge && topology}
+					<HostLinkTrace
+						{edge}
+						hostId={targetHost.id}
+						{topology}
+						sectionId="edge:NeighborLink:target:links"
+					/>
+				{/if}
 			</div>
 		</InspectorSection>
 	{/if}

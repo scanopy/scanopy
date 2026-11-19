@@ -62,7 +62,8 @@
 		},
 		PhysicalLink: {
 			component: InspectorEdgePhysicalLink,
-			props: (_edge, data) => ({
+			props: (edge, data) => ({
+				edge,
 				sourceEntityId: data.source_entity_id,
 				targetEntityId: data.target_entity_id,
 				protocol: data.protocol
@@ -70,7 +71,8 @@
 		},
 		NeighborLink: {
 			component: InspectorEdgeNeighborLink,
-			props: (_edge, data) => ({
+			props: (edge, data) => ({
+				edge,
 				sourceHostId: data.source_host_id,
 				targetHostId: data.target_host_id,
 				protocol: data.protocol
