@@ -174,14 +174,15 @@
 											{field}
 											required={true}
 											placeholder={useCaseConfig.sitePlaceholder}
-											helpText={useCaseConfig.siteHelp}
-										/>
-										<DocsHint
-											class="mt-1"
-											text={sites_planningHelp()}
-											href="https://scanopy.net/docs/plan-your-deployment/sites/"
-											linkText={sites_planningHelpLinkText()}
-										/>
+										>
+											{#snippet hint()}
+												<DocsHint
+													text={`${useCaseConfig.siteHelp} ${sites_planningHelp()}`}
+													href="https://scanopy.net/docs/plan-your-deployment/sites/"
+													linkText={sites_planningHelpLinkText()}
+												/>
+											{/snippet}
+										</TextInput>
 									{/snippet}
 								</form.Field>
 							</div>
