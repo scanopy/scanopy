@@ -53,6 +53,41 @@ const GROUP_GAP = 200;
 const PADDING = 25;
 const SNAP = 25;
 
+/** A node as the root graph reads it: its id, and its parent when it sits in a container. */
+export interface GraphNode {
+	id: string;
+	isContainer: boolean;
+	parentId?: string;
+}
+
+/**
+ * The root graph of a layout input: root containers, linked wherever an edge joins two of them.
+ * An edge end resolves to its root container through `parentMap` first, which covers every node
+ * of the view, then through the nodes' own parents. Collapsed containers leave their elements out
+ * of `nodes` while edges still name them, so `nodes` alone cannot resolve those ends.
+ */
+export function rootGraphOf(
+	nodes: GraphNode[],
+	edges: { source: string; target: string }[],
+	parentMap: ReadonlyMap<string, string> = new Map()
+): RootGraph {
+	const parentOf = new Map(parentMap);
+	const roots: string[] = [];
+	for (const node of nodes) {
+		if (node.parentId) parentOf.set(node.id, node.parentId);
+		else if (node.isContainer) roots.push(node.id);
+	}
+	const rootOf = (id: string): string => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+	return buildRootGraph(
+		roots,
+		edges.map((edge) => [rootOf(edge.source), rootOf(edge.target)])
+	);
+}
+
 /** An undirected graph of `nodes`, one edge per linked pair however many links join them. */
 export function buildRootGraph(nodes: string[], links: Iterable<[string, string]>): RootGraph {
 	const adjacency = new Map<string, Set<string>>(nodes.map((n) => [n, new Set()]));

@@ -212,9 +212,14 @@ fn ring_estate(params: &RingParams) -> LargeEstate {
 }
 
 /// Switch-to-switch adjacency by host name, one entry per neighbour however many links join them.
+/// Both ends of a switch-to-switch link were walked, so the far port has an ifIndex.
 fn switch_adjacency(estate: &LargeEstate) -> HashMap<&str, HashSet<&str>> {
     let mut adjacency: HashMap<&str, HashSet<&str>> = HashMap::new();
-    for n in &estate.neighbor_updates {
+    for n in estate
+        .neighbor_updates
+        .iter()
+        .filter(|n| n.target_if_index.is_some())
+    {
         adjacency
             .entry(n.source_host_name.as_str())
             .or_default()
@@ -282,6 +287,7 @@ fn each_ring_is_a_closed_loop_through_both_cores() {
 fn ring_links_resolve_port_to_port_at_ten_gigabit() {
     let estate = ring_estate(&RingParams::default());
     let names = names(&estate);
+    let switches: HashSet<&str> = switch_adjacency(&estate).into_keys().collect();
     let speeds: HashMap<(&str, i32), Option<i64>> = estate
         .interfaces
         .iter()
@@ -295,6 +301,7 @@ fn ring_links_resolve_port_to_port_at_ten_gigabit() {
     let links: HashSet<(&str, i32, &str, i32)> = estate
         .neighbor_updates
         .iter()
+        .filter(|n| switches.contains(n.target_host_name.as_str()))
         .map(|n| {
             (
                 n.source_host_name.as_str(),
@@ -365,4 +372,58 @@ fn ring_estate_names_and_macs_are_unique_and_distinct_from_plant() {
     let ring_macs = macs(&ring);
     let plant_macs = macs(&estate(&EstateParams::default()));
     assert!(ring_macs.is_disjoint(&plant_macs));
+}
+
+/// Every station device is linked port to port from the access port that learned it: the
+/// switch's LLDP table names the device's port, which has no ifIndex because nothing walks the
+/// device, and both ends run at 1 Gb/s. The L2 view draws each as a physical link.
+#[test]
+fn every_station_device_is_linked_from_its_access_port() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let switches: HashSet<&str> = switch_adjacency(&estate).into_keys().collect();
+    let ports: HashMap<(&str, Option<i32>), &Interface> = estate
+        .interfaces
+        .iter()
+        .map(|i| ((names[&i.base.host_id].as_str(), i.base.if_index), i))
+        .collect();
+
+    let mut linked: HashMap<&str, usize> = HashMap::new();
+    for link in estate
+        .neighbor_updates
+        .iter()
+        .filter(|n| !switches.contains(n.target_host_name.as_str()))
+    {
+        assert_eq!(link.target_if_index, None);
+        let device_port = ports[&(link.target_host_name.as_str(), None)];
+        let switch_port = ports[&(link.source_host_name.as_str(), Some(link.source_if_index))];
+        assert_eq!(device_port.base.speed_bps, Some(GIGABIT));
+        assert_eq!(switch_port.base.speed_bps, Some(GIGABIT));
+        // The switch port learned the device's MAC, the one its own port carries.
+        let device_mac = device_port
+            .base
+            .mac_address
+            .as_ref()
+            .unwrap()
+            .value()
+            .0
+            .to_string();
+        assert!(
+            switch_port
+                .base
+                .fdb_macs
+                .as_ref()
+                .is_some_and(|f| f.value().0.contains(&device_mac))
+        );
+        *linked.entry(link.target_host_name.as_str()).or_default() += 1;
+    }
+
+    let devices: Vec<&String> = names
+        .values()
+        .filter(|n| !switches.contains(n.as_str()))
+        .collect();
+    assert!(!devices.is_empty());
+    for device in devices {
+        assert_eq!(linked.get(device.as_str()), Some(&1), "{device}");
+    }
 }
