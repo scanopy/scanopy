@@ -45,7 +45,7 @@ const DAEMON_IMAGE_SCARF_REPO: &str = "docker.scanopy.net/scanopy/scanopy/daemon
 /// The daemon image straight from GHCR.
 const DAEMON_IMAGE_GHCR_REPO: &str = "ghcr.io/scanopy/scanopy/daemon";
 /// Compose comment above a Scarf image line, for when Scarf is down or blocked.
-const DOCKER_PULL_HELP: &str = "# Pull fails? https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#docker-pull-or-download-fails";
+const DOCKER_PULL_HELP: &str = "# Pull fails? https://scanopy.net/docs/troubleshooting/daemon-setup/#docker-pull-or-download-fails";
 
 /// Where generated commands download the daemon from. Scarf counts downloads for Scanopy Cloud
 /// and commercial self-hosted servers; a Community Edition server downloads from GitHub and GHCR.

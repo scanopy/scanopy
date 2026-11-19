@@ -199,7 +199,7 @@
 									<CodeContainer language="bash" expandable={false} code={artifacts.docker.pull} />
 									<DocsHint
 										text={daemons_docsUpgradeDockerConfigLost()}
-										href="https://scanopy.net/docs/self-hosted-server/troubleshooting/#daemon-waits-for-apiinitialize-after-a-restart-or-recreate"
+										href="https://scanopy.net/docs/troubleshooting/self-hosted-server/#daemon-waits-for-apiinitialize-after-a-restart-or-recreate"
 										linkText={daemons_docsUpgradeDockerConfigLostLinkText()}
 									/>
 								{:else}

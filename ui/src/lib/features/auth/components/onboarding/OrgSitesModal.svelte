@@ -16,8 +16,11 @@
 		onboarding_licenseOrgTitle,
 		onboarding_visualizeCompany,
 		onboarding_visualizeHomelab,
-		onboarding_visualizeMsp
+		onboarding_visualizeMsp,
+		sites_planningHelp,
+		sites_planningHelpLinkText
 	} from '#lib/paraglide/messages.js';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 
 	interface Props {
 		isOpen?: boolean;
@@ -172,6 +175,12 @@
 											required={true}
 											placeholder={useCaseConfig.sitePlaceholder}
 											helpText={useCaseConfig.siteHelp}
+										/>
+										<DocsHint
+											class="mt-1"
+											text={sites_planningHelp()}
+											href="https://scanopy.net/docs/plan-your-deployment/sites/"
+											linkText={sites_planningHelpLinkText()}
 										/>
 									{/snippet}
 								</form.Field>

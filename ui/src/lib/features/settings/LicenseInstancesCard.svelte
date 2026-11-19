@@ -69,7 +69,7 @@
 		{#if instancesQuery.isSuccess && instances.length === 0}
 			<DocsHint
 				text={settings_billing_license_noServers()}
-				href="https://scanopy.net/docs/self-hosted-server/troubleshooting/?edition=commercial"
+				href="https://scanopy.net/docs/troubleshooting/self-hosted-server/?edition=commercial"
 				linkText={settings_billing_license_noServersLinkText()}
 			/>
 		{/if}

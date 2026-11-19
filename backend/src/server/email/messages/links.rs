@@ -32,8 +32,7 @@ pub const SETTINGS_LICENSE: &str = "{base_url}/?modal=settings&tab=license&{utm}
 pub const SETTINGS_EMAIL: &str = "{base_url}/?modal=settings&tab=email&{utm}";
 
 /// Daemon troubleshooting guide.
-pub const DOCS_DAEMON_TROUBLESHOOTING: &str =
-    "https://scanopy.net/docs/setting-up-daemons/troubleshooting/";
+pub const DOCS_DAEMON_TROUBLESHOOTING: &str = "https://scanopy.net/docs/reference/daemon-status/";
 
 /// The one-click unsubscribe link (RFC 8058) for one pausable category,
 /// served by `email/handlers.rs`. Built from the installed public URL rather

@@ -99,9 +99,7 @@ const FD_LIMIT_FIXES = new Set<WarningEntry['code']>([
 ]);
 
 /** How to raise the daemon's file-descriptor limit, per operating system and install method. */
-const FD_LIMIT_GUIDE = docsUrl(
-	'/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error'
-);
+const FD_LIMIT_GUIDE = docsUrl('/docs/troubleshooting/daemon-setup/#too-many-open-files-error');
 
 /**
  * Codes whose fix is a new daemon, and where it goes: beside guests only a daemon on their

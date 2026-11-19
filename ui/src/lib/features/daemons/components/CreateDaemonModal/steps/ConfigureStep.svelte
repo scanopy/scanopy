@@ -123,7 +123,7 @@
 <div class="space-y-4">
 	<DocsHint
 		text={daemons_docsLayout()}
-		href="https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choose-a-layout"
+		href="https://scanopy.net/docs/plan-your-deployment/daemons/"
 		linkText={daemons_docsLayoutLinkText()}
 	/>
 
@@ -177,7 +177,7 @@
 
 	<DocsHint
 		text={daemons_docsPollingMode()}
-		href="https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choosing-a-polling-mode"
+		href="https://scanopy.net/docs/plan-your-deployment/daemons/#choosing-a-polling-mode"
 		linkText={daemons_docsPollingModeLinkText()}
 	/>
 
