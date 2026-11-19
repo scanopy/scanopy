@@ -83,6 +83,19 @@ pub struct TopologyViewSupport {
     pub application: bool,
 }
 
+impl TopologyViewSupport {
+    /// A site with the data for every view.
+    pub const ALL: Self = Self {
+        l2_physical: true,
+        application: true,
+    };
+    /// A site with the data for no view that needs any.
+    pub const NONE: Self = Self {
+        l2_physical: false,
+        application: false,
+    };
+}
+
 impl TopologyView {
     /// Whether a topology with the given support flags has enough data to
     /// render this view. Exhaustive by design — adding a new `TopologyView`
