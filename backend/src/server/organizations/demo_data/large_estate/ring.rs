@@ -253,7 +253,13 @@ pub fn generate_ring_estate(
         fabric.access_ports(),
         now,
     );
-    assemble_estate(fabric, attached, addressing, Some(GIGABIT), now)
+    assemble_estate(
+        fabric,
+        attached,
+        addressing,
+        AccessLinks::Lldp { speed_bps: GIGABIT },
+        now,
+    )
 }
 
 /// The site the demo seeds the ring estate as. Created after Plant so it sorts after it.

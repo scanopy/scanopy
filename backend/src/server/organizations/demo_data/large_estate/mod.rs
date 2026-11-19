@@ -214,25 +214,44 @@ pub fn generate_large_estate(
         now,
     );
 
-    assemble_estate(fabric, attached, addressing, None, now)
+    assemble_estate(
+        fabric,
+        attached,
+        addressing,
+        AccessLinks::ForwardingTable,
+        now,
+    )
 }
 
-/// Cables every attached host to its access port and bundles the estate. `access_speed_bps`
-/// sets every access port's speed; `None` takes each host's own link speed.
+/// What an access switch records of the hosts cabled to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccessLinks {
+    /// Each access port learned its host's MAC, and the port keeps the host's own link speed.
+    ForwardingTable,
+    /// As well as learning its MAC, each access port's LLDP table names the host's port, so the
+    /// L2 view draws the link port to port. Every access port runs at `speed_bps`.
+    Lldp { speed_bps: i64 },
+}
+
+/// Cables every attached host to its access port and bundles the estate.
 fn assemble_estate(
     fabric: switches::Fabric,
     attached: endpoints::AttachedHosts,
     addressing: Addressing,
-    access_speed_bps: Option<i64>,
+    access_links: AccessLinks,
     now: DateTime<Utc>,
 ) -> LargeEstate {
     let switches::Fabric {
         mut hosts_with_services,
         mut interfaces,
-        neighbor_updates,
+        mut neighbor_updates,
         host_neighbor_updates,
         ..
     } = fabric;
+    let access_speed_bps = match access_links {
+        AccessLinks::ForwardingTable => None,
+        AccessLinks::Lldp { speed_bps } => Some(speed_bps),
+    };
 
     // Each access port that learned an attached host's MAC records it, as the bridge FDB does.
     let interface_index: HashMap<(Uuid, i32), usize> = interfaces
@@ -252,6 +271,41 @@ fn assemble_estate(
         iface.base.oper_status = Some(IfOperStatus::Up);
         iface.base.speed_bps = Some(access_speed_bps.unwrap_or(host.speed_bps));
         iface.base.if_alias = Some(host.name.clone());
+    }
+
+    // The host's port is known only from what it advertised over LLDP: it has no ifIndex, since
+    // nothing walks the host itself, and carries the MAC and address the scan found.
+    if let AccessLinks::Lldp { speed_bps } = access_links {
+        let switch_names: HashMap<Uuid, String> = hosts_with_services
+            .iter()
+            .map(|h| (h.host.id, h.host.base.name.to_string()))
+            .collect();
+        for (placement, hws) in attached.placements.iter().zip(&attached.hosts) {
+            let mut port = switches::port_interface(
+                &hws.host,
+                0,
+                "eth0".to_string(),
+                speed_bps,
+                placement.mac.bytes(),
+                true,
+                now,
+            );
+            port.base.if_index = None;
+            port.base.if_type = None;
+            port.base.mac_address = Some(MacEvidence::new(
+                MacEvidenceValue(placement.mac),
+                AttributeSource::ArpReply,
+            ));
+            port.base.ip_address_id = hws.ip_addresses.first().map(|ip| ip.id);
+            port.base.native_vlan_id = Some(addressing.segment(placement.role).vlan.id);
+            interfaces.push(port);
+            neighbor_updates.push(NeighborUpdate {
+                source_host_name: switch_names[&placement.switch_host_id].clone(),
+                source_if_index: placement.port,
+                target_host_name: placement.name.clone(),
+                target_if_index: None,
+            });
+        }
     }
 
     let daemon_host_id = attached.daemon_host_id;
