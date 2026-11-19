@@ -457,11 +457,14 @@
 	});
 
 	// Record ExploreViews once the user views another view: each view shown on the tab is sent
-	// once with mark_viewed=true, and the server records ExploreViews for any but the default.
+	// once with mark_viewed=true, and the server records ExploreViews for any but the one the tab
+	// opened on. The starting view is never sent: it records nothing, and the request rebuilds the
+	// whole bundle, which on every page load doubled the largest download in the app.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	let viewsMarked = new Set<string>();
 	$effect(() => {
 		const view = $activeView;
+		const startingView = currentTopologyRow?.starting_view;
 		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
 		if (
 			isActive &&
@@ -470,6 +473,8 @@
 			topologyAccess &&
 			setup.includes('OpenTopology') &&
 			!setup.includes('ExploreViews') &&
+			startingView != null &&
+			view !== startingView &&
 			!viewsMarked.has(view)
 		) {
 			viewsMarked.add(view);
