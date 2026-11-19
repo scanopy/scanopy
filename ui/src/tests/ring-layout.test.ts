@@ -5,6 +5,7 @@ import {
 	loopCycles,
 	placeRings,
 	ringNodes,
+	rootGraphOf,
 	type Point,
 	type RootGraph,
 	type Size
@@ -150,6 +151,27 @@ describe('detectRings', () => {
 
 	it('finds no ring in a 4-cycle of redundant uplinks', () => {
 		expect(detectRings(graphOf(cycle('c1', 'd1', 'c2', 'd2')))).toEqual([]);
+	});
+});
+
+describe('rootGraphOf', () => {
+	// Five hosts in a ring, each with two ports, linked port to port.
+	const hosts = ['h0', 'h1', 'h2', 'h3', 'h4'];
+	const ports = hosts.flatMap((h) => [`${h}/a`, `${h}/b`]);
+	const links = hosts.map((h, i) => ({ source: `${h}/b`, target: `${hosts[(i + 1) % 5]}/a` }));
+	const parentMap = new Map(ports.map((p) => [p, p.split('/')[0]]));
+
+	it('finds the ring when every port is in the layout input', () => {
+		const nodes = [
+			...hosts.map((id) => ({ id, isContainer: true })),
+			...ports.map((id) => ({ id, isContainer: false, parentId: id.split('/')[0] }))
+		];
+		expect(detectRings(rootGraphOf(nodes, links))).toHaveLength(1);
+	});
+
+	it('finds the ring when collapsed hosts leave their ports out of the input', () => {
+		const nodes = hosts.map((id) => ({ id, isContainer: true }));
+		expect(detectRings(rootGraphOf(nodes, links, parentMap))).toHaveLength(1);
 	});
 });
 
