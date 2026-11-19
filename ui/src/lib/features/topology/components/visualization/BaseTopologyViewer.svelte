@@ -514,6 +514,12 @@
 	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const distrustedLayoutKeys = new Set<string>();
+	/**
+	 * Store key of the layout on screen, set by the run that laid it out. A later run that needs no
+	 * layout (a refetch) can be the one whose size check finds the drift, and the stored entry
+	 * behind what is on screen has to go then too.
+	 */
+	let renderedLayoutKey: string | null = null;
 
 	/**
 	 * A DOM measurement pass is running.
@@ -1269,6 +1275,7 @@
 				return;
 			}
 			visibleNodes = layoutResult.visibleNodes;
+			renderedLayoutKey = layoutKey;
 			if (!layoutFromStore && layoutResult.engineResult) {
 				layoutToStore = { sizes: elementNodeSizes, result: layoutResult.engineResult };
 			}
@@ -1484,12 +1491,14 @@
 				// self-heal fires every time, and each recursion is a full pipeline
 				// run including two more elk.layout() calls.
 				perf.count('post-render-relayout');
-				// A stored layout whose sizes the DOM just contradicted is wrong for this content.
-				// Drop it, and keep the re-layout below from reading it back.
-				if (layoutFromStore && layoutKey) {
+				// The layout on screen was built around sizes the DOM just contradicted. Drop its
+				// stored entry, and keep the re-layout below from reading it back. Not only when this
+				// run read the store: a refetch run lays nothing out, and when it finds the drift the
+				// entry behind the screen is still the wrong one.
+				if (renderedLayoutKey) {
 					perf.count('layout-store:invalidated');
-					deleteStoredLayout(layoutKey);
-					distrustedLayoutKeys.add(layoutKey);
+					deleteStoredLayout(renderedLayoutKey);
+					distrustedLayoutKeys.add(renderedLayoutKey);
 				}
 				// Invalidate structureKey to force ELK re-run. Do NOT
 				// invalidate baseKey — base structure hasn't changed, and
