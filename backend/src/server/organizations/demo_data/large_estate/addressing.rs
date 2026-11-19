@@ -166,9 +166,6 @@ pub(super) const VLAN_PLAN: [VlanSpec; 18] = [
     },
 ];
 
-/// The first address of the estate's range. Subnets are carved from here upwards.
-const ESTATE_BASE: Ipv4Addr = Ipv4Addr::new(10, 40, 0, 0);
-
 /// One VLAN of the plan with its subnet and the addresses handed out on it so far.
 pub(super) struct Segment {
     pub vlan: Vlan,
@@ -197,9 +194,14 @@ impl Segment {
 pub(super) struct Addressing {
     segments: Vec<Segment>,
     index: HashMap<Role, usize>,
+    naming: SiteNaming,
 }
 
 impl Addressing {
+    pub fn naming(&self) -> &SiteNaming {
+        &self.naming
+    }
+
     pub fn index_of(&self, role: Role) -> usize {
         self.index
             .get(&role)
@@ -229,22 +231,32 @@ impl Addressing {
     }
 }
 
-/// Builds the first `vlan_count` segments of [`VLAN_PLAN`] (at least four), each subnet sized to
-/// hold `demand(role)` hosts with a quarter spare, never smaller than a /24.
+/// The first `vlan_count` entries of [`VLAN_PLAN`], never fewer than four.
+pub(super) fn truncated_plan(vlan_count: usize) -> &'static [VlanSpec] {
+    &VLAN_PLAN[..vlan_count.clamp(4, VLAN_PLAN.len())]
+}
+
+/// Builds one segment per entry of `included`, which must hold the office role, each subnet sized
+/// to hold `demand(role)` hosts with a quarter spare, never smaller than a /24. Subnets are carved
+/// upwards from `naming.base` and named after `naming.label`.
 pub(super) fn build_segments(
     site: &Site,
     organization_id: Uuid,
-    vlan_count: usize,
+    naming: &SiteNaming,
+    included: &[VlanSpec],
     demand: impl Fn(Role) -> usize,
     now: DateTime<Utc>,
 ) -> Addressing {
     let mut segments = Vec::new();
     let mut index = HashMap::new();
-    let mut cursor = u32::from(ESTATE_BASE);
+    let mut cursor = u32::from(naming.base);
 
-    let (included, folded) = VLAN_PLAN.split_at(vlan_count.clamp(4, VLAN_PLAN.len()));
     // The office segment also holds the hosts of every role the plan leaves out.
-    let folded_demand: usize = folded.iter().map(|s| demand(s.role)).sum();
+    let folded_demand: usize = VLAN_PLAN
+        .iter()
+        .filter(|s| !included.iter().any(|i| i.role == s.role))
+        .map(|s| demand(s.role))
+        .sum();
     for spec in included {
         let hosts = demand(spec.role)
             + if spec.role == Role::Office {
@@ -278,7 +290,7 @@ pub(super) fn build_segments(
                     AttributeSource::DaemonSelfReport,
                 ),
                 site_id: site.id,
-                name: SubnetName::unattributed(format!("Plant {}", spec.name)),
+                name: SubnetName::unattributed(format!("{} {}", naming.label, spec.name)),
                 description: Some(spec.description.to_string()),
                 subnet_type: SubnetTypeAttributed::unattributed(spec.subnet_type),
                 virtualization_service_id: None,
@@ -324,5 +336,9 @@ pub(super) fn build_segments(
         });
     }
 
-    Addressing { segments, index }
+    Addressing {
+        segments,
+        index,
+        naming: *naming,
+    }
 }

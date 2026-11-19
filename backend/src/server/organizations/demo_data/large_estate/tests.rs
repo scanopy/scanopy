@@ -1,6 +1,8 @@
 use super::*;
 use std::collections::{HashSet, VecDeque};
 
+const GIGABIT: i64 = 1_000_000_000;
+
 fn estate(params: &EstateParams) -> LargeEstate {
     let organization_id = Uuid::new_v4();
     let now = crate::server::shared::clock::now();
@@ -196,4 +198,171 @@ fn a_truncated_vlan_plan_still_places_every_host() {
     let estate = estate(&params);
     assert_eq!(estate.vlans.len(), 4);
     assert_eq!(estate.hosts_with_services.len(), params.host_count());
+}
+
+fn ring_estate(params: &RingParams) -> LargeEstate {
+    let organization_id = Uuid::new_v4();
+    let now = crate::server::shared::clock::now();
+    generate_ring_estate(
+        params,
+        &water_utility_site(organization_id, now),
+        organization_id,
+        now,
+    )
+}
+
+/// Switch-to-switch adjacency by host name, one entry per neighbour however many links join them.
+fn switch_adjacency(estate: &LargeEstate) -> HashMap<&str, HashSet<&str>> {
+    let mut adjacency: HashMap<&str, HashSet<&str>> = HashMap::new();
+    for n in &estate.neighbor_updates {
+        adjacency
+            .entry(n.source_host_name.as_str())
+            .or_default()
+            .insert(n.target_host_name.as_str());
+    }
+    adjacency
+}
+
+/// Each ring leaves one core, passes through every one of its station switches exactly once, and
+/// reaches the other core, which links back to the first: a closed loop through both cores.
+#[test]
+fn each_ring_is_a_closed_loop_through_both_cores() {
+    let params = RingParams::default();
+    let estate = ring_estate(&params);
+    let adjacency = switch_adjacency(&estate);
+    let cores: Vec<&str> = adjacency
+        .keys()
+        .copied()
+        .filter(|name| name.starts_with("wtp-"))
+        .collect();
+    assert_eq!(cores.len(), 2);
+    let (first, second) = if cores[0] < cores[1] {
+        (cores[0], cores[1])
+    } else {
+        (cores[1], cores[0])
+    };
+    assert!(
+        adjacency[first].contains(second),
+        "the cores link to each other"
+    );
+
+    for &(ring, stations) in &params.rings {
+        let prefix = format!("{}-", ring.to_lowercase());
+        let entries: Vec<&str> = adjacency[first]
+            .iter()
+            .copied()
+            .filter(|n| n.starts_with(&prefix))
+            .collect();
+        assert_eq!(entries.len(), 1, "{ring} ring leaves {first} once");
+
+        let mut visited = vec![first];
+        let mut current = entries[0];
+        while current != second {
+            assert!(
+                current.starts_with(&prefix),
+                "{current} is off the {ring} ring"
+            );
+            assert!(!visited.contains(&current), "{current} is visited twice");
+            let next: Vec<&str> = adjacency[current]
+                .iter()
+                .copied()
+                .filter(|n| *n != *visited.last().unwrap())
+                .collect();
+            assert_eq!(next.len(), 1, "{current} has two ring neighbours");
+            visited.push(current);
+            current = next[0];
+        }
+        assert_eq!(visited.len() - 1, stations);
+    }
+}
+
+/// Every switch-to-switch link is recorded from both ends, port to port, between two 10 Gb/s
+/// ports, so the L2 view resolves it to the port at each end.
+#[test]
+fn ring_links_resolve_port_to_port_at_ten_gigabit() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let speeds: HashMap<(&str, i32), Option<i64>> = estate
+        .interfaces
+        .iter()
+        .filter_map(|i| {
+            Some((
+                (names[&i.base.host_id].as_str(), i.base.if_index?),
+                i.base.speed_bps,
+            ))
+        })
+        .collect();
+    let links: HashSet<(&str, i32, &str, i32)> = estate
+        .neighbor_updates
+        .iter()
+        .map(|n| {
+            (
+                n.source_host_name.as_str(),
+                n.source_if_index,
+                n.target_host_name.as_str(),
+                n.target_if_index.expect("ring links are port to port"),
+            )
+        })
+        .collect();
+    assert!(estate.host_neighbor_updates.is_empty());
+    for &(source, source_port, target, target_port) in &links {
+        assert!(links.contains(&(target, target_port, source, source_port)));
+        for end in [(source, source_port), (target, target_port)] {
+            assert_eq!(speeds.get(&end), Some(&Some(10 * GIGABIT)), "{end:?}");
+        }
+    }
+}
+
+/// Every station switch has a handful of devices cabled to it, each on a 1 Gb/s access port that
+/// learned its MAC.
+#[test]
+fn every_station_carries_a_handful_of_devices_on_gigabit_ports() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let mut per_switch: HashMap<&str, usize> = HashMap::new();
+    for iface in &estate.interfaces {
+        let Some(fdb) = &iface.base.fdb_macs else {
+            continue;
+        };
+        assert_eq!(iface.base.speed_bps, Some(GIGABIT));
+        *per_switch
+            .entry(names[&iface.base.host_id].as_str())
+            .or_default() += fdb.value().0.len();
+    }
+    let stations: Vec<&str> = switch_adjacency(&estate)
+        .into_keys()
+        .filter(|n| !n.starts_with("wtp-"))
+        .collect();
+    for station in stations {
+        let devices = per_switch.get(station).copied().unwrap_or(0);
+        assert!(
+            (3..=6).contains(&devices),
+            "{station} has {devices} devices"
+        );
+    }
+}
+
+/// The seeder resolves links by host name, and MACs identify hosts across the organization, so
+/// neither repeats within the ring estate or between it and the default estate.
+#[test]
+fn ring_estate_names_and_macs_are_unique_and_distinct_from_plant() {
+    let ring = ring_estate(&RingParams::default());
+    let ring_names = names(&ring);
+    assert_eq!(
+        ring_names.values().collect::<HashSet<_>>().len(),
+        ring_names.len()
+    );
+
+    let macs = |estate: &LargeEstate| -> HashSet<String> {
+        estate
+            .hosts_with_services
+            .iter()
+            .flat_map(|h| &h.ip_addresses)
+            .filter_map(|ip| ip.base.mac_address.as_ref())
+            .map(|m| m.value().0.to_string())
+            .collect()
+    };
+    let ring_macs = macs(&ring);
+    let plant_macs = macs(&estate(&EstateParams::default()));
+    assert!(ring_macs.is_disjoint(&plant_macs));
 }

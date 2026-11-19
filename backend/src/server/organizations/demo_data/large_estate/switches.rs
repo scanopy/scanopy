@@ -11,7 +11,7 @@ const GIGABIT: i64 = 1_000_000_000;
 const ACCESS_UPLINK_PORTS: i32 = 4;
 
 /// What a switch tier is built from.
-struct Model {
+pub(super) struct Model {
     manufacturer: &'static str,
     model: &'static str,
     sys_descr: &'static str,
@@ -104,7 +104,7 @@ pub(super) fn numbered(prefix: &str, index: usize, count: usize) -> String {
 
 /// A MAC for an estate device. Locally administered, so no OUI lookup claims a vendor for it;
 /// the SNMP reading names the vendor.
-fn device_mac(tier: u8, index: usize, port: u8) -> [u8; 6] {
+pub(super) fn device_mac(tier: u8, index: usize, port: u8) -> [u8; 6] {
     [0x02, 0x5c, tier, (index >> 8) as u8, index as u8, port]
 }
 
@@ -333,41 +333,173 @@ pub(super) fn build_fabric(
         fabric.hosts_with_services.push(host);
     }
 
-    // Every cabled port is up.
-    let linked: std::collections::HashSet<(String, i32)> = fabric
-        .neighbor_updates
-        .iter()
-        .map(|n| (n.source_host_name.clone(), n.source_if_index))
-        .chain(
-            fabric
-                .host_neighbor_updates
-                .iter()
-                .map(|n| (n.source_host_name.clone(), n.source_if_index)),
-        )
-        .chain(cabled)
-        .collect();
-    let names: HashMap<Uuid, String> = fabric
-        .hosts_with_services
-        .iter()
-        .map(|h| (h.host.id, h.host.base.name.to_string()))
-        .collect();
-    for iface in &mut fabric.interfaces {
-        if let Some(if_index) = iface.base.if_index
-            && linked.contains(&(names[&iface.base.host_id].clone(), if_index))
-        {
-            iface.base.oper_status = Some(IfOperStatus::Up);
-        }
-    }
-
+    fabric.mark_linked_ports_up(cabled);
     fabric
 }
 
-fn round_up(n: i32, step: i32) -> i32 {
+impl Fabric {
+    /// Every port a link row records, plus `cabled`, is up.
+    fn mark_linked_ports_up(&mut self, cabled: Vec<(String, i32)>) {
+        let linked: std::collections::HashSet<(String, i32)> = self
+            .neighbor_updates
+            .iter()
+            .map(|n| (n.source_host_name.clone(), n.source_if_index))
+            .chain(
+                self.host_neighbor_updates
+                    .iter()
+                    .map(|n| (n.source_host_name.clone(), n.source_if_index)),
+            )
+            .chain(cabled)
+            .collect();
+        let names: HashMap<Uuid, String> = self
+            .hosts_with_services
+            .iter()
+            .map(|h| (h.host.id, h.host.base.name.to_string()))
+            .collect();
+        for iface in &mut self.interfaces {
+            if let Some(if_index) = iface.base.if_index
+                && linked.contains(&(names[&iface.base.host_id].clone(), if_index))
+            {
+                iface.base.oper_status = Some(IfOperStatus::Up);
+            }
+        }
+    }
+}
+
+const RING_CORE_MODEL: Model = Model {
+    manufacturer: "Cisco",
+    model: "C9300-48UXM",
+    sys_descr: "Cisco IOS Software [Cupertino], Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.9.4a, RELEASE SOFTWARE (fc3)",
+    sys_object_id: "1.3.6.1.4.1.9.1.2496",
+    port_name: "GigabitEthernet1/0/",
+    uplink_port_name: "TenGigabitEthernet1/1/",
+};
+
+const RUGGED_STATION_MODEL: Model = Model {
+    manufacturer: "Siemens",
+    model: "RUGGEDCOM RSG2300",
+    sys_descr: "Siemens RUGGEDCOM RSG2300 ROS v5.8.0",
+    sys_object_id: "1.3.6.1.4.1.15004.2.1",
+    port_name: "1/",
+    uplink_port_name: "2/",
+};
+
+/// A switch on a ring site: its host name, what its description and location call it, and how
+/// many edge ports it has before its ring ports.
+pub(super) struct RingSwitch {
+    pub name: String,
+    pub role: String,
+    pub edge_ports: i32,
+}
+
+/// Rings of switches that meet at two cores. Each ring runs from the first core through its
+/// switches to the second, and the link between the cores closes every ring.
+pub(super) struct RingPlan {
+    pub cores: [RingSwitch; 2],
+    pub rings: Vec<Vec<RingSwitch>>,
+}
+
+/// Links between the two cores, which close every ring.
+const CORE_LANES: i32 = 2;
+
+/// Builds the switches of `plan`, linked port to port at 10 Gb/s. Each switch's edge ports come
+/// first, at 1 Gb/s. A core's ports after them are the core lanes, then one per ring; a ring
+/// switch's are the port toward the previous switch, then the one toward the next.
+pub(super) fn build_ring_fabric(
+    plan: &RingPlan,
+    site: &Site,
+    addressing: &mut Addressing,
+    services: &mut ServiceCache,
+    rng: &mut fastrand::Rng,
+    now: DateTime<Utc>,
+) -> Fabric {
+    let mut fabric = Fabric {
+        hosts_with_services: Vec::new(),
+        interfaces: Vec::new(),
+        neighbor_updates: Vec::new(),
+        host_neighbor_updates: Vec::new(),
+        access: Vec::new(),
+    };
+    let mgmt_vlan = addressing.segment(Role::Management).vlan.id;
+    let all_vlans: Vec<Uuid> = addressing.segments().iter().map(|s| s.vlan.id).collect();
+
+    let mut add =
+        |fabric: &mut Fabric, switch: &RingSwitch, model: &Model, uplinks: i32, mac: [u8; 6]| {
+            let host = switch_host(
+                &switch.name,
+                model,
+                &switch.role,
+                mac,
+                site,
+                addressing,
+                services,
+                now,
+            );
+            let edge = switch.edge_ports;
+            let ports: Vec<(i32, i64)> = (1..=edge)
+                .map(|p| (p, GIGABIT))
+                .chain((edge + 1..=edge + uplinks).map(|p| (p, 10 * GIGABIT)))
+                .collect();
+            let trunks: Vec<i32> = (edge + 1..=edge + uplinks).collect();
+            add_switch_interfaces(
+                fabric, &host, model, &ports, &trunks, mac, mgmt_vlan, &all_vlans, now,
+            );
+            fabric.access.push(AccessSwitch {
+                host_id: host.host.id,
+            });
+            fabric.hosts_with_services.push(host);
+        };
+
+    let ring_count = plan.rings.len() as i32;
+    for (i, core) in plan.cores.iter().enumerate() {
+        add(
+            &mut fabric,
+            core,
+            &RING_CORE_MODEL,
+            CORE_LANES + ring_count,
+            device_mac(5, i, 0),
+        );
+    }
+    let mut index = 0;
+    for ring in &plan.rings {
+        for switch in ring {
+            let model = if rng.bool() {
+                &PLANT_ACCESS_MODEL
+            } else {
+                &RUGGED_STATION_MODEL
+            };
+            add(&mut fabric, switch, model, 2, device_mac(6, index, 0));
+            index += 1;
+        }
+    }
+
+    let [north, south] = &plan.cores;
+    for lane in 1..=CORE_LANES {
+        fabric.link(
+            (&north.name, north.edge_ports + lane),
+            (&south.name, south.edge_ports + lane),
+        );
+    }
+    for (r, ring) in plan.rings.iter().enumerate() {
+        let core_port = |core: &RingSwitch| core.edge_ports + CORE_LANES + 1 + r as i32;
+        let mut previous = (north.name.as_str(), core_port(north));
+        for switch in ring {
+            fabric.link(previous, (&switch.name, switch.edge_ports + 1));
+            previous = (&switch.name, switch.edge_ports + 2);
+        }
+        fabric.link(previous, (&south.name, core_port(south)));
+    }
+
+    fabric.mark_linked_ports_up(Vec::new());
+    fabric
+}
+
+pub(super) fn round_up(n: i32, step: i32) -> i32 {
     (n + step - 1) / step * step
 }
 
 #[allow(clippy::too_many_arguments)]
-fn switch_host(
+pub(super) fn switch_host(
     name: &str,
     model: &Model,
     tier: &str,
@@ -390,7 +522,7 @@ fn switch_host(
             with_mac(
                 create_host(
                     name,
-                    Some(&format!("{name}.plant.local")),
+                    Some(&format!("{name}.{}", addressing.naming().domain)),
                     Some(&format!("{tier} switch")),
                     site,
                     mgmt,
@@ -404,8 +536,8 @@ fn switch_host(
             ),
             Some(model.sys_descr),
             Some(model.sys_object_id),
-            Some(&format!("Plant / {tier}")),
-            Some("Plant network team"),
+            Some(&format!("{} / {tier}", addressing.naming().label)),
+            Some(&format!("{} network team", addressing.naming().label)),
             Some(&chassis),
             Some(model.manufacturer),
             Some(model.model),
@@ -436,7 +568,7 @@ fn firewall_host(
             with_mac(
                 create_host(
                     name,
-                    Some(&format!("{name}.plant.local")),
+                    Some(&format!("{name}.{}", addressing.naming().domain)),
                     Some("Firewall between the plant and business networks"),
                     site,
                     &addressing.segment(Role::OtDmz).subnet,
@@ -450,8 +582,8 @@ fn firewall_host(
             ),
             Some(FIREWALL_MODEL.sys_descr),
             Some(FIREWALL_MODEL.sys_object_id),
-            Some("Plant / Server room"),
-            Some("Plant network team"),
+            Some(&format!("{} / Server room", addressing.naming().label)),
+            Some(&format!("{} network team", addressing.naming().label)),
             Some(&MacAddress::new(chassis_mac).to_string()),
             Some(FIREWALL_MODEL.manufacturer),
             Some(FIREWALL_MODEL.model),
@@ -481,7 +613,7 @@ fn firewall_host(
 /// A switch's ports, plus the management SVI that holds its address. `trunks` are the uplink
 /// ports, tagged with every VLAN.
 #[allow(clippy::too_many_arguments)]
-fn add_switch_interfaces(
+pub(super) fn add_switch_interfaces(
     fabric: &mut Fabric,
     host: &HostWithServices,
     model: &Model,

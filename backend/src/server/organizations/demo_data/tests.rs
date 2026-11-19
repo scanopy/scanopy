@@ -634,3 +634,95 @@ fn no_two_demo_addresses_share_an_address_on_one_subnet() {
         );
     }
 }
+
+/// The Water Utility site is scanned the way a real one would be: one daemon, an SNMP credential
+/// that collected from every switch on a completed run with no Issues, and interfaces read over
+/// SNMP.
+#[test]
+fn the_water_utility_site_is_snmp_scanned_by_one_daemon() {
+    use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
+    use crate::server::credentials::r#impl::run_results::CredentialRunOutcome;
+    use crate::server::discovery::r#impl::types::RunType;
+    use large_estate::{RingParams, WATER_UTILITY_SITE_NAME};
+
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4(), UseCase::default());
+    let site = demo
+        .sites
+        .iter()
+        .find(|s| s.base.name == WATER_UTILITY_SITE_NAME)
+        .expect("the demo has a Water Utility site");
+
+    let daemons: Vec<&Daemon> = demo
+        .daemons
+        .iter()
+        .filter(|d| d.base.site_id == site.id)
+        .collect();
+    assert_eq!(daemons.len(), 1);
+
+    let runs: Vec<_> = demo
+        .discoveries
+        .iter()
+        .filter(|d| d.base.site_id == site.id)
+        .filter_map(|d| match &d.base.run_type {
+            RunType::Historical { results } => Some(results),
+            _ => None,
+        })
+        .collect();
+    assert!(!runs.is_empty());
+    for run in runs {
+        assert_eq!(run.reason, Some(DiscoveryTerminalReason::Completed));
+        assert!(run.warnings.is_empty());
+        let collected: u32 = run
+            .credential_results
+            .iter()
+            .map(|r| match &r.outcome {
+                CredentialRunOutcome::Collected { hosts, .. } => *hosts,
+                _ => 0,
+            })
+            .sum();
+        assert_eq!(collected as usize, RingParams::default().switch_count());
+    }
+
+    let snmp = AttributeSource::Probe(ClientProbe::Snmp);
+    let site_interfaces: Vec<&Interface> = demo
+        .interfaces
+        .iter()
+        .filter(|i| i.base.site_id == site.id)
+        .collect();
+    assert!(!site_interfaces.is_empty());
+    assert!(
+        site_interfaces
+            .iter()
+            .all(|i| i.base.interface_source == snmp)
+    );
+}
+
+/// The Water Utility share opens that site's topology on its L2 view alone.
+#[test]
+fn the_water_utility_share_opens_its_l2_view() {
+    use crate::server::topology::types::views::TopologyView;
+    use large_estate::WATER_UTILITY_SITE_NAME;
+
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4(), UseCase::default());
+    let site = demo
+        .sites
+        .iter()
+        .find(|s| s.base.name == WATER_UTILITY_SITE_NAME)
+        .unwrap();
+    let share = demo
+        .shares
+        .iter()
+        .find(|s| s.id == shares::WATER_UTILITY_L2_SHARE_ID)
+        .expect("the demo shares the Water Utility L2 view");
+    let topology = demo
+        .topologies
+        .iter()
+        .find(|t| t.id == share.base.topology_id)
+        .unwrap();
+    assert_eq!(topology.base.site_id, site.id);
+    assert_eq!(share.base.site_id, site.id);
+    assert_eq!(
+        share.base.enabled_views,
+        Some(vec![TopologyView::L2Physical])
+    );
+}

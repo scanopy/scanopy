@@ -269,6 +269,7 @@ impl DemoData {
         // Before Plant is added: only the hand-built sites are snapshotted.
         data.backdate_for_snapshot();
         plant::add_plant_site(&mut data, organization_id, user_id, use_case, now);
+        water_utility::add_water_utility_site(&mut data, organization_id, user_id, use_case, now);
         data
     }
 
@@ -314,8 +315,10 @@ mod tags;
 mod topologies;
 mod vlans;
 
+mod estate_site;
 pub mod large_estate;
 mod plant;
+mod water_utility;
 
 use crate::server::shared::storage::snapshot::Snapshotable;
 pub use large_estate::HostNeighborUpdate;

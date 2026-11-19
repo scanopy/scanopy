@@ -13,7 +13,13 @@ use std::collections::HashMap;
 
 mod addressing;
 mod endpoints;
+mod ring;
 mod switches;
+
+pub use ring::{
+    RingParams, WATER_UTILITY_NAMING, WATER_UTILITY_SITE_NAME, generate_ring_estate,
+    water_utility_site,
+};
 
 #[cfg(test)]
 mod tests;
@@ -23,6 +29,27 @@ use addressing::{Addressing, Role, build_segments};
 
 /// The demo site the default estate is seeded as.
 pub const PLANT_SITE_NAME: &str = "Plant";
+
+/// What a generated site's names and addresses are made from.
+#[derive(Debug, Clone, Copy)]
+pub struct SiteNaming {
+    /// Prefixes subnet names, switch locations ("Plant / Core") and the SNMP contact.
+    pub label: &'static str,
+    /// The DNS suffix of every host that is in DNS.
+    pub domain: &'static str,
+    /// The first address of the site's range. Subnets are carved from here upwards.
+    pub base: Ipv4Addr,
+    /// Added to each attached host's index before it becomes the last three bytes of its MAC, so
+    /// two sites' hosts never share a MAC.
+    pub serial_base: usize,
+}
+
+pub const PLANT_NAMING: SiteNaming = SiteNaming {
+    label: PLANT_SITE_NAME,
+    domain: "plant.local",
+    base: Ipv4Addr::new(10, 40, 0, 0),
+    serial_base: 0,
+};
 
 /// The shape of a generated estate.
 #[derive(Debug, Clone)]
@@ -157,7 +184,8 @@ pub fn generate_large_estate(
     let mut addressing = build_segments(
         site,
         organization_id,
-        params.vlans,
+        &PLANT_NAMING,
+        addressing::truncated_plan(params.vlans),
         |role| match role {
             Role::Management => params.switch_count() + params.firewalls,
             Role::Office => plan.demand(Role::Office) + params.firewalls,
@@ -186,6 +214,18 @@ pub fn generate_large_estate(
         now,
     );
 
+    assemble_estate(fabric, attached, addressing, None, now)
+}
+
+/// Cables every attached host to its access port and bundles the estate. `access_speed_bps`
+/// sets every access port's speed; `None` takes each host's own link speed.
+fn assemble_estate(
+    fabric: switches::Fabric,
+    attached: endpoints::AttachedHosts,
+    addressing: Addressing,
+    access_speed_bps: Option<i64>,
+    now: DateTime<Utc>,
+) -> LargeEstate {
     let switches::Fabric {
         mut hosts_with_services,
         mut interfaces,
@@ -210,7 +250,7 @@ pub fn generate_large_estate(
         // VLAN of the host's own role.
         iface.base.native_vlan_id = Some(addressing.segment(host.role).vlan.id);
         iface.base.oper_status = Some(IfOperStatus::Up);
-        iface.base.speed_bps = Some(host.speed_bps);
+        iface.base.speed_bps = Some(access_speed_bps.unwrap_or(host.speed_bps));
         iface.base.if_alias = Some(host.name.clone());
     }
 
