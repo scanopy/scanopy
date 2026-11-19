@@ -809,6 +809,9 @@ pub struct ViewLayoutConfig {
     /// Whether the view switches to a force-directed overview when every root container is
     /// collapsed.
     pub force_overview: bool,
+    /// Whether root containers that form rings (closed loops of links) are placed as loops, with
+    /// everything else hanging off them. A graph with no ring is laid out as if this were off.
+    pub ring_detection: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1313,6 +1316,7 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: true,
                 force_overview: false,
+                ring_detection: true,
             },
             Self::L3Logical => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Default,
@@ -1323,6 +1327,7 @@ impl TopologyView {
                 repack_disconnected: true,
                 align_layers_top: false,
                 force_overview: true,
+                ring_detection: false,
             },
             Self::Workloads => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Workloads,
@@ -1333,6 +1338,7 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: false,
                 force_overview: false,
+                ring_detection: false,
             },
             Self::Application => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::RectPacking,
@@ -1343,6 +1349,7 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: false,
                 force_overview: true,
+                ring_detection: false,
             },
         }
     }

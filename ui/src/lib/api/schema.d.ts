@@ -17795,6 +17795,11 @@ export interface components {
              *     ones after layout.
              */
             repack_disconnected: boolean;
+            /**
+             * @description Whether root containers that form rings (closed loops of links) are placed as loops, with
+             *     everything else hanging off them. A graph with no ring is laid out as if this were off.
+             */
+            ring_detection: boolean;
             /** @description Whether edges between root containers are passed to the root layout. */
             root_edges: boolean;
             root_order: components["schemas"]["ViewRootOrder"];

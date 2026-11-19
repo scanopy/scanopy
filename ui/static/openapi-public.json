@@ -45400,7 +45400,8 @@
           "root_edges",
           "repack_disconnected",
           "align_layers_top",
-          "force_overview"
+          "force_overview",
+          "ring_detection"
         ],
         "properties": {
           "algorithm": {
@@ -45423,6 +45424,10 @@
           "repack_disconnected": {
             "type": "boolean",
             "description": "Whether root containers with no cross-container edges are moved beside the connected\nones after layout."
+          },
+          "ring_detection": {
+            "type": "boolean",
+            "description": "Whether root containers that form rings (closed loops of links) are placed as loops, with\neverything else hanging off them. A graph with no ring is laid out as if this were off."
           },
           "root_edges": {
             "type": "boolean",

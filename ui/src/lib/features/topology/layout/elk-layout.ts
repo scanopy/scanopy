@@ -14,6 +14,7 @@ import { resolveCollapsedAncestor } from '../collapse';
 import { noteElkRun } from '../diagnostics';
 import { connectedGroups, dependencyOrder, pinChildOrder } from './child-order';
 import { getViewLayout, type ViewLayoutConfig } from './view-layout';
+import { buildRootGraph, detectRings, placeRings } from './ring-layout';
 
 /**
  * The port-constraint a container's own ports can honour.
@@ -1807,5 +1808,43 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	}
 
 	const layoutResult = mapElkResults(result2, cids2, input);
-	return repackDisconnectedContainers(layoutResult, input);
+	const withRings = getViewLayout(input.view).ring_detection
+		? applyRingLayout(layoutResult, input)
+		: null;
+	return withRings ?? repackDisconnectedContainers(layoutResult, input);
+}
+
+/**
+ * Re-places root containers that form rings as loops (`ring-layout.ts`). Returns null when the
+ * root graph has no ring, so the layout is exactly what ELK produced.
+ */
+function applyRingLayout(result: ElkLayoutResult, input: ElkLayoutInput): ElkLayoutResult | null {
+	const parentOf = new Map<string, string>();
+	const roots: string[] = [];
+	for (const node of input.nodes) {
+		const record = node as Record<string, unknown>;
+		const parent =
+			node.node_type === 'Container'
+				? (record.parent_container_id as string | undefined)
+				: (record.container_id as string | undefined);
+		if (parent) parentOf.set(node.id, parent);
+		else if (node.node_type === 'Container') roots.push(node.id);
+	}
+	const rootOf = (id: string): string => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+	const links: [string, string][] = input.edges
+		.filter((edge) => affectsLayout(edge))
+		.map((edge) => [rootOf(edge.source), rootOf(edge.target)]);
+
+	const graph = buildRootGraph(roots, links);
+	const rings = detectRings(graph);
+	const placed = placeRings(graph, rings, result.containerSizes, result.nodePositions);
+	if (!placed) return null;
+
+	const nodePositions = new Map(result.nodePositions);
+	for (const [id, position] of placed) nodePositions.set(id, position);
+	return { ...result, nodePositions };
 }

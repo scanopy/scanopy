@@ -289,6 +289,7 @@
         "force_overview": false,
         "handle_strategy": "horizontal",
         "repack_disconnected": false,
+        "ring_detection": true,
         "root_edges": true,
         "root_order": "input"
       },
@@ -769,6 +770,7 @@
         "force_overview": true,
         "handle_strategy": "optimal",
         "repack_disconnected": true,
+        "ring_detection": false,
         "root_edges": true,
         "root_order": "input"
       },
@@ -1336,6 +1338,7 @@
         "force_overview": false,
         "handle_strategy": "optimal",
         "repack_disconnected": false,
+        "ring_detection": false,
         "root_edges": true,
         "root_order": "workload_count"
       },
@@ -1778,6 +1781,7 @@
         "force_overview": true,
         "handle_strategy": "optimal",
         "repack_disconnected": false,
+        "ring_detection": false,
         "root_edges": false,
         "root_order": "input"
       },
