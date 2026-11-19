@@ -35,6 +35,7 @@
 		PREWARM_RELEASE_ZOOM,
 		PREWARM_ZOOM,
 		detailIsStaged,
+		detailKeptIds,
 		shouldSimplify
 	} from '../../pipeline/render-mode';
 	import { provideDetailStaging } from '../../detail-staging.svelte';
@@ -652,6 +653,20 @@
 	const detailStaging = provideDetailStaging();
 	$effect(() => detailStaging.set(detailStaged, detailPrewarming));
 	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
+
+	// The selection draws in full at any zoom: see `detailKeptIds`. A derived count, so a node
+	// write that keeps the count re-runs nothing here.
+	let storeNodeCount = $derived($nodes.length);
+	$effect(() =>
+		detailStaging.keep(
+			detailKeptIds({
+				nodeCount: storeNodeCount,
+				selectedNode: $selNodeStore,
+				selectedNodes: $selNodesStore,
+				selectedEdge: $selEdgeStore
+			})
+		)
+	);
 
 	let cullOffscreen = $derived(
 		shouldCull({

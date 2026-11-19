@@ -75,8 +75,11 @@
 			? !detailStaging.hasDetail(id, sharedStores.simplified.current)
 			: sharedStores.simplified.current
 	);
-	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
-	let veiled = $derived(!simplified && sharedStores.simplified.current);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box. A
+	// selected card (`detailKeptIds`) is shown at any zoom.
+	let veiled = $derived(
+		!simplified && sharedStores.simplified.current && !detailStaging?.keepsDetail(id)
+	);
 
 	/**
 	 * The height a simplified card has to hold, taken from what SvelteFlow measured.

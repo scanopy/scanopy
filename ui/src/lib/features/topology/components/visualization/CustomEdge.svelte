@@ -25,6 +25,7 @@
 	} from '../../layout/edge-classification';
 	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { ELEMENT_TEXT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
+	import { useDetailStaging } from '../../detail-staging.svelte';
 
 	let {
 		id,
@@ -121,7 +122,9 @@
 	 * into the mounted set — dropping edges from it would change what is culled, not just what is
 	 * drawn.
 	 */
-	let simplified = $derived($detailSimplified);
+	// A selected edge keeps its stroke and label at any zoom (`detailKeptIds`).
+	const detailStaging = useDetailStaging();
+	let simplified = $derived($detailSimplified && !detailStaging?.keepsDetail(id));
 
 	let isPreview = $derived(!!(edgeData as Record<string, unknown> | undefined)?.is_preview);
 

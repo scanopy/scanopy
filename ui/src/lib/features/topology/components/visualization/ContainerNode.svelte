@@ -210,8 +210,11 @@
 		})
 	);
 	let simplified = $derived(detailTier !== 'full');
-	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
-	let veiled = $derived(!simplified && sharedStores.simplified.current);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box. A
+	// selected container (`detailKeptIds`) shows its header at any zoom; its children stay reduced.
+	let veiled = $derived(
+		!simplified && sharedStores.simplified.current && !detailStaging?.keepsDetail(id)
+	);
 
 	let tagHoverRingStyle = $derived.by(() => {
 		// Filter-value hover: ring the box when the entity it stands for carries the hovered value,
