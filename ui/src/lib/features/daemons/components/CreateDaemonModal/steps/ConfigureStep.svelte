@@ -23,8 +23,8 @@
 		daemons_config_namePlaceholder,
 		daemons_config_portHelpServerPoll,
 		daemons_siteCannotChange,
-		daemons_docsLayout,
-		daemons_docsLayoutLinkText,
+		daemons_docsPlanning,
+		daemons_docsPlanningLinkText,
 		daemons_docsPollingMode,
 		daemons_docsPollingModeLinkText,
 		daemons_httpDaemonUrlWarning,
@@ -122,9 +122,9 @@
 
 <div class="space-y-4">
 	<DocsHint
-		text={daemons_docsLayout()}
-		href="https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choose-a-layout"
-		linkText={daemons_docsLayoutLinkText()}
+		text={daemons_docsPlanning()}
+		href="https://scanopy.net/docs/plan-your-deployment/daemons/"
+		linkText={daemons_docsPlanningLinkText()}
 	/>
 
 	{#if !isFirstDaemon}
