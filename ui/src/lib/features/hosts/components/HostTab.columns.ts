@@ -74,6 +74,8 @@ type HostListParam = keyof NonNullable<operations['list_hosts']['parameters']['q
 /** What the host columns read from the tab, each as a getter so values stay live. */
 export interface HostColumnsContext {
 	lookup: () => EntityLookup;
+	/** The hosts on this page. */
+	hosts: () => Host[];
 	/** The virtualizing services of the hosts on this page. */
 	services: () => Service[];
 	/** Every service in the cache. */
@@ -155,6 +157,16 @@ export function hostColumns(ctx: HostColumnsContext) {
 				// The key stays `name`: it is the `HostOrderField` sent to the server, which
 				// now orders by the same ladder this renders.
 				getValue: (host) => hostDisplayName(host),
+				// Filters by id, not title: duplicates share a title, and a link to the records to
+				// merge ("Merge duplicate hosts" on a scan warning) names them by id.
+				filterable: true,
+				serverFiltered: true,
+				queryParam: 'ids',
+				getFilterValue: (host) => host.id,
+				filterLabel: (id) => {
+					const host = ctx.hosts().find((h) => h.id === id);
+					return host ? hostDisplayName(host) : id;
+				},
 				display: {
 					primary: true,
 					width: 220,

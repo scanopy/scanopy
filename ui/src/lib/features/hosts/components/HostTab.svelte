@@ -335,6 +335,7 @@
 	let hostFields = $derived(
 		hostColumns({
 			lookup: () => lookup,
+			hosts: () => hostsData,
 			services: () => servicesData,
 			allServices: () => allServicesData,
 			ipAddresses: () => ipAddressesData,
