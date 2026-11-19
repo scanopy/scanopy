@@ -10,6 +10,7 @@ import type { IconComponent } from '#lib/shared/utils/types.ts';
 import {
 	credentials_sshLoginRequired,
 	daemons_upgradeDaemon,
+	discovery_fixAddCredentialTarget,
 	discovery_fixAddSubnetToScan,
 	discovery_fixDaemonConfigGuide,
 	discovery_fixChangeCredentialTarget,
@@ -131,6 +132,10 @@ const CREDENTIAL_FIXES = new Map<WarningEntry['code'], { tab: CredentialTab; lab
 		[
 			'CredentialTargetNotScanned',
 			{ tab: 'assignments', label: () => discovery_fixChangeCredentialTarget() }
+		],
+		[
+			'CredentialWithoutTarget',
+			{ tab: 'assignments', label: () => discovery_fixAddCredentialTarget() }
 		],
 		[
 			'CredentialTargetNotResponding',
@@ -325,9 +330,9 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 		};
 	}
 
-	// Accepting a self-signed certificate is the scanning daemon's own configuration, which only
-	// its host can change, so the guide is the destination.
-	if (entry.code === 'CredentialTlsFailed') {
+	// Accepting a self-signed certificate and the interface filter are the scanning daemon's own
+	// configuration, which only its host can change, so the guide is the destination.
+	if (entry.code === 'CredentialTlsFailed' || entry.code === 'InterfaceFilterMatchedNothing') {
 		return {
 			label: discovery_fixDaemonConfigGuide(),
 			icon: createIconComponent('book-open'),
