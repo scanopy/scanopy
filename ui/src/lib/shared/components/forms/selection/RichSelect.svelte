@@ -30,6 +30,7 @@
 		displayComponent,
 		getOptionContext = () => new Object() as OC,
 		minWidth = null,
+		maxWidth = null,
 		fitToContent = false,
 		onSearchChange = null,
 		onLoadMore = null,
@@ -54,10 +55,14 @@
 		/** Optional minimum width (CSS length, e.g. "18rem" or "280px") applied
 		 *  to the trigger. Use in unbounded contexts — like the topology view
 		 *  picker in a toolbar — where the trigger otherwise collapses to its
-		 *  content width and the dropdown inherits that narrowness. Bounded
+		 *  content width. Bounded
 		 *  contexts (ConfigPanels, ListManagers) should leave this null so the
 		 *  trigger keeps filling its container. */
 		minWidth?: string | null;
+		/** Optional maximum width (CSS length) for the trigger, for a toolbar a long label must not
+		 *  push off screen. Past it the selected label is cut short, with the full label as its
+		 *  tooltip. The options list still fits the longest option. */
+		maxWidth?: string | null;
 		/** Size the trigger (and therefore the dropdown) to the widest option it
 		 *  contains, rather than a fixed `minWidth` or the selected item's width.
 		 *  Uses a hidden CSS-grid sizer so the trigger never collapses below — or
@@ -81,6 +86,9 @@
 	const SEARCH_THROTTLE_MS = 300;
 	/** How close to the bottom, in px, a scroll has to get before the next page loads. */
 	const LOAD_MORE_THRESHOLD_PX = 48;
+	/** The widest the options list grows to fit its longest option, so a narrow trigger's options
+	 *  don't wrap. A trigger wider than this keeps the list at its own width. */
+	const MENU_MAX_WIDTH = 'min(28rem, calc(100vw - 2rem))';
 
 	// Trailing throttle so a burst of keystrokes costs one request and the last one is never
 	// dropped. Built once: rebuilding it per keystroke would defeat the debounce.
@@ -295,13 +303,21 @@
            {fitToContent ? 'col-start-1 row-start-1' : ''}
            {error ? 'border-red-500' : ''}
            {disabled || options.length == 0 ? 'cursor-not-allowed opacity-50' : ''}"
-		style={minWidth ? `min-width: ${minWidth}` : undefined}
+		style={[minWidth && `min-width: ${minWidth}`, maxWidth && `max-width: ${maxWidth}`]
+			.filter(Boolean)
+			.join('; ') || undefined}
 		disabled={disabled || options.length == 0}
 	>
 		<div class="flex min-w-0 flex-1 items-center gap-3">
 			{#if selectedItem}
 				{@const context = getOptionContext(selectedItem, 0)}
-				<ListSelectItem {context} item={selectedItem} {displayComponent} staticTags={true} />
+				<ListSelectItem
+					{context}
+					item={selectedItem}
+					{displayComponent}
+					staticTags={true}
+					truncateLabel={maxWidth != null}
+				/>
 			{:else}
 				<span class="text-secondary"
 					>{options.length == 0 && loading
@@ -337,7 +353,8 @@
 	isOpen={isOpen && !disabled}
 	role="presentation"
 	align="start"
-	matchTriggerWidth
+	atLeastTriggerWidth
+	maxWidth={MENU_MAX_WIDTH}
 	onClose={close}
 >
 	<!-- Search Input -->

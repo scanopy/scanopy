@@ -17,6 +17,7 @@
 		minWidth = '200px',
 		maxWidth = '350px',
 		matchTriggerWidth = false,
+		atLeastTriggerWidth = false,
 		passthrough = false,
 		children
 	}: {
@@ -48,6 +49,9 @@
 		maxWidth?: string;
 		/** Exactly as wide as the trigger, as a select's options are; overrides the min and max. */
 		matchTriggerWidth?: boolean;
+		/** At least as wide as the trigger, and as wide as its content up to `maxWidth`, as a select's
+		 *  options are when one is longer than the trigger. Overrides `minWidth`. */
+		atLeastTriggerWidth?: boolean;
 		/** Read-only content: the pointer passes through to whatever is underneath. */
 		passthrough?: boolean;
 		children: Snippet;
@@ -99,6 +103,10 @@
 		const rect = triggerElement.getBoundingClientRect();
 		const style = popoverEl.style;
 		if (matchTriggerWidth) style.minWidth = style.maxWidth = style.width = `${rect.width}px`;
+		else if (atLeastTriggerWidth) {
+			style.minWidth = `${rect.width}px`;
+			style.width = 'max-content';
+		}
 		style.maxHeight = 'none';
 		const fit = fitToViewport({
 			trigger: rect,

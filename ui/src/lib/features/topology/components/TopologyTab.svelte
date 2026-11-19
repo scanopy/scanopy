@@ -857,6 +857,7 @@
 						displayComponent={SiteDisplay}
 						onSelect={handleSiteChange}
 						options={sitesData}
+						maxWidth="16rem"
 					/>
 
 					<div class="card-divider-v self-stretch"></div>
