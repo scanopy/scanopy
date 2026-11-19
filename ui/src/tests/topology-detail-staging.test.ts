@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { grantWithinBudget } from '#lib/features/topology/detail-staging.svelte.ts';
+import {
+	createDetailStaging,
+	grantWithinBudget
+} from '#lib/features/topology/detail-staging.svelte.ts';
 import {
 	DETAIL_ZOOM,
 	LOD_MIN_NODES,
@@ -84,5 +87,46 @@ describe('the prewarm zooms', () => {
 	it('start preparing detail below the zoom where it shows, and drop it lower still', () => {
 		expect(PREWARM_ZOOM).toBeLessThan(DETAIL_ZOOM);
 		expect(PREWARM_RELEASE_ZOOM).toBeLessThan(PREWARM_ZOOM);
+	});
+});
+
+/**
+ * The selection keeps its detail on a reduced graph. These run the staging object the cards read
+ * their detail from, with the graph past the detail zoom and nothing granted yet.
+ */
+describe('kept detail', () => {
+	const SIMPLIFIED = true;
+	const reduced = () => {
+		const staging = createDetailStaging();
+		staging.set(true, false);
+		staging.request('selected');
+		staging.request('neighbour');
+		return staging;
+	};
+
+	it('draws a kept node in full while its neighbours stay boxes', () => {
+		const staging = reduced();
+		staging.keep(new Set(['selected']));
+
+		expect(staging.hasDetail('selected', SIMPLIFIED)).toBe(true);
+		expect(staging.hasDetail('neighbour', SIMPLIFIED)).toBe(false);
+	});
+
+	it('returns a node to a box once it is no longer kept', () => {
+		const staging = reduced();
+		staging.keep(new Set(['selected']));
+		staging.keep(new Set());
+
+		expect(staging.hasDetail('selected', SIMPLIFIED)).toBe(false);
+		expect(staging.keepsDetail('selected')).toBe(false);
+	});
+
+	it('leaves an unstaged graph deciding by the graph-wide state alone', () => {
+		const staging = createDetailStaging();
+		staging.keep(new Set(['selected']));
+
+		expect(staging.hasDetail('neighbour', SIMPLIFIED)).toBe(false);
+		expect(staging.hasDetail('neighbour', !SIMPLIFIED)).toBe(true);
+		expect(staging.hasDetail('selected', SIMPLIFIED)).toBe(true);
 	});
 });

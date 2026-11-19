@@ -66,6 +66,13 @@ export interface DetailStaging {
 	 */
 	hasDetail(id: string, simplified: boolean): boolean;
 	/**
+	 * The node and edge ids that draw in full whatever the zoom: the selection
+	 * (`detailKeptIds`). Set by the viewer when the selection changes.
+	 */
+	keep(ids: ReadonlySet<string>): void;
+	/** Whether this node or edge is one `keep` named. */
+	keepsDetail(id: string): boolean;
+	/**
 	 * Set by the viewer as the graph and the zoom change.
 	 *
 	 * @param active the graph is one that gets simplified, and nothing needs every card in full
@@ -90,6 +97,8 @@ export function createDetailStaging(): DetailStaging {
 	const elementOf = new Map<string, Element>();
 	const idOf = new WeakMap<Element, string>();
 	const stage = $state({ active: false });
+	/** Ids drawn in full at any zoom. Reactive per id, like `ready`. */
+	const kept = new SvelteSet<string>();
 	let prewarming = false;
 	let frame: number | null = null;
 
@@ -166,7 +175,19 @@ export function createDetailStaging(): DetailStaging {
 			ready.delete(id);
 		},
 		hasDetail(id, simplified) {
+			if (kept.has(id)) return true;
 			return stage.active ? ready.has(id) : !simplified;
+		},
+		keep(ids) {
+			// Only what changed is written, so an unchanged selection notifies nobody. Untracked: the
+			// viewer calls this from an effect, which must not re-run on its own write.
+			untrack(() => {
+				for (const id of kept) if (!ids.has(id)) kept.delete(id);
+				for (const id of ids) if (!kept.has(id)) kept.add(id);
+			});
+		},
+		keepsDetail(id) {
+			return kept.has(id);
 		},
 		set(active, prewarm) {
 			stage.active = active;

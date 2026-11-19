@@ -249,3 +249,42 @@ export function nodeDetail({
 	if (isSubcontainer && screenWidth < BOX_MIN_PX) return 'hidden';
 	return 'boxed';
 }
+
+export interface KeptDetailConditions {
+	/** Nodes in the store. Below `LOD_MIN_NODES` nothing is kept, so a small graph is unchanged. */
+	nodeCount: number;
+	/** The single selected node. */
+	selectedNode: { id: string } | null;
+	/** The multi-selection. */
+	selectedNodes: readonly { id: string }[];
+	/** The selected edge, with the ids of the nodes it joins. */
+	selectedEdge: { id: string; source: string; target: string } | null;
+}
+
+/**
+ * The node and edge ids that draw in full while the rest of the graph is reduced.
+ *
+ * A selection that turns into a box when the user zooms out no longer shows what they picked, so
+ * every selected node keeps its card or header, and a selected edge keeps its stroke and label
+ * along with both of its end nodes, which say what it connects.
+ *
+ * A container's children are not kept: they are nodes of their own, and a subnet of a few hundred
+ * hosts drawn in full would cost what reducing detail saves.
+ */
+export function detailKeptIds({
+	nodeCount,
+	selectedNode,
+	selectedNodes,
+	selectedEdge
+}: KeptDetailConditions): Set<string> {
+	const kept = new Set<string>();
+	if (nodeCount < LOD_MIN_NODES) return kept;
+	if (selectedNode) kept.add(selectedNode.id);
+	for (const node of selectedNodes) kept.add(node.id);
+	if (selectedEdge) {
+		kept.add(selectedEdge.id);
+		kept.add(selectedEdge.source);
+		kept.add(selectedEdge.target);
+	}
+	return kept;
+}

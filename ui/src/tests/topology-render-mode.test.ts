@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	shouldCull,
 	shouldSimplify,
+	detailKeptIds,
 	nodeDetail,
 	BOX_MIN_PX,
 	LOD_MIN_NODES,
@@ -158,5 +159,35 @@ describe('shouldSimplify', () => {
 		it('does not simplify before any node has a width', () => {
 			expect(shouldSimplify({ ...collapsed, widestNodeWidth: 0 })).toBe(false);
 		});
+	});
+});
+
+describe('detailKeptIds', () => {
+	const large = {
+		nodeCount: LOD_MIN_NODES,
+		selectedNode: null,
+		selectedNodes: [],
+		selectedEdge: null
+	};
+
+	it('keeps nothing with nothing selected', () => {
+		expect(detailKeptIds(large).size).toBe(0);
+	});
+
+	it('keeps a selected node, and every node of a multi-selection', () => {
+		expect([...detailKeptIds({ ...large, selectedNode: { id: 'card' } })]).toEqual(['card']);
+		expect(detailKeptIds({ ...large, selectedNodes: [{ id: 'a' }, { id: 'b' }] })).toEqual(
+			new Set(['a', 'b'])
+		);
+	});
+
+	it('keeps a selected edge with both of the nodes it connects', () => {
+		const selectedEdge = { id: 'link', source: 'switch', target: 'host' };
+		expect(detailKeptIds({ ...large, selectedEdge })).toEqual(new Set(['link', 'switch', 'host']));
+	});
+
+	it('keeps nothing on a small graph, which is never reduced by zoom', () => {
+		const selected = { ...large, nodeCount: LOD_MIN_NODES - 1, selectedNode: { id: 'card' } };
+		expect(detailKeptIds(selected).size).toBe(0);
 	});
 });
