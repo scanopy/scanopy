@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	computeOptimalHandles,
 	ObstacleGrid,
+	sideBySideHandles,
 	type ObstacleRect
 } from '#lib/features/topology/layout/handle-picking.ts';
 
@@ -163,5 +164,31 @@ describe('ObstacleGrid', () => {
 		expect(grid.countCrossings(400, 0, 400, 1900, none)).toBe(10);
 		// Through the gap between rows: touches nothing.
 		expect(grid.countCrossings(0, 150, 1900, 150, none)).toBe(0);
+	});
+});
+
+describe('sideBySideHandles', () => {
+	const card = { w: 300, h: 100 };
+
+	it('runs left to right between cards in separate columns, whichever end is the source', () => {
+		expect(sideBySideHandles({ x: 0, y: 0 }, card, { x: 450, y: 300 }, card)).toEqual({
+			sourceHandle: 'Right',
+			targetHandle: 'Left'
+		});
+		expect(sideBySideHandles({ x: 450, y: 300 }, card, { x: 0, y: 0 }, card)).toEqual({
+			sourceHandle: 'Left',
+			targetHandle: 'Right'
+		});
+	});
+
+	it('leaves cards stacked above one another to the general picker', () => {
+		// A server stacked above its core switch, offset a little: their spans overlap.
+		const server = { x: 0, y: 0 };
+		const core = { x: 30, y: 300 };
+		expect(sideBySideHandles(server, card, core, card)).toBeNull();
+		expect(computeOptimalHandles(server, card, core, card)).toEqual({
+			sourceHandle: 'Bottom',
+			targetHandle: 'Top'
+		});
 	});
 });

@@ -47,7 +47,9 @@ export interface Point {
 export const MIN_LOOP = 5;
 
 const RUN_GAP = 75;
-const SPUR_GAP = 25;
+// Between stacked cards, as the layered L2 layout keeps them (`elk.spacing.nodeNode`): a card's name
+// tag sits above its box, in this gap.
+const SPUR_GAP = 50;
 const GROUP_GAP = 200;
 const PADDING = 25;
 const SNAP = 25;
@@ -366,6 +368,8 @@ export function placeRings(
 	};
 
 	const centres = new Map<string, Point>();
+	// The ring node each spur card stacks from, so the stack moves with it when it snaps to the grid.
+	const anchorOf = new Map<string, string>();
 	/** Centres `node` on `c` and stacks its spur from it along `u`. */
 	const placeNode = (node: string, c: Point, u: Point) => {
 		centres.set(node, c);
@@ -374,6 +378,7 @@ export function placeRings(
 		for (const n of spurOf(node)) {
 			distance += separation(previous, n, u);
 			centres.set(n, { x: c.x + u.x * distance, y: c.y + u.y * distance });
+			anchorOf.set(n, node);
 			previous = n;
 		}
 	};
@@ -536,14 +541,24 @@ export function placeRings(
 		groupX += maxX - minX + GROUP_GAP;
 	}
 
-	// Normalize to the padding and snap to the grid.
+	// Normalize to the padding and snap each ring node to the grid. A spur card moves by the same
+	// amount as the ring node it stacks from, so the gaps within a stack stay as placed.
 	const allMinX = Math.min(...[...positions.values()].map((p) => p.x));
 	const allMinY = Math.min(...[...positions.values()].map((p) => p.y));
+	const shift = (p: Point): Point => ({ x: p.x - allMinX + PADDING, y: p.y - allMinY + PADDING });
+	const snapped = new Map<string, Point>();
 	for (const [n, p] of positions) {
-		positions.set(n, {
-			x: Math.round((p.x - allMinX + PADDING) / SNAP) * SNAP,
-			y: Math.round((p.y - allMinY + PADDING) / SNAP) * SNAP
-		});
+		if (anchorOf.has(n)) continue;
+		const q = shift(p);
+		snapped.set(n, { x: Math.round(q.x / SNAP) * SNAP, y: Math.round(q.y / SNAP) * SNAP });
 	}
-	return positions;
+	for (const [n, p] of positions) {
+		const anchor = anchorOf.get(n);
+		if (anchor === undefined) continue;
+		const q = shift(p);
+		const a = shift(positions.get(anchor)!);
+		const s = snapped.get(anchor)!;
+		snapped.set(n, { x: Math.round(q.x + s.x - a.x), y: Math.round(q.y + s.y - a.y) });
+	}
+	return snapped;
 }
