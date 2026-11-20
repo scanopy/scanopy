@@ -257,6 +257,10 @@ describe('placeRings', () => {
 		expect(aspect).toBeGreaterThan(1.4);
 		expect(aspect).toBeLessThan(1.8);
 
+		// No bigger than it needs to be. The smallest ellipse whose half holds 50 gaps of a card
+		// diagonal plus 75px is about 12,100px wide; two growth steps allow 1.32 times that.
+		expect(box.right - box.left).toBeLessThan(12_100 * 1.32);
+
 		for (const n of spurs) {
 			const p = positions.get(n)!;
 			expect(p.x).toBeGreaterThanOrEqual(box.left);
