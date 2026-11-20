@@ -2191,7 +2191,7 @@ export interface paths {
          *     - **Ports**: Transferred to destination. If a port with the same number and protocol already
          *       exists, bindings are remapped to use the existing port.
          *     - **Services**: Transferred to destination with deduplication.
-         *       See [upsert behavior](https://scanopy.net/docs/discovery/#upsert-behavior) for details.
+         *       See [upsert behavior](https://scanopy.net/docs/using-scanopy/discovery/naming-and-deduplication/#upsert-behavior) for details.
          *
          *     ### Restrictions
          *
@@ -4249,7 +4249,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.7"
+         *       "server_version": "0.20.0"
          *     }
          */
         ApiMeta: {
@@ -4260,7 +4260,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.7
+             * @example 0.20.0
              */
             server_version: string;
         };
@@ -4289,19 +4289,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-17T16:58:18.732741Z",
+             *       "created_at": "2026-11-20T17:46:40.323602Z",
              *       "first_discovery_id": null,
-             *       "id": "c2c147a9-7998-47aa-8f07-75bbb2d11a6b",
+             *       "id": "d7d50b90-e6d2-471a-becf-87c3f1afef9c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-17T16:58:18.732741Z",
+             *       "last_seen_at": "2026-11-20T17:46:40.323602Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-17T16:58:18.732741Z",
-             *       "valid_from": "2026-11-17T16:58:18.732741Z",
+             *       "updated_at": "2026-11-20T17:46:40.323602Z",
+             *       "valid_from": "2026-11-20T17:46:40.323602Z",
              *       "valid_to": null
              *     }
              */
@@ -5084,7 +5084,7 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "IoT",
+             *       "device_type": "Server",
              *       "device_type_source": {
              *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *         "service_name": "nginx",
@@ -5217,19 +5217,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-17T16:58:18.684477Z",
+             *               "created_at": "2026-11-20T17:46:40.288769Z",
              *               "first_discovery_id": null,
-             *               "id": "b0932491-82d4-440d-ac84-49739b061334",
+             *               "id": "b80aafb4-719e-4584-8eb8-1a98a09e98a6",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-17T16:58:18.684477Z",
+             *               "last_seen_at": "2026-11-20T17:46:40.288769Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-17T16:58:18.684477Z",
-             *               "valid_from": "2026-11-17T16:58:18.684477Z",
+             *               "updated_at": "2026-11-20T17:46:40.288769Z",
+             *               "valid_from": "2026-11-20T17:46:40.288769Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5242,7 +5242,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "IoT",
+             *           "service_definition": "Jupyter",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5825,6 +5825,10 @@ export interface components {
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
             data?: {
+                /** @description The text typed for "Something else" as an intent. */
+                intent_other?: string | null;
+                /** @description The intents saved so far. `None` until the intent step is answered. */
+                intents?: components["schemas"]["SignupIntent"][] | null;
                 /** @description Organization name from pending setup */
                 org_name?: string | null;
                 site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -5836,6 +5840,8 @@ export interface components {
                 /** @description Current onboarding step (if any) */
                 step?: string | null;
                 use_case?: components["schemas"]["UseCase"] | null;
+                /** @description The text typed for "Something else" as the use case. */
+                use_case_other?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5894,6 +5900,8 @@ export interface components {
                  *     yet started doesn't count.
                  */
                 readonly daemon_connected: boolean;
+                /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+                readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6274,19 +6282,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-17T16:58:18.725748Z",
+             *           "created_at": "2026-11-20T17:46:40.318003Z",
              *           "first_discovery_id": null,
-             *           "id": "69e0eec0-d235-4b85-ac11-0dd805036490",
+             *           "id": "df51dafa-d273-4329-84bd-3e216b909f43",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-17T16:58:18.725748Z",
+             *           "last_seen_at": "2026-11-20T17:46:40.318003Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-17T16:58:18.725748Z",
-             *           "valid_from": "2026-11-17T16:58:18.725748Z",
+             *           "updated_at": "2026-11-20T17:46:40.318003Z",
+             *           "valid_from": "2026-11-20T17:46:40.318003Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6299,7 +6307,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "IoT",
+             *       "service_definition": "Jupyter",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -8005,19 +8013,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-17T16:58:18.685206Z",
+         *       "created_at": "2026-11-20T17:46:40.289396Z",
          *       "first_discovery_id": null,
-         *       "id": "61253847-6455-4cfc-a75f-af6936248eae",
+         *       "id": "4f19d639-1917-47a7-9ee1-8ded63a07bca",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-17T16:58:18.685206Z",
+         *       "last_seen_at": "2026-11-20T17:46:40.289396Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-17T16:58:18.685206Z",
-         *       "valid_from": "2026-11-17T16:58:18.685206Z",
+         *       "updated_at": "2026-11-20T17:46:40.289396Z",
+         *       "valid_from": "2026-11-20T17:46:40.289396Z",
          *       "valid_to": null
          *     }
          */
@@ -8431,7 +8439,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IoT",
+         *           "service_definition": "Jupyter",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9232,9 +9240,10 @@ export interface components {
             capabilities?: components["schemas"]["LegacyCapabilities"];
             /**
              * @description The subnets the daemon's host is attached to, as its last session classified them. The
-             *     server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
-             *     the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
-             *     them once after each session; older daemons send them on every report.
+             *     server resolves these via SubnetService::resolve_reported (match by CIDR, create the new
+             *     ones) and replaces the daemon's interfaced subnets with them when the set differs. Absent:
+             *     leave them as they are. A daemon sends them once after each session; older daemons send
+             *     them on every report.
              */
             interfaced_subnets?: components["schemas"]["Subnet"][] | null;
             /**
@@ -9488,7 +9497,7 @@ export interface components {
          *     ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
          * @enum {string}
          */
-        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima";
+        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima" | "Wsl";
         /**
          * @description What a host is, as a device: the class its icon stands for on the map.
          *
@@ -11668,7 +11677,7 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "IoT",
+         *       "device_type": "Server",
          *       "device_type_source": {
          *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *         "service_name": "nginx",
@@ -11801,19 +11810,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-17T16:58:18.683575Z",
+         *               "created_at": "2026-11-20T17:46:40.288026Z",
          *               "first_discovery_id": null,
-         *               "id": "679ed8a6-68e6-4e47-a5fb-4bdf7b91ccd9",
+         *               "id": "e4a7b9ee-786c-45ec-8c1d-e43d2268eec8",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-17T16:58:18.683575Z",
+         *               "last_seen_at": "2026-11-20T17:46:40.288026Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-17T16:58:18.683575Z",
-         *               "valid_from": "2026-11-17T16:58:18.683575Z",
+         *               "updated_at": "2026-11-20T17:46:40.288026Z",
+         *               "valid_from": "2026-11-20T17:46:40.288026Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11826,7 +11835,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IoT",
+         *           "service_definition": "Jupyter",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -13573,6 +13582,10 @@ export interface components {
         };
         /** @description Response from onboarding state endpoint */
         OnboardingStateResponse: {
+            /** @description The text typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /** @description The intents saved so far. `None` until the intent step is answered. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Organization name from pending setup */
             org_name?: string | null;
             site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -13584,12 +13597,20 @@ export interface components {
             /** @description Current onboarding step (if any) */
             step?: string | null;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case. */
+            use_case_other?: string | null;
         };
         /** @description Request to save onboarding step */
         OnboardingStepRequest: {
+            /** @description The text typed for "Something else" as an intent: 3 to 200 characters once trimmed. */
+            intent_other?: string | null;
+            /** @description What the signup wants Scanopy to do. An empty list records a skip. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Identifier of the onboarding step the user has reached. */
             step: string;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case: 3 to 200 characters once trimmed. */
+            use_case_other?: string | null;
         };
         /**
          * @description Direction for ORDER BY clauses.
@@ -13647,6 +13668,13 @@ export interface components {
             readonly discount_save_offer_percent_off?: number | null;
             /** @description Whether a payment method is on file. */
             readonly has_payment_method?: boolean;
+            /** @description What the signup typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /**
+             * @description What the signup wants Scanopy to do. `None` when never asked (orgs created before the
+             *     question, invites); empty when the signup skipped it.
+             */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /**
              * Format: date-time
              * @description Most recent save-offer-discount application. NULL = never. Drives the
@@ -13708,6 +13736,11 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+            /**
+             * @description What the signup typed for "Something else" as the use case. `None` for any other use
+             *     case, and for orgs created before it was asked.
+             */
+            use_case_other?: string | null;
         };
         /** @description The signed-in user's organization, with what the server derives about it. */
         OrganizationResponse: components["schemas"]["Organization"] & {
@@ -13716,6 +13749,8 @@ export interface components {
              *     yet started doesn't count.
              */
             readonly daemon_connected: boolean;
+            /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+            readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -13733,7 +13768,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.7"
+         *       "server_version": "0.20.0"
          *     }
          */
         PaginatedApiMeta: {
@@ -13746,7 +13781,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.7
+             * @example 0.20.0
              */
             server_version: string;
         };
@@ -14617,6 +14652,17 @@ export interface components {
              */
             trial_days: number;
         };
+        PlanRecommendation: {
+            /** @description The recommended plan's type, as in `BillingPlan.type`. */
+            plan: string;
+            /** @description The intents that call for this plan rather than the one below it. */
+            reasons: components["schemas"]["RecommendationReason"][];
+        };
+        /** @description The recommendation on each hosting tab of the plan picker. */
+        PlanRecommendations: {
+            cloud?: components["schemas"]["PlanRecommendation"] | null;
+            self_hosted?: components["schemas"]["PlanRecommendation"] | null;
+        };
         /**
          * @description Derived subscription status — our domain enum, never Stripe's raw status.
          *     Stripe webhook events map to typed `BillingOperation` variants at reception
@@ -15119,6 +15165,15 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
+        /**
+         * @description One picked intent the recommended plan serves, and the features it needs that the plan below
+         *     lacks. On the lowest plan, every feature the intent needs.
+         */
+        RecommendationReason: {
+            /** @description Feature ids, as in `features.json`. */
+            features: string[];
+            intent: components["schemas"]["SignupIntent"];
+        };
         /** @description The Setup item a client finished. */
         RecordSetupRequest: {
             /**
@@ -15549,19 +15604,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-17T16:58:18.684974Z",
+         *           "created_at": "2026-11-20T17:46:40.289182Z",
          *           "first_discovery_id": null,
-         *           "id": "2bec7db3-14cd-43da-9027-ac623182e13c",
+         *           "id": "e6d43aa2-579e-4069-8f83-01bc4469f475",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-17T16:58:18.684974Z",
+         *           "last_seen_at": "2026-11-20T17:46:40.289182Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-17T16:58:18.684974Z",
-         *           "valid_from": "2026-11-17T16:58:18.684974Z",
+         *           "updated_at": "2026-11-20T17:46:40.289182Z",
+         *           "valid_from": "2026-11-20T17:46:40.289182Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15574,7 +15629,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "IoT",
+         *       "service_definition": "Jupyter",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16118,6 +16173,8 @@ export interface components {
             /** @description The shared topology record. */
             topology: components["schemas"]["Topology"];
         };
+        /** @enum {string} */
+        SignupIntent: "current_diagram" | "troubleshooting" | "workloads" | "application_dependencies" | "client_documentation" | "inventory" | "audit_evidence" | "other";
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -16825,6 +16882,12 @@ export interface components {
              * @description The site this entity belongs to.
              */
             site_id: string;
+            /**
+             * @description The view the topology tab opens on: the one the organization's intents call for, when
+             *     the site has the data for it (`TopologyView::starting_for`). Worked out on each list
+             *     read, never stored.
+             */
+            readonly starting_view?: components["schemas"]["TopologyView"];
         };
         /**
          * @description Bundle of entities + the built graph that feed the topology render, export,
@@ -17057,7 +17120,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "5637ea37-4f33-4d75-95d8-db68f5bbdc91",
+             *           "id": "6fa2fc00-08ca-4e6c-aa4f-4f71ae92681a",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -17067,23 +17130,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
+             *           "id": "ba8f3c20-0a68-42df-a2c1-ce109acb50bd",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "89a60890-6f28-44c0-983f-885c4b794a17",
+             *           "id": "2ea7d94f-021d-437c-ba3b-606e9dca5748",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "df8343e4-f87c-4da8-8bad-a0efb4a448c1",
+             *           "id": "b89373fd-00eb-42b6-b59c-41abe62608d4",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
+             *           "id": "ba8f3c20-0a68-42df-a2c1-ce109acb50bd",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -17097,19 +17160,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "b0256ff6-9461-4df3-96b9-d0045421dc48",
+             *         "id": "230c0744-a2dc-406c-b627-b9f0034afc24",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "f0fdec5c-fbfb-451b-87bb-138025e88690",
+             *         "id": "625be59e-9463-4040-b687-a4b356276400",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "06e109ab-a367-4629-8e7b-285e161611e7",
+             *         "id": "d7f86f05-9479-4995-8e2b-db5a85ff7a1c",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5820d96f-7b8c-4cd9-83b4-165603e8bc87",
+             *         "id": "23a8273d-7721-4f58-9709-2967055d23f2",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -17130,7 +17193,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ac1d31aa-e849-482c-8706-303b6e5a12b7",
+             *         "id": "df2283d7-fa72-4445-8245-44f0ff392117",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -17139,19 +17202,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b0906390-008b-4294-bb10-3d7701d1464e",
+             *         "id": "a33b4810-f870-4827-9c33-539c0d85ca6c",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "6f40fe51-d1ca-4dda-bf6b-aa27965f64ab",
+             *         "id": "ee7f5462-499b-4c27-910e-b7da9de57ba3",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "e442a8cb-313a-465c-bd7c-7fd507f884ea",
+             *         "id": "91cfdd59-7aeb-4be8-8f70-a854bb2b4dd9",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "96e45ff6-f64f-49db-bb02-be8fc87cdd2e",
+             *         "id": "f5570d88-9ff9-4929-abae-f576b7d74ae4",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17508,8 +17571,11 @@ export interface components {
          * @enum {string}
          */
         UpstreamSupport: "Vendor" | "Undocumented";
-        /** @enum {string} */
-        UseCase: "homelab" | "internal_it" | "msp" | "other";
+        /**
+         * @description Declaration order is the order the signup step lists the options in.
+         * @enum {string}
+         */
+        UseCase: "internal_it" | "msp" | "homelab" | "other";
         User: components["schemas"]["UserBase"] & {
             /**
              * Format: date-time

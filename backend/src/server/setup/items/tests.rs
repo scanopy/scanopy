@@ -636,10 +636,9 @@ fn intents_move_their_steps_up_without_unlocking_them() {
     let base = recorded(ctx(), &[T::InstallDaemon, T::RunFirstScan]);
     let unordered = listed(&base);
     assert!(
-        unordered
-            .windows(2)
-            .all(|pair| T::iter().position(|t| t == pair[0])
-                <= T::iter().position(|t| t == pair[1])),
+        unordered.windows(2).all(
+            |pair| T::iter().position(|t| t == pair[0]) <= T::iter().position(|t| t == pair[1])
+        ),
         "{unordered:?}"
     );
 
@@ -652,7 +651,10 @@ fn intents_move_their_steps_up_without_unlocking_them() {
         sorted_back.sort_by_key(|t| T::iter().position(|d| d == *t));
         let mut expected = unordered.clone();
         expected.sort_by_key(|t| T::iter().position(|d| d == *t));
-        assert_eq!(sorted_back, expected, "{intent:?} dropped or added an entry");
+        assert_eq!(
+            sorted_back, expected,
+            "{intent:?} dropped or added an entry"
+        );
 
         let after_topology = ordered
             .iter()

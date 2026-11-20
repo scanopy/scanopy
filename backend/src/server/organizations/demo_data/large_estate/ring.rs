@@ -88,9 +88,12 @@ const STATION_TYPES: [StationType; 5] = [
     },
 ];
 
+/// A control room's servers: role and host name.
+type ControlRoom = &'static [(&'static str, &'static str)];
+
 /// The two cores: host name, what they are called, and the servers in each plant's control room.
 /// The daemon runs on the north plant's monitoring server.
-const CORES: [(&str, &str, &[(&str, &str)]); 2] = [
+const CORES: [(&str, &str, ControlRoom); 2] = [
     (
         "wtp-north-core",
         "North Treatment Plant core",

@@ -1289,6 +1289,7 @@
 	"home_setup_openDaemon": "Open the daemon",
 	"home_setup_progress": "{done} of {total} done",
 	"home_setup_runScan": "Run a scan",
+	"home_setup_securitySoftwareGuide": "Allow the daemon through security software",
 	"home_setup_showCompleted": "Show completed ({count})",
 	"home_setup_troubleshootConnection": "Troubleshoot the connection",
 	"hosts_alreadyConfirmed": "This host is already confirmed",

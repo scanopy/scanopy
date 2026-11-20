@@ -107,41 +107,39 @@
 		<div class="flex-1 space-y-4 overflow-y-auto p-6">
 			<p class="text-center text-sm text-secondary">{onboarding_intentsSubtitle()}</p>
 			<form.Field name="intents" validators={{ onSubmit: ({ value }) => minArrayLength(1)(value) }}>
-				{#snippet children()}
-					<div class="grid gap-2">
-						{#each intentIds as intentId (intentId)}
-							{@const checked = picked.includes(intentId)}
-							{@const Icon = signupIntents.getIconComponent(intentId)}
-							<div class="card-static card p-0 {checked ? 'card-selected' : ''}">
-								<label class="flex cursor-pointer items-center gap-3 p-3">
-									<input
-										type="checkbox"
-										class="checkbox-card h-4 w-4"
-										{checked}
-										onchange={() => toggle(intentId)}
-									/>
-									<Icon class="h-4 w-4 shrink-0 text-secondary" />
-									<span class="text-sm text-primary">{signupIntents.getName(intentId)}</span>
-								</label>
-								{#if checked && intentId === 'other'}
-									<div class="px-3 pb-3">
-										<form.Field name="intent_other" validators={{ onSubmit: otherAnswer }}>
-											{#snippet children(field)}
-												<TextInput
-													label={onboarding_somethingElseLabel()}
-													id="intent-other"
-													{field}
-													placeholder={onboarding_somethingElsePlaceholder()}
-													autofocus
-												/>
-											{/snippet}
-										</form.Field>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/snippet}
+				<div class="grid gap-2">
+					{#each intentIds as intentId (intentId)}
+						{@const checked = picked.includes(intentId)}
+						{@const Icon = signupIntents.getIconComponent(intentId)}
+						<div class="card-static card p-0 {checked ? 'card-selected' : ''}">
+							<label class="flex cursor-pointer items-center gap-3 p-3">
+								<input
+									type="checkbox"
+									class="checkbox-card h-4 w-4"
+									{checked}
+									onchange={() => toggle(intentId)}
+								/>
+								<Icon class="h-4 w-4 shrink-0 text-secondary" />
+								<span class="text-sm text-primary">{signupIntents.getName(intentId)}</span>
+							</label>
+							{#if checked && intentId === 'other'}
+								<div class="px-3 pb-3">
+									<form.Field name="intent_other" validators={{ onSubmit: otherAnswer }}>
+										{#snippet children(field)}
+											<TextInput
+												label={onboarding_somethingElseLabel()}
+												id="intent-other"
+												{field}
+												placeholder={onboarding_somethingElsePlaceholder()}
+												autofocus
+											/>
+										{/snippet}
+									</form.Field>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
 			</form.Field>
 		</div>
 	</form>

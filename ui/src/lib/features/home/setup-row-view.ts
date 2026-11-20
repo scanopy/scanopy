@@ -58,6 +58,7 @@ import {
 	home_setup_installDaemonOnSite,
 	home_setup_openDaemon,
 	home_setup_runScan,
+	home_setup_securitySoftwareGuide,
 	home_setup_troubleshootConnection
 } from '#lib/paraglide/messages.js';
 import type { SetupItem, SetupItemType } from './setup-list';
@@ -187,18 +188,21 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 								};
 			// A daemon that never connected can't report why. Security software blocking it is the
 			// cause the docs single out.
-			const docs =
-				health === 'awaiting_connection'
-					? docsUrl(
-							'/docs/troubleshooting/daemon-setup/#daemon-never-connects-security-software-blocks-it'
-						)
-					: undefined;
+			const guideUrl = docsUrl(
+				'/docs/troubleshooting/daemon-setup/#daemon-never-connects-security-software-blocks-it'
+			);
 			return {
 				title,
 				sentence: daemonHealths.getDescription(health),
 				subjects: [{ type: 'Daemon', id, label: name, data: lookups.daemon(id) }],
 				fix,
-				docsUrl: docs
+				guide:
+					health === 'awaiting_connection'
+						? {
+								label: home_setup_securitySoftwareGuide(),
+								run: () => window.open(guideUrl, '_blank', 'noopener,noreferrer')
+							}
+						: undefined
 			};
 		}
 		case 'UncoveredIntegration': {

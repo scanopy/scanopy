@@ -283,8 +283,10 @@ mod tests {
     use super::*;
 
     fn scan(scheduled: bool) -> Discovery {
-        let mut scan = Discovery::default();
-        scan.id = Uuid::new_v4();
+        let mut scan = Discovery {
+            id: Uuid::new_v4(),
+            ..Default::default()
+        };
         scan.base.name = "Office LAN".to_string();
         if scheduled {
             scan.base.run_type = RunType::Scheduled {
@@ -313,8 +315,10 @@ mod tests {
         results.phase = phase;
         results.reason = reason;
         results.discovery_id = Some(scan.id);
-        let mut run = Discovery::default();
-        run.id = Uuid::new_v4();
+        let mut run = Discovery {
+            id: Uuid::new_v4(),
+            ..Default::default()
+        };
         run.base.run_type = RunType::Historical {
             results: Box::new(results),
         };

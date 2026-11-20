@@ -520,9 +520,7 @@
 			{#if !isEditing && activeTab === 'network'}
 				<div class="space-y-4">
 					<form.Field name="site_id">
-						{#snippet children()}
-							<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-						{/snippet}
+						<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
 					</form.Field>
 
 					<form.Field
@@ -655,9 +653,7 @@
 						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
 							<!-- Site Selection -->
 							<form.Field name="site_id">
-								{#snippet children(field)}
-									<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-								{/snippet}
+								<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
 							</form.Field>
 
 							<!-- Subnet Type -->

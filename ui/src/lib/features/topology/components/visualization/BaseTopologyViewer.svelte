@@ -1118,7 +1118,6 @@
 		// layout engine — see `layout-store.ts`. `distrustedLayoutKeys` holds keys whose stored
 		// sizes disagreed with what rendered, so the re-layout that follows runs for real.
 		let layoutKey: string | null = null;
-		let layoutFromStore = false;
 		let layoutToStore: { sizes: Map<string, XY>; result: LayoutResult } | null = null;
 
 		if (needsElk) {
@@ -1135,7 +1134,7 @@
 				: await readStoredLayout(layoutKey);
 			storeLookupDone();
 			if (isStale()) return;
-			layoutFromStore = storedLayout !== undefined;
+			const layoutFromStore = storedLayout !== undefined;
 			perf.count(layoutFromStore ? 'layout-store:hit' : 'layout-store:miss');
 
 			const measureDone = perf.stage('measure');

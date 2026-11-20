@@ -280,7 +280,9 @@
 	// Daemon-specific queries for connection detection
 	const queryClient = useQueryClient();
 	// Connected, with no networks reported yet. Declared before the daemon query that reads it,
-	// and set below from that query's own data.
+	// and set below from that query's own data. A $derived here would read `daemonNetworks` before
+	// its declaration, because the query's `enabled` reads this on creation.
+	// eslint-disable-next-line svelte/prefer-writable-derived
 	let findingNetworks = $state(false);
 	const provisionedDaemonQuery = useDaemonQuery(() => provisionedDaemonId || null, {
 		enabled: () =>
