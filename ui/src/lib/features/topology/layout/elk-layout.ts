@@ -1758,7 +1758,7 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	const baseline = viewLayout.pack_components
 		? packRootComponents(layoutResult, graph)
 		: repackDisconnectedContainers(layoutResult, input);
-	const withRings = viewLayout.ring_detection ? applyRingLayout(layoutResult, graph) : null;
+	const withRings = viewLayout.ring_detection ? applyRingLayout(layoutResult, graph, input) : null;
 	if (!withRings) return baseline;
 	// Ring placement leaves every component without a ring where ELK put it, so it is always
 	// packed, even in a view that does not otherwise pack.
@@ -1800,11 +1800,74 @@ function rootGraphOfInput(input: ElkLayoutInput): RootGraph {
 }
 
 /**
+ * Where a link from one root container to another leaves the first, relative to its centre: the
+ * centre of the port (or other element) the link starts from, inside that container as ELK laid it
+ * out. Undefined where the link starts on the container itself, as it does from a collapsed one.
+ */
+function linkAttachments(
+	result: ElkLayoutResult,
+	input: ElkLayoutInput
+): (from: string, to: string) => { x: number; y: number } | undefined {
+	const parentOf = new Map<string, string>(input.parentIndex?.parentMap ?? []);
+	for (const node of input.nodes) {
+		const record = node as Record<string, unknown>;
+		const parentId =
+			node.node_type === 'Container'
+				? (record.parent_container_id as string | undefined)
+				: (record.container_id as string | undefined);
+		if (parentId) parentOf.set(node.id, parentId);
+	}
+	const rootOf = (id: string) => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+
+	// The element each root's link to another root starts from: the first such link found.
+	const starts = new Map<string, string>();
+	const key = (from: string, to: string) => `${from}\u0000${to}`;
+	for (const edge of input.edges) {
+		if (!affectsLayout(edge)) continue;
+		const source = rootOf(edge.source);
+		const target = rootOf(edge.target);
+		if (source === target) continue;
+		if (!starts.has(key(source, target))) starts.set(key(source, target), edge.source);
+		if (!starts.has(key(target, source))) starts.set(key(target, source), edge.target);
+	}
+
+	return (from, to) => {
+		const element = starts.get(key(from, to));
+		const rootSize = result.containerSizes.get(from);
+		if (!element || element === from || !rootSize) return undefined;
+		// Positions are relative to the parent: add them up to the root.
+		let x = 0;
+		let y = 0;
+		for (let current = element; current !== from; current = parentOf.get(current)!) {
+			const position = result.nodePositions.get(current);
+			if (!position || !parentOf.has(current)) return undefined;
+			x += position.x;
+			y += position.y;
+		}
+		const size = input.elementNodeSizes?.get(element) ?? { x: 0, y: 0 };
+		return { x: x + size.x / 2 - rootSize.width / 2, y: y + size.y / 2 - rootSize.height / 2 };
+	};
+}
+
+/**
  * Re-places the components holding a ring as ellipses (`ring-layout.ts`). Returns null when the
  * root graph has no ring.
  */
-function applyRingLayout(result: ElkLayoutResult, graph: RootGraph): ElkLayoutResult | null {
-	const placed = placeRings(graph, detectRings(graph), result.containerSizes);
+function applyRingLayout(
+	result: ElkLayoutResult,
+	graph: RootGraph,
+	input: ElkLayoutInput
+): ElkLayoutResult | null {
+	const placed = placeRings(
+		graph,
+		detectRings(graph),
+		result.containerSizes,
+		linkAttachments(result, input)
+	);
 	if (!placed) return null;
 	const nodePositions = new Map(result.nodePositions);
 	for (const [id, position] of placed) nodePositions.set(id, position);

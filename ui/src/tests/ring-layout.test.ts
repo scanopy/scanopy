@@ -327,6 +327,39 @@ describe('placeRings', () => {
 		expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(32_000);
 	});
 
+	it('stacks a spur with the card whose link leaves nearest its line first, so links do not cross', () => {
+		// The top shared node stacks its spur straight up. Its three links leave its card 60px,
+		// 10px and 30px off that vertical line, in the order the cards were found.
+		const links: [string, string][] = [...twoRings(6), ['A', 's1'], ['A', 's2'], ['A', 's3']];
+		const graph = graphOf(links);
+		const sizes = new Map(graph.nodes.map((n) => [n, CARD]));
+		const offsets: Record<string, Point> = {
+			s1: { x: 60, y: 0 },
+			s2: { x: -10, y: 0 },
+			s3: { x: 30, y: 0 }
+		};
+		const positions = placeRings(graph, detectRings(graph), sizes, (from, to) =>
+			from === 'A' ? offsets[to] : undefined
+		)!;
+
+		// Highest card is farthest up the stack.
+		const upward = ['s1', 's2', 's3'].sort((a, b) => positions.get(b)!.y - positions.get(a)!.y);
+		expect(upward).toEqual(['s2', 's3', 's1']);
+		// Each link drawn from where it leaves A to its card's centre: none cross.
+		const a = centre(positions.get('A')!);
+		const segments = ['s1', 's2', 's3'].map((s) => [
+			{ x: a.x + offsets[s].x, y: a.y + offsets[s].y },
+			centre(positions.get(s)!)
+		]);
+		for (let i = 0; i < segments.length; i++) {
+			for (let j = i + 1; j < segments.length; j++) {
+				const [p, q] = segments[i];
+				const [r, s] = segments[j];
+				expect(segmentsCross(p, q, r, s)).toBe(false);
+			}
+		}
+	});
+
 	it('leaves components with no ring unplaced', () => {
 		const links: [string, string][] = [...cycle('a', 'b', 'c', 'd', 'e'), ['x', 'y']];
 		const graph = graphOf(links);

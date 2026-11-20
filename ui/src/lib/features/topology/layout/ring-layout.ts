@@ -306,7 +306,12 @@ function spreadAlong(arc: ArcPoint[], count: number, open: boolean): Point[] {
 export function placeRings(
 	graph: RootGraph,
 	rings: RingGroup[],
-	sizes: Map<string, Size>
+	sizes: Map<string, Size>,
+	/**
+	 * Where the link from `from` to `to` leaves `from`'s card, relative to the card's centre, when
+	 * the layout knows it. Orders each spur so its links do not cross.
+	 */
+	attachment?: (from: string, to: string) => Point | undefined
 ): Map<string, Point> | null {
 	if (rings.length === 0) return null;
 	const size = (id: string): Size => sizes.get(id) ?? { width: 0, height: 0 };
@@ -370,12 +375,27 @@ export function placeRings(
 	const centres = new Map<string, Point>();
 	// The ring node each spur card stacks from, so the stack moves with it when it snaps to the grid.
 	const anchorOf = new Map<string, string>();
+	/**
+	 * A node's spur stacked along `u`, its direct children nearest the stack's line first: the
+	 * child whose link leaves `node` closest to the line it stacks along. A link to a farther card
+	 * then never crosses a link to a nearer one. Children with no known attachment keep their
+	 * order, after the rest.
+	 */
+	const orderedSpur = (node: string, u: Point): string[] => {
+		const offLine = (child: string) => {
+			const at = attachment?.(node, child);
+			return at ? Math.abs(at.x * u.y - at.y * u.x) : Infinity;
+		};
+		const direct = [...(children.get(node) ?? [])].sort((a, b) => offLine(a) - offLine(b));
+		return direct.flatMap((child) => [child, ...spurOf(child)]);
+	};
+
 	/** Centres `node` on `c` and stacks its spur from it along `u`. */
 	const placeNode = (node: string, c: Point, u: Point) => {
 		centres.set(node, c);
 		let previous = node;
 		let distance = 0;
-		for (const n of spurOf(node)) {
+		for (const n of orderedSpur(node, u)) {
 			distance += separation(previous, n, u);
 			centres.set(n, { x: c.x + u.x * distance, y: c.y + u.y * distance });
 			anchorOf.set(n, node);
