@@ -43,6 +43,33 @@
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
+		useDiscoveriesQuery,
+		useUpdateDiscoveryMutation
+	} from '#lib/features/discovery/queries.ts';
+	import type { Discovery } from '#lib/features/discovery/types/base.ts';
+	import {
+		liveUnifiedScans,
+		scansTargeting,
+		withRoutedTarget
+	} from '#lib/features/discovery/utils/targets.ts';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import {
+		subnets_addToScan,
+		subnets_addToThisScan,
+		subnets_addedToScan,
+		subnets_createAndScan,
+		subnets_existsHereScanned,
+		subnets_rangeMoveScans,
+		subnets_reachInstall,
+		subnets_reachInstallHelp,
+		subnets_reachQuestion,
+		subnets_reachRouted,
+		subnets_reachRoutedHelp,
+		subnets_routedAddFailed,
+		subnets_routedNote,
+		subnets_scanLabel,
+		subnets_selectScan,
+		common_scan,
 		common_tags,
 		common_back,
 		common_cancel,
@@ -93,12 +120,25 @@
 	interface Props {
 		subnet?: SubnetResponse | null;
 		isOpen?: boolean;
-		/** With what the subnet is for, which travels on the `subnet_created` event. */
-		onCreate: (data: Subnet, purpose: SubnetCreatePurpose) => Promise<void> | void;
+		/** With what the subnet is for, which travels on the `subnet_created` event. Returns the
+		 *  created subnet, which a subnet created to scan from another daemon is added to its scan
+		 *  as. */
+		onCreate: (
+			data: Subnet,
+			purpose: SubnetCreatePurpose
+		) => Promise<Subnet | void> | Subnet | void;
 		onUpdate: (id: string, data: Subnet) => Promise<void> | void;
 		onClose: () => void;
 		onDelete?: ((id: string) => Promise<void> | void) | null;
 		name?: string;
+		/** Creating a network for one scan, on its site, as when opened from the scan's Targets.
+		 *  The flow asks no purpose and no reach, and the caller adds the subnet to the scan. */
+		fixedScan?: { siteId: string; label: string } | null;
+		/** With `fixedScan`, a subnet that already holds the typed range, to add to the scan in
+		 *  place of creating another. */
+		onUseExisting?: ((subnet: SubnetResponse) => void) | null;
+		/** A range to start from, as when a connected daemon's host isn't on the one asked for. */
+		initialCidr?: string;
 	}
 
 	let {
@@ -108,7 +148,10 @@
 		onUpdate,
 		onClose,
 		onDelete = null,
-		name = undefined
+		name = undefined,
+		fixedScan = null,
+		onUseExisting = null,
+		initialCidr = ''
 	}: Props = $props();
 
 	let loading = $state(false);
@@ -134,31 +177,73 @@
 		vlan_ids: string[];
 		/** The create flow's first answer. Sent as a query param, not part of the subnet. */
 		purpose: SubnetCreatePurpose;
+		/** How a network to scan is reached. Neither this nor `scan_id` is part of the subnet. */
+		reach: Reach;
+		/** The scan a routed network is added to. */
+		scan_id: string;
 	}
 
+	type Reach = 'install' | 'routed';
+
 	function editing(): Subnet {
-		return subnet ?? createEmptySubnetFormData(defaultSiteId);
+		return subnet ?? createEmptySubnetFormData(fixedScan?.siteId ?? defaultSiteId);
 	}
 
 	function formValues(source: Subnet): SubnetFormValues {
 		return {
 			// Blank while the subnet is named after its range, which the name field shows.
 			name: source.name === source.cidr ? '' : source.name,
-			cidr: source.cidr,
+			cidr: subnet ? source.cidr : initialCidr,
 			description: source.description ?? '',
 			site_id: source.site_id,
 			subnet_type: source.subnet_type,
 			tags: source.tags,
 			vlan_ids: source.vlan_ids ?? [],
-			purpose: 'Scan'
+			purpose: 'Scan',
+			reach: 'install',
+			scan_id: ''
 		};
 	}
 
+	// The site and VLANs the VLAN picker reads. Kept as state because the form's own values aren't
+	// tracked by `$derived`, and synced to the form for submission.
+	let selectedSiteId = $state('');
+	let selectedVlanIds = $state<string[]>([]);
+
+	// The site's scans, for adding a network to one as a routed network, and the scans that already
+	// sweep a subnet. The daemons query names the daemon each scan belongs to.
+	const daemonsQuery = useDaemonsQuery();
+	const discoveriesQuery = useDiscoveriesQuery();
+	const updateDiscoveryMutation = useUpdateDiscoveryMutation();
+	let allScans = $derived(liveUnifiedScans(discoveriesQuery.data ?? []));
+	let siteScans = $derived(allScans.filter((d) => d.site_id === selectedSiteId));
+	function scanLabel(d: Discovery): string {
+		const daemon = (daemonsQuery.data ?? []).find((x) => x.id === d.daemon_id);
+		return subnets_scanLabel({ daemon: daemon?.name ?? common_unknown(), scan: d.name });
+	}
+	let scanOptions: SimpleOption[] = $derived(
+		siteScans.map((d) => ({ value: d.id, label: scanLabel(d) }))
+	);
+
 	// The create flow's steps. Its first answer decides the rest: a network to scan goes on to how
-	// Scanopy reaches it, a network to record goes on to its details. Editing is one page.
+	// Scanopy reaches it, and from another daemon's scan to its details; a network to record goes
+	// on to its details. A network for a fixed scan skips both questions. Editing is one page.
 	type Step = 'network' | 'reach' | 'details';
 	let purpose = $state<SubnetCreatePurpose>('Scan');
-	let steps = $derived<Step[]>(purpose === 'Scan' ? ['network', 'reach'] : ['network', 'details']);
+	let reach = $state<Reach>('install');
+	let scanId = $state('');
+	let steps = $derived<Step[]>(
+		fixedScan || purpose === 'Record'
+			? ['network', 'details']
+			: reach === 'routed' && siteScans.length > 0
+				? ['network', 'reach', 'details']
+				: ['network', 'reach']
+	);
+	let routedToScan = $derived(
+		!fixedScan && purpose === 'Scan' && reach === 'routed'
+			? siteScans.find((d) => d.id === scanId)
+			: undefined
+	);
 	let activeTab = $state<Step>('network');
 	let furthestReached = $state(0);
 	let stepIndex = $derived(steps.indexOf(activeTab));
@@ -185,6 +270,11 @@
 		}))
 	);
 
+	let reachOptions: { value: Reach; label: string; helpText: string }[] = [
+		{ value: 'install', label: subnets_reachInstall(), helpText: subnets_reachInstallHelp() },
+		{ value: 'routed', label: subnets_reachRouted(), helpText: subnets_reachRoutedHelp() }
+	];
+
 	function handleInstallDaemon() {
 		const cidr = cidrInput.trim();
 		onClose();
@@ -209,10 +299,33 @@
 		furthestReached = 0;
 	}
 
-	// The site and VLANs the VLAN picker reads. Kept as state because the form's own values aren't
-	// tracked by `$derived`, and synced to the form for submission.
-	let selectedSiteId = $state('');
-	let selectedVlanIds = $state<string[]>([]);
+	function handleReachChange(value: Reach) {
+		reach = value;
+		form.setFieldValue('reach', value);
+		furthestReached = Math.min(furthestReached, 1);
+	}
+
+	function handleScanChange(id: string) {
+		scanId = id;
+		form.setFieldValue('scan_id', id);
+	}
+
+	/** Add a subnet that already exists to the scan picked for it, and close. */
+	async function handleAddExistingToScan(existing: SubnetResponse) {
+		if (fixedScan) {
+			onUseExisting?.(existing);
+			return;
+		}
+		const scan = siteScans.find((d) => d.id === scanId);
+		if (!scan) return;
+		try {
+			await updateDiscoveryMutation.mutateAsync(withRoutedTarget(scan, existing.id));
+			pushSuccess(subnets_addedToScan({ subnet: existing.name, scan: scanLabel(scan) }));
+			onClose();
+		} catch {
+			// The API client shows the error.
+		}
+	}
 
 	const vlansQuery = useVlansQuery();
 	let siteVlans = $derived((vlansQuery.data ?? []).filter((v) => v.site_id === selectedSiteId));
@@ -244,7 +357,9 @@
 	const form = createForm(() => ({
 		defaultValues: formValues(createEmptySubnetFormData('')),
 		onSubmit: async ({ value }) => {
-			const { purpose: chosenPurpose, ...fields } = value;
+			const { purpose: chosenPurpose, reach: _reach, scan_id: _scanId, ...fields } = value;
+			// Read before `onCreate`, which closes the modal.
+			const scan = routedToScan;
 			const subnetData: Subnet = {
 				...editing(),
 				...fields,
@@ -259,7 +374,14 @@
 				if (isEditing && subnet) {
 					await onUpdate(subnet.id, subnetData);
 				} else {
-					await onCreate(subnetData, chosenPurpose);
+					const created = await onCreate(subnetData, chosenPurpose);
+					if (created && scan) {
+						try {
+							await updateDiscoveryMutation.mutateAsync(withRoutedTarget(scan, created.id));
+						} catch {
+							pushError(subnets_routedAddFailed({ subnet: created.name, scan: scanLabel(scan) }));
+						}
+					}
 				}
 			} finally {
 				loading = false;
@@ -274,6 +396,8 @@
 		selectedSiteId = defaults.site_id;
 		selectedVlanIds = defaults.vlan_ids;
 		purpose = defaults.purpose;
+		reach = defaults.reach;
+		scanId = defaults.scan_id;
 		cidrInput = defaults.cidr;
 		activeTab = 'network';
 		furthestReached = 0;
@@ -281,11 +405,6 @@
 
 	// The server says which ranges come from the network and can't be moved by hand.
 	let cidrLock = $derived(subnet?.cidr_lock ?? null);
-
-	// For the daemon a locked range names, and for a daemon awaiting its first connection in create.
-	const daemonsQuery = useDaemonsQuery({
-		enabled: () => !isEditing || cidrLock?.type === 'DaemonInterface'
-	});
 
 	// The range typed in the first step, kept as state for the checks below (the form's own value
 	// isn't tracked by `$derived`).
@@ -295,6 +414,16 @@
 		!isEditing && cidrInput && !cidrNotation(cidrInput)
 			? checkNewCidr(cidrInput.trim(), selectedSiteId, subnetsQuery.data ?? [])
 			: null
+	);
+	// The scans that already sweep an existing subnet with the typed range.
+	let existingScans = $derived(
+		checks?.sameHere ? scansTargeting(checks.sameHere.id, allScans) : []
+	);
+	// Editing a range a scan sweeps as routed moves what that scan sweeps.
+	let movedRangeScans = $derived(
+		isEditing && subnet && cidrInput.trim() && cidrInput.trim() !== subnet.cidr
+			? scansTargeting(subnet.id, allScans)
+			: []
 	);
 	let siteOf = (id: string) => sitesData.find((s) => s.id === id);
 	let daemonOf = (id: string) => (daemonsQuery.data ?? []).find((d) => d.id === id);
@@ -312,6 +441,12 @@
 		const daemon = daemonOf(id);
 		return daemon && { type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name };
 	};
+	let scanChip = (d: Discovery): ChipRef => ({
+		type: 'Discovery',
+		id: d.id,
+		data: d,
+		label: scanLabel(d)
+	});
 
 	// A daemon on this site that was created but never connected is the one to fix before
 	// installing another.
@@ -380,12 +515,17 @@
 	let colorHelper = entities.getColorHelper('Subnet');
 
 	// Prepare subnet type options. Every site already has its Internet and Remote ranges, so those
-	// are offered only to a subnet that already holds one.
+	// are offered only to a subnet that already holds one. A network created to scan is offered
+	// only the types a scan sweeps.
+	let creatingToScan = $derived(!isEditing && (!!fixedScan || !!routedToScan));
 	let subnetTypeOptions: SimpleOption[] = $derived(
 		subnetTypes
 			.getItems()
 			.filter(
 				(st) => !subnetTypes.getMetadata(st.id).is_seeded_per_site || st.id === subnet?.subnet_type
+			)
+			.filter(
+				(st) => !creatingToScan || subnetTypes.getMetadata(st.id).network_scan_discovery_eligible
 			)
 			.map((st) => ({
 				value: st.id,
@@ -420,7 +560,7 @@
 			return [
 				{
 					role: 'primary',
-					label: loading ? common_saving() : saveLabel,
+					label: loading ? common_saving() : routedToScan ? subnets_createAndScan() : saveLabel,
 					onClick: handleSubmit,
 					disabled: loading || deleting
 				}
@@ -429,6 +569,11 @@
 		if (activeTab === 'network') {
 			return [
 				{ role: 'primary', label: common_next(), onClick: handleNext, disabled: !!checks?.sameHere }
+			];
+		}
+		if (reach === 'routed' && siteScans.length > 0) {
+			return [
+				{ role: 'primary', label: common_next(), onClick: handleNext, disabled: !routedToScan }
 			];
 		}
 		return pendingDaemon
@@ -519,9 +664,11 @@
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			{#if !isEditing && activeTab === 'network'}
 				<div class="space-y-4">
-					<form.Field name="site_id">
-						<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-					</form.Field>
+					{#if !fixedScan}
+						<form.Field name="site_id">
+							<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
+						</form.Field>
+					{/if}
 
 					<form.Field
 						name="cidr"
@@ -545,20 +692,62 @@
 						{@const daemon =
 							lock?.type === 'DaemonInterface' ? daemonChip(lock.daemon_id) : undefined}
 						{@const site = siteChip(existing.site_id)}
+						{@const refs = { subnet: subnetChip(existing), site, daemon }}
+						{@const siteSlot = site ? slot('site') : common_unknown()}
 						<InlineWarning title="">
-							{@render sentence(
-								daemon
-									? subnets_existsHereInterfaced({
-											subnet: slot('subnet'),
-											site: site ? slot('site') : common_unknown(),
-											daemon: slot('daemon')
-										})
-									: subnets_existsHere({
-											subnet: slot('subnet'),
-											site: site ? slot('site') : common_unknown()
-										}),
-								{ subnet: subnetChip(existing), site, daemon }
-							)}
+							{#if daemon}
+								{@render sentence(
+									subnets_existsHereInterfaced({
+										subnet: slot('subnet'),
+										site: siteSlot,
+										daemon: slot('daemon')
+									}),
+									refs
+								)}
+							{:else if existingScans.length > 0}
+								{@render sentence(
+									subnets_existsHereScanned({ subnet: slot('subnet'), site: siteSlot }),
+									refs
+								)}
+								{@render chips(existingScans.map(scanChip))}
+							{:else}
+								{@render sentence(
+									subnets_existsHere({ subnet: slot('subnet'), site: siteSlot }),
+									refs
+								)}
+							{/if}
+							{#if !daemon && fixedScan}
+								<button
+									type="button"
+									class="btn-secondary mt-2"
+									onclick={() => handleAddExistingToScan(existing)}
+								>
+									{subnets_addToThisScan()}
+								</button>
+							{:else if !daemon && existingScans.length === 0 && siteScans.length > 0}
+								<div class="mt-2 flex flex-wrap items-end gap-2">
+									<form.Field name="scan_id">
+										<div class="min-w-64 flex-1">
+											<RichSelect
+												label={common_scan()}
+												placeholder={subnets_selectScan()}
+												selectedValue={scanId}
+												options={scanOptions}
+												displayComponent={SimpleOptionDisplay}
+												onSelect={handleScanChange}
+											/>
+										</div>
+									</form.Field>
+									<button
+										type="button"
+										class="btn-secondary"
+										disabled={!scanId || updateDiscoveryMutation.isPending}
+										onclick={() => handleAddExistingToScan(existing)}
+									>
+										{subnets_addToScan()}
+									</button>
+								</div>
+							{/if}
 						</InlineWarning>
 					{/if}
 					{#each checks?.sameElsewhere ?? [] as other (other.id)}
@@ -572,7 +761,7 @@
 								}),
 								{ subnet: subnetChip(other), site: siteRef }
 							)}
-							{#if site}
+							{#if site && !fixedScan}
 								<button
 									type="button"
 									class="btn-secondary mt-2"
@@ -594,30 +783,58 @@
 						</InlineInfo>
 					{/if}
 
-					<form.Field name="purpose">
-						{#snippet children(field)}
-							<RadioGroup
-								label={subnets_purposeQuestion()}
-								id="purpose"
-								{field}
-								options={purposeOptions}
-								value={purpose}
-								onChange={handlePurposeChange}
-							/>
-						{/snippet}
-					</form.Field>
+					{#if !fixedScan}
+						<form.Field name="purpose">
+							{#snippet children(field)}
+								<RadioGroup
+									label={subnets_purposeQuestion()}
+									id="purpose"
+									{field}
+									options={purposeOptions}
+									value={purpose}
+									onChange={handlePurposeChange}
+								/>
+							{/snippet}
+						</form.Field>
+					{/if}
 				</div>
 			{:else if !isEditing && activeTab === 'reach'}
 				<div class="space-y-4">
-					{#if pendingDaemon}
+					{#if siteScans.length > 0}
+						<form.Field name="reach">
+							{#snippet children(field)}
+								<RadioGroup
+									label={subnets_reachQuestion({ cidr: cidrInput.trim() })}
+									id="reach"
+									{field}
+									options={reachOptions}
+									value={reach}
+									onChange={handleReachChange}
+								/>
+							{/snippet}
+						</form.Field>
+					{:else if !pendingDaemon}
+						<p class="text-sm text-secondary">
+							{subnets_reachNoDaemon({ cidr: cidrInput.trim() })}
+						</p>
+					{/if}
+					{#if reach === 'routed' && siteScans.length > 0}
+						<form.Field name="scan_id">
+							<RichSelect
+								label={common_scan()}
+								placeholder={subnets_selectScan()}
+								selectedValue={scanId}
+								options={scanOptions}
+								displayComponent={SimpleOptionDisplay}
+								onSelect={handleScanChange}
+								required
+							/>
+						</form.Field>
+					{:else if pendingDaemon}
 						{@const daemon = pendingDaemon}
 						<InlineWarning title="" body={subnets_finishDaemon()}>
 							{@render chips([{ type: 'Daemon', id: daemon.id, data: daemon, label: daemon.name }])}
 						</InlineWarning>
-					{:else}
-						<p class="text-sm text-secondary">
-							{subnets_reachNoDaemon({ cidr: cidrInput.trim() })}
-						</p>
 					{/if}
 				</div>
 			{:else}
@@ -625,7 +842,13 @@
 					<!-- Subnet Details Section -->
 					<div class="space-y-4">
 						{#if !isEditing}
-							<InlineInfo body={subnets_recordNote()} />
+							<InlineInfo
+								body={fixedScan
+									? subnets_routedNote({ scan: fixedScan.label })
+									: routedToScan
+										? subnets_routedNote({ scan: scanLabel(routedToScan) })
+										: subnets_recordNote()}
+							/>
 						{/if}
 						<SubnetIdentity {form} cidr={cidrInput.trim()} initialName={form.state.values.name} />
 
@@ -649,12 +872,19 @@
 								/>
 							{/snippet}
 						</form.Field>
+						{#if movedRangeScans.length > 0}
+							<InlineWarning title="" body={subnets_rangeMoveScans()}>
+								{@render chips(movedRangeScans.map(scanChip))}
+							</InlineWarning>
+						{/if}
 
 						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-							<!-- Site Selection -->
-							<form.Field name="site_id">
-								<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-							</form.Field>
+							<!-- Site Selection. A network created for a scan stays on the scan's site. -->
+							{#if !creatingToScan}
+								<form.Field name="site_id">
+									<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
+								</form.Field>
+							{/if}
 
 							<!-- Subnet Type -->
 							<form.Field name="subnet_type">

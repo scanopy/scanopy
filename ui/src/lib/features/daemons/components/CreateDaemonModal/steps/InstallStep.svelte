@@ -50,6 +50,9 @@
 		daemons_connectedCoversCidr,
 		daemons_connectedFindingNetworks,
 		daemons_connectedMissesCidr,
+		daemons_addNetworks,
+		daemons_addRoutedCidr,
+		daemons_connectedRoutedHint,
 		daemons_connectedNetworksIntro,
 		daemons_troubleshoot_connectedDesc,
 		daemons_troubleshoot_testingConnection,
@@ -84,6 +87,10 @@
 		/** The network this daemon is being installed for, from subnet create. */
 		expectedCidr?: string | null;
 		onViewDiscovery?: () => void;
+		/** Open the daemon's scan on Targets, to add networks it routes to. */
+		onAddNetworks?: () => void;
+		/** Add `expectedCidr`, which the host isn't on, to the daemon's scan as a routed network. */
+		onAddRoutedCidr?: () => void;
 		onAdvanced?: (() => void) | null;
 		daemonMode?: DaemonMode;
 		daemonName?: string;
@@ -112,6 +119,8 @@
 		daemonNetworks = [],
 		expectedCidr = null,
 		onViewDiscovery,
+		onAddNetworks,
+		onAddRoutedCidr,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
 		daemonName = 'scanopy-daemon',
@@ -349,18 +358,29 @@
 								</li>
 							{/each}
 						</ul>
-						{#if expectedCidr}
+						{#if expectedCidr && daemonNetworks.some((n) => n.cidr === expectedCidr)}
 							<p class="mt-3 text-sm text-secondary">
-								{daemonNetworks.some((n) => n.cidr === expectedCidr)
-									? daemons_connectedCoversCidr({ cidr: expectedCidr })
-									: daemons_connectedMissesCidr({ cidr: expectedCidr })}
+								{daemons_connectedCoversCidr({ cidr: expectedCidr })}
 							</p>
+						{:else if expectedCidr}
+							<p class="mt-3 text-sm text-secondary">
+								{daemons_connectedMissesCidr({ cidr: expectedCidr })}
+							</p>
+							<button type="button" class="btn-secondary mt-2" onclick={() => onAddRoutedCidr?.()}>
+								{daemons_addRoutedCidr()}
+							</button>
 						{/if}
+						<p class="mt-3 text-sm text-secondary">{daemons_connectedRoutedHint()}</p>
 					{/if}
 				</div>
-				<button type="button" class="btn-primary" onclick={() => onViewDiscovery?.()}>
-					{common_viewTopology()}
-				</button>
+				<div class="flex flex-wrap justify-center gap-2">
+					<button type="button" class="btn-primary" onclick={() => onViewDiscovery?.()}>
+						{common_viewTopology()}
+					</button>
+					<button type="button" class="btn-secondary" onclick={() => onAddNetworks?.()}>
+						{daemons_addNetworks()}
+					</button>
+				</div>
 				{#if hasEmail && isFirstDaemon}
 					<p class="text-sm text-secondary">
 						{common_firstDiscoveryEmailHint()}

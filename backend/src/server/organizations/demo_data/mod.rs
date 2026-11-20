@@ -230,6 +230,7 @@ impl DemoData {
             &sites,
             &subnets,
             &daemons,
+            &daemon_interfaced_subnets,
             &hosts,
             &interfaces,
             &credentials,

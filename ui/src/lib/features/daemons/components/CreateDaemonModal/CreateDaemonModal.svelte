@@ -73,6 +73,13 @@
 		useDiscoveriesQuery,
 		useUpdateDiscoveryMutation
 	} from '#lib/features/discovery/queries.ts';
+	import { liveUnifiedScans, withRoutedTarget } from '#lib/features/discovery/utils/targets.ts';
+	import type { Discovery } from '#lib/features/discovery/types/base.ts';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
+	import SubnetEditModal from '#lib/features/subnets/components/SubnetEditModal/SubnetEditModal.svelte';
+	import { useCreateSubnetMutation } from '#lib/features/subnets/queries.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import { subnets_addedToScan, subnets_scanLabel } from '#lib/paraglide/messages.js';
 	import {
 		common_close,
 		common_configure,
@@ -668,6 +675,59 @@
 		handleOnClose();
 	}
 
+	// The scan registration created for the new daemon, which routed networks are added to.
+	async function defaultScan(): Promise<Discovery | undefined> {
+		const discoveries = await discoveriesQuery.refetch();
+		return liveUnifiedScans(discoveries.data ?? []).find(
+			(d) => d.daemon_id === provisionedDaemonId
+		);
+	}
+
+	/** Open the new daemon's scan on its Targets tab, to add the networks it routes to. */
+	async function handleAddNetworks() {
+		const scan = await defaultScan();
+		if (!scan) return;
+		handleOnClose();
+		window.location.hash = 'discovery-scans';
+		openModal('discovery-editor', { id: scan.id, tab: 'targets', entityData: scan });
+	}
+
+	// The network asked for from subnet create, which the daemon's host turned out not to be on, is
+	// created over this modal and added to the daemon's scan as a routed network.
+	let routedScan = $state<Discovery | null>(null);
+	const createSubnetMutation = useCreateSubnetMutation();
+
+	async function handleAddRoutedCidr() {
+		routedScan = (await defaultScan()) ?? null;
+	}
+
+	async function addToRoutedScan(subnet: Subnet) {
+		const scan = routedScan;
+		if (!scan) return;
+		try {
+			await updateDiscoveryMutation.mutateAsync(withRoutedTarget(scan, subnet.id));
+			pushSuccess(subnets_addedToScan({ subnet: subnet.name, scan: routedScanLabel }));
+			routedScan = null;
+		} catch {
+			// The API client shows the error.
+		}
+	}
+
+	async function handleRoutedCreate(subnet: Subnet) {
+		try {
+			const created = await createSubnetMutation.mutateAsync({ subnet, purpose: 'Scan' });
+			await addToRoutedScan(created);
+		} catch {
+			// The API client shows the error.
+		}
+	}
+
+	let routedScanLabel = $derived(
+		routedScan
+			? subnets_scanLabel({ daemon: String(formValues.name ?? ''), scan: routedScan.name })
+			: ''
+	);
+
 	function handleProgressComplete() {
 		if (connectionStatus === 'waiting') {
 			connectionStatus = 'trouble';
@@ -982,6 +1042,8 @@
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
+							onAddNetworks={handleAddNetworks}
+							onAddRoutedCidr={handleAddRoutedCidr}
 							{daemonNetworks}
 							{expectedCidr}
 							onAdvanced={() => (showAdvanced = true)}
@@ -1017,3 +1079,14 @@
 		{/if}
 	</div>
 </GenericModal>
+
+<!-- Unnamed, so this wizard stays open underneath. -->
+<SubnetEditModal
+	isOpen={routedScan !== null}
+	fixedScan={routedScan ? { siteId: routedScan.site_id, label: routedScanLabel } : null}
+	initialCidr={expectedCidr ?? ''}
+	onCreate={handleRoutedCreate}
+	onUseExisting={addToRoutedScan}
+	onUpdate={() => {}}
+	onClose={() => (routedScan = null)}
+/>

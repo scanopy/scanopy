@@ -26891,7 +26891,7 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "description": "Subnets to sweep. `null` sweeps every subnet on the site."
+                "description": "Routed subnets swept on top of the daemon's interfaced subnets, which every scan\nsweeps. `null` sweeps the interfaced subnets alone. A historical run lists every subnet\nit swept."
               },
               "type": {
                 "type": "string",
@@ -27008,7 +27008,7 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "description": "Subnets to scan. None = scan all interfaced subnets."
+                "description": "Routed subnets scanned on top of the daemon's interfaced subnets, which every scan\nscans. `null` scans the interfaced subnets alone. A historical run lists every subnet\nit scanned."
               },
               "type": {
                 "type": "string",

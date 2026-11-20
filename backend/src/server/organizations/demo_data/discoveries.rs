@@ -20,6 +20,7 @@ pub(super) fn generate_discoveries(
     sites: &[Site],
     subnets: &[Subnet],
     daemons: &[Daemon],
+    daemon_interfaced_subnets: &[(Uuid, Vec<Uuid>)],
     hosts: &[&Host],
     interfaces: &[Interface],
     credentials: &[Credential],
@@ -35,6 +36,20 @@ pub(super) fn generate_discoveries(
             .filter(|s| s.base.site_id == site_id && !s.is_container_bridge_subnet())
             .map(|s| s.id)
             .collect()
+    };
+    // The routed targets of a daemon's scan configuration: the site's subnets its host has no
+    // interface on. Every scan sweeps the interfaced ones, so a configuration doesn't list them.
+    let routed_subnets = |daemon: &Daemon, site_id: Uuid| -> Option<Vec<Uuid>> {
+        let interfaced: &[Uuid] = daemon_interfaced_subnets
+            .iter()
+            .find(|(id, _)| *id == daemon.id)
+            .map(|(_, ids)| ids.as_slice())
+            .unwrap_or_default();
+        let routed: Vec<Uuid> = find_subnets_for_site(site_id)
+            .into_iter()
+            .filter(|id| !interfaced.contains(id))
+            .collect();
+        (!routed.is_empty()).then_some(routed)
     };
 
     // Credential IDs for integration targets.
@@ -103,7 +118,7 @@ pub(super) fn generate_discoveries(
             created_at: now,
             updated_at: now,
             base: DiscoveryBase {
-                discovery_type: unified(daemon, Some(hq_subnet_ids.clone())),
+                discovery_type: unified(daemon, routed_subnets(daemon, hq.id)),
                 run_type: RunType::AdHoc {
                     last_run: Some(now - Duration::days(2)),
                 },
@@ -337,13 +352,12 @@ pub(super) fn generate_discoveries(
     // ===== DC Unified discovery =====
     let dc = find_site("Data Center");
     if let Some(daemon) = find_daemon("DC") {
-        let dc_subnet_ids = find_subnets_for_site(dc.id);
         discoveries.push(Discovery {
             id: Uuid::new_v4(),
             created_at: now,
             updated_at: now,
             base: DiscoveryBase {
-                discovery_type: unified(daemon, Some(dc_subnet_ids)),
+                discovery_type: unified(daemon, routed_subnets(daemon, dc.id)),
                 run_type: RunType::AdHoc {
                     last_run: Some(now - Duration::days(3)),
                 },

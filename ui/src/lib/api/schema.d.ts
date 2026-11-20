@@ -9664,7 +9664,11 @@ export interface components {
              *     Server builds this mapping before initiating discovery
              */
             snmp_credentials?: Record<string, never>;
-            /** @description Subnets to sweep. `null` sweeps every subnet on the site. */
+            /**
+             * @description Routed subnets swept on top of the daemon's interfaced subnets, which every scan
+             *     sweeps. `null` sweeps the interfaced subnets alone. A historical run lists every subnet
+             *     it swept.
+             */
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Network";
@@ -9712,7 +9716,11 @@ export interface components {
             host_naming_fallback: components["schemas"]["HostNamingFallback"];
             /** @description Per-discovery scan performance settings */
             scan_settings?: components["schemas"]["ScanSettings"];
-            /** @description Subnets to scan. None = scan all interfaced subnets. */
+            /**
+             * @description Routed subnets scanned on top of the daemon's interfaced subnets, which every scan
+             *     scans. `null` scans the interfaced subnets alone. A historical run lists every subnet
+             *     it scanned.
+             */
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Unified";

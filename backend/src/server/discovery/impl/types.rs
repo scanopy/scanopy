@@ -42,7 +42,9 @@ pub enum DiscoveryType {
     },
     #[schema(title = "Network")]
     Network {
-        /// Subnets to sweep. `null` sweeps every subnet on the site.
+        /// Routed subnets swept on top of the daemon's interfaced subnets, which every scan
+        /// sweeps. `null` sweeps the interfaced subnets alone. A historical run lists every subnet
+        /// it swept.
         #[schema(required)]
         subnet_ids: Option<Vec<Uuid>>,
         /// What to name a host by when reverse DNS gives nothing.
@@ -99,7 +101,9 @@ pub enum DiscoveryType {
     Unified {
         /// ID of the host that the daemon is running on
         host_id: Uuid,
-        /// Subnets to scan. None = scan all interfaced subnets.
+        /// Routed subnets scanned on top of the daemon's interfaced subnets, which every scan
+        /// scans. `null` scans the interfaced subnets alone. A historical run lists every subnet
+        /// it scanned.
         #[schema(required)]
         subnet_ids: Option<Vec<Uuid>>,
         /// Fallback strategy for naming discovered hosts
@@ -147,8 +151,8 @@ impl DiscoveryType {
         matches!(self, Self::Network { .. } | Self::Unified { .. })
     }
 
-    /// The subnet targets of a type that sweeps chosen subnets: `Some(None)` for one with no
-    /// targets, which covers every subnet its daemon has an interface on. `None` for a type with
+    /// The routed subnet targets of a type that sweeps chosen subnets: `Some(None)` for one with
+    /// none, which sweeps only the subnets its daemon has an interface on. `None` for a type with
     /// no subnet targets at all.
     pub fn subnet_targets_mut(&mut self) -> Option<&mut Option<Vec<Uuid>>> {
         match self {

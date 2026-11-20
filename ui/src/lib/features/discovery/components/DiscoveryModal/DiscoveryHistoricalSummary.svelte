@@ -13,7 +13,7 @@
 	import { useSubnetsQuery, getSubnetById } from '#lib/features/subnets/queries.ts';
 	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
 	import scanSettingsFields from '#lib/data/scan-settings.json';
-	import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
+	import { subnetTypes, type FieldDefinition } from '#lib/shared/stores/metadata.ts';
 	import {
 		discovery_runDetails,
 		discovery_hostNamingFallback,
@@ -36,6 +36,7 @@
 		common_hosts,
 		common_ipAddresses,
 		common_unknownEntity,
+		common_unknown,
 		common_finished,
 		common_hostId,
 		common_ipAddress,
@@ -66,10 +67,15 @@
 			: null
 	);
 
-	// Helper to get subnet name by ID
-	function getSubnetName(subnetId: string): string {
-		const subnet = getSubnetById(subnetsData, subnetId);
-		return subnet?.name || 'Unknown Subnet';
+	// The subnets the run swept, by name. A run records them; one recorded before runs did, or by
+	// a daemon that reports none, has no list, and the caller shows the interfaced-subnets line.
+	// Loopback and other ranges a scan doesn't sweep are left out, as the digest leaves them out.
+	function sweptSubnetNames(subnetIds: string[] | null): string | null {
+		const names = (subnetIds ?? [])
+			.map((id) => getSubnetById(subnetsData, id))
+			.filter((s) => !s || subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible)
+			.map((s) => s?.name ?? common_unknown());
+		return names.length > 0 ? names.join(', ') : null;
 	}
 
 	// Scan settings field metadata for label lookup
@@ -189,11 +195,7 @@
 	{:else if payload.discovery_type.type === 'Unified'}
 		<InfoCard title={discovery_scanSettings()}>
 			<InfoRow label={discovery_subnetsScanned()}>
-				{#if payload.discovery_type.subnet_ids === null}
-					{discovery_allInterfacedSubnets()}
-				{:else}
-					{payload.discovery_type.subnet_ids.map((s) => getSubnetName(s)).join(', ')}
-				{/if}
+				{sweptSubnetNames(payload.discovery_type.subnet_ids) ?? discovery_allInterfacedSubnets()}
 			</InfoRow>
 			<InfoRow label={discovery_hostNamingFallback()}>
 				{hostNamingLabel}
@@ -211,11 +213,7 @@
 	{:else if payload.discovery_type.type === 'Network'}
 		<InfoCard title={discovery_scanSettings()}>
 			<InfoRow label={discovery_subnetsScanned()}>
-				{#if payload.discovery_type.subnet_ids === null}
-					{discovery_allInterfacedSubnets()}
-				{:else}
-					{payload.discovery_type.subnet_ids.map((s) => getSubnetName(s)).join(', ')}
-				{/if}
+				{sweptSubnetNames(payload.discovery_type.subnet_ids) ?? discovery_allInterfacedSubnets()}
 			</InfoRow>
 		</InfoCard>
 
