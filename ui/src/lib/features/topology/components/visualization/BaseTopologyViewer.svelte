@@ -671,16 +671,15 @@
 	// The selection draws in full at any zoom: see `detailKeptIds`. A derived count, so a node
 	// write that keeps the count re-runs nothing here.
 	let storeNodeCount = $derived($nodes.length);
-	$effect(() =>
-		detailStaging.keep(
-			detailKeptIds({
-				nodeCount: storeNodeCount,
-				selectedNode: $selNodeStore,
-				selectedNodes: $selNodesStore,
-				selectedEdge: $selEdgeStore
-			})
-		)
+	let keptDetailIds = $derived(
+		detailKeptIds({
+			nodeCount: storeNodeCount,
+			selectedNode: $selNodeStore,
+			selectedNodes: $selNodesStore,
+			selectedEdge: $selEdgeStore
+		})
 	);
+	$effect(() => detailStaging.keep(keptDetailIds));
 
 	let cullOffscreen = $derived(
 		shouldCull({
@@ -1918,7 +1917,7 @@
 			size={1}
 		/>
 
-		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} />
+		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} keptIds={keptDetailIds} />
 
 		{#if showControls}
 			<TopologySidebarControls
