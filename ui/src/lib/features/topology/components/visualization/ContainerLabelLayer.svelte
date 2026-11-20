@@ -38,7 +38,7 @@
 		/** Container headers cannot be read at this zoom, and nothing is being exported. */
 		active: boolean;
 		/** The user shows container names (`show_container_names`). Off, only search matches are
-		 * named. */
+		 * named, and hovering a box still names it. */
 		namesShown: boolean;
 		/** Nodes drawn in full at any zoom (`detailKeptIds`): they show their own header. */
 		keptIds: ReadonlySet<string>;
@@ -212,7 +212,6 @@
 			hovered = null;
 			return;
 		}
-		const hoverNames = namesShown;
 		// A label takes no pointer events, so the pane and the nodes under it still pan, select and
 		// click. Whether the pointer is on one is read from its rectangle.
 		const labelUnder = (event: PointerEvent): HTMLElement | null => {
@@ -245,7 +244,6 @@
 				return;
 			}
 			hovered = null;
-			if (!hoverNames) return;
 			// A label takes no pointer events, so this is the node itself.
 			const node = document
 				.elementFromPoint(event.clientX, event.clientY)

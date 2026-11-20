@@ -15902,19 +15902,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-20T17:46:40.414509Z",
+              "created_at": "2026-11-20T18:46:52.368084Z",
               "first_discovery_id": null,
-              "id": "a538e904-5abd-4bc0-92e0-f0043dfa41a0",
+              "id": "0f0429a2-bbb1-49af-9d62-b02ab6aa15f8",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-20T17:46:40.414509Z",
+              "last_seen_at": "2026-11-20T18:46:52.368084Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-20T17:46:40.414509Z",
-              "valid_from": "2026-11-20T17:46:40.414509Z",
+              "updated_at": "2026-11-20T18:46:52.368084Z",
+              "valid_from": "2026-11-20T18:46:52.368084Z",
               "valid_to": null
             }
           },
@@ -17780,19 +17780,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-20T17:46:40.383925Z",
+                      "created_at": "2026-11-20T18:46:52.333439Z",
                       "first_discovery_id": null,
-                      "id": "6511a6cf-1ed0-4f50-a486-d8ec3847e4c3",
+                      "id": "be89fabb-5b3f-46a0-8527-f5544f55dc3d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-20T17:46:40.383925Z",
+                      "last_seen_at": "2026-11-20T18:46:52.333439Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-20T17:46:40.383925Z",
-                      "valid_from": "2026-11-20T17:46:40.383925Z",
+                      "updated_at": "2026-11-20T18:46:52.333439Z",
+                      "valid_from": "2026-11-20T18:46:52.333439Z",
                       "valid_to": null
                     }
                   ],
@@ -17805,7 +17805,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Jupyter",
+                  "service_definition": "Skype For Business Server",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19337,19 +19337,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-20T17:46:40.409524Z",
+                  "created_at": "2026-11-20T18:46:52.362659Z",
                   "first_discovery_id": null,
-                  "id": "52d7c4dd-e165-40fb-983a-cd37a49173c0",
+                  "id": "7972a1dc-941e-442f-a380-a90205706ffe",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-20T17:46:40.409524Z",
+                  "last_seen_at": "2026-11-20T18:46:52.362659Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-20T17:46:40.409524Z",
-                  "valid_from": "2026-11-20T17:46:40.409524Z",
+                  "updated_at": "2026-11-20T18:46:52.362659Z",
+                  "valid_from": "2026-11-20T18:46:52.362659Z",
                   "valid_to": null
                 }
               ],
@@ -19362,7 +19362,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Jupyter",
+              "service_definition": "Skype For Business Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -23240,19 +23240,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-20T17:46:40.384545Z",
+          "created_at": "2026-11-20T18:46:52.334181Z",
           "first_discovery_id": null,
-          "id": "2d19bca0-56ca-4405-b435-f93b51f49540",
+          "id": "d6b95601-2bf8-4f97-8aee-1fbc53d675f0",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-20T17:46:40.384545Z",
+          "last_seen_at": "2026-11-20T18:46:52.334181Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-20T17:46:40.384545Z",
-          "valid_from": "2026-11-20T17:46:40.384545Z",
+          "updated_at": "2026-11-20T18:46:52.334181Z",
+          "valid_from": "2026-11-20T18:46:52.334181Z",
           "valid_to": null
         }
       },
@@ -24246,7 +24246,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Jupyter",
+              "service_definition": "Skype For Business Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -29990,7 +29990,7 @@
       },
       "EdgeColoring": {
         "type": "string",
-        "description": "What sets the colour of the links in a view.",
+        "description": "What sets the color of the links in a view.",
         "enum": [
           "Type",
           "Speed"
@@ -33075,19 +33075,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-20T17:46:40.383189Z",
+                  "created_at": "2026-11-20T18:46:52.332617Z",
                   "first_discovery_id": null,
-                  "id": "b0d856c2-949e-419d-8922-03916464786a",
+                  "id": "c29ca9eb-0dfd-4225-a6e5-8f1a66133fd8",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-20T17:46:40.383189Z",
+                  "last_seen_at": "2026-11-20T18:46:52.332617Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-20T17:46:40.383189Z",
-                  "valid_from": "2026-11-20T17:46:40.383189Z",
+                  "updated_at": "2026-11-20T18:46:52.332617Z",
+                  "valid_from": "2026-11-20T18:46:52.332617Z",
                   "valid_to": null
                 }
               ],
@@ -33100,7 +33100,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Jupyter",
+              "service_definition": "Skype For Business Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -37672,19 +37672,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-20T17:46:40.368804Z",
+                        "created_at": "2026-11-20T18:46:52.316173Z",
                         "first_discovery_id": null,
-                        "id": "75911c93-adf2-415d-83bb-52cb93cbcade",
+                        "id": "4d80be3c-f83a-4a6f-9e82-4c3dfff87c22",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-20T17:46:40.368804Z",
+                        "last_seen_at": "2026-11-20T18:46:52.316173Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-20T17:46:40.368804Z",
-                        "valid_from": "2026-11-20T17:46:40.368804Z",
+                        "updated_at": "2026-11-20T18:46:52.316173Z",
+                        "valid_from": "2026-11-20T18:46:52.316173Z",
                         "valid_to": null
                       }
                     ],
@@ -37697,7 +37697,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Jupyter",
+                    "service_definition": "Skype For Business Server",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -37944,19 +37944,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-20T17:46:40.408780Z",
+                    "created_at": "2026-11-20T18:46:52.361882Z",
                     "first_discovery_id": null,
-                    "id": "b2bc9154-7f77-4b3e-a0f5-6c8dab0269b8",
+                    "id": "ea0ad5e1-bf9d-45b7-a5e7-567ced9baf8d",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-20T17:46:40.408780Z",
+                    "last_seen_at": "2026-11-20T18:46:52.361882Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-20T17:46:40.408780Z",
-                    "valid_from": "2026-11-20T17:46:40.408780Z",
+                    "updated_at": "2026-11-20T18:46:52.361882Z",
+                    "valid_from": "2026-11-20T18:46:52.361882Z",
                     "valid_to": null
                   }
                 ],
@@ -37969,7 +37969,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Jupyter",
+                "service_definition": "Skype For Business Server",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -40839,19 +40839,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-20T17:46:40.384332Z",
+              "created_at": "2026-11-20T18:46:52.333937Z",
               "first_discovery_id": null,
-              "id": "59d2bbff-c547-48ff-8e0b-40c2d899941e",
+              "id": "ce6de41f-9f7c-495d-b91b-8477353ef291",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-20T17:46:40.384332Z",
+              "last_seen_at": "2026-11-20T18:46:52.333937Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-20T17:46:40.384332Z",
-              "valid_from": "2026-11-20T17:46:40.384332Z",
+              "updated_at": "2026-11-20T18:46:52.333937Z",
+              "valid_from": "2026-11-20T18:46:52.333937Z",
               "valid_to": null
             }
           ],
@@ -40864,7 +40864,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Jupyter",
+          "service_definition": "Skype For Business Server",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -44057,6 +44057,11 @@
             "description": "Keep unrelated edges at full opacity when something is selected.",
             "default": false
           },
+          "show_container_names": {
+            "type": "boolean",
+            "description": "Name containers on the zoomed-out map. Search matches are named either way.",
+            "default": true
+          },
           "show_minimap": {
             "type": "boolean",
             "description": "Show the minimap.",
@@ -44108,7 +44113,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "be54cf4f-2121-4e49-b218-9afe95e5c63a",
+                  "id": "1fb00bc5-8b12-4bfb-a0ba-691bec442faf",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -44118,23 +44123,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "5876a304-7852-463a-a125-3087022cd189",
+                  "id": "a3c7b48b-a8eb-4ae1-9059-d7f76e382859",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "b6b48629-aeea-44f6-a8e7-59887fab0699",
+                  "id": "308da243-bea8-4e22-a550-efc1bb40abb1",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "007e8adc-8850-44a5-9172-fe99311a7372",
+                  "id": "ddd06135-d0e9-4cd1-a8f9-ac412c03cad1",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "5876a304-7852-463a-a125-3087022cd189",
+                  "id": "a3c7b48b-a8eb-4ae1-9059-d7f76e382859",
                   "rule": "ByHost"
                 }
               ]
@@ -44164,19 +44169,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "e8e6ee29-a5ef-494e-b592-9afe26c6cbe1",
+                "id": "4bf064f5-31fe-4245-b34f-e2250a871484",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0dc7c04a-22d7-4bb3-82d8-168521120043",
+                "id": "e20a0712-9f34-4915-8c37-32d60714fb4c",
                 "rule": "ByVLAN"
               },
               {
-                "id": "993162e6-0b86-4505-9640-48008966ccec",
+                "id": "cd8c98cf-2cd9-435f-9de4-0c2233595e9c",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "d63bc6f2-7131-4679-90d7-a0bcff3346c4",
+                "id": "9a8526c7-bdd1-443d-afb9-39976c935d75",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -44197,7 +44202,7 @@
                 }
               },
               {
-                "id": "3e473ec5-a43f-4380-b97b-571ac67b4fb0",
+                "id": "88477c73-6fc9-495d-bb9e-c16d50577d48",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -44206,19 +44211,19 @@
                 }
               },
               {
-                "id": "335e3271-70b4-4e37-939c-4e41a335b29f",
+                "id": "e0ebdb41-f6f0-4dfe-858f-744270aab44e",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "58a5af97-6fb2-45c0-84c0-61c4c69cf61e",
+                "id": "94595885-b607-4fa6-98bd-863876090626",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1ca218de-b769-466e-a7fa-213470fb68e5",
+                "id": "5a49aae3-40b4-4432-8f83-a52953520259",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "d10c5d05-705a-4a6f-bbc2-eed592422fee",
+                "id": "cffeb60a-1178-4a8d-990d-b89b398450b2",
                 "rule": "ByStack"
               }
             ]

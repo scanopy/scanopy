@@ -356,7 +356,7 @@ impl TypeMetadataProvider for ElementSort {
     }
 }
 
-/// What sets the colour of the links in a view.
+/// What sets the color of the links in a view.
 #[derive(
     Debug,
     Clone,
@@ -372,7 +372,7 @@ impl TypeMetadataProvider for ElementSort {
     IntoStaticStr,
 )]
 pub enum EdgeColoring {
-    /// Each link in the colour of its type.
+    /// Each link in the color of its type.
     #[default]
     Type,
     /// Physical links by the speed their ports report, in `LinkSpeedTier`s.
@@ -422,9 +422,9 @@ impl TypeMetadataProvider for EdgeColoring {
 
     fn description(&self) -> &'static str {
         match self {
-            EdgeColoring::Type => "Each link in the colour of its type",
+            EdgeColoring::Type => "Each link in the color of its type",
             EdgeColoring::Speed => {
-                "A colour for each speed band, wider for faster links, from the speed each port reports"
+                "A color for each speed band, wider for faster links, from the speed each port reports"
             }
         }
     }
@@ -434,7 +434,7 @@ impl TypeMetadataProvider for EdgeColoring {
     }
 }
 
-/// The bands link speeds are drawn in when a view colours links by speed, slowest first.
+/// The bands link speeds are drawn in when a view colors links by speed, slowest first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema, EnumIter, IntoStaticStr)]
 pub enum LinkSpeedTier {
     UpTo100M,
@@ -828,7 +828,7 @@ mod tests {
         assert_eq!(sort_for(TopologyView::Application), ElementSort::Automatic);
     }
 
-    /// A view with no colouring stored, or one it does not offer, falls back to the default, so
+    /// A view with no coloring stored, or one it does not offer, falls back to the default, so
     /// the default must apply everywhere.
     #[test]
     fn default_edge_coloring_applies_to_every_view() {

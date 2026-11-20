@@ -7,10 +7,7 @@
 	import { activeView, topologyOptions, updateTopologyOptions } from '../../../queries';
 	import { edgeColoringsFor, effectiveEdgeColoring, type EdgeColoring } from '../../../edge-speed';
 	import { metaName, metaDescription } from '#lib/i18n/metadata.ts';
-	import {
-		topology_edgeColoringHelp,
-		topology_edgeColoringLabel
-	} from '#lib/paraglide/messages.js';
+	import { common_color, topology_edgeColoringHelp } from '#lib/paraglide/messages.js';
 
 	let colorings = $derived(edgeColoringsFor($activeView));
 
@@ -42,7 +39,7 @@
 <!-- Only a view with a choice to make shows the picker. -->
 {#if colorings.length > 1}
 	<RichSelect
-		label={topology_edgeColoringLabel()}
+		label={common_color()}
 		selectedValue={selected}
 		{options}
 		onSelect={handleSelect}

@@ -4289,19 +4289,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-20T17:46:40.323602Z",
+             *       "created_at": "2026-11-20T18:46:52.266512Z",
              *       "first_discovery_id": null,
-             *       "id": "d7d50b90-e6d2-471a-becf-87c3f1afef9c",
+             *       "id": "64eca7bc-56e3-4cf6-a098-10c4515e583f",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-20T17:46:40.323602Z",
+             *       "last_seen_at": "2026-11-20T18:46:52.266512Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-20T17:46:40.323602Z",
-             *       "valid_from": "2026-11-20T17:46:40.323602Z",
+             *       "updated_at": "2026-11-20T18:46:52.266512Z",
+             *       "valid_from": "2026-11-20T18:46:52.266512Z",
              *       "valid_to": null
              *     }
              */
@@ -5217,19 +5217,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-20T17:46:40.288769Z",
+             *               "created_at": "2026-11-20T18:46:52.222126Z",
              *               "first_discovery_id": null,
-             *               "id": "b80aafb4-719e-4584-8eb8-1a98a09e98a6",
+             *               "id": "d82715c2-10f1-4c29-bc18-d88474af4b65",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-20T17:46:40.288769Z",
+             *               "last_seen_at": "2026-11-20T18:46:52.222126Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-20T17:46:40.288769Z",
-             *               "valid_from": "2026-11-20T17:46:40.288769Z",
+             *               "updated_at": "2026-11-20T18:46:52.222126Z",
+             *               "valid_from": "2026-11-20T18:46:52.222126Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5242,7 +5242,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Jupyter",
+             *           "service_definition": "Skype For Business Server",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6282,19 +6282,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-20T17:46:40.318003Z",
+             *           "created_at": "2026-11-20T18:46:52.260452Z",
              *           "first_discovery_id": null,
-             *           "id": "df51dafa-d273-4329-84bd-3e216b909f43",
+             *           "id": "4331a2f6-b8f2-4c2c-b243-9cac9469611a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-20T17:46:40.318003Z",
+             *           "last_seen_at": "2026-11-20T18:46:52.260452Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-20T17:46:40.318003Z",
-             *           "valid_from": "2026-11-20T17:46:40.318003Z",
+             *           "updated_at": "2026-11-20T18:46:52.260452Z",
+             *           "valid_from": "2026-11-20T18:46:52.260452Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6307,7 +6307,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Jupyter",
+             *       "service_definition": "Skype For Business Server",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -8013,19 +8013,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-20T17:46:40.289396Z",
+         *       "created_at": "2026-11-20T18:46:52.225618Z",
          *       "first_discovery_id": null,
-         *       "id": "4f19d639-1917-47a7-9ee1-8ded63a07bca",
+         *       "id": "aec10768-ad26-4342-9c4c-4d5ed23c48f1",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-20T17:46:40.289396Z",
+         *       "last_seen_at": "2026-11-20T18:46:52.225618Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-20T17:46:40.289396Z",
-         *       "valid_from": "2026-11-20T17:46:40.289396Z",
+         *       "updated_at": "2026-11-20T18:46:52.225618Z",
+         *       "valid_from": "2026-11-20T18:46:52.225618Z",
          *       "valid_to": null
          *     }
          */
@@ -8439,7 +8439,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Jupyter",
+         *           "service_definition": "Skype For Business Server",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -10695,7 +10695,7 @@ export interface components {
             view_config?: components["schemas"]["EdgeViewConfig"];
         };
         /**
-         * @description What sets the colour of the links in a view.
+         * @description What sets the color of the links in a view.
          * @enum {string}
          */
         EdgeColoring: "Type" | "Speed";
@@ -11810,19 +11810,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-20T17:46:40.288026Z",
+         *               "created_at": "2026-11-20T18:46:52.221147Z",
          *               "first_discovery_id": null,
-         *               "id": "e4a7b9ee-786c-45ec-8c1d-e43d2268eec8",
+         *               "id": "094999ea-c422-4104-acee-6c1277b640ab",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-20T17:46:40.288026Z",
+         *               "last_seen_at": "2026-11-20T18:46:52.221147Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-20T17:46:40.288026Z",
-         *               "valid_from": "2026-11-20T17:46:40.288026Z",
+         *               "updated_at": "2026-11-20T18:46:52.221147Z",
+         *               "valid_from": "2026-11-20T18:46:52.221147Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11835,7 +11835,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Jupyter",
+         *           "service_definition": "Skype For Business Server",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -15604,19 +15604,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-20T17:46:40.289182Z",
+         *           "created_at": "2026-11-20T18:46:52.225115Z",
          *           "first_discovery_id": null,
-         *           "id": "e6d43aa2-579e-4069-8f83-01bc4469f475",
+         *           "id": "d0db72fa-489d-4cfa-a2f5-42da10dfe724",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-20T17:46:40.289182Z",
+         *           "last_seen_at": "2026-11-20T18:46:52.225115Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-20T17:46:40.289182Z",
-         *           "valid_from": "2026-11-20T17:46:40.289182Z",
+         *           "updated_at": "2026-11-20T18:46:52.225115Z",
+         *           "valid_from": "2026-11-20T18:46:52.225115Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15629,7 +15629,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Jupyter",
+         *       "service_definition": "Skype For Business Server",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -17096,6 +17096,11 @@ export interface components {
              */
             no_fade_edges: boolean;
             /**
+             * @description Name containers on the zoomed-out map. Search matches are named either way.
+             * @default true
+             */
+            show_container_names: boolean;
+            /**
              * @description Show the minimap.
              * @default true
              */
@@ -17120,7 +17125,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "6fa2fc00-08ca-4e6c-aa4f-4f71ae92681a",
+             *           "id": "439d7ead-655d-4b26-a2d3-023fced2e0be",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -17130,23 +17135,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ba8f3c20-0a68-42df-a2c1-ce109acb50bd",
+             *           "id": "be222347-041f-421a-bb7f-1d4a97c1ab82",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "2ea7d94f-021d-437c-ba3b-606e9dca5748",
+             *           "id": "75d93859-1e0a-41d7-a463-b793b0ed7fd1",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "b89373fd-00eb-42b6-b59c-41abe62608d4",
+             *           "id": "b7a43477-899a-4413-9b36-8d559f7e0110",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ba8f3c20-0a68-42df-a2c1-ce109acb50bd",
+             *           "id": "be222347-041f-421a-bb7f-1d4a97c1ab82",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -17160,19 +17165,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "230c0744-a2dc-406c-b627-b9f0034afc24",
+             *         "id": "fa35e0f1-c417-4c22-a981-82e6f2df3847",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "625be59e-9463-4040-b687-a4b356276400",
+             *         "id": "e3b9b19d-7226-4769-88f9-fc082e86286d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "d7f86f05-9479-4995-8e2b-db5a85ff7a1c",
+             *         "id": "b7fd4635-f3da-4260-b550-61f6e99c55d5",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "23a8273d-7721-4f58-9709-2967055d23f2",
+             *         "id": "e1c0f940-7ef8-432d-9f59-971e8820fc77",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -17193,7 +17198,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "df2283d7-fa72-4445-8245-44f0ff392117",
+             *         "id": "997fa815-929b-472f-8c85-d8eb386670d1",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -17202,19 +17207,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a33b4810-f870-4827-9c33-539c0d85ca6c",
+             *         "id": "2d45d76f-8da3-48c5-ad91-7bafd21fbab9",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "ee7f5462-499b-4c27-910e-b7da9de57ba3",
+             *         "id": "f3cf9570-5d0a-4494-a14e-609c0a9d927a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "91cfdd59-7aeb-4be8-8f70-a854bb2b4dd9",
+             *         "id": "ab6c811a-2581-47e5-b8fb-61d2a2c0f42a",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f5570d88-9ff9-4929-abae-f576b7d74ae4",
+             *         "id": "55882564-f8ff-4445-80b7-a71b6ad6e7e3",
              *         "rule": "ByStack"
              *       }
              *     ]
