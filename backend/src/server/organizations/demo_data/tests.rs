@@ -636,11 +636,12 @@ fn no_two_demo_addresses_share_an_address_on_one_subnet() {
 }
 
 /// The Water Utility site is scanned the way a real one would be: one daemon, an SNMP credential
-/// that collected from every switch on a completed run with no Issues, and interfaces read over
-/// SNMP.
+/// that collected from every switch but the one station switch that did not answer (the site's one
+/// Issue) on a completed run, and interfaces read over SNMP.
 #[test]
 fn the_water_utility_site_is_snmp_scanned_by_one_daemon() {
     use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
+    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
     use crate::server::credentials::r#impl::run_results::CredentialRunOutcome;
     use crate::server::discovery::r#impl::types::RunType;
     use large_estate::{RingParams, WATER_UTILITY_SITE_NAME};
@@ -671,7 +672,10 @@ fn the_water_utility_site_is_snmp_scanned_by_one_daemon() {
     assert!(!runs.is_empty());
     for run in runs {
         assert_eq!(run.reason, Some(DiscoveryTerminalReason::Completed));
-        assert!(run.warnings.is_empty());
+        assert!(matches!(
+            run.warnings.as_slice(),
+            [DiscoveryWarning::CredentialTargetNotResponding { .. }]
+        ));
         let collected: u32 = run
             .credential_results
             .iter()
@@ -680,7 +684,7 @@ fn the_water_utility_site_is_snmp_scanned_by_one_daemon() {
                 _ => 0,
             })
             .sum();
-        assert_eq!(collected as usize, RingParams::default().switch_count());
+        assert_eq!(collected as usize, RingParams::default().switch_count() - 1);
     }
 
     let snmp = AttributeSource::Probe(ClientProbe::Snmp);

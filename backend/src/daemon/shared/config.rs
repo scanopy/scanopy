@@ -355,7 +355,7 @@ pub struct DaemonArgs {
     #[arg(long)]
     pub port_scan_batch_size: Option<usize>,
 
-    /// Restrict daemon to specific network interface(s). Comma-separated for multiple (e.g., eth0,eth1). Leave empty for all interfaces
+    /// The daemon scans every network its host has an interface on. List interfaces to scan only those, for example eth0,eth1
     #[arg(long, value_delimiter = ',')]
     pub interfaces: Option<Vec<String>>,
 

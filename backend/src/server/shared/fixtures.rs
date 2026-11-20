@@ -148,7 +148,7 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
         };
         assert!(
             svg.contains("currentColor") && !svg.contains("<script"),
-            "{} is drawn in the text colour, so it must use currentColor and carry no script",
+            "{} is drawn in the text color, so it must use currentColor and carry no script",
             file.display()
         );
         entry.markup = Some(svg);
