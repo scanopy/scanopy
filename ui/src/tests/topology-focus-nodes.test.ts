@@ -6,7 +6,11 @@
  * bounds and call `fitBounds`, which moves at once, so the bounds have to be right.
  */
 import { describe, it, expect } from 'vitest';
-import { boundsOfAdoptedNodes, type AdoptedNode } from '#lib/features/topology/viewport-fit.ts';
+import {
+	boundsOfAdoptedNodes,
+	isAtFit,
+	type AdoptedNode
+} from '#lib/features/topology/viewport-fit.ts';
 
 const node = (x: number, y: number, width: number, height: number): AdoptedNode => ({
 	internals: { positionAbsolute: { x, y } },
@@ -39,5 +43,22 @@ describe('boundsOfAdoptedNodes', () => {
 
 	it('is null when no id is adopted, so the camera stays put', () => {
 		expect(boundsOfAdoptedNodes(['gone'], () => undefined)).toBeNull();
+	});
+});
+
+describe('isAtFit', () => {
+	const fit = { x: -812.25, y: 140.5, zoom: 0.0491273 };
+
+	it('holds after the float round trip through d3', () => {
+		expect(isAtFit({ x: -812.2500001, y: 140.4999, zoom: 0.04912731 }, fit)).toBe(true);
+	});
+
+	it('is false once the user pans or zooms, so selecting keeps their viewport', () => {
+		expect(isAtFit({ ...fit, x: fit.x + 3 }, fit)).toBe(false);
+		expect(isAtFit({ ...fit, zoom: fit.zoom * 1.2 }, fit)).toBe(false);
+	});
+
+	it('is false before any fit', () => {
+		expect(isAtFit(fit, null)).toBe(false);
 	});
 });

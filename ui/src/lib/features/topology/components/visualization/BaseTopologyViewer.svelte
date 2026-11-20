@@ -44,7 +44,9 @@
 		DEFAULT_MIN_ZOOM,
 		boundsOfNodes,
 		focusNodes,
-		zoomFloorFor
+		isAtFit,
+		zoomFloorFor,
+		type ViewportTransform
 	} from '../../viewport-fit';
 	import '@xyflow/svelte/dist/style.css';
 	import './topology-viewer.css';
@@ -127,7 +129,7 @@
 		useSelectionStores,
 		type SelectionStores
 	} from '../../selection';
-	import { onMount, tick, setContext } from 'svelte';
+	import { onMount, tick, setContext, untrack } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
 	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 	import { containerTypes } from '#lib/shared/stores/metadata.ts';
@@ -248,8 +250,7 @@
 	let viewportMoved = false;
 	let viewportMoveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const { fitView, fitBounds, setViewport, getNodes, getInternalNode, getViewport } =
-		useSvelteFlow();
+	const { fitBounds, setViewport, getNodes, getInternalNode, getViewport } = useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
 
@@ -429,8 +430,12 @@
 		const target = viewportFor(bounds, minZoomFor(bounds));
 		publishDetailFor(fitNodes, target.zoom);
 		await setViewport(target);
+		lastFitViewport = getViewport();
 		return target.zoom;
 	}
+
+	/** Where the last whole-graph fit left the canvas, for `isAtFit`. */
+	let lastFitViewport: ViewportTransform | null = null;
 
 	/**
 	 * Publish the zoom and the reduced-detail state for `detailNodes` drawn at `zoom`.
@@ -492,12 +497,13 @@
 	const nodeTypes = { Container: ContainerNode, Element: ElementNode };
 	const customEdgeTypes = { custom: CustomEdge };
 
-	// Refit viewport when panel expands/collapses (after 300ms CSS transition)
+	// Refit a fitted graph around the panel when it expands or collapses (after its 300ms CSS
+	// transition). A viewport the user moved stays where it is: see `isAtFit`.
 	let panelInitialized = false;
 	$effect(() => {
 		if ($optionsPanelExpanded !== undefined) {
-			if (panelInitialized) {
-				setTimeout(() => fitView({ padding: getFitViewPadding() }), 300);
+			if (panelInitialized && untrack(() => isAtFit(getViewport(), lastFitViewport))) {
+				setTimeout(() => void triggerFitView(), 300);
 			}
 			panelInitialized = true;
 		}
