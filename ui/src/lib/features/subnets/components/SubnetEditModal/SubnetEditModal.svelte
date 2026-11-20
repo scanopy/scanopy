@@ -276,8 +276,8 @@
 	);
 
 	let reachOptions: { value: Reach; label: string; helpText: string }[] = [
-		{ value: 'install', label: subnets_reachInstall(), helpText: subnets_reachInstallHelp() },
-		{ value: 'routed', label: subnets_reachRouted(), helpText: subnets_reachRoutedHelp() }
+		{ value: 'routed', label: subnets_reachRouted(), helpText: subnets_reachRoutedHelp() },
+		{ value: 'install', label: subnets_reachInstall(), helpText: subnets_reachInstallHelp() }
 	];
 
 	function handleInstallDaemon() {
