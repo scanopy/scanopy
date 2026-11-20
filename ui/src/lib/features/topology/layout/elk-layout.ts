@@ -1767,7 +1767,15 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	// position that is not a number, or far larger than ELK's, is dropped for ELK's.
 	const ringedBounds = rootBounds(graph.nodes, ringed.nodePositions, ringed.containerSizes);
 	const baselineBounds = rootBounds(graph.nodes, baseline.nodePositions, baseline.containerSizes);
-	if (ringLayoutAcceptable(ringedBounds, baselineBounds)) return ringed;
+	if (
+		ringLayoutAcceptable(
+			ringedBounds,
+			baselineBounds,
+			Number(ROOT_LAYOUT_OPTIONS['elk.aspectRatio'])
+		)
+	) {
+		return ringed;
+	}
 	console.warn(
 		`[scanopy] ring layout dropped for the layered one: ${JSON.stringify(ringedBounds)} against ${JSON.stringify(baselineBounds)}`
 	);

@@ -193,20 +193,29 @@ export function rootBounds(
 }
 
 /**
- * Most a ring layout's bounding box may grow over the layout it replaces, by area. Past this the
- * viewer zooms out so far to fit it that cards are specks, or, below its smallest zoom, cannot fit
- * it at all and shows a stretch of empty canvas.
+ * Most a ring layout may grow over the layout it replaces, measured as the screen it needs: the
+ * area of the smallest box of the screen's aspect that holds it. Past this the viewer zooms out so
+ * far to fit it that cards are specks, or, below its smallest zoom, cannot fit it at all and shows
+ * a stretch of empty canvas.
  */
-export const RING_AREA_LIMIT = 4;
+export const RING_AREA_LIMIT = 2;
+
+/** Area of the smallest box of `aspect` (width over height) that holds `box`. */
+function fittedArea(box: Box, aspect: number): number {
+	return Math.max(box.width, box.height * aspect) * Math.max(box.height, box.width / aspect);
+}
 
 /**
- * Whether a ring layout may replace the layout it was made from: every position a number, and its
- * bounding box at most `RING_AREA_LIMIT` times the area of the original's.
+ * Whether a ring layout may replace the layout it was made from: every position a number, and the
+ * screen of `aspect` it needs at most `RING_AREA_LIMIT` times what the original needs.
  */
-export function ringLayoutAcceptable(ringed: Box | null, original: Box | null): boolean {
+export function ringLayoutAcceptable(
+	ringed: Box | null,
+	original: Box | null,
+	aspect: number
+): boolean {
 	if (!ringed || !original) return false;
 	const { x, y, width, height } = ringed;
 	if (![x, y, width, height].every(Number.isFinite)) return false;
-	const originalArea = Math.max(original.width * original.height, 1);
-	return width * height <= RING_AREA_LIMIT * originalArea;
+	return fittedArea(ringed, aspect) <= RING_AREA_LIMIT * Math.max(fittedArea(original, aspect), 1);
 }

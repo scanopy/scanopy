@@ -269,24 +269,30 @@ function sampleArc(a: number, b: number, sweep: number): ArcPoint[] {
 
 const arcLength = (arc: ArcPoint[]) => arc[arc.length - 1].at;
 
-/**
- * `count` points evenly spaced by arc length along `arc`. An open arc leaves a gap at each end for
- * the nodes it runs between; a closed one starts on its first point.
- */
-function spreadAlong(arc: ArcPoint[], count: number, open: boolean): Point[] {
+/** The points at `fractions` (ascending, 0 to 1) of the way along `arc` by arc length. */
+function pointsAt(arc: ArcPoint[], fractions: number[]): Point[] {
 	const total = arcLength(arc);
-	const gaps = open ? count + 1 : count;
-	const points: Point[] = [];
 	let j = 0;
-	for (let i = 0; i < count; i++) {
-		const s = (total * (open ? i + 1 : i)) / gaps;
+	return fractions.map((fraction) => {
+		const s = total * fraction;
 		while (j < arc.length - 2 && arc[j + 1].at < s) j++;
 		const p = arc[j];
 		const q = arc[j + 1];
-		const f = q.at > p.at ? (s - p.at) / (q.at - p.at) : 0;
-		points.push({ x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f });
-	}
-	return points;
+		const f = q.at > p.at ? Math.min(1, Math.max(0, (s - p.at) / (q.at - p.at))) : 0;
+		return { x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f };
+	});
+}
+
+/**
+ * `count` points evenly spaced by arc length along `arc`, leaving a gap at each end for the nodes
+ * it runs between.
+ */
+function spreadAlong(arc: ArcPoint[], count: number, open: boolean): Point[] {
+	const gaps = open ? count + 1 : count;
+	return pointsAt(
+		arc,
+		Array.from({ length: count }, (_, i) => (open ? i + 1 : i) / gaps)
+	);
 }
 
 /**
@@ -345,15 +351,18 @@ export function placeRings(
 		);
 
 	/**
-	 * Half the distance between the centres of two cards stacked along unit direction `u`, padded
-	 * so the gap between them is `SPUR_GAP` on the axis that keeps them apart. Padding along `u`
-	 * alone would leave a diagonal stack with less than that on both axes.
+	 * Distance between the centres of cards `a` and `b` stacked along unit direction `u`, so that
+	 * `gap` separates them on at least one axis. Each axis is judged for the pair: a tall
+	 * card cleared on x beside a flat one cleared on y would otherwise be cleared on neither.
 	 */
-	const extent = (id: string, u: Point) => {
-		const s = size(id);
-		const ex = Math.abs(u.x) > 1e-9 ? (s.width + SPUR_GAP) / Math.abs(u.x) : Infinity;
-		const ey = Math.abs(u.y) > 1e-9 ? (s.height + SPUR_GAP) / Math.abs(u.y) : Infinity;
-		return Math.min(ex, ey);
+	const separation = (a: string, b: string, u: Point, gap = SPUR_GAP) => {
+		const sa = size(a);
+		const sb = size(b);
+		const onX = (sa.width + sb.width) / 2 + gap;
+		const onY = (sa.height + sb.height) / 2 + gap;
+		const byX = Math.abs(u.x) > 1e-9 ? onX / Math.abs(u.x) : Infinity;
+		const byY = Math.abs(u.y) > 1e-9 ? onY / Math.abs(u.y) : Infinity;
+		return Math.min(byX, byY);
 	};
 
 	const centres = new Map<string, Point>();
@@ -363,7 +372,7 @@ export function placeRings(
 		let previous = node;
 		let distance = 0;
 		for (const n of spurOf(node)) {
-			distance += (extent(previous, u) + extent(n, u)) / 2;
+			distance += separation(previous, n, u);
 			centres.set(n, { x: c.x + u.x * distance, y: c.y + u.y * distance });
 			previous = n;
 		}
@@ -398,9 +407,41 @@ export function placeRings(
 	let groupX = 0;
 	for (const ring of rings) {
 		const all = ringNodes(ring);
-		// Neighbours on the ellipse sit at least a card diagonal apart, which clears two cards
-		// whatever direction the ellipse runs in between them.
+		// A further loop on one side of the spine is spaced by the largest card diagonal, which
+		// clears two cards whatever direction the ellipse runs between them.
 		const step = Math.max(...all.map((n) => Math.hypot(size(n).width, size(n).height))) + RUN_GAP;
+
+		/**
+		 * Where along `unit` (an arc at scale 1) each node of `chain` sits, as fractions of its
+		 * length, and how long the arc must be. Each pair of neighbours gets the room it needs in
+		 * the direction the arc runs between them: side by side at the top, stacked at the sides.
+		 * The direction depends on where the pair sits, which depends on the spacing, so it is
+		 * refined a few times. A closed chain wraps from its last node to its first.
+		 */
+		const fitChain = (unit: ArcPoint[], chain: string[], closed: boolean) => {
+			const gaps = closed ? chain.length : chain.length - 1;
+			let fractions = chain.map((_, i) => i / gaps);
+			let length = 0;
+			for (let pass = 0; pass < 4; pass++) {
+				const points = pointsAt(unit, fractions);
+				const needs = Array.from({ length: gaps }, (_, k) => {
+					const p = points[k];
+					const q = points[(k + 1) % chain.length];
+					const d = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+					const u = { x: (q.x - p.x) / d, y: (q.y - p.y) / d };
+					// A chord is a little shorter than the arc it spans.
+					return separation(chain[k], chain[(k + 1) % chain.length], u, RUN_GAP) * 1.02;
+				});
+				length = needs.reduce((s, g) => s + g, 0);
+				let at = 0;
+				fractions = chain.map((_, i) => {
+					const f = at / length;
+					if (i < needs.length) at += needs[i];
+					return f;
+				});
+			}
+			return { fractions, length };
+		};
 
 		// Drawn at the smallest size that fits the ring nodes, then larger until the spurs inside it
 		// clear each other: a small ring has little room in the middle for long spurs.
@@ -408,9 +449,10 @@ export function placeRings(
 			centres.clear();
 			if (ring.spine.length === 0) {
 				const [loop] = ring.loops;
-				const b = (scale * loop.length * step) / arcLength(sampleArc(RING_ASPECT, 1, 2 * Math.PI));
-				const arc = sampleArc(RING_ASPECT * b, b, 2 * Math.PI);
-				spreadAlong(arc, loop.length, false).forEach((c, i) =>
+				const unit = sampleArc(RING_ASPECT, 1, 2 * Math.PI);
+				const { fractions, length } = fitChain(unit, loop, true);
+				const b = (scale * length) / arcLength(unit);
+				pointsAt(sampleArc(RING_ASPECT * b, b, 2 * Math.PI), fractions).forEach((c, i) =>
 					placeNode(loop[i], c, towardCentre(c))
 				);
 			} else {
@@ -418,17 +460,24 @@ export function placeRings(
 				// ellipse from the spine's first node at the top to its last at the bottom.
 				const spine = ring.spine;
 				const sides = [0, 1].map((side) => ring.loops.filter((_, i) => i % 2 === side));
-				const firstLoops = sides.map((side) => side[0]?.length ?? 0);
-				const halfLength = arcLength(sampleArc(RING_ASPECT, 1, Math.PI));
+				const unit = sampleArc(RING_ASPECT, 1, Math.PI);
+				const fitted = sides.map((loops) =>
+					loops[0] ? fitChain(unit, [spine[0], ...loops[0], spine[spine.length - 1]], false) : null
+				);
+				const down = { x: 0, y: 1 };
+				const spineNeeds = spine.slice(1).map((n, i) => separation(spine[i], n, down, RUN_GAP));
+				const spineLength = spineNeeds.reduce((s, g) => s + g, 0);
 				const b =
 					scale *
 					Math.max(
-						((Math.max(...firstLoops) + 1) * step) / halfLength,
-						((spine.length - 1) * step) / 2
+						...fitted.map((fit) => (fit ? fit.length / arcLength(unit) : 0)),
+						spineLength / 2
 					);
 
+				let y = -b;
 				spine.forEach((n, i) => {
-					const c = { x: 0, y: -b + (2 * b * i) / (spine.length - 1) };
+					if (i > 0) y += (2 * b * spineNeeds[i - 1]) / spineLength;
+					const c = { x: 0, y: i === spine.length - 1 ? b : y };
 					const u =
 						i === 0 ? { x: 0, y: -1 } : i === spine.length - 1 ? { x: 0, y: 1 } : { x: 1, y: 0 };
 					placeNode(n, c, u);
@@ -438,15 +487,23 @@ export function placeRings(
 					const mirror = side === 0 ? 1 : -1;
 					let a = 0;
 					loops.forEach((loop, k) => {
-						// A further loop on a side runs outside the previous one, far enough out for
-						// its own spurs to fit in between.
-						a = k === 0 ? RING_ASPECT * b : a + step + Math.max(0, ...loop.map((n) => reachOf(n)));
-						let arc = sampleArc(a, b, Math.PI);
-						while (arcLength(arc) < (loop.length + 1) * step) {
-							a *= 1.1;
-							arc = sampleArc(a, b, Math.PI);
+						let points: Point[];
+						if (k === 0) {
+							a = RING_ASPECT * b;
+							// The fit includes the two spine ends, which are already placed.
+							points = pointsAt(sampleArc(a, b, Math.PI), fitted[side]!.fractions).slice(1, -1);
+						} else {
+							// A further loop on a side runs outside the previous one, far enough out
+							// for its own spurs to fit in between.
+							a += step + Math.max(0, ...loop.map((n) => reachOf(n)));
+							let arc = sampleArc(a, b, Math.PI);
+							while (arcLength(arc) < (loop.length + 1) * step) {
+								a *= 1.1;
+								arc = sampleArc(a, b, Math.PI);
+							}
+							points = spreadAlong(arc, loop.length, true);
 						}
-						spreadAlong(arc, loop.length, true).forEach((p, i) => {
+						points.forEach((p, i) => {
 							const c = { x: p.x * mirror, y: p.y };
 							placeNode(loop[i], c, towardCentre(c));
 						});
