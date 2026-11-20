@@ -98,7 +98,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'hosts/components/HostTab.svelte': {
 		listPath: '/api/v1/hosts',
 		columns: {
-			name: serverIdentity('Unique per host'),
+			// Filtered by id: a scan warning's "Merge duplicate hosts" links to the records to merge.
+			name: { sort: true, group: 'Unique per host', filter: { param: 'ids' } },
 			hostname: serverIdentity('Near-unique per host'),
 			virtualized_by: server('virtualization_service_ids'),
 			interface_ip: serverIdentity('Unique per host'),

@@ -2,6 +2,7 @@
 <!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
 <script lang="ts" generics="T, C">
 	import { onMount, getContext } from 'svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import Tag from '../../data/Tag.svelte';
 	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
 	import InlineDescription from '#lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
@@ -15,9 +16,18 @@
 		displayComponent: EntityDisplayComponent<T, C>;
 		context: C;
 		staticTags?: boolean;
+		/** One line, cut short with an ellipsis, and the full label as a tooltip when it is cut. For a
+		 *  select's trigger held to a maximum width. */
+		truncateLabel?: boolean;
 	}
 
-	let { item, displayComponent, context, staticTags = false }: Props = $props();
+	let {
+		item,
+		displayComponent,
+		context,
+		staticTags = false,
+		truncateLabel = false
+	}: Props = $props();
 
 	const staticTagsContext = getContext<boolean>('staticTags') ?? false;
 
@@ -51,6 +61,12 @@
 	let labelMeasureEl = $state<HTMLSpanElement>();
 	let measureEl = $state<HTMLDivElement>();
 	let visibleTagCount = $state(0);
+	let labelEl = $state<HTMLSpanElement>();
+	let labelCut = $state(false);
+
+	function updateLabelCut() {
+		labelCut = truncateLabel && !!labelEl && labelEl.scrollWidth > labelEl.clientWidth;
+	}
 
 	const SPACING = {
 		gap: 8, // gap-2 = 0.5rem = 8px
@@ -81,12 +97,16 @@
 
 	onMount(() => {
 		calculateVisibleTags();
+		updateLabelCut();
 		// Recount on the next frame, not inside the delivery: hiding a tag can unwrap the label and
 		// change the row's height, which inside the callback raises the ResizeObserver loop error.
 		let frame = 0;
 		const observer = new ResizeObserver(() => {
 			cancelAnimationFrame(frame);
-			frame = requestAnimationFrame(calculateVisibleTags);
+			frame = requestAnimationFrame(() => {
+				calculateVisibleTags();
+				updateLabelCut();
+			});
 		});
 		if (containerEl) observer.observe(containerEl);
 		return () => {
@@ -99,7 +119,11 @@
 	$effect(() => {
 		void tags;
 		void label;
-		if (containerEl) requestAnimationFrame(() => calculateVisibleTags());
+		if (containerEl)
+			requestAnimationFrame(() => {
+				calculateVisibleTags();
+				updateLabelCut();
+			});
 	});
 
 	let visibleTags = $derived(tags.slice(0, visibleTagCount));
@@ -123,7 +147,18 @@
 	<!-- Label and description -->
 	<div class="min-w-0 flex-1 overflow-hidden text-left">
 		<div bind:this={containerEl} class="flex min-w-0 items-center gap-2">
-			<span class="min-w-0 wrap-anywhere text-secondary">{label}</span>
+			{#if truncateLabel}
+				<!-- Registered only here: the innermost tooltip wins, so one on every row's label would
+				     cover an option's own, such as its disabled reason. -->
+				<span
+					bind:this={labelEl}
+					use:tooltip
+					data-tooltip={labelCut ? label : null}
+					class="min-w-0 truncate text-secondary">{label}</span
+				>
+			{:else}
+				<span class="min-w-0 wrap-anywhere text-secondary">{label}</span>
+			{/if}
 			{#if tags.length > 0}
 				<div class="flex shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}

@@ -40,6 +40,8 @@
 		sites_createSite,
 		sites_credentialHelp,
 		sites_credentialHelpLinkText,
+		sites_planningHelp,
+		sites_planningHelpLinkText,
 		sites_siteNamePlaceholder,
 		sites_staleAfterHours,
 		sites_staleAfterHoursHelp,
@@ -248,6 +250,11 @@
 			<div class="space-y-8">
 				<!-- Site Details Section -->
 				<div class="space-y-4">
+					<DocsHint
+						text={sites_planningHelp()}
+						href="https://scanopy.net/docs/plan-your-deployment/sites/"
+						linkText={sites_planningHelpLinkText()}
+					/>
 					<form.Field
 						name="name"
 						validators={{

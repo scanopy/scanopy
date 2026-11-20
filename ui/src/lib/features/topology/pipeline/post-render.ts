@@ -47,6 +47,11 @@ export function reconcileMeasuredSizes(
 		const cached = viewSizeCache.get(id);
 		if (!cached) continue;
 
+		// A card drawn as a box has no content, so its height says nothing about the card. Until
+		// SvelteFlow has measured it, the box is 2px of border, and recording that as the card's
+		// height laid a container out around a card a fiftieth of its rendered size.
+		if (htmlEl.querySelector('[data-lod-simplified]')) continue;
+
 		const height = htmlEl.offsetHeight;
 		// A zero height is a node mid-mount, not a card that shrank to nothing.
 		if (!height) continue;

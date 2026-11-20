@@ -347,7 +347,7 @@ impl ScanFailureFix {
     pub fn docs_url(self) -> Option<&'static str> {
         match self {
             Self::RaiseMaxDuration => Some(
-                "https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choose-a-layout",
+                "https://scanopy.net/docs/plan-your-deployment/daemons/#how-many-subnets-do-you-want-to-scan-on-this-site",
             ),
             Self::RetryScan
             | Self::OpenRun
@@ -627,7 +627,7 @@ impl Display for DiscoveryCriticalError {
             DiscoveryCriticalError::ResourceExhaustion => {
                 write!(
                     f,
-                    "The scan ran out of file descriptors (too many open files). Raise the daemon's hard file-descriptor limit and restart it: https://scanopy.net/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error"
+                    "The scan ran out of file descriptors (too many open files). Raise the daemon's hard file-descriptor limit and restart it: https://scanopy.net/docs/troubleshooting/daemon-setup/#too-many-open-files-error"
                 )
             }
         }

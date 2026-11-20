@@ -187,7 +187,10 @@ async fn get_topology_data(
         let starting = state
             .services
             .topology_service
-            .starting_view(org.id, params.site_id)
+            .starting_view(
+                org.base.intents.as_deref().unwrap_or_default(),
+                params.site_id,
+            )
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
         let entity = auth.into_entity();
@@ -309,19 +312,26 @@ async fn get_all_topologies(
     //
     // The infrastructure rule the grouping-rules migration wrote has no categories; it takes the
     // organization's set here, so the rule editor shows what the rule is meant to hold.
-    let use_case = Topology::get_service(&state)
-        .organization_use_case(organization_id)
+    //
+    // The organization is read once for every row: its use case fills the infrastructure rule,
+    // and its intents pick each site's starting view.
+    let organization = state
+        .services
+        .organization_service
+        .get_by_id(&organization_id)
         .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .ok_or_else(|| ApiError::internal_error("Organization not found"))?;
+    let intents = organization.base.intents.as_deref().unwrap_or_default();
     for topology in &mut result.items {
         topology.base.options.request.merge_missing_hide_defaults();
         topology
             .base
             .options
             .request
-            .populate_empty_infra_rule(use_case);
+            .populate_empty_infra_rule(organization.base.use_case);
         topology.base.starting_view = Topology::get_service(&state)
-            .starting_view(organization_id, topology.base.site_id)
+            .starting_view(intents, topology.base.site_id)
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }

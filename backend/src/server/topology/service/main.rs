@@ -27,7 +27,10 @@ use crate::server::{
     },
     interfaces::{r#impl::base::Interface, service::InterfaceService},
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
-    organizations::{r#impl::base::UseCase, service::OrganizationService},
+    organizations::{
+        r#impl::{base::UseCase, intent::SignupIntent},
+        service::OrganizationService,
+    },
     ports::{r#impl::base::Port, service::PortService},
     services::{r#impl::base::Service, service::ServiceService},
     shared::{
@@ -298,28 +301,24 @@ impl TopologyService {
             .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))
     }
 
-    /// The view the topology tab opens on for `site_id`: the one the org's intents call for,
-    /// when the site has the data for it. An org with no intents opens on the default view
-    /// without the support lookup.
+    /// The view the topology tab opens on for `site_id`: the one the org's `intents` call for,
+    /// when the site has the data for it. The caller passes the intents, so a list of sites
+    /// fetches the organization once.
+    ///
+    /// The support lookup reads every interface and IP address of the site, so it runs only
+    /// when the view the intents prefer needs data to be offered. Workloads and L3 Logical
+    /// never do, and an org with no intents opens on the default view.
     pub async fn starting_view(
         &self,
-        organization_id: Uuid,
+        intents: &[SignupIntent],
         site_id: Uuid,
     ) -> Result<TopologyView, Error> {
-        let intents = self
-            .organization_service
-            .get_by_id(&organization_id)
-            .await?
-            .and_then(|org| org.base.intents)
-            .unwrap_or_default();
-        if intents
-            .iter()
-            .all(|intent| intent.topology_view() == TopologyView::default())
-        {
-            return Ok(TopologyView::default());
+        let preferred = TopologyView::starting_for(intents, &TopologyViewSupport::ALL);
+        if preferred.is_supported(&TopologyViewSupport::NONE) {
+            return Ok(preferred);
         }
         let support = self.get_view_support(site_id).await?;
-        Ok(TopologyView::starting_for(&intents, &support))
+        Ok(TopologyView::starting_for(intents, &support))
     }
 
     /// The request options a new topology in `organization_id` starts with.
@@ -616,19 +615,19 @@ impl TopologyService {
             .resolved_for_site(site_id, None)
             .await?
             .is_empty();
-        let interfaces = self
-            .interface_service
-            .get_all(StorableFilter::<Interface>::new_from_site_ids(&[site_id]))
-            .await?;
-        let ip_addresses = self
-            .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]))
-            .await?;
-        let l2_physical = any_interface_qualifies_l2_physical(
-            &interfaces,
-            &ip_addresses,
-            has_resolved_neighbours,
-        );
+        // Resolved neighbours qualify the site alone, so the interface and IP address reads,
+        // every row of each on the site, run only without them.
+        let l2_physical = has_resolved_neighbours || {
+            let interfaces = self
+                .interface_service
+                .get_all(StorableFilter::<Interface>::new_from_site_ids(&[site_id]))
+                .await?;
+            let ip_addresses = self
+                .ip_address_service
+                .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]))
+                .await?;
+            any_interface_qualifies_l2_physical(&interfaces, &ip_addresses, false)
+        };
 
         let application = match self.site_service.get_by_id(&site_id).await? {
             Some(site) => {

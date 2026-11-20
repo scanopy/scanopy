@@ -47,7 +47,7 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 				})
 			);
 		},
-		...(enabled ? { enabled } : {})
+		enabled: enabled?.() ?? true
 	}));
 }
 

@@ -417,7 +417,7 @@
 				{#snippet afterLabel()}
 					<DocsHint
 						text={daemons_docsMultiVlan()}
-						href="https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/"
+						href="https://scanopy.net/docs/plan-your-deployment/daemons/"
 						linkText={daemons_docsMultiVlanLinkText()}
 					/>
 				{/snippet}
@@ -453,7 +453,7 @@
 					{:else if linuxMethod === 'docker'}
 						<DocsHint
 							text={daemons_docsMacvlan()}
-							href="https://scanopy.net/docs/guides/macvlan-setup/"
+							href="https://scanopy.net/docs/guides/networking/macvlan-setup/"
 							linkText={daemons_docsMacvlanLinkText()}
 						/>
 						<CodeContainer

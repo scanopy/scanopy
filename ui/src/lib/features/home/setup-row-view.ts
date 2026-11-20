@@ -190,7 +190,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			const docs =
 				health === 'awaiting_connection'
 					? docsUrl(
-							'/docs/setting-up-daemons/troubleshooting-setup/#daemon-never-connects-security-software-blocks-it'
+							'/docs/troubleshooting/daemon-setup/#daemon-never-connects-security-software-blocks-it'
 						)
 					: undefined;
 			return {

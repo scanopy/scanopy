@@ -69,13 +69,23 @@ export function isOverlayEdge(edge: TopologyEdge): boolean {
  * Whether the canvas leaves this edge undrawn. It stays in the edge store either way (see
  * `CustomEdge`), so anything that reproduces the drawing, such as the diagram exports, filters on
  * this. A preview edge always draws.
+ *
+ * Below the detail zoom only physical links draw (`isPhysical`, the edge type's
+ * `is_physical_edge`), as plain lines: at that zoom they are what shows how the boxes are cabled
+ * together, such as distribution switches fanning into their cores. Logical and dependency edges
+ * stay hidden there, since a hairline between two boxes says nothing about a service.
  */
 export function isEdgeHidden(
 	edge: TopologyEdge | undefined,
-	state: { isPreview: boolean; simplified: boolean; hiddenEdgeTypes: readonly string[] }
+	state: {
+		isPreview: boolean;
+		simplified: boolean;
+		isPhysical: boolean;
+		hiddenEdgeTypes: readonly string[];
+	}
 ): boolean {
 	if (state.isPreview) return false;
-	if (state.simplified) return true;
+	if (state.simplified && !state.isPhysical) return true;
 	return edge ? state.hiddenEdgeTypes.includes(edge.edge_type) : false;
 }
 

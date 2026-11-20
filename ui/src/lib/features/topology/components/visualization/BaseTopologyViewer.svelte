@@ -35,6 +35,7 @@
 		PREWARM_RELEASE_ZOOM,
 		PREWARM_ZOOM,
 		detailIsStaged,
+		detailKeptIds,
 		shouldSimplify
 	} from '../../pipeline/render-mode';
 	import { provideDetailStaging } from '../../detail-staging.svelte';
@@ -43,7 +44,9 @@
 		DEFAULT_MIN_ZOOM,
 		boundsOfNodes,
 		focusNodes,
-		zoomFloorFor
+		isAtFit,
+		zoomFloorFor,
+		type ViewportTransform
 	} from '../../viewport-fit';
 	import '@xyflow/svelte/dist/style.css';
 	import './topology-viewer.css';
@@ -127,7 +130,7 @@
 		useSelectionStores,
 		type SelectionStores
 	} from '../../selection';
-	import { onMount, tick, setContext } from 'svelte';
+	import { onMount, tick, setContext, untrack } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
 	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 	import { containerTypes } from '#lib/shared/stores/metadata.ts';
@@ -248,8 +251,7 @@
 	let viewportMoved = false;
 	let viewportMoveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const { fitView, fitBounds, setViewport, getNodes, getInternalNode, getViewport } =
-		useSvelteFlow();
+	const { fitBounds, setViewport, getNodes, getInternalNode, getViewport } = useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
 
@@ -429,8 +431,12 @@
 		const target = viewportFor(bounds, minZoomFor(bounds));
 		publishDetailFor(fitNodes, target.zoom);
 		await setViewport(target);
+		lastFitViewport = getViewport();
 		return target.zoom;
 	}
+
+	/** Where the last whole-graph fit left the canvas, for `isAtFit`. */
+	let lastFitViewport: ViewportTransform | null = null;
 
 	/**
 	 * Publish the zoom and the reduced-detail state for `detailNodes` drawn at `zoom`.
@@ -492,12 +498,13 @@
 	const nodeTypes = { Container: ContainerNode, Element: ElementNode };
 	const customEdgeTypes = { custom: CustomEdge };
 
-	// Refit viewport when panel expands/collapses (after 300ms CSS transition)
+	// Refit a fitted graph around the panel when it expands or collapses (after its 300ms CSS
+	// transition). A viewport the user moved stays where it is: see `isAtFit`.
 	let panelInitialized = false;
 	$effect(() => {
 		if ($optionsPanelExpanded !== undefined) {
-			if (panelInitialized) {
-				setTimeout(() => fitView({ padding: getFitViewPadding() }), 300);
+			if (panelInitialized && untrack(() => isAtFit(getViewport(), lastFitViewport))) {
+				setTimeout(() => void triggerFitView(), 300);
 			}
 			panelInitialized = true;
 		}
@@ -514,6 +521,12 @@
 	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const distrustedLayoutKeys = new Set<string>();
+	/**
+	 * Store key of the layout on screen, set by the run that laid it out. A later run that needs no
+	 * layout (a refetch) can be the one whose size check finds the drift, and the stored entry
+	 * behind what is on screen has to go then too.
+	 */
+	let renderedLayoutKey: string | null = null;
 
 	/**
 	 * A DOM measurement pass is running.
@@ -653,6 +666,20 @@
 	const detailStaging = provideDetailStaging();
 	$effect(() => detailStaging.set(detailStaged, detailPrewarming));
 	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
+
+	// The selection draws in full at any zoom: see `detailKeptIds`. A derived count, so a node
+	// write that keeps the count re-runs nothing here.
+	let storeNodeCount = $derived($nodes.length);
+	$effect(() =>
+		detailStaging.keep(
+			detailKeptIds({
+				nodeCount: storeNodeCount,
+				selectedNode: $selNodeStore,
+				selectedNodes: $selNodesStore,
+				selectedEdge: $selEdgeStore
+			})
+		)
+	);
 
 	let cullOffscreen = $derived(
 		shouldCull({
@@ -1255,6 +1282,7 @@
 				return;
 			}
 			visibleNodes = layoutResult.visibleNodes;
+			renderedLayoutKey = layoutKey;
 			if (!layoutFromStore && layoutResult.engineResult) {
 				layoutToStore = { sizes: elementNodeSizes, result: layoutResult.engineResult };
 			}
@@ -1470,12 +1498,14 @@
 				// self-heal fires every time, and each recursion is a full pipeline
 				// run including two more elk.layout() calls.
 				perf.count('post-render-relayout');
-				// A stored layout whose sizes the DOM just contradicted is wrong for this content.
-				// Drop it, and keep the re-layout below from reading it back.
-				if (layoutFromStore && layoutKey) {
+				// The layout on screen was built around sizes the DOM just contradicted. Drop its
+				// stored entry, and keep the re-layout below from reading it back. Not only when this
+				// run read the store: a refetch run lays nothing out, and when it finds the drift the
+				// entry behind the screen is still the wrong one.
+				if (renderedLayoutKey) {
 					perf.count('layout-store:invalidated');
-					deleteStoredLayout(layoutKey);
-					distrustedLayoutKeys.add(layoutKey);
+					deleteStoredLayout(renderedLayoutKey);
+					distrustedLayoutKeys.add(renderedLayoutKey);
 				}
 				// Invalidate structureKey to force ELK re-run. Do NOT
 				// invalidate baseKey — base structure hasn't changed, and
