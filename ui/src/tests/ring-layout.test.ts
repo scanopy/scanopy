@@ -39,7 +39,7 @@ function place(links: [string, string][]) {
 	const graph = graphOf(links);
 	const rings = detectRings(graph);
 	const sizes = new Map(graph.nodes.map((n) => [n, CARD]));
-	const positions = placeRings(graph, rings, sizes, new Map())!;
+	const positions = placeRings(graph, rings, sizes)!;
 	return { graph, rings, positions };
 }
 
@@ -178,7 +178,7 @@ describe('rootGraphOf', () => {
 describe('placeRings', () => {
 	it('keeps the caller layout when there is no ring', () => {
 		const graph = graphOf(path('a', 'b', 'c'));
-		expect(placeRings(graph, detectRings(graph), new Map(), new Map())).toBeNull();
+		expect(placeRings(graph, detectRings(graph), new Map())).toBeNull();
 	});
 
 	it('draws each loop without crossings in its own links', () => {
@@ -232,22 +232,46 @@ describe('placeRings', () => {
 		expect(overlaps(graph.nodes, positions)).toBe(0);
 	});
 
-	it('moves components with no ring below the rings, keeping their own layout', () => {
+	it('draws two rings of a utility scale as one ellipse, with spurs inside it', () => {
+		const links: [string, string][] = [...twoRings(49)];
+		const spurs: string[] = [];
+		for (let i = 0; i < 49; i++) {
+			for (let h = 0; h < 3 + (i % 4); h++) {
+				links.push([`e${i}`, `e${i}-h${h}`], [`w${i}`, `w${i}-h${h}`]);
+				spurs.push(`e${i}-h${h}`, `w${i}-h${h}`);
+			}
+		}
+		links.push(['A', 'server1'], ['A', 'server2'], ['B', 'server3'], ['B', 'server4']);
+		const { graph, rings, positions } = place(links);
+
+		const ring = ringNodes(rings[0]);
+		const xs = ring.map((n) => positions.get(n)!.x);
+		const ys = ring.map((n) => positions.get(n)!.y);
+		const box = {
+			left: Math.min(...xs),
+			right: Math.max(...xs) + CARD.width,
+			top: Math.min(...ys),
+			bottom: Math.max(...ys) + CARD.height
+		};
+		const aspect = (box.right - box.left) / (box.bottom - box.top);
+		expect(aspect).toBeGreaterThan(1.4);
+		expect(aspect).toBeLessThan(1.8);
+
+		for (const n of spurs) {
+			const p = positions.get(n)!;
+			expect(p.x).toBeGreaterThanOrEqual(box.left);
+			expect(p.x + CARD.width).toBeLessThanOrEqual(box.right);
+			expect(p.y).toBeGreaterThanOrEqual(box.top);
+			expect(p.y + CARD.height).toBeLessThanOrEqual(box.bottom);
+		}
+		expect(overlaps(graph.nodes, positions)).toBe(0);
+	});
+
+	it('leaves components with no ring unplaced', () => {
 		const links: [string, string][] = [...cycle('a', 'b', 'c', 'd', 'e'), ['x', 'y']];
 		const graph = graphOf(links);
 		const sizes = new Map(graph.nodes.map((n) => [n, CARD]));
-		const fallback = new Map<string, Point>([
-			['x', { x: 0, y: 0 }],
-			['y', { x: 300, y: 50 }]
-		]);
-		const positions = placeRings(graph, detectRings(graph), sizes, fallback)!;
-		const x = positions.get('x')!;
-		const y = positions.get('y')!;
-		expect(y.x - x.x).toBe(300);
-		expect(y.y - x.y).toBe(50);
-		const ringBottom = Math.max(
-			...['a', 'b', 'c', 'd', 'e'].map((n) => positions.get(n)!.y + CARD.height)
-		);
-		expect(x.y).toBeGreaterThan(ringBottom);
+		const positions = placeRings(graph, detectRings(graph), sizes)!;
+		expect([...positions.keys()].sort()).toEqual(['a', 'b', 'c', 'd', 'e']);
 	});
 });

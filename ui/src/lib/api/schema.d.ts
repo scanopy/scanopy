@@ -17791,6 +17791,12 @@ export interface components {
             force_overview: boolean;
             handle_strategy: components["schemas"]["ViewHandleStrategy"];
             /**
+             * @description Whether the connected groups of root containers are tiled to the screen's aspect after layout,
+             *     each keeping its own layout, so root containers with no link fill the width instead of
+             *     stacking in columns.
+             */
+            pack_components: boolean;
+            /**
              * @description Whether root containers with no cross-container edges are moved beside the connected
              *     ones after layout.
              */

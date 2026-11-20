@@ -825,6 +825,10 @@ pub struct ViewLayoutConfig {
     /// Whether root containers that form rings (closed loops of links) are placed as loops, with
     /// everything else hanging off them. A graph with no ring is laid out as if this were off.
     pub ring_detection: bool,
+    /// Whether the connected groups of root containers are tiled to the screen's aspect after layout,
+    /// each keeping its own layout, so root containers with no link fill the width instead of
+    /// stacking in columns.
+    pub pack_components: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1330,6 +1334,7 @@ impl TopologyView {
                 align_layers_top: true,
                 force_overview: false,
                 ring_detection: true,
+                pack_components: true,
             },
             Self::L3Logical => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Default,
@@ -1341,6 +1346,7 @@ impl TopologyView {
                 align_layers_top: false,
                 force_overview: true,
                 ring_detection: false,
+                pack_components: false,
             },
             Self::Workloads => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Workloads,
@@ -1352,6 +1358,7 @@ impl TopologyView {
                 align_layers_top: false,
                 force_overview: false,
                 ring_detection: false,
+                pack_components: false,
             },
             Self::Application => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::RectPacking,
@@ -1363,6 +1370,7 @@ impl TopologyView {
                 align_layers_top: false,
                 force_overview: true,
                 ring_detection: false,
+                pack_components: false,
             },
         }
     }

@@ -7,9 +7,10 @@
  * at least `MIN_LOOP` nodes, so the short cycles redundant uplink pairs form are left alone. A
  * block with more than two branch nodes is a mesh, which this leaves to the layered layout.
  *
- * Each loop is drawn as a racetrack: a top run and a bottom run joined at the far end, so cards
- * stay axis-aligned and the links along a run read left to right. Rings that share two nodes have
- * those nodes stacked in a central column, with the loops alternating right and left of it.
+ * A ring group is drawn as an ellipse at the aspect the other views pack to, so it fills a
+ * landscape screen and reads as a ring. A single loop runs all the way round. Rings that share
+ * nodes have those nodes on the vertical axis, with the loops as half ellipses alternating right
+ * and left of it. Spurs stack inwards, filling the ellipse rather than widening it.
  */
 
 export interface RootGraph {
@@ -46,9 +47,7 @@ export interface Point {
 export const MIN_LOOP = 5;
 
 const RUN_GAP = 75;
-const ROW_GAP = 150;
 const SPUR_GAP = 25;
-const SPUR_INDENT = 50;
 const GROUP_GAP = 200;
 const PADDING = 25;
 const SNAP = 25;
@@ -242,45 +241,91 @@ export function loopCycles(ring: RingGroup): string[][] {
 	return ring.loops.map((loop) => [ring.spine[0], ...loop, ...reversedSpine.slice(0, -1)]);
 }
 
-type Direction = 'up' | 'down' | 'right';
+/** Width over height of a drawn ring, the aspect the other views pack their roots to. */
+export const RING_ASPECT = 1.6;
+const ARC_SAMPLES = 512;
+
+/** A point on a sampled arc and the arc length up to it. */
+interface ArcPoint extends Point {
+	at: number;
+}
 
 /**
- * Places `graph` with each ring group as loops and every other node of a ring group's component
- * hanging off its nearest ring node. Nodes in components with no ring keep `fallback`, moved below
- * the rings. Returns null when the graph has no ring, so the caller keeps its own layout untouched.
+ * Samples the ellipse with semi-axes `a` and `b` centred on the origin, clockwise from its top
+ * over `sweep` radians: half the ellipse runs from the top through the right to the bottom.
+ */
+function sampleArc(a: number, b: number, sweep: number): ArcPoint[] {
+	const points: ArcPoint[] = [];
+	let at = 0;
+	for (let i = 0; i <= ARC_SAMPLES; i++) {
+		const t = -Math.PI / 2 + (sweep * i) / ARC_SAMPLES;
+		const x = a * Math.cos(t);
+		const y = b * Math.sin(t);
+		if (i > 0) at += Math.hypot(x - points[i - 1].x, y - points[i - 1].y);
+		points.push({ x, y, at });
+	}
+	return points;
+}
+
+const arcLength = (arc: ArcPoint[]) => arc[arc.length - 1].at;
+
+/**
+ * `count` points evenly spaced by arc length along `arc`. An open arc leaves a gap at each end for
+ * the nodes it runs between; a closed one starts on its first point.
+ */
+function spreadAlong(arc: ArcPoint[], count: number, open: boolean): Point[] {
+	const total = arcLength(arc);
+	const gaps = open ? count + 1 : count;
+	const points: Point[] = [];
+	let j = 0;
+	for (let i = 0; i < count; i++) {
+		const s = (total * (open ? i + 1 : i)) / gaps;
+		while (j < arc.length - 2 && arc[j + 1].at < s) j++;
+		const p = arc[j];
+		const q = arc[j + 1];
+		const f = q.at > p.at ? (s - p.at) / (q.at - p.at) : 0;
+		points.push({ x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f });
+	}
+	return points;
+}
+
+/**
+ * Places the components of `graph` that hold a ring: each ring group as an ellipse of
+ * `RING_ASPECT`, and every other node of those components in a spur stacked from its nearest ring
+ * node towards the ellipse's centre. Ring groups sit side by side. Nodes of components with no
+ * ring get no position. Returns null when the graph has no ring, so the caller keeps its layout.
  */
 export function placeRings(
 	graph: RootGraph,
 	rings: RingGroup[],
-	sizes: Map<string, Size>,
-	fallback: Map<string, Point>
+	sizes: Map<string, Size>
 ): Map<string, Point> | null {
 	if (rings.length === 0) return null;
 	const size = (id: string): Size => sizes.get(id) ?? { width: 0, height: 0 };
 
 	// Spur trees: a multi-source BFS from every ring node, in ring then input order.
-	const owner = new Map<string, number>();
+	const owner = new Set<string>();
 	const children = new Map<string, string[]>();
 	const queue: string[] = [];
-	rings.forEach((ring, r) => {
+	for (const ring of rings) {
 		for (const n of ringNodes(ring)) {
-			owner.set(n, r);
+			owner.add(n);
 			queue.push(n);
 		}
-	});
+	}
 	for (let i = 0; i < queue.length; i++) {
 		const node = queue[i];
 		const neighbours = graph.nodes.filter((n) => graph.adjacency.get(node)!.has(n));
 		for (const next of neighbours) {
 			if (owner.has(next)) continue;
-			owner.set(next, owner.get(node)!);
+			owner.add(next);
 			if (!children.has(node)) children.set(node, []);
 			children.get(node)!.push(next);
 			queue.push(next);
 		}
 	}
 
-	// A node's spur: its subtree, depth first, as one column of cards.
+	// A node's spur: its subtree, depth first, as one stack of cards.
 	const spurOf = (node: string): string[] => {
 		const out: string[] = [];
 		const visit = (n: string) => {
@@ -292,135 +337,140 @@ export function placeRings(
 		visit(node);
 		return out;
 	};
-	const spurExtent = (spur: string[]): Size => ({
-		width: spur.length ? Math.max(...spur.map((n) => size(n).width)) + SPUR_INDENT : 0,
-		height: spur.reduce((h, n) => h + size(n).height + SPUR_GAP, 0)
-	});
+	/** How far a spur reaches from its ring node, whichever way it points. */
+	const reachOf = (node: string) =>
+		spurOf(node).reduce(
+			(r, n) => r + Math.max(size(n).width, size(n).height) + SPUR_GAP,
+			Math.max(size(node).width, size(node).height) / 2
+		);
 
-	const positions = new Map<string, Point>();
+	/** Distance between the centres of two cards stacked along unit direction `u` (touching). */
+	const extent = (id: string, u: Point) => {
+		const s = size(id);
+		const ex = Math.abs(u.x) > 1e-9 ? s.width / Math.abs(u.x) : Infinity;
+		const ey = Math.abs(u.y) > 1e-9 ? s.height / Math.abs(u.y) : Infinity;
+		return Math.min(ex, ey);
+	};
 
-	/** Places `node` at (x, y) and its spur outward in `direction`. */
-	const placeWithSpur = (node: string, x: number, y: number, direction: Direction) => {
-		positions.set(node, { x, y });
-		const own = size(node);
-		const spur = spurOf(node);
-		let cursor =
-			direction === 'up' ? y - SPUR_GAP : direction === 'down' ? y + own.height + SPUR_GAP : y;
-		for (const n of spur) {
-			const s = size(n);
-			if (direction === 'up') {
-				cursor -= s.height;
-				positions.set(n, { x: x + SPUR_INDENT, y: cursor });
-				cursor -= SPUR_GAP;
-			} else if (direction === 'down') {
-				positions.set(n, { x: x + SPUR_INDENT, y: cursor });
-				cursor += s.height + SPUR_GAP;
-			} else {
-				positions.set(n, { x: x + own.width + SPUR_GAP + SPUR_INDENT, y: cursor });
-				cursor += s.height + SPUR_GAP;
-			}
+	const centres = new Map<string, Point>();
+	/** Centres `node` on `c` and stacks its spur from it along `u`. */
+	const placeNode = (node: string, c: Point, u: Point) => {
+		centres.set(node, c);
+		let previous = node;
+		let distance = 0;
+		for (const n of spurOf(node)) {
+			distance += (extent(previous, u) + extent(n, u)) / 2 + SPUR_GAP;
+			centres.set(n, { x: c.x + u.x * distance, y: c.y + u.y * distance });
+			previous = n;
 		}
 	};
-	/** Horizontal room a ring node and its spur take on a run. */
-	const slotWidth = (node: string) =>
-		Math.max(size(node).width, spurExtent(spurOf(node)).width) + RUN_GAP;
+	const towardCentre = (c: Point): Point => {
+		const d = Math.hypot(c.x, c.y);
+		return d > 0 ? { x: -c.x / d, y: -c.y / d } : { x: 0, y: 1 };
+	};
 
-	let groupX = 0;
-	let ringBottom = -Infinity;
-	for (const ring of rings) {
-		const spine = ring.spine;
-		const loops = ring.loops.map((loop) => {
-			const topCount = Math.ceil(loop.length / 2);
-			return { top: loop.slice(0, topCount), bottom: loop.slice(topCount).reverse() };
-		});
-		const rowHeight = (row: string[]) => Math.max(0, ...row.map((n) => size(n).height));
-		const runWidth = (row: string[]) => row.reduce((w, n) => w + slotWidth(n), 0);
-
-		// The spine column: its ends stack their spurs above and below, its interior nodes to the
-		// right, so it is as wide as the widest node with its spur.
-		const spineWidth =
-			spine.length === 0
-				? 0
-				: Math.max(
-						...spine.map((n, i) => {
-							const spur = spurExtent(spurOf(n)).width;
-							return i > 0 && i < spine.length - 1
-								? size(n).width + spur + SPUR_GAP
-								: Math.max(size(n).width, spur);
-						})
-					) + RUN_GAP;
-
-		// Rows: every loop's top run shares the top row, its bottom run the bottom row. The bottom
-		// row sits below the top row and below the spine's own stack.
-		const topY = 0;
-		const topHeight = Math.max(
-			spine.length ? size(spine[0]).height : 0,
-			...loops.map((l) => rowHeight(l.top))
-		);
-		const spineStack = spine.slice(0, -1).reduce((h, n) => h + size(n).height + ROW_GAP / 2, 0);
-		const bottomY = topY + Math.max(topHeight + ROW_GAP, spineStack);
-		const bottomHeight = Math.max(
-			spine.length ? size(spine[spine.length - 1]).height : 0,
-			...loops.map((l) => rowHeight(l.bottom))
-		);
-
-		// Loops alternate right and left of the spine; loops on one side nest outward by sitting
-		// beyond the previous loop's far end.
-		const rightLoops = loops.filter((_, i) => i % 2 === 0);
-		const leftLoops = loops.filter((_, i) => i % 2 === 1);
-		const sideWidth = (side: typeof loops) =>
-			side.reduce((w, l) => w + Math.max(runWidth(l.top), runWidth(l.bottom)), 0);
-		const leftWidth = sideWidth(leftLoops);
-		const spineX = groupX + leftWidth;
-
-		spine.forEach((n, i) => {
-			if (i === 0) placeWithSpur(n, spineX, topY, 'up');
-			else if (i === spine.length - 1) placeWithSpur(n, spineX, bottomY, 'down');
-			else {
-				const y = topY + spine.slice(0, i).reduce((h, m) => h + size(m).height + ROW_GAP / 2, 0);
-				placeWithSpur(n, spineX, y, 'right');
+	/**
+	 * Whether any two placed cards overlap or come closer than the grid snap could close. Sweeps
+	 * the cards by their left edge, so only cards that share a vertical band are compared.
+	 */
+	const cardsCollide = () => {
+		const margin = SNAP / 2 - 1;
+		const boxes = [...centres].map(([n, c]) => ({
+			left: c.x - size(n).width / 2 - margin,
+			right: c.x + size(n).width / 2 + margin,
+			top: c.y - size(n).height / 2 - margin,
+			bottom: c.y + size(n).height / 2 + margin
+		}));
+		boxes.sort((p, q) => p.left - q.left);
+		for (let i = 0; i < boxes.length; i++) {
+			for (let j = i + 1; j < boxes.length && boxes[j].left < boxes[i].right; j++) {
+				if (boxes[i].top < boxes[j].bottom && boxes[j].top < boxes[i].bottom) return true;
 			}
-		});
+		}
+		return false;
+	};
 
-		const placeRun = (row: string[], y: number, x0: number, rightward: boolean, dir: Direction) => {
-			let x = x0;
-			for (const n of row) {
-				const w = slotWidth(n);
-				placeWithSpur(n, rightward ? x : x - w + RUN_GAP, y, dir);
-				x += rightward ? w : -w;
+	const positions = new Map<string, Point>();
+	let groupX = 0;
+	for (const ring of rings) {
+		const all = ringNodes(ring);
+		// Neighbours on the ellipse sit at least a card diagonal apart, which clears two cards
+		// whatever direction the ellipse runs in between them.
+		const step = Math.max(...all.map((n) => Math.hypot(size(n).width, size(n).height))) + RUN_GAP;
+
+		// Drawn at the smallest size that fits the ring nodes, then larger until the spurs inside it
+		// clear each other: a small ring has little room in the middle for long spurs.
+		const draw = (scale: number) => {
+			centres.clear();
+			if (ring.spine.length === 0) {
+				const [loop] = ring.loops;
+				const b = (scale * loop.length * step) / arcLength(sampleArc(RING_ASPECT, 1, 2 * Math.PI));
+				const arc = sampleArc(RING_ASPECT * b, b, 2 * Math.PI);
+				spreadAlong(arc, loop.length, false).forEach((c, i) =>
+					placeNode(loop[i], c, towardCentre(c))
+				);
+			} else {
+				// The spine is the vertical axis; loops alternate right and left of it, each a half
+				// ellipse from the spine's first node at the top to its last at the bottom.
+				const spine = ring.spine;
+				const sides = [0, 1].map((side) => ring.loops.filter((_, i) => i % 2 === side));
+				const firstLoops = sides.map((side) => side[0]?.length ?? 0);
+				const halfLength = arcLength(sampleArc(RING_ASPECT, 1, Math.PI));
+				const b =
+					scale *
+					Math.max(
+						((Math.max(...firstLoops) + 1) * step) / halfLength,
+						((spine.length - 1) * step) / 2
+					);
+
+				spine.forEach((n, i) => {
+					const c = { x: 0, y: -b + (2 * b * i) / (spine.length - 1) };
+					const u =
+						i === 0 ? { x: 0, y: -1 } : i === spine.length - 1 ? { x: 0, y: 1 } : { x: 1, y: 0 };
+					placeNode(n, c, u);
+				});
+
+				sides.forEach((loops, side) => {
+					const mirror = side === 0 ? 1 : -1;
+					let a = 0;
+					loops.forEach((loop, k) => {
+						// A further loop on a side runs outside the previous one, far enough out for
+						// its own spurs to fit in between.
+						a = k === 0 ? RING_ASPECT * b : a + step + Math.max(0, ...loop.map((n) => reachOf(n)));
+						let arc = sampleArc(a, b, Math.PI);
+						while (arcLength(arc) < (loop.length + 1) * step) {
+							a *= 1.1;
+							arc = sampleArc(a, b, Math.PI);
+						}
+						spreadAlong(arc, loop.length, true).forEach((p, i) => {
+							const c = { x: p.x * mirror, y: p.y };
+							placeNode(loop[i], c, towardCentre(c));
+						});
+					});
+				});
 			}
 		};
-		let rightX = spineX + spineWidth;
-		for (const loop of rightLoops) {
-			placeRun(loop.top, topY, rightX, true, 'up');
-			placeRun(loop.bottom, bottomY, rightX, true, 'down');
-			rightX += Math.max(runWidth(loop.top), runWidth(loop.bottom));
-		}
-		let leftX = spineX;
-		for (const loop of leftLoops) {
-			placeRun(loop.top, topY, leftX - RUN_GAP, false, 'up');
-			placeRun(loop.bottom, bottomY, leftX - RUN_GAP, false, 'down');
-			leftX -= Math.max(runWidth(loop.top), runWidth(loop.bottom));
+		let scale = 1;
+		draw(scale);
+		for (let tries = 0; tries < 30 && cardsCollide(); tries++) {
+			scale *= 1.15;
+			draw(scale);
 		}
 
-		groupX = rightX + GROUP_GAP;
-		for (const n of ringNodes(ring)) {
-			const spur = spurExtent(spurOf(n));
-			ringBottom = Math.max(ringBottom, positions.get(n)!.y + size(n).height + spur.height);
+		// Cards are placed by their top-left corner, and the group starts right of the last one.
+		let minX = Infinity;
+		let maxX = -Infinity;
+		for (const [n, c] of centres) {
+			minX = Math.min(minX, c.x - size(n).width / 2);
+			maxX = Math.max(maxX, c.x + size(n).width / 2);
 		}
-		ringBottom = Math.max(ringBottom, bottomY + bottomHeight);
-	}
-
-	// Components with no ring keep their own layout, moved below the rings.
-	const rest = graph.nodes.filter((n) => !positions.has(n));
-	if (rest.length > 0) {
-		const minX = Math.min(...rest.map((n) => fallback.get(n)?.x ?? 0));
-		const minY = Math.min(...rest.map((n) => fallback.get(n)?.y ?? 0));
-		const ringMinX = Math.min(...[...positions.values()].map((p) => p.x));
-		for (const n of rest) {
-			const p = fallback.get(n) ?? { x: 0, y: 0 };
-			positions.set(n, { x: p.x - minX + ringMinX, y: p.y - minY + ringBottom + GROUP_GAP });
+		for (const [n, c] of centres) {
+			positions.set(n, {
+				x: c.x - size(n).width / 2 - minX + groupX,
+				y: c.y - size(n).height / 2
+			});
 		}
+		groupX += maxX - minX + GROUP_GAP;
 	}
 
 	// Normalize to the padding and snap to the grid.
