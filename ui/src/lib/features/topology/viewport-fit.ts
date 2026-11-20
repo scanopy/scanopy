@@ -185,3 +185,27 @@ export function focusLink(flow: FocusableFlow, edge: { source: string; target: s
 		outermostNode(edge.target, flow.getInternalNode)
 	]);
 }
+
+/** A viewport transform: pan offset in screen pixels and zoom. */
+export interface ViewportTransform {
+	x: number;
+	y: number;
+	zoom: number;
+}
+
+/**
+ * Whether the canvas still sits where the last whole-graph fit put it.
+ *
+ * Opening or closing the options panel changes the room a fit has, so a fitted graph is refitted
+ * around it. A viewport the user has since panned, zoomed or focused is theirs to keep: selecting
+ * a node or a link opens the panel, and refitting then threw the selection away at the zoom of the
+ * whole graph. Half a pixel and a thousandth of the zoom absorb d3's float round trip.
+ */
+export function isAtFit(current: ViewportTransform, fit: ViewportTransform | null): boolean {
+	if (!fit) return false;
+	return (
+		Math.abs(current.x - fit.x) < 0.5 &&
+		Math.abs(current.y - fit.y) < 0.5 &&
+		Math.abs(current.zoom - fit.zoom) <= fit.zoom * 1e-3
+	);
+}
