@@ -504,11 +504,6 @@ async fn storage_selects_every_live_column() {
             "filters match on it in SQL and stamp_snapshot_id_in_tx writes it; no decoder reads it",
         ),
         (
-            "organizations",
-            "onboarding",
-            "replaced by setup; only migrations read it, until the contract release drops it",
-        ),
-        (
             "users",
             "tags",
             "left from 20251210045929_tags; users carry no tags and nothing reads it",
