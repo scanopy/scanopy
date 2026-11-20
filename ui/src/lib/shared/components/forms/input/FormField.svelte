@@ -2,6 +2,9 @@
 	import { AlertCircle } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
+	import MessageWithLinks, {
+		type MessageLink
+	} from '#lib/shared/components/data/MessageWithLinks.svelte';
 
 	interface Props {
 		/** Field from TanStack Form snippet */
@@ -18,6 +21,8 @@
 		hint?: Snippet;
 		/** Render label inline with input (for checkboxes) */
 		inline?: boolean;
+		/** Links an inline label places with `slot(key)`. */
+		labelLinks?: Record<string, MessageLink>;
 		/** Slot content */
 		children: Snippet;
 	}
@@ -30,6 +35,7 @@
 		helpText = '',
 		hint,
 		inline = false,
+		labelLinks = {},
 		children
 	}: Props = $props();
 
@@ -46,8 +52,7 @@
 			>
 				{@render children()}
 				<div>
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted: only used via Checkbox with i18n labels -->
-					{@html label}
+					<MessageWithLinks text={label} links={labelLinks} />
 					{#if required}
 						<span class="text-danger">*</span>
 					{/if}

@@ -48,7 +48,9 @@
 		daemons_sunsetDeprecatedBody,
 		daemons_sunsetUnsupportedTitle,
 		daemons_sunsetUnsupportedBody,
-		discovery_upgradeConsolidationWarning
+		discovery_upgradeConsolidationWarning,
+		discovery_learnMoreDocs,
+		discovery_docsScanSettingsLinkText
 	} from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -164,7 +166,14 @@
 							version: daemonVersionGates.last_without_unified_discovery
 						})}
 						dismissableKey="unified-discovery-migration"
-					/>
+					>
+						<DocsHint
+							class="mt-1"
+							text={discovery_learnMoreDocs()}
+							href="https://scanopy.net/docs/using-scanopy/discovery/"
+							linkText={discovery_docsScanSettingsLinkText()}
+						/>
+					</InlineWarning>
 				{/if}
 
 				<OsSelector

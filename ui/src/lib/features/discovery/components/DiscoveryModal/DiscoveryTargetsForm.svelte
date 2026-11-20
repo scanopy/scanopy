@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useCreateSubnetMutation, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
 	import type { Discovery } from '../../types/base';
@@ -7,26 +7,24 @@
 	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import type { Daemon } from '#lib/features/daemons/types/base.ts';
-	import type { Subnet, SubnetResponse } from '#lib/features/subnets/types/base.ts';
-	import SubnetEditModal from '#lib/features/subnets/components/SubnetEditModal/SubnetEditModal.svelte';
+	import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
 	import { disabledWhen } from '#lib/shared/components/data/types.ts';
 	import { docsUrl } from '#lib/shared/utils/docs.ts';
 	import { withRoutedTarget } from '../../utils/targets';
 	import {
-		discovery_addNetwork,
+		common_subnets,
 		discovery_daemonHostMissing,
 		discovery_daemonHostMissingHelp,
 		discovery_daemonNetworkAlwaysScanned,
-		discovery_daemonNetworks,
-		discovery_daemonNetworksEmpty,
-		discovery_daemonNetworksHelp,
 		discovery_leaveOutNetwork,
 		discovery_leaveOutNetworkLinkText,
-		discovery_routedNetworks,
-		discovery_routedNetworksEmpty,
-		discovery_routedNetworksHelp,
+		discovery_planningDaemonsLinkText,
+		discovery_routedNetworksFaster,
 		discovery_routedNetworksLarge,
-		discovery_selectSubnet
+		discovery_selectSubnet,
+		discovery_targetsEmpty,
+		discovery_targetsHelp,
+		discovery_targetsRoutedHelp
 	} from '#lib/paraglide/messages.js';
 
 	interface Props {
@@ -38,7 +36,6 @@
 	let { formData = $bindable(), daemonHostId, daemon }: Props = $props();
 
 	const subnetsQuery = useSubnetsQuery();
-	const createSubnetMutation = useCreateSubnetMutation();
 
 	let subnetsData = $derived(subnetsQuery.data ?? []);
 	let hasTargets = $derived(
@@ -54,23 +51,27 @@
 		return subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible;
 	}
 
-	// Every scan sweeps these. The list follows the daemon's interfaces, not this scan.
-	let daemonNetworks = $derived(
-		subnetsData.filter((s) => daemon.interfaced_subnet_ids.includes(s.id) && scanEligible(s))
-	);
+	function isDaemonNetwork(s: { id: string }): boolean {
+		return daemon.interfaced_subnet_ids.includes(s.id);
+	}
+
+	// Every scan sweeps the daemon's own networks, so they lead the list and can't be removed.
+	let daemonNetworks = $derived(subnetsData.filter((s) => isDaemonNetwork(s) && scanEligible(s)));
 
 	let routedSubnets = $derived(
 		routedIds
 			.map((id) => subnetsData.find((s) => s.id === id))
-			.filter((s): s is SubnetResponse => s !== undefined)
+			.filter((s): s is SubnetResponse => s !== undefined && !isDaemonNetwork(s))
 	);
+
+	let items = $derived([...daemonNetworks, ...routedSubnets]);
 
 	let availableSubnets = $derived(
 		subnetsData.filter(
 			(s) =>
 				s.site_id == formData.site_id &&
 				!routedIds.includes(s.id) &&
-				!daemon.interfaced_subnet_ids.includes(s.id) &&
+				!isDaemonNetwork(s) &&
 				scanEligible(s)
 		)
 	);
@@ -103,39 +104,21 @@
 			})
 	);
 
-	function setRoutedIds(ids: string[]) {
+	function handleRemove(index: number) {
+		const removed = items[index];
+		if (!removed || isDaemonNetwork(removed)) return;
 		if (formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified') {
-			formData.discovery_type = { ...formData.discovery_type, subnet_ids: ids };
+			formData.discovery_type = {
+				...formData.discovery_type,
+				subnet_ids: routedIds.filter((id) => id !== removed.id)
+			};
 		}
-	}
-
-	function addRouted(subnetId: string) {
-		formData = withRoutedTarget(formData, subnetId);
-	}
-
-	// "Add a network" creates a subnet over this modal and adds it to the routed list, which saves
-	// with the scan.
-	let addingNetwork = $state(false);
-
-	async function handleNetworkCreated(subnet: Subnet) {
-		try {
-			const created = await createSubnetMutation.mutateAsync({ subnet, purpose: 'Scan' });
-			addRouted(created.id);
-			addingNetwork = false;
-		} catch {
-			// The API client shows the error.
-		}
-	}
-
-	function handleExistingNetwork(subnet: SubnetResponse) {
-		addRouted(subnet.id);
-		addingNetwork = false;
 	}
 </script>
 
-{#snippet leaveOutHint()}
-	<p>{discovery_daemonNetworksHelp()}</p>
+{#snippet targetsHelp()}
 	<div class="flex flex-wrap items-baseline gap-x-1">
+		<span>{discovery_targetsHelp()}</span>
 		<DocsHint
 			text={discovery_leaveOutNetwork()}
 			href={docsUrl(
@@ -143,61 +126,47 @@
 			)}
 			linkText={discovery_leaveOutNetworkLinkText()}
 		/>
+		<span>{discovery_targetsRoutedHelp()}</span>
 	</div>
 {/snippet}
 
-<div class="space-y-6">
+<div class="space-y-4">
 	{#if daemonHostId == null}
 		<InlineWarning title={discovery_daemonHostMissing()} body={discovery_daemonHostMissingHelp()} />
 	{/if}
 
 	{#if hasTargets}
-		<ListManager
-			label={discovery_daemonNetworks()}
-			helpSnippet={leaveOutHint}
-			emptyMessage={discovery_daemonNetworksEmpty()}
-			allowReorder={false}
-			allowAddFromOptions={false}
-			allowItemEdit={false}
-			items={daemonNetworks}
-			optionDisplayComponent={SubnetDisplay}
-			itemDisplayComponent={SubnetDisplay}
-			itemRemoveUnavailable={() => disabledWhen(true, discovery_daemonNetworkAlwaysScanned())}
-		/>
-
 		{#if largeRoutedSubnets.length > 0}
 			<InlineWarning
 				title=""
 				body={discovery_routedNetworksLarge({ subnets: largeRoutedSubnets.join('\n') })}
-			/>
+			>
+				<DocsHint
+					class="mt-1"
+					text={discovery_routedNetworksFaster()}
+					href={docsUrl('/docs/plan-your-deployment/daemons/')}
+					linkText={discovery_planningDaemonsLinkText()}
+				/>
+			</InlineWarning>
 		{/if}
 		<ListManager
-			label={discovery_routedNetworks()}
-			helpText={discovery_routedNetworksHelp()}
+			label={common_subnets()}
+			helpSnippet={targetsHelp}
 			placeholder={discovery_selectSubnet()}
-			emptyMessage={discovery_routedNetworksEmpty()}
+			emptyMessage={discovery_targetsEmpty()}
 			allowReorder={false}
 			allowItemEdit={false}
-			allowCreateNew={true}
-			createNewLabel={discovery_addNetwork()}
-			onCreateNew={() => (addingNetwork = true)}
 			showSearch={true}
 			options={availableSubnets}
-			items={routedSubnets}
+			{items}
 			optionDisplayComponent={SubnetDisplay}
 			itemDisplayComponent={SubnetDisplay}
-			onAdd={addRouted}
-			onRemove={(index) => setRoutedIds(routedIds.filter((_, i) => i !== index))}
+			getItemDisabledReason={(s) =>
+				isDaemonNetwork(s) ? discovery_daemonNetworkAlwaysScanned() : null}
+			itemRemoveUnavailable={(s) =>
+				disabledWhen(isDaemonNetwork(s), discovery_daemonNetworkAlwaysScanned())}
+			onAdd={(id) => (formData = withRoutedTarget(formData, id))}
+			onRemove={handleRemove}
 		/>
 	{/if}
 </div>
-
-<!-- Unnamed, so the discovery editor underneath stays open. -->
-<SubnetEditModal
-	isOpen={addingNetwork}
-	fixedScan={{ siteId: formData.site_id, label: `${daemon.name}: ${formData.name}` }}
-	onCreate={handleNetworkCreated}
-	onUseExisting={handleExistingNetwork}
-	onUpdate={() => {}}
-	onClose={() => (addingNetwork = false)}
-/>

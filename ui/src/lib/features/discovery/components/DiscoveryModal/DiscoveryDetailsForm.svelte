@@ -44,8 +44,11 @@
 		discovery_scheduled,
 		discovery_scheduledDescription,
 		discovery_upgradeRequiredTitle,
-		discovery_upgradeRequiredBody
+		discovery_upgradeRequiredBody,
+		discovery_learnMoreDocs,
+		discovery_docsScanSettingsLinkText
 	} from '#lib/paraglide/messages.js';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 
 	interface Props {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,7 +136,14 @@
 			body={discovery_upgradeRequiredBody({
 				version: daemonVersionGates.last_without_unified_discovery
 			})}
-		/>
+		>
+			<DocsHint
+				class="mt-1"
+				text={discovery_learnMoreDocs()}
+				href="https://scanopy.net/docs/using-scanopy/discovery/"
+				linkText={discovery_docsScanSettingsLinkText()}
+			/>
+		</InlineWarning>
 	{/if}
 
 	<div class="space-y-3">

@@ -43,6 +43,10 @@
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
+		DiscoveryDisplay,
+		type DiscoveryDisplayContext
+	} from '#lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
+	import {
 		useDiscoveriesQuery,
 		useUpdateDiscoveryMutation
 	} from '#lib/features/discovery/queries.ts';
@@ -200,7 +204,7 @@
 			tags: source.tags,
 			vlan_ids: source.vlan_ids ?? [],
 			purpose: 'Scan',
-			reach: 'install',
+			reach: 'routed',
 			scan_id: ''
 		};
 	}
@@ -221,16 +225,17 @@
 		const daemon = (daemonsQuery.data ?? []).find((x) => x.id === d.daemon_id);
 		return subnets_scanLabel({ daemon: daemon?.name ?? common_unknown(), scan: d.name });
 	}
-	let scanOptions: SimpleOption[] = $derived(
-		siteScans.map((d) => ({ value: d.id, label: scanLabel(d) }))
-	);
+	// A scan picker describes each scan by the daemon that runs it.
+	function scanContext(d: Discovery): DiscoveryDisplayContext {
+		return { daemonName: (daemonsQuery.data ?? []).find((x) => x.id === d.daemon_id)?.name };
+	}
 
 	// The create flow's steps. Its first answer decides the rest: a network to scan goes on to how
 	// Scanopy reaches it, and from another daemon's scan to its details; a network to record goes
 	// on to its details. A network for a fixed scan skips both questions. Editing is one page.
 	type Step = 'network' | 'reach' | 'details';
 	let purpose = $state<SubnetCreatePurpose>('Scan');
-	let reach = $state<Reach>('install');
+	let reach = $state<Reach>('routed');
 	let scanId = $state('');
 	let steps = $derived<Step[]>(
 		fixedScan || purpose === 'Record'
@@ -732,8 +737,9 @@
 												label={common_scan()}
 												placeholder={subnets_selectScan()}
 												selectedValue={scanId}
-												options={scanOptions}
-												displayComponent={SimpleOptionDisplay}
+												options={siteScans}
+												displayComponent={DiscoveryDisplay}
+												getOptionContext={scanContext}
 												onSelect={handleScanChange}
 											/>
 										</div>
@@ -824,8 +830,9 @@
 								label={common_scan()}
 								placeholder={subnets_selectScan()}
 								selectedValue={scanId}
-								options={scanOptions}
-								displayComponent={SimpleOptionDisplay}
+								options={siteScans}
+								displayComponent={DiscoveryDisplay}
+								getOptionContext={scanContext}
 								onSelect={handleScanChange}
 								required
 							/>

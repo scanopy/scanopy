@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+	licenseBannerLinks,
 	licenseProblemBanner,
 	licenseProblemMessage
 } from '#lib/features/settings/license-problem.ts';
+import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
 import { isLicenseLocked, type PublicServerConfig } from '#lib/shared/stores/config-query.ts';
 
 const config = (license_status: PublicServerConfig['license_status']) =>
@@ -12,7 +14,10 @@ describe('licenseProblemBanner', () => {
 	it('keeps the cause and links the troubleshooting guide', () => {
 		const banner = licenseProblemBanner('untrusted_certificate');
 		expect(banner.startsWith(licenseProblemMessage('untrusted_certificate'))).toBe(true);
-		expect(banner).toContain('/troubleshooting/self-hosted-server/');
+		expect(banner.endsWith(slot('troubleshoot'))).toBe(true);
+		expect(licenseBannerLinks().troubleshoot.href).toContain(
+			'/troubleshooting/self-hosted-server/'
+		);
 	});
 
 	it('gives different failures different messages', () => {

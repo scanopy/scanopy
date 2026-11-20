@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FormField from './FormField.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
+	import type { MessageLink } from '#lib/shared/components/data/MessageWithLinks.svelte';
 
 	interface Props {
 		label: string;
@@ -9,13 +10,23 @@
 		helpText?: string;
 		required?: boolean;
 		disabled?: boolean;
+		/** Links the label places with `slot(key)`. */
+		labelLinks?: Record<string, MessageLink>;
 	}
 
-	let { label, field, id, helpText = '', required = false, disabled = false }: Props = $props();
+	let {
+		label,
+		field,
+		id,
+		helpText = '',
+		required = false,
+		disabled = false,
+		labelLinks = {}
+	}: Props = $props();
 </script>
 
 <div class:disabled>
-	<FormField {label} {field} {helpText} {id} inline={true} {required}>
+	<FormField {label} {field} {helpText} {id} inline={true} {required} {labelLinks}>
 		<input
 			type="checkbox"
 			{id}

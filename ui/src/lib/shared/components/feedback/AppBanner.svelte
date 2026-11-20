@@ -4,19 +4,24 @@
 	import { X } from '@lucide/svelte';
 	import { common_dismiss } from '#lib/paraglide/messages.js';
 	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import MessageWithLinks, {
+		type MessageLink
+	} from '#lib/shared/components/data/MessageWithLinks.svelte';
 
 	let {
 		variant = 'warning',
 		icon: Icon,
 		body,
+		links = {},
 		actions,
 		dismissableKey = null,
 		onDismiss = null
 	}: {
 		variant: 'info' | 'warning' | 'danger';
 		icon: IconComponent;
-		/** Banner body. Rendered as HTML to support inline anchors (e.g. mailto links). */
+		/** Banner body, as text. A link inside it is a `slot(key)` parameter named in `links`. */
 		body: string;
+		links?: Record<string, MessageLink>;
 		actions?: Snippet;
 		dismissableKey?: string | null;
 		onDismiss?: (() => void) | null;
@@ -50,8 +55,7 @@
 	<div class="border-b px-4 py-2 {variantClasses[variant]}">
 		<div class="mx-auto flex items-center justify-center gap-2 text-sm">
 			<Icon class="h-4 w-4 shrink-0" />
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -- body sources are paraglide-authored i18n strings, never user input -->
-			<span>{@html body}</span>
+			<span><MessageWithLinks text={body} {links} /></span>
 			{#if actions}
 				{@render actions()}
 			{/if}

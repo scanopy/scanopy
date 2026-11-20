@@ -3,6 +3,8 @@
 	import { license_renewByBanner } from '#lib/paraglide/messages.js';
 	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import AppBanner from './AppBanner.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { licenseBannerLinks } from '#lib/features/settings/license-problem.ts';
 
 	let { validThrough, hardExpiry }: { validThrough: string; hardExpiry: string } = $props();
 </script>
@@ -12,6 +14,8 @@
 	icon={ShieldAlert}
 	body={license_renewByBanner({
 		validThrough: formatLongDate(validThrough),
-		lockout: formatLongDate(hardExpiry, 'UTC')
+		lockout: formatLongDate(hardExpiry, 'UTC'),
+		link: slot('link')
 	})}
+	links={licenseBannerLinks()}
 />

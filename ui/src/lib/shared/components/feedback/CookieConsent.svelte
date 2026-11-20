@@ -35,6 +35,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import CookieSettingsPanel from './CookieSettingsPanel.svelte';
+	import MessageWithLinks from '#lib/shared/components/data/MessageWithLinks.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { PRIVACY_URL } from '#lib/shared/utils/site-links.ts';
 	import {
 		common_close,
 		common_customize,
@@ -42,7 +45,8 @@
 		cookies_preferences,
 		cookies_rejectAll,
 		cookies_settings,
-		cookies_settingsDesc
+		cookies_settingsDesc,
+		auth_privacyLinkText
 	} from '#lib/paraglide/messages.js';
 
 	let showBanner = $state(false);
@@ -116,8 +120,10 @@
 					<div class="text-content">
 						<h3 class="title">{cookies_settings()}</h3>
 						<p class="description">
-							<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted i18n content -->
-							{@html cookies_settingsDesc()}
+							<MessageWithLinks
+								text={cookies_settingsDesc({ privacy: slot('privacy') })}
+								links={{ privacy: { href: PRIVACY_URL, label: auth_privacyLinkText() } }}
+							/>
 						</p>
 					</div>
 					<div class="buttons">

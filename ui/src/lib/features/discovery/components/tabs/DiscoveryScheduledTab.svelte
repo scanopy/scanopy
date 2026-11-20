@@ -71,8 +71,11 @@
 		discovery_enableScheduleTooltip,
 		common_scans,
 		discovery_legacyDaemonsWarning,
-		discovery_noScheduledSessions
+		discovery_noScheduledSessions,
+		discovery_learnMoreDocs,
+		discovery_docsScanSettingsLinkText
 	} from '#lib/paraglide/messages.js';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 
 	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
@@ -391,7 +394,14 @@
 				version: daemonVersionGates.last_without_unified_discovery
 			})}
 			dismissableKey="unified-discovery-migration"
-		/>
+		>
+			<DocsHint
+				class="mt-1"
+				text={discovery_learnMoreDocs()}
+				href="https://scanopy.net/docs/using-scanopy/discovery/"
+				linkText={discovery_docsScanSettingsLinkText()}
+			/>
+		</InlineWarning>
 	{/if}
 
 	{#if pageLoad.failed}

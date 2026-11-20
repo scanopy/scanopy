@@ -13,6 +13,8 @@
 	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
 	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { PRIVACY_URL, TERMS_URL } from '#lib/shared/utils/site-links.ts';
 	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
 	import { useCheckEmailMutation } from '../queries';
 	import type { RegisterRequest } from '../types/base';
@@ -30,6 +32,8 @@
 		auth_scanopyLogo,
 		auth_signInInstead,
 		auth_termsAndPrivacy,
+		auth_privacyLinkText,
+		common_terms,
 		auth_youreInvitedBody,
 		auth_youreInvitedTitle,
 		common_back,
@@ -274,7 +278,19 @@
 							<div class="flex flex-col gap-2">
 								<form.Field name="terms_accepted">
 									{#snippet children(field)}
-										<Checkbox label={auth_termsAndPrivacy()} helpText="" {field} id="terms" />
+										<Checkbox
+											label={auth_termsAndPrivacy({
+												terms: slot('terms'),
+												privacy: slot('privacy')
+											})}
+											labelLinks={{
+												terms: { href: TERMS_URL, label: common_terms() },
+												privacy: { href: PRIVACY_URL, label: auth_privacyLinkText() }
+											}}
+											helpText=""
+											{field}
+											id="terms"
+										/>
 									{/snippet}
 								</form.Field>
 							</div>
