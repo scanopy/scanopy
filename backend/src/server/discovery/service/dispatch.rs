@@ -198,6 +198,15 @@ impl DiscoveryService {
             );
         }
 
+        // After the write above, so the configuration keeps its routed targets alone.
+        self.expand_subnet_targets(
+            &mut discovery.base.discovery_type,
+            discovery.base.daemon_id,
+            discovery.base.site_id,
+        )
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
         let session_id = Uuid::new_v4();
         // Read before `discovery_type` is moved out below.
         let is_full_scan = discovery.full_scan_is_due();
@@ -654,6 +663,9 @@ impl DiscoveryService {
                 &session.warnings,
             )
             .await;
+
+            // The record names the subnets this run swept. See `recorded_discovery_type`.
+            session.discovery_type = super::subnet_targets::recorded_discovery_type(&session);
 
             // Create historical discovery record
             let name = self

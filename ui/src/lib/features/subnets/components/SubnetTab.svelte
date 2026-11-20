@@ -324,9 +324,10 @@
 
 	async function handleSubnetCreate(data: Subnet, purpose: SubnetCreatePurpose) {
 		try {
-			await createSubnetMutation.mutateAsync({ subnet: data, purpose });
+			const created = await createSubnetMutation.mutateAsync({ subnet: data, purpose });
 			showSubnetEditor = false;
 			editingSubnet = null;
+			return created;
 		} catch {
 			// Error handled by mutation
 		}

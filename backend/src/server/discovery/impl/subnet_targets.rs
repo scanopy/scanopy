@@ -1,10 +1,11 @@
 //! A scan's subnet targets, as `discovery_subnets` junction rows.
 //!
-//! A scan names the subnets it covers. Kept as ids inside `discovery_type`, a deleted subnet left
+//! A scan always sweeps its daemon's interfaced subnets, and the rows name the routed subnets it
+//! sweeps on top of them. Kept as ids inside `discovery_type`, a deleted subnet left
 //! a dangling id the daemon silently skipped, so a scan whose every target was deleted scanned
 //! nothing and completed clean. The junction's foreign key to `subnets(id) ON DELETE CASCADE`
-//! drops the target with its subnet. A scan with no target rows reads as targeting none, which
-//! covers the subnets its daemon has an interface on.
+//! drops the target with its subnet. A scan with no target rows sweeps only the subnets its daemon
+//! has an interface on.
 
 use anyhow::Result;
 use sqlx::{Row, postgres::PgRow};

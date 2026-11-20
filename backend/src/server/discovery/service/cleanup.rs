@@ -339,6 +339,8 @@ impl DiscoveryService {
             return;
         };
         session.daemon_version = daemon.base.version.map(|v| v.to_string());
+        // The record names the subnets this run swept. See `recorded_discovery_type`.
+        session.discovery_type = super::subnet_targets::recorded_discovery_type(&session);
 
         let name = self
             .historical_run_name(&session, session.discovery_id)

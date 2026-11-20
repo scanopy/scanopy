@@ -195,6 +195,19 @@ impl SubnetType {
         })
     }
 
+    /// Whether a network scan sweeps a subnet of this type. Public, remote, loopback and
+    /// container bridge ranges are not swept.
+    pub fn is_network_scan_eligible(&self) -> bool {
+        !matches!(
+            self,
+            SubnetType::Remote
+                | SubnetType::Internet
+                | SubnetType::DockerBridge
+                | SubnetType::PodmanBridge
+                | SubnetType::Loopback
+        )
+    }
+
     /// Whether this subnet is a container-runtime bridge network
     /// (Docker or Podman). MacVLAN/IpVLAN are container networks but not bridges.
     pub fn is_container_bridge(&self) -> bool {
@@ -383,14 +396,7 @@ impl TypeMetadataProvider for SubnetType {
     }
 
     fn metadata(&self) -> serde_json::Value {
-        let network_scan_discovery_eligible = !matches!(
-            &self,
-            SubnetType::Remote
-                | SubnetType::Internet
-                | SubnetType::DockerBridge
-                | SubnetType::PodmanBridge
-                | SubnetType::Loopback
-        );
+        let network_scan_discovery_eligible = self.is_network_scan_eligible();
 
         let is_for_containers = matches!(
             self,

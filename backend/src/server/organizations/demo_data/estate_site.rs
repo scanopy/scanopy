@@ -117,13 +117,25 @@ pub(super) fn add_estate_site(
         duration,
     } = history;
 
+    // The run swept every estate subnet. The configuration lists only the routed ones, because
+    // every scan sweeps the subnets the daemon's host has an interface on.
     let subnet_ids: Vec<Uuid> = estate.subnets.iter().map(|s| s.id).collect();
-    let unified = DiscoveryType::Unified {
+    let interfaced: Vec<Uuid> = daemon_interfaced_subnets
+        .iter()
+        .flat_map(|(_, ids)| ids.iter().copied())
+        .collect();
+    let routed: Vec<Uuid> = subnet_ids
+        .iter()
+        .copied()
+        .filter(|id| !interfaced.contains(id))
+        .collect();
+    let unified_with = |subnet_ids: Option<Vec<Uuid>>| DiscoveryType::Unified {
         host_id: daemon.base.host_id,
-        subnet_ids: Some(subnet_ids),
+        subnet_ids,
         host_naming_fallback: HostNamingFallback::BestService,
         scan_settings: ScanSettings::default(),
     };
+    let unified = unified_with(Some(subnet_ids));
     let started = now - Duration::days(1);
     let finished = started + duration;
     let discoveries = vec![
@@ -132,7 +144,7 @@ pub(super) fn add_estate_site(
             created_at: now,
             updated_at: now,
             base: DiscoveryBase {
-                discovery_type: unified.clone(),
+                discovery_type: unified_with((!routed.is_empty()).then_some(routed)),
                 run_type: RunType::AdHoc {
                     last_run: Some(started),
                 },

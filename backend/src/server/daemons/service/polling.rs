@@ -631,9 +631,9 @@ impl DaemonService {
     }
 }
 
-/// The subnets a credentialed scan sweeps: the ones it names, or its daemon's interfaced subnets
-/// when it names none. `None` for a type that is sent no credentials, or a rescan, which visits
-/// addresses rather than subnets.
+/// The subnets a credentialed scan sweeps: its daemon's interfaced subnets and the routed ones it
+/// names. `None` for a type that is sent no credentials, or a rescan, which visits addresses
+/// rather than subnets.
 fn unified_scan_subnets(
     discovery_type: &DiscoveryType,
     daemon_id: Uuid,
@@ -642,12 +642,14 @@ fn unified_scan_subnets(
     let DiscoveryType::Unified { subnet_ids, .. } = discovery_type else {
         return None;
     };
-    let ids = subnet_ids
-        .as_ref()
-        .or_else(|| interfaced.get(&daemon_id))
-        .cloned()
-        .unwrap_or_default();
-    Some(ids.into_iter().collect())
+    Some(
+        subnet_ids
+            .iter()
+            .flatten()
+            .chain(interfaced.get(&daemon_id).into_iter().flatten())
+            .copied()
+            .collect(),
+    )
 }
 
 /// See [`DaemonService::subnets_scanned_elsewhere`].
@@ -804,12 +806,13 @@ mod tests {
             std::collections::HashSet::from([other_lan, named])
         );
 
-        // Naming the other daemon's subnet makes it this scan's own too.
+        // Routing to the other daemon's subnet makes it this scan's own too, and the scan keeps
+        // its daemon's networks alongside it.
         let mut naming = session.clone();
-        naming.discovery_type = unified(Some(vec![own_lan, other_lan]));
+        naming.discovery_type = unified(Some(vec![other_lan]));
         assert_eq!(
             subnets_scanned_elsewhere(&naming, &discoveries, &interfaced),
-            std::collections::HashSet::from([shared, named])
+            std::collections::HashSet::from([named])
         );
 
         // A rescan keeps every assignment.

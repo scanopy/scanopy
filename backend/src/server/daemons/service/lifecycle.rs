@@ -61,16 +61,52 @@ impl DaemonService {
     /// `daemon_interfaced_subnets` junction. Errors degrade to an empty list — a
     /// junction read failure shouldn't fail a whole daemon fetch.
     pub async fn get_interfaced_subnet_ids(&self, daemon_id: &Uuid) -> Vec<Uuid> {
-        let filter =
-            StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
-        self.interfaced_subnet_storage
-            .get_all_ordered(filter, "subnet_id ASC")
+        self.interfaced_subnet_ids(daemon_id)
             .await
-            .map(|records| records.into_iter().map(|r| r.subnet_id).collect())
             .unwrap_or_else(|e| {
                 tracing::warn!(error = ?e, "Failed to load interfaced subnet ids");
                 Vec::new()
             })
+    }
+
+    /// [`Self::get_interfaced_subnet_ids`], failing on a read error instead of degrading to
+    /// empty. Scan targeting uses it: an empty answer would drop the daemon's own networks from
+    /// a scan.
+    pub async fn interfaced_subnet_ids(&self, daemon_id: &Uuid) -> Result<Vec<Uuid>> {
+        let filter =
+            StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
+        Ok(self
+            .interfaced_subnet_storage
+            .get_all_ordered(filter, "subnet_id ASC")
+            .await?
+            .into_iter()
+            .map(|r| r.subnet_id)
+            .collect())
+    }
+
+    /// The daemon's interfaced subnets on `site_id` that a network scan sweeps: no loopback or
+    /// container bridge. A scan with routed targets is dispatched with these plus the routed
+    /// ones. Fails rather than degrading, for the reason [`Self::interfaced_subnet_ids`] gives.
+    pub async fn scan_interfaced_subnet_ids(
+        &self,
+        daemon_id: &Uuid,
+        site_id: Uuid,
+    ) -> Result<Vec<Uuid>> {
+        let interfaced = self.interfaced_subnet_ids(daemon_id).await?;
+        if interfaced.is_empty() {
+            return Ok(interfaced);
+        }
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id])
+            .entity_ids(&interfaced)
+            .live();
+        Ok(self
+            .subnet_service
+            .get_all(filter)
+            .await?
+            .into_iter()
+            .filter(|s| s.base.subnet_type.value().0.is_network_scan_eligible())
+            .map(|s| s.id)
+            .collect())
     }
 
     /// Batch variant of [`Self::get_interfaced_subnet_ids`] for list endpoints
