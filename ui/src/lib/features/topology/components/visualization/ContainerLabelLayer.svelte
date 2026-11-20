@@ -57,6 +57,27 @@
 	/** Width of a label's coloured left border, in pixels. Matches the style below. */
 	const LABEL_BORDER_PX = 2;
 
+	// A name's drawn width, measured once per name at the label's font. Text, padding (6px each
+	// side), the left border, and a pixel so a name that just fits is not cut by rounding.
+	const LABEL_PADDING_PX = 12;
+	let measureContext: CanvasRenderingContext2D | null = null;
+	// A cache, read and written outside any reactive scope.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const textWidths = new Map<string, number>();
+	function textWidthOf(text: string, font: string): number {
+		const key = `${font}\u0000${text}`;
+		const cached = textWidths.get(key);
+		if (cached !== undefined) return cached;
+		measureContext ??= document.createElement('canvas').getContext('2d');
+		// No 2D canvas: about 7px a character at 11px.
+		if (!measureContext) return text.length * 7 + LABEL_PADDING_PX + LABEL_BORDER_PX;
+		measureContext.font = font;
+		const width =
+			Math.ceil(measureContext.measureText(text).width) + LABEL_PADDING_PX + LABEL_BORDER_PX + 1;
+		textWidths.set(key, width);
+		return width;
+	}
+
 	function colorOf(node: Node): string {
 		const data = node.data as Record<string, unknown>;
 		return typeof data.color === 'string' && data.color
@@ -83,6 +104,7 @@
 		}
 		// A query with no match hides every node, and names none.
 		const searching = matches.size > 0 || $searchHiddenNodeIds.size > 0;
+		const font = `11px ${getComputedStyle(pane).fontFamily}`;
 		const candidates: LabelCandidate[] = [];
 		for (const node of nodes) {
 			if (node.type !== 'Container' || node.parentId) continue;
@@ -95,6 +117,7 @@
 			candidates.push({
 				id: node.id,
 				text,
+				textWidth: textWidthOf(text, font),
 				color: colorOf(node),
 				x: node.position.x,
 				y: node.position.y,
@@ -202,9 +225,10 @@
 		pointer-events: none;
 	}
 
-	/* 16px tall, as `label-placement.ts` plans for. Never wider than its box (`max-width`, set per
-	 * label): a longer name is cut with an ellipsis. On hover the width alone grows to the whole
-	 * name, and eases there; colour, weight and size stay as they are. */
+	/* 16px tall, as `label-placement.ts` plans for. Never wider than `max-width`, set per label to
+	 * the whole name or to where the next box or name begins: a longer name is cut with an
+	 * ellipsis. On hover the width alone grows to the whole name, and eases there; colour, weight
+	 * and size stay as they are. */
 	.container-label {
 		position: absolute;
 		top: 0;

@@ -6,12 +6,11 @@
  * nobody can read cost a great deal and say nothing. That leaves a zoomed-out map with no names
  * on it. The names drawn here go on one layer above every node, at a fixed size on screen.
  *
- * A name always starts on its own box, at the top-left corner. On a box with room for it the name
- * never runs past the box's right edge: it is cut short to the box's width, and the viewer shows
- * it in full while the pointer is on the name. A box too small for a name gets a short one that
- * runs past its edge onto empty canvas: a name over another box reads as belonging to the box it
- * covers. Small boxes are named together or not at all, so one screen never has a few of them
- * named and the rest bare.
+ * A name always starts on its own box, at the top-left corner, and runs to its full width. It is
+ * cut short only where another box or another name begins, and the viewer shows it in full while
+ * the pointer is on it: a name over another box reads as belonging to the box it covers. Each box
+ * is named on its own, whenever it has room for at least a few characters. Larger boxes claim
+ * their room first.
  *
  * A layer above the nodes is not covered by the container's children, which is what rules this
  * out for the container's own header.
@@ -22,6 +21,8 @@
 export interface LabelCandidate {
 	id: string;
 	text: string;
+	/** The whole name's drawn width on screen, in pixels: text, padding and border. */
+	textWidth: number;
 	/** Colour of the container's type, as a CSS colour. */
 	color: string;
 	/** The container's box in flow coordinates. */
@@ -41,8 +42,8 @@ export interface PlacedLabel {
 	/** Anchor in flow coordinates: the top-left corner of the container's box. */
 	x: number;
 	y: number;
-	/** As wide as the name may be drawn, in screen pixels: the box's width, or more on a narrow
-	 * box with empty canvas beside it. */
+	/** As wide as the name may be drawn, in screen pixels: the whole name, or up to whatever
+	 * begins to its right. */
 	maxWidth: number;
 }
 
@@ -60,17 +61,14 @@ export interface LabelViewport {
 export const LABEL_HEIGHT = 16;
 
 /**
- * Narrowest a name is drawn, on screen: room for about five characters and the ellipsis. Names on
- * one site tend to share a prefix (`acc-sw-058`, `acc-sw-059`), so a shorter cut would label every
- * box the same. A narrower box gets a name when the canvas beside it is empty.
+ * Narrowest a cut name is drawn, on screen: room for about five characters and the ellipsis. Names
+ * on one site tend to share a prefix (`acc-sw-058`, `acc-sw-059`), so a shorter cut would label
+ * every box the same. A box with less room than this gets no name.
  */
 export const MIN_LABEL_WIDTH = 48;
 
-/**
- * Width a name on a narrower box grows to when the canvas beside the box is empty: about fourteen
- * characters, enough to tell `Docker Bridge` from `Docker Swarm`.
- */
-export const ROOMY_LABEL_WIDTH = 96;
+/** Space kept between a cut name and the box or name it stops at, in screen pixels. */
+export const LABEL_GAP = 4;
 
 /** More names than this on one screen is a wall of text, whatever the room. */
 export const MAX_LABELS = 300;
@@ -116,8 +114,12 @@ class Occupied {
 		}
 	}
 
-	/** Whether anything other than `own` overlaps `rect`. */
-	blocks(rect: ScreenRect, own: ScreenRect): boolean {
+	/**
+	 * How far right of `rect.left` a label may run within `rect`'s rows before it meets anything
+	 * other than `own`, less `LABEL_GAP`. At most `rect`'s own width.
+	 */
+	clearRun(rect: ScreenRect, own: ScreenRect): number {
+		let run = rect.right - rect.left;
 		for (const key of this.keys(rect)) {
 			for (const other of this.cells.get(key) ?? []) {
 				if (other === own) continue;
@@ -127,18 +129,19 @@ class Occupied {
 					other.top < rect.bottom &&
 					other.bottom > rect.top
 				) {
-					return true;
+					run = Math.min(run, Math.max(other.left, rect.left) - rect.left - LABEL_GAP);
 				}
 			}
 		}
-		return false;
+		return run;
 	}
 }
 
 /**
- * @param nameEvery Name every candidate on the pane, whatever its size and whatever its name
- * covers. Set while searching, when the candidates are the containers holding a match: a match
- * with no name on it cannot be found, and the boxes its name covers are dimmed non-matches.
+ * @param nameEvery Name every candidate on the pane at its full width, whatever its size and
+ * whatever its name covers. Set while searching, when the candidates are the containers holding a
+ * match: a match with no name on it cannot be found, and the boxes its name covers are dimmed
+ * non-matches.
  */
 export function placeLabels(
 	candidates: LabelCandidate[],
@@ -174,52 +177,36 @@ export function placeLabels(
 			a.candidate.text.localeCompare(b.candidate.text)
 	);
 
-	// A box too small to hold a name is named only when every such box on the pane has empty
-	// canvas for one. Otherwise the boxes on the rim of a packed grid would be named and the
-	// thousands inside it would not.
-	let smallBoxBlocked = false;
-	const placed: (PlacedLabel & { boxHoldsName: boolean })[] = [];
+	const placed: PlacedLabel[] = [];
 	for (const { candidate, rect } of onPane) {
-		const boxWidth = rect.right - rect.left;
-		if (nameEvery) {
-			placed.push({
-				id: candidate.id,
-				text: candidate.text,
-				color: candidate.color,
-				x: candidate.x,
-				y: candidate.y,
-				maxWidth: Math.max(boxWidth, ROOMY_LABEL_WIDTH),
-				boxHoldsName: true
-			});
-			continue;
-		}
-		const boxHoldsName = boxWidth >= MIN_LABEL_WIDTH && rect.bottom - rect.top >= LABEL_HEIGHT;
-		if (!boxHoldsName && smallBoxBlocked) continue;
-		// Widest first. A name past its box's edge, or below it, is drawn only where it lands on
-		// empty canvas. Among packed boxes it would cover a neighbour, so a box too small for a
-		// name stays unnamed there until the zoom gives it the room.
-		const widths =
-			boxWidth >= ROOMY_LABEL_WIDTH
-				? [boxWidth]
-				: [ROOMY_LABEL_WIDTH, Math.max(boxWidth, MIN_LABEL_WIDTH)];
-		let maxWidth: number | null = null;
-		for (const width of widths) {
-			const label = {
-				left: rect.left,
-				top: rect.top,
-				right: rect.left + width,
-				bottom: rect.top + LABEL_HEIGHT
-			};
-			const overhangs = label.right > rect.right || label.bottom > rect.bottom;
-			if (overhangs && occupied.blocks(label, rect)) continue;
-			// The next box's name must stay off this one.
-			if (overhangs) occupied.add(label);
-			maxWidth = width;
-			break;
-		}
-		if (maxWidth === null) {
-			smallBoxBlocked = true;
-			continue;
+		if (placed.length === MAX_LABELS) break;
+		const full = candidate.textWidth;
+		let maxWidth = full;
+		if (!nameEvery) {
+			const boxWidth = rect.right - rect.left;
+			const boxHoldsName = boxWidth >= MIN_LABEL_WIDTH && rect.bottom - rect.top >= LABEL_HEIGHT;
+			const run = occupied.clearRun(
+				{
+					left: rect.left,
+					top: rect.top,
+					right: rect.left + full,
+					bottom: rect.top + LABEL_HEIGHT
+				},
+				rect
+			);
+			// A box that holds a name keeps at least its own width of it: anything overlapping the
+			// box itself is not the name's to avoid.
+			maxWidth = Math.min(full, boxHoldsName ? Math.max(run, boxWidth) : run);
+			if (maxWidth < Math.min(full, MIN_LABEL_WIDTH)) continue;
+			// Whatever of the name lies past its box is canvas the next name must stay off.
+			if (rect.left + maxWidth > rect.right || rect.top + LABEL_HEIGHT > rect.bottom) {
+				occupied.add({
+					left: rect.left,
+					top: rect.top,
+					right: rect.left + maxWidth,
+					bottom: rect.top + LABEL_HEIGHT
+				});
+			}
 		}
 		placed.push({
 			id: candidate.id,
@@ -227,13 +214,8 @@ export function placeLabels(
 			color: candidate.color,
 			x: candidate.x,
 			y: candidate.y,
-			maxWidth,
-			boxHoldsName
+			maxWidth
 		});
 	}
-	const shown = placed
-		.filter((label) => label.boxHoldsName || !smallBoxBlocked)
-		.slice(0, MAX_LABELS);
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropped from the result
-	return shown.map(({ boxHoldsName: _, ...label }) => label);
+	return placed;
 }

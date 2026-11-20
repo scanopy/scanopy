@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
+	LABEL_GAP,
 	LABEL_HEIGHT,
 	MAX_LABELS,
-	MIN_LABEL_WIDTH,
-	ROOMY_LABEL_WIDTH,
 	placeLabels,
 	type LabelCandidate,
 	type LabelViewport
 } from '#lib/features/topology/pipeline/label-placement.ts';
+
+/** Every name in these tests is 80px wide on screen unless a test says otherwise. */
+const NAME_WIDTH = 80;
 
 const box = (
 	id: string,
@@ -19,6 +21,7 @@ const box = (
 ): LabelCandidate => ({
 	id,
 	text: id,
+	textWidth: NAME_WIDTH,
 	color: '#000',
 	x,
 	y,
@@ -31,84 +34,79 @@ const box = (
 /** A 1000×800 pane showing flow coordinates from the origin at `zoom`. */
 const pane = (zoom: number): LabelViewport => ({ x: 0, y: 0, width: 1000, height: 800, zoom });
 
+const ids = (labels: { id: string }[]) => labels.map((label) => label.id);
+
 /**
- * A name sits on its own box and is never wider than it. The layer cuts the text to `maxWidth`;
- * what is decided here is which boxes get a name and how wide it may be.
+ * A name starts on its own box and runs to its full width, cut only where another box or name
+ * begins. The layer cuts the text to `maxWidth`; what is decided here is which boxes get a name
+ * and how wide it may be.
  */
 describe('placeLabels', () => {
-	it('gives a name the width of its box on screen, and the whole text', () => {
+	it('draws a name in full on a box wide enough for it', () => {
 		const name = 'Plant Engineering: 10.40.45.0/24';
-		const [label] = placeLabels([box('subnet', 100, 50, 4000, 1500, { text: name })], pane(0.1));
-
-		expect(label).toMatchObject({ id: 'subnet', text: name, x: 100, y: 50, maxWidth: 400 });
-	});
-
-	it('keeps a long name on a box too narrow for it, to be cut by the layer', () => {
-		// 60px on screen for a name of about 190px, with a neighbour 5px to its right: the name
-		// stays on the box, capped at the box.
-		const [, label] = placeLabels(
-			[
-				box('subnet', 650, 0, 4000, 1500),
-				box('bridge', 0, 0, 600, 400, { text: 'Docker Bridge: (172.17.0.0/16)' })
-			],
+		const [label] = placeLabels(
+			[box('subnet', 100, 50, 4000, 1500, { text: name, textWidth: 190 })],
 			pane(0.1)
 		);
 
-		expect(label).toMatchObject({ id: 'bridge', maxWidth: 60 });
+		expect(label).toMatchObject({ id: 'subnet', text: name, x: 100, y: 50, maxWidth: 190 });
 	});
 
-	it('lets a name on a narrow box run onto empty canvas beside it', () => {
-		const [label] = placeLabels([box('bridge', 0, 0, 600, 400)], pane(0.1));
+	it('runs a name past its box onto empty canvas, to its full width', () => {
+		// 60px on screen with nothing beside it, for a name of 120px.
+		const [label] = placeLabels([box('dist-sw-01', 0, 0, 600, 400, { textWidth: 120 })], pane(0.1));
 
-		expect(label.maxWidth).toBe(ROOMY_LABEL_WIDTH);
+		expect(label.maxWidth).toBe(120);
+	});
+
+	it('cuts a name where the next box to its right begins', () => {
+		// 60px wide, with a neighbour starting 65px from its left edge.
+		const [, label] = placeLabels(
+			[box('subnet', 650, 0, 4000, 1500), box('bridge', 0, 0, 600, 400, { textWidth: 190 })],
+			pane(0.1)
+		);
+
+		expect(label).toMatchObject({ id: 'bridge', maxWidth: 65 - LABEL_GAP });
 	});
 
 	it('names a box too small for a name when the canvas beside it is empty', () => {
 		// 10×9px on screen, alone: Docker Bridge beside the large subnets of an expanded L3.
-		const subnet = box('subnet', 0, 0, 4000, 1500);
-		const bridge = box('bridge', 6000, 0, 100, 90);
+		const placed = placeLabels(
+			[box('subnet', 0, 0, 4000, 1500), box('bridge', 6000, 0, 100, 90)],
+			pane(0.1)
+		);
 
-		const placed = placeLabels([subnet, bridge], pane(0.1));
-
-		expect(placed.map((label) => label.id)).toEqual(['subnet', 'bridge']);
-		expect(placed[1].maxWidth).toBe(ROOMY_LABEL_WIDTH);
+		expect(ids(placed)).toEqual(['subnet', 'bridge']);
+		expect(placed[1].maxWidth).toBe(NAME_WIDTH);
 	});
 
-	it('cuts a small box’s name shorter when only that much canvas is empty', () => {
-		// 10px wide with a neighbour 60px to its right: no room for the wide name, room for the short.
-		const boxes = [box('subnet', 700, 0, 4000, 1500), box('bridge', 0, 0, 100, 90)];
+	it('leaves a small box bare when a few characters would not fit beside it', () => {
+		// 10px wide with a neighbour 30px to its right.
+		const boxes = [box('subnet', 300, 0, 4000, 1500), box('bridge', 0, 0, 100, 90)];
 
-		expect(placeLabels(boxes, pane(0.1))[1]).toMatchObject({
-			id: 'bridge',
-			maxWidth: MIN_LABEL_WIDTH
-		});
+		expect(ids(placeLabels(boxes, pane(0.1)))).toEqual(['subnet']);
 	});
 
-	it('names a box shorter than a label when the canvas under it is empty', () => {
-		const flat = box('flat', 0, 0, 2000, (LABEL_HEIGHT - 1) / 0.1);
-
-		expect(placeLabels([flat], pane(0.1))).toMatchObject([{ id: 'flat', maxWidth: 200 }]);
-	});
-
-	it('names no small box when one of them has no room, the rim of a packed row included', () => {
-		// Two switches 33px wide, 5px apart. A name on the first would cover the second; the second
-		// has empty canvas beside it and stays bare with the first.
+	it('names each small box that has room, though its neighbour has none', () => {
+		// Two switches 33px wide, 5px apart. A name on the first would cover the second, so the
+		// first is bare; the second has empty canvas beside it and is named in full.
 		const packed = [box('acc-sw-058', 0, 0, 330, 430), box('acc-sw-059', 380, 0, 330, 430)];
 		const subnet = box('subnet', 0, 2000, 4000, 1500);
 
-		expect(placeLabels([...packed, subnet], pane(0.1)).map((label) => label.id)).toEqual([
-			'subnet'
-		]);
-		// With room for a name on each box, all are named.
-		expect(placeLabels([...packed, subnet], pane(0.2))).toHaveLength(3);
+		const placed = placeLabels([...packed, subnet], pane(0.1));
+		expect(ids(placed).sort()).toEqual(['acc-sw-059', 'subnet']);
+		expect(placed.find((label) => label.id === 'acc-sw-059')!.maxWidth).toBe(NAME_WIDTH);
 	});
 
-	it('treats two small boxes whose names would cross as having no room', () => {
-		// The second sits up and to the right of the first. Each name clears the other box, and the
-		// two names would cross.
-		const pair = [box('first', 0, 100, 200, 100), box('second', 300, 0, 100, 50)];
+	it('keeps a later name off one already drawn past its box', () => {
+		// The second box sits up and to the right of the first. The first, larger box's name runs
+		// over the canvas where the second's name would start, so the second is bare.
+		const placed = placeLabels(
+			[box('first', 0, 100, 200, 100), box('second', 300, 0, 100, 50)],
+			pane(0.1)
+		);
 
-		expect(placeLabels(pair, pane(0.1))).toHaveLength(0);
+		expect(placed).toMatchObject([{ id: 'first', maxWidth: NAME_WIDTH }]);
 	});
 
 	it('keeps a small box’s name off a box with no name', () => {
@@ -117,27 +115,34 @@ describe('placeLabels', () => {
 		expect(placeLabels(boxes, pane(0.1))).toHaveLength(0);
 	});
 
+	it('runs a name under a box shorter than a label onto empty canvas', () => {
+		const flat = box('flat', 0, 0, 2000, (LABEL_HEIGHT - 1) / 0.1);
+
+		expect(placeLabels([flat], pane(0.1))).toMatchObject([{ id: 'flat', maxWidth: NAME_WIDTH }]);
+	});
+
 	it('skips boxes that are off the pane, and boxes with no name', () => {
 		const boxes = [
 			box('seen', 100, 100, 2000, 2000),
 			box('away', 50_000, 100, 2000, 2000),
 			box('unnamed', 3000, 100, 2000, 2000, { text: '' })
 		];
-		expect(placeLabels(boxes, pane(0.1)).map((label) => label.id)).toEqual(['seen']);
+		expect(ids(placeLabels(boxes, pane(0.1)))).toEqual(['seen']);
 	});
 
-	it('names every box while searching, whatever its size and whatever its name covers', () => {
-		// Two switches 33px wide, 5px apart, and a 10×9px box: none is named without a search.
+	it('names every box in full while searching, whatever its size and whatever its name covers', () => {
+		// Two switches 33px wide, 5px apart, and a box squeezed beside a neighbour.
 		const hits = [
 			box('acc-sw-058', 0, 0, 330, 430),
 			box('acc-sw-059', 380, 0, 330, 430),
-			box('bridge', 0, 1000, 100, 90)
+			box('bridge', 0, 1000, 100, 90),
+			box('subnet', 300, 1000, 4000, 1500)
 		];
 
-		expect(placeLabels(hits, pane(0.1))).toHaveLength(0);
+		expect(ids(placeLabels(hits, pane(0.1)))).not.toContain('acc-sw-058');
 		const placed = placeLabels(hits, pane(0.1), true);
-		expect(placed.map((label) => label.id).sort()).toEqual(['acc-sw-058', 'acc-sw-059', 'bridge']);
-		expect(placed.every((label) => label.maxWidth === ROOMY_LABEL_WIDTH)).toBe(true);
+		expect(ids(placed).sort()).toEqual(['acc-sw-058', 'acc-sw-059', 'bridge', 'subnet']);
+		expect(placed.every((label) => label.maxWidth === NAME_WIDTH)).toBe(true);
 	});
 
 	it('keeps the highest priority when there are more names than the limit', () => {
