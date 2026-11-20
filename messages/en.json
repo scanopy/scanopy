@@ -1002,7 +1002,7 @@
 	"discovery_daemonHostMissingHelp": "Could not find a host associated to the selected daemon. It may have been deleted or corrupted. Please recreate the daemon.",
 	"discovery_daemonLogsHint": "Run this on the daemon's host to print this run's log lines.",
 	"discovery_daemonLogsTitle": "This run's daemon logs",
-	"discovery_daemonNetworkAlwaysScanned": "The daemon's host is on this network, so every scan by this daemon sweeps it with ARP.",
+	"discovery_daemonNetworkAlwaysScanned": "The daemon's host has an interface with this subnet, so every scan by this daemon sweeps it with ARP.",
 	"discovery_daemonSelect": "Select daemon to run discovery...",
 	"discovery_defaultSettings": "Default settings",
 	"discovery_disableScheduleTooltip": "Disable this scheduled discovery",

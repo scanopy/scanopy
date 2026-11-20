@@ -117,7 +117,8 @@
 </script>
 
 {#snippet targetsHelp()}
-	<div class="flex flex-wrap items-baseline gap-x-1">
+	<!-- One size throughout: DocsHint draws its sentence at text-xs. -->
+	<div class="flex flex-wrap items-baseline gap-x-1 text-xs">
 		<span>{discovery_targetsHelp()}</span>
 		<DocsHint
 			text={discovery_leaveOutNetwork()}
