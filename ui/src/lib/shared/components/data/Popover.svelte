@@ -218,11 +218,13 @@
 			}
 		}
 
-		document.addEventListener('mousedown', handleClickOutside);
+		// Capture phase: SvelteFlow's pane (d3-zoom) and node drag stop a mousedown's propagation,
+		// so a bubbling listener never heard a click on a topology canvas.
+		document.addEventListener('mousedown', handleClickOutside, true);
 		document.addEventListener('keydown', handleKeydown);
 
 		return () => {
-			document.removeEventListener('mousedown', handleClickOutside);
+			document.removeEventListener('mousedown', handleClickOutside, true);
 			document.removeEventListener('keydown', handleKeydown);
 		};
 	});
