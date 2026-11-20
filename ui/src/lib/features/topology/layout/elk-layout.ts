@@ -1799,15 +1799,8 @@ function rootGraphOfInput(input: ElkLayoutInput): RootGraph {
 	);
 }
 
-/**
- * Where a link from one root container to another leaves the first, relative to its centre: the
- * centre of the port (or other element) the link starts from, inside that container as ELK laid it
- * out. Undefined where the link starts on the container itself, as it does from a collapsed one.
- */
-function linkAttachments(
-	result: ElkLayoutResult,
-	input: ElkLayoutInput
-): (from: string, to: string) => { x: number; y: number } | undefined {
+/** Each node's parent container, from the whole view's index and the nodes laid out. */
+function parentsOf(input: ElkLayoutInput): Map<string, string> {
 	const parentOf = new Map<string, string>(input.parentIndex?.parentMap ?? []);
 	for (const node of input.nodes) {
 		const record = node as Record<string, unknown>;
@@ -1817,6 +1810,105 @@ function linkAttachments(
 				: (record.container_id as string | undefined);
 		if (parentId) parentOf.set(node.id, parentId);
 	}
+	return parentOf;
+}
+
+/**
+ * Orders the linked elements inside each moved container toward what they link to.
+ *
+ * ELK ordered the ports in a container against its own layered layout. Once rings move the
+ * containers, a port can face away from its link: a ring switch's two trunk ports, each linked to
+ * a neighbour on the ring, cross when the neighbour above is linked from the lower port. Within
+ * each group of same-sized elements stacked in one line, the linked ones swap places so their order
+ * along the line matches the order of their far ends. Unlinked elements keep their places. Left
+ * alone when the view keeps a chosen element order.
+ */
+function orderElementsTowardLinks(
+	positions: Map<string, { x: number; y: number }>,
+	moved: ReadonlySet<string>,
+	result: ElkLayoutResult,
+	input: ElkLayoutInput
+): void {
+	if (input.preserveChildOrder) return;
+	const parentOf = parentsOf(input);
+	const rootOf = (id: string) => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+	const sizeOf = (id: string) => {
+		const element = input.elementNodeSizes?.get(id);
+		if (element) return { width: element.x, height: element.y };
+		return result.containerSizes.get(id) ?? { width: 0, height: 0 };
+	};
+	/** Centre of a node on the canvas, from its own and its ancestors' relative positions. */
+	const centreOf = (id: string): { x: number; y: number } | undefined => {
+		let x = 0;
+		let y = 0;
+		for (let current: string | undefined = id; current; current = parentOf.get(current)) {
+			const position = positions.get(current);
+			if (!position) return undefined;
+			x += position.x;
+			y += position.y;
+		}
+		const size = sizeOf(id);
+		return { x: x + size.width / 2, y: y + size.height / 2 };
+	};
+
+	// Where each element's links lead: the centres of their far ends, or of the far end's
+	// container where the far end is not drawn.
+	const farEnds = new Map<string, { x: number; y: number }[]>();
+	for (const edge of input.edges) {
+		if (!affectsLayout(edge)) continue;
+		for (const [near, far] of [
+			[edge.source, edge.target],
+			[edge.target, edge.source]
+		]) {
+			if (!moved.has(rootOf(near)) || !parentOf.has(near) || !positions.has(near)) continue;
+			const at = centreOf(far) ?? centreOf(rootOf(far));
+			if (!at) continue;
+			if (!farEnds.has(near)) farEnds.set(near, []);
+			farEnds.get(near)!.push(at);
+		}
+	}
+
+	// The linked elements of each parent, which share its layout.
+	const groups = new Map<string, string[]>();
+	for (const id of farEnds.keys()) {
+		const parent = parentOf.get(id)!;
+		if (!groups.has(parent)) groups.set(parent, []);
+		groups.get(parent)!.push(id);
+	}
+	for (const members of groups.values()) {
+		if (members.length < 2) continue;
+		const first = sizeOf(members[0]);
+		if (members.some((m) => sizeOf(m).width !== first.width || sizeOf(m).height !== first.height)) {
+			continue;
+		}
+		const slots = members.map((m) => positions.get(m)!);
+		const spread = (axis: 'x' | 'y') =>
+			Math.max(...slots.map((s) => s[axis])) - Math.min(...slots.map((s) => s[axis]));
+		const axis = spread('y') >= spread('x') ? 'y' : 'x';
+		const toward = (m: string) => {
+			const ends = farEnds.get(m)!;
+			return ends.reduce((sum, p) => sum + p[axis], 0) / ends.length;
+		};
+		const byFarEnd = [...members].sort((a, b) => toward(a) - toward(b));
+		const bySlot = [...slots].sort((a, b) => a[axis] - b[axis]);
+		byFarEnd.forEach((m, i) => positions.set(m, bySlot[i]));
+	}
+}
+
+/**
+ * Where a link from one root container to another leaves the first, relative to its centre: the
+ * centre of the port (or other element) the link starts from, inside that container as ELK laid it
+ * out. Undefined where the link starts on the container itself, as it does from a collapsed one.
+ */
+function linkAttachments(
+	result: ElkLayoutResult,
+	input: ElkLayoutInput
+): (from: string, to: string) => { x: number; y: number } | undefined {
+	const parentOf = parentsOf(input);
 	const rootOf = (id: string) => {
 		let current = id;
 		while (parentOf.has(current)) current = parentOf.get(current)!;
@@ -1871,6 +1963,7 @@ function applyRingLayout(
 	if (!placed) return null;
 	const nodePositions = new Map(result.nodePositions);
 	for (const [id, position] of placed) nodePositions.set(id, position);
+	orderElementsTowardLinks(nodePositions, new Set(placed.keys()), result, input);
 	return { ...result, nodePositions };
 }
 
