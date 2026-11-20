@@ -586,7 +586,7 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::AnswerReferralSource => "How did you hear about Scanopy?",
             Self::AnswerProfile => "Tell us about your role",
             Self::ExploreViews => "Switch topology views",
-            Self::ApplicationTags => "Assign an application tag",
+            Self::ApplicationTags => "Visualize your applications",
             Self::DependencyTutorial | Self::Dependencies => "Map a dependency",
             Self::InterfaceCredential => "Add a switch or router credential",
             Self::Tags => "Assign your first tag",

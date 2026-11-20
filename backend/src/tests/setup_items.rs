@@ -309,7 +309,7 @@ async fn assigning_a_tag_completes_tags_for_good() {
     );
 }
 
-/// An application tag on a host completes "Assign an application tag", as one on a service does:
+/// An application tag on a host completes "Visualize your applications", as one on a service does:
 /// the Application view groups by either.
 #[tokio::test]
 async fn an_application_tag_on_a_host_completes_application_tags() {
