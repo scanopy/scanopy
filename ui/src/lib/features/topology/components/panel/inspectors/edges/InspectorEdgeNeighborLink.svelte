@@ -8,7 +8,6 @@
 	import {
 		common_source,
 		common_target,
-		topology_focusLink,
 		topology_focusNode,
 		topology_neighborLinkPortsUnknown
 	} from '#lib/paraglide/messages.js';
@@ -19,7 +18,7 @@
 	import type { Edge } from '@xyflow/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { Crosshair } from '@lucide/svelte';
-	import { focusLink, focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
+	import { focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
 
 	let {
 		edge,
@@ -54,21 +53,11 @@
 </script>
 
 <div class="space-y-4">
-	<div class="flex items-center gap-2">
-		{#if protocol}
+	{#if protocol}
+		<div class="flex items-center gap-2">
 			<Tag {...discoveryProtocols.getTag(protocol)} />
-		{/if}
-		{#if edge}
-			{@const current = edge}
-			<button
-				class="btn-icon ml-auto p-0.5"
-				onclick={() => focusLink(flow, current)}
-				title={topology_focusLink()}
-			>
-				<Crosshair class="h-3.5 w-3.5" />
-			</button>
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	<!-- A forwarding-table link says what that evidence is; an LLDP/CDP one that the ports are
 	     unknown. -->

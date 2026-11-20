@@ -8,9 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import {
 	boundsOfAdoptedNodes,
+	focusEdge,
 	isAtFit,
-	type AdoptedNode
+	type AdoptedNode,
+	type FocusableFlow
 } from '#lib/features/topology/viewport-fit.ts';
+import type { Rect } from '@xyflow/system';
 
 const node = (x: number, y: number, width: number, height: number): AdoptedNode => ({
 	internals: { positionAbsolute: { x, y } },
@@ -60,5 +63,92 @@ describe('isAtFit', () => {
 
 	it('is false before any fit', () => {
 		expect(isAtFit(fit, null)).toBe(false);
+	});
+});
+
+describe('focusEdge', () => {
+	/** A flow over the given adopted nodes that records the bounds it was asked to fit. */
+	function flowOver(nodes: Record<string, AdoptedNode>) {
+		const fitted: Rect[] = [];
+		const flow: FocusableFlow = {
+			fitBounds: async (bounds) => {
+				fitted.push(bounds);
+				return true;
+			},
+			getInternalNode: (id) => nodes[id]
+		};
+		return { flow, fitted };
+	}
+
+	it('frames both ends of a plain edge, not their containers', () => {
+		const { flow, fitted } = flowOver({
+			subnet: node(0, 0, 5000, 5000),
+			a: node(100, 100, 200, 100),
+			b: node(900, 500, 200, 100)
+		});
+		focusEdge(flow, { source: 'a', target: 'b' });
+		expect(fitted).toEqual([{ x: 100, y: 100, width: 1000, height: 500 }]);
+	});
+
+	it('frames an end that is culled off screen, since it is still adopted', () => {
+		const { flow, fitted } = flowOver({
+			a: node(0, 0, 100, 100),
+			offscreen: node(20000, 15000, 100, 100)
+		});
+		focusEdge(flow, { source: 'a', target: 'offscreen' });
+		expect(fitted).toEqual([{ x: 0, y: 0, width: 20100, height: 15100 }]);
+	});
+
+	it('frames the collapsed container that stands in for an aggregated edge’s hidden ends', () => {
+		// The aggregated flow edge points at the collapsed container; the ends inside it are not
+		// adopted.
+		const { flow, fitted } = flowOver({
+			collapsed: node(0, 0, 300, 80),
+			far: node(1000, 0, 200, 100)
+		});
+		focusEdge(flow, { source: 'collapsed', target: 'far' }, [
+			{ source: 'hidden-1', target: 'far' },
+			{ source: 'hidden-2', target: 'far' }
+		]);
+		expect(fitted).toEqual([{ x: 0, y: 0, width: 1200, height: 100 }]);
+	});
+
+	it('frames every end an aggregated edge stands for when they are drawn', () => {
+		const { flow, fitted } = flowOver({
+			a: node(0, 0, 100, 100),
+			b: node(500, 0, 100, 100),
+			c: node(0, 800, 100, 100)
+		});
+		focusEdge(flow, { source: 'a', target: 'b' }, [
+			{ source: 'a', target: 'b' },
+			{ source: 'c', target: 'b' }
+		]);
+		expect(fitted).toEqual([{ x: 0, y: 0, width: 600, height: 900 }]);
+	});
+
+	it('frames every member of a bundle, not only the edge drawn for it', () => {
+		const { flow, fitted } = flowOver({
+			a: node(0, 0, 100, 100),
+			b: node(500, 0, 100, 100),
+			c: node(0, 800, 100, 100),
+			d: node(1500, 800, 100, 100)
+		});
+		focusEdge(flow, {
+			source: 'a',
+			target: 'b',
+			data: {
+				bundleEdges: [
+					{ source: 'a', target: 'b' },
+					{ source: 'c', target: 'd' }
+				]
+			}
+		});
+		expect(fitted).toEqual([{ x: 0, y: 0, width: 1600, height: 900 }]);
+	});
+
+	it('does not move the camera when no end is drawn', () => {
+		const { flow, fitted } = flowOver({});
+		focusEdge(flow, { source: 'gone-a', target: 'gone-b' });
+		expect(fitted).toEqual([]);
 	});
 });
