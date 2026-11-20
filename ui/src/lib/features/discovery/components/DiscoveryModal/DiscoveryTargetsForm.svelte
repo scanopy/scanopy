@@ -8,7 +8,7 @@
 	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import type { Daemon } from '#lib/features/daemons/types/base.ts';
 	import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
-	import { disabledWhen } from '#lib/shared/components/data/types.ts';
+	import { hiddenWhen } from '#lib/shared/components/data/types.ts';
 	import { docsUrl } from '#lib/shared/utils/docs.ts';
 	import { withRoutedTarget } from '../../utils/targets';
 	import {
@@ -165,7 +165,7 @@
 			getItemDisabledReason={(s) =>
 				isDaemonNetwork(s) ? discovery_daemonNetworkAlwaysScanned() : null}
 			itemRemoveUnavailable={(s) =>
-				disabledWhen(isDaemonNetwork(s), discovery_daemonNetworkAlwaysScanned())}
+				hiddenWhen(isDaemonNetwork(s), discovery_daemonNetworkAlwaysScanned())}
 			onAdd={(id) => (formData = withRoutedTarget(formData, id))}
 			onRemove={handleRemove}
 		/>
