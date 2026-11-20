@@ -29,7 +29,6 @@
 		speedStrokeColors,
 		speedStrokeOf,
 		speedStrokeWidth,
-		UNKNOWN_STROKE_WIDTH,
 		useShareEdgeColoring
 	} from '../../edge-speed';
 	import type { TopologyEdge, RenderableTopology } from '../../types/base';
@@ -41,8 +40,10 @@
 		isEdgeHidden,
 		isOverlayEdge,
 		overlayDashArray,
-		restingEdgeStrokeWidth
+		restingEdgeStrokeWidth,
+		simplifiedEdgeWeight
 	} from '../../layout/edge-classification';
+	import { simplifiedEdgeHitWidthCss } from '../../pipeline/render-mode';
 	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { ELEMENT_TEXT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
 	import { useDetailStaging } from '../../detail-staging.svelte';
@@ -142,14 +143,15 @@
 
 	/**
 	 * A simplified edge: a straight line between its handles, 1.5 to 4px on screen depending on the
-	 * zoom (`simplifiedEdgeWidth`, read from the canvas's `--simplified-edge-width`) and twice that
-	 * when its node is selected, with no hit area, label, transition or animation.
+	 * zoom (`simplifiedEdgeWidth`, read from the canvas's `--simplified-edge-width`) times its
+	 * weight (`simplifiedEdgeWeight`), with no label, transition or animation. Its hit area is a
+	 * second bare straight path, a multiple of that width (`simplifiedEdgeHitWidth`), so a click
+	 * selects it and the selection draws it in full.
 	 *
 	 * Drawn as `BaseEdge` (a bezier, a 50px-wide hit path, 0.4 opacity and transitions), every L2
 	 * link at fit zoom dropped panning from 120 to 44 fps on Plant (384 links) and to 47 on Water
 	 * Utility (461). Drawn like this the same links pan at 120 fps on both, and first draw stays
-	 * within its load-to-load noise. It can't be hovered or clicked: the cards at this zoom are a
-	 * few pixels wide, and an edge is picked by zooming in or from the inspector.
+	 * within its load-to-load noise.
 	 */
 	let simplifiedPath = $derived(`M${sourceX},${sourceY}L${targetX},${targetY}`);
 
@@ -278,6 +280,17 @@
 		if (!$topologyOptions.local.no_fade_edges && (shouldShowFull || isPreview)) return 3;
 		return resting;
 	});
+	let simplifiedWeight = $derived(
+		simplifiedEdgeWeight({
+			isAggregated,
+			aggregatedCount,
+			isBundle,
+			bundleStrokeWidth,
+			isOverlay,
+			speed,
+			emphasized: shouldShowFull
+		})
+	);
 	let baseOpacity = $derived.by(() => {
 		if ($isExporting) return 1;
 		// Preview edges always full opacity
@@ -521,14 +534,20 @@
 			d={simplifiedPath}
 			fill="none"
 			stroke={speedEnds ? `url(#${speedGradientId})` : (speedColor ?? edgeColorHelper.rgb)}
-			style:stroke-width="calc(var(--simplified-edge-width, 1.5px) * {((speed
-				? speedStrokeWidth(speed)
-				: UNKNOWN_STROKE_WIDTH) /
-				UNKNOWN_STROKE_WIDTH) *
-				(shouldShowFull ? 2 : 1)})"
+			style:stroke-width="calc(var(--simplified-edge-width, 1.5px) * {simplifiedWeight})"
 			stroke-dasharray={isOverlay ? overlayDashArray(isDotted) : undefined}
 			vector-effect="non-scaling-stroke"
 			pointer-events="none"
+		/>
+		<!-- The hit area: transparent, straight, no transition. The edge's <g> carries the click. -->
+		<path
+			class="simplified-edge-hit"
+			d={simplifiedPath}
+			fill="none"
+			stroke="transparent"
+			style:stroke-width={simplifiedEdgeHitWidthCss(simplifiedWeight)}
+			vector-effect="non-scaling-stroke"
+			pointer-events="stroke"
 		/>
 	{:else if !hideEdge && !reconnecting}
 		<!-- Solid base layer for group edges when shown full (rendered first, behind) -->
@@ -600,6 +619,10 @@
 	:global(.svelte-flow__edge.animated .svelte-flow__edge-path) {
 		stroke-dasharray: initial !important;
 		animation: none !important;
+	}
+
+	.simplified-edge-hit {
+		cursor: pointer;
 	}
 
 	@keyframes dashdraw {

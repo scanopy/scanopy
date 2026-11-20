@@ -1706,6 +1706,10 @@
 	}
 
 	function handleEdgePointerEnter({ edge }: { edge: Edge }) {
+		// A simplified edge draws no hover state, and sweeping the pointer across a zoomed-out map
+		// enters hundreds of them, each rewriting every edge's display state. Leave stays unguarded,
+		// so an edge hovered before zooming out still clears.
+		if (get(detailSimplified) && !detailStaging.keepsDetail(edge.id)) return;
 		setEdgeHover(edge, true, get(edges));
 		syncEdgeDisplayState();
 	}
