@@ -23,7 +23,7 @@ import { activeView } from '#lib/features/topology/queries.ts';
 import { expandedInlineGroups, inlineGroupKey } from '#lib/features/topology/collapse.ts';
 import { elementMarks } from '#lib/features/topology/element-marks.ts';
 import { queryClient, queryKeys } from '#lib/api/query-client.ts';
-import { createColorHelper, LINK_SPEED_RAMP } from '#lib/shared/utils/styling.ts';
+import { createColorHelper, LINK_SPEED_COLORS } from '#lib/shared/utils/styling.ts';
 import { tierOf, TIER_STROKE_WIDTHS } from '#lib/features/topology/edge-speed.ts';
 import type { Site } from '#lib/features/sites/types.ts';
 import { topologyLookup } from '#lib/features/topology/resolvers.ts';
@@ -316,7 +316,7 @@ describe('diagram describer', () => {
 			target: 'b'
 		});
 		const slow = tierOf(100_000_000)!;
-		expect(bySpeed?.color).toBe(LINK_SPEED_RAMP.light[slow]);
+		expect(bySpeed?.color).toBe(LINK_SPEED_COLORS.light[slow]);
 		expect(bySpeed?.width).toBe(TIER_STROKE_WIDTHS[slow]);
 		expect(byType?.color).not.toBe(bySpeed?.color);
 	});

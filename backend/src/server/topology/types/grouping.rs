@@ -424,7 +424,7 @@ impl TypeMetadataProvider for EdgeColoring {
         match self {
             EdgeColoring::Type => "Each link in the colour of its type",
             EdgeColoring::Speed => {
-                "Darker and wider for faster links, from the speed each port reports"
+                "A colour for each speed band, wider for faster links, from the speed each port reports"
             }
         }
     }

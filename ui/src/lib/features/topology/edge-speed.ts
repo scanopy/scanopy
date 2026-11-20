@@ -141,21 +141,21 @@ export function speedStrokeWidth(stroke: SpeedStroke): number {
 }
 
 /**
- * The colours of a speed stroke from `ramp` (one colour per band, slowest first): one colour, or
+ * The colours of a speed stroke from `colors` (one colour per band, slowest first): one colour, or
  * the two ends' colours where they differ. `unknown` is the colour of a link with no speed.
  */
 export function speedStrokeColors(
 	stroke: SpeedStroke,
-	ramp: readonly string[],
+	colors: readonly string[],
 	unknown: string
 ): { color: string; ends: [string, string] | null } {
-	const color = stroke.tier === null ? unknown : ramp[stroke.tier];
+	const color = stroke.tier === null ? unknown : colors[stroke.tier];
 	const { ends } = stroke;
 	return {
 		color,
 		ends:
 			ends && ends.source !== null && ends.target !== null
-				? [ramp[ends.source], ramp[ends.target]]
+				? [colors[ends.source], colors[ends.target]]
 				: null
 	};
 }

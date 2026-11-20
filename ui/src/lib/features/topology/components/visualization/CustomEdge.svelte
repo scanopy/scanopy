@@ -18,7 +18,7 @@
 	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
 	import {
 		createColorHelper,
-		LINK_SPEED_RAMP,
+		LINK_SPEED_COLORS,
 		LINK_SPEED_UNKNOWN,
 		type Color
 	} from '#lib/shared/utils/styling.ts';
@@ -240,7 +240,7 @@
 		speed
 			? speedStrokeColors(
 					speed,
-					darkTheme ? LINK_SPEED_RAMP.dark : LINK_SPEED_RAMP.light,
+					darkTheme ? LINK_SPEED_COLORS.dark : LINK_SPEED_COLORS.light,
 					LINK_SPEED_UNKNOWN
 				)
 			: null

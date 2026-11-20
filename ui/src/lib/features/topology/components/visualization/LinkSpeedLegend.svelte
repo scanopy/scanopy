@@ -9,7 +9,7 @@
 		UNKNOWN_STROKE_WIDTH,
 		useShareEdgeColoring
 	} from '../../edge-speed';
-	import { LINK_SPEED_RAMP, LINK_SPEED_UNKNOWN } from '#lib/shared/utils/styling.ts';
+	import { LINK_SPEED_COLORS, LINK_SPEED_UNKNOWN } from '#lib/shared/utils/styling.ts';
 	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 	import { metaName } from '#lib/i18n/metadata.ts';
 	import {
@@ -33,7 +33,7 @@
 			? typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
 			: themeStore.resolvedTheme === 'dark'
 	);
-	let ramp = $derived(darkTheme ? LINK_SPEED_RAMP.dark : LINK_SPEED_RAMP.light);
+	let colors = $derived(darkTheme ? LINK_SPEED_COLORS.dark : LINK_SPEED_COLORS.light);
 	// The two-tone sample uses the slowest and fastest colours, the pair that differs most.
 	let splitId = 'link-speed-legend-split';
 </script>
@@ -50,7 +50,7 @@
 							y1="4"
 							x2="28"
 							y2="4"
-							stroke={ramp[index]}
+							stroke={colors[index]}
 							stroke-width={TIER_STROKE_WIDTHS[index]}
 						/>
 					</svg>
@@ -61,8 +61,8 @@
 				<svg width="28" height="8" aria-hidden="true">
 					<defs>
 						<linearGradient id={splitId} x1="0" y1="0" x2="1" y2="0">
-							<stop offset="50%" stop-color={ramp[0]} />
-							<stop offset="50%" stop-color={ramp[ramp.length - 1]} />
+							<stop offset="50%" stop-color={colors[0]} />
+							<stop offset="50%" stop-color={colors[colors.length - 1]} />
 						</linearGradient>
 					</defs>
 					<rect x="0" y="2.5" width="28" height="3" fill="url(#{splitId})" />

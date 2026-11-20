@@ -32,7 +32,7 @@ import {
 import type { TagProps } from '#lib/shared/components/data/types.ts';
 import {
 	createColorHelper,
-	LINK_SPEED_RAMP,
+	LINK_SPEED_COLORS,
 	LINK_SPEED_UNKNOWN
 } from '#lib/shared/utils/styling.ts';
 import type { IconComponent } from '#lib/shared/utils/types.ts';
@@ -482,7 +482,7 @@ export function createDescriber(input: DescriberInput): TopologyDescriber {
 						)
 					: null;
 			const color = speed
-				? speedStrokeColors(speed, LINK_SPEED_RAMP[theme], LINK_SPEED_UNKNOWN).color
+				? speedStrokeColors(speed, LINK_SPEED_COLORS[theme], LINK_SPEED_UNKNOWN).color
 				: dependency?.color
 					? createColorHelper(dependency.color).rgb
 					: data
