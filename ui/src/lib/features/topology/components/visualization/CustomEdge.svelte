@@ -507,12 +507,36 @@
 		/>
 	{/if}
 
+	<!-- A link whose ends report speeds in different bands: each half in its own end's colour, on
+	     the full and the simplified link alike. -->
+	{#if speedEnds && !hideEdge}
+		<defs>
+			<linearGradient
+				id={speedGradientId}
+				gradientUnits="userSpaceOnUse"
+				x1={sourceX}
+				y1={sourceY}
+				x2={targetX}
+				y2={targetY}
+			>
+				<stop offset="50%" stop-color={speedEnds[0]} />
+				<stop offset="50%" stop-color={speedEnds[1]} />
+			</linearGradient>
+		</defs>
+	{/if}
+
 	{#if simplified && !isPreview && !hideEdge}
+		<!-- By speed, the simplified link keeps its band's colour and width, one wider when selected,
+		     so the speeds still read on a map zoomed out to fit. -->
 		<path
 			d={simplifiedPath}
 			fill="none"
-			stroke={edgeColorHelper.rgb}
-			stroke-width={shouldShowFull ? 3 : 1.5}
+			stroke={speedEnds ? `url(#${speedGradientId})` : (speedColor ?? edgeColorHelper.rgb)}
+			stroke-width={speed
+				? speedStrokeWidth(speed) + (shouldShowFull ? 1 : 0)
+				: shouldShowFull
+					? 3
+					: 1.5}
 			stroke-dasharray={isOverlay ? overlayDashArray(isDotted) : undefined}
 			vector-effect="non-scaling-stroke"
 			pointer-events="none"
@@ -527,23 +551,6 @@
 				interactionWidth={0}
 				class="solid-base"
 			/>
-		{/if}
-
-		<!-- A link whose ends report speeds in different bands: each half in its own end's colour. -->
-		{#if speedEnds}
-			<defs>
-				<linearGradient
-					id={speedGradientId}
-					gradientUnits="userSpaceOnUse"
-					x1={sourceX}
-					y1={sourceY}
-					x2={targetX}
-					y2={targetY}
-				>
-					<stop offset="50%" stop-color={speedEnds[0]} />
-					<stop offset="50%" stop-color={speedEnds[1]} />
-				</linearGradient>
-			</defs>
 		{/if}
 
 		<!-- Primary edge layer (white dashes for group edges when shown, normal for everything else) -->
