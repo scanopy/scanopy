@@ -113,18 +113,29 @@
 	});
 
 	/**
-	 * Edges go with the card detail below the zoom threshold — see `shouldSimplify`.
+	 * Below the zoom threshold (see `shouldSimplify`) an edge draws reduced or not at all.
 	 *
-	 * At the zoom a large graph fits at, an edge is a hairline between two nodes that are
-	 * themselves a couple of pixels wide: it conveys nothing and there are as many of them as
-	 * there are links. Folded into the existing `hideEdge` gate rather than filtering the store,
-	 * because the store is also what `getLayoutedEdges` reads to decide which endpoints to force
-	 * into the mounted set — dropping edges from it would change what is culled, not just what is
-	 * drawn.
+	 * Physical links stay, drawn as `simplifiedPath`; every other edge is hidden (`isEdgeHidden`).
+	 * Folded into the existing `hideEdge` gate rather than filtering the store, because the store
+	 * is also what `getLayoutedEdges` reads to decide which endpoints to force into the mounted
+	 * set — dropping edges from it would change what is culled, not just what is drawn.
 	 */
 	// A selected edge keeps its stroke and label at any zoom (`detailKeptIds`).
 	const detailStaging = useDetailStaging();
 	let simplified = $derived($detailSimplified && !detailStaging?.keepsDetail(id));
+	let isPhysical = $derived(edgeTypeMetadata?.is_physical_edge ?? false);
+
+	/**
+	 * A simplified link: a straight line between its handles, a fixed 1.5px on screen at any zoom,
+	 * with no hit area, label, transition or animation.
+	 *
+	 * Drawn as `BaseEdge` (a bezier, a 50px-wide hit path, 0.4 opacity and transitions), every L2
+	 * link at fit zoom dropped panning from 120 to 44 fps on Plant (384 links) and to 47 on Water
+	 * Utility (461). Drawn like this the same links pan at 120 fps on both, and first draw grows by
+	 * 10% on Plant and 5% on Water Utility. It can't be hovered or clicked: the cards at this zoom
+	 * are a few pixels wide, and a link is picked by zooming in or from the inspector.
+	 */
+	let simplifiedPath = $derived(`M${sourceX},${sourceY}L${targetX},${targetY}`);
 
 	let isPreview = $derived(!!(edgeData as Record<string, unknown> | undefined)?.is_preview);
 
@@ -142,6 +153,7 @@
 		isEdgeHidden(edgeData, {
 			isPreview,
 			simplified,
+			isPhysical,
 			hiddenEdgeTypes: $hiddenEdgeTypes
 		})
 	);
@@ -422,7 +434,17 @@
 		/>
 	{/if}
 
-	{#if !hideEdge && !reconnecting}
+	{#if simplified && !isPreview && !hideEdge}
+		<path
+			d={simplifiedPath}
+			fill="none"
+			stroke={edgeColorHelper.rgb}
+			stroke-width={shouldShowFull ? 3 : 1.5}
+			stroke-dasharray={isOverlay ? overlayDashArray(isDotted) : undefined}
+			vector-effect="non-scaling-stroke"
+			pointer-events="none"
+		/>
+	{:else if !hideEdge && !reconnecting}
 		<!-- Solid base layer for group edges when shown full (rendered first, behind) -->
 		{#if useMultiColorDash}
 			<BaseEdge
