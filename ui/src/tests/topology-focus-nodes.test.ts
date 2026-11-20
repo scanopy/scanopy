@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	boundsOfAdoptedNodes,
 	focusEdge,
+	focusEdgeEnd,
 	isAtFit,
 	type AdoptedNode,
 	type FocusableFlow
@@ -150,5 +151,35 @@ describe('focusEdge', () => {
 		const { flow, fitted } = flowOver({});
 		focusEdge(flow, { source: 'gone-a', target: 'gone-b' });
 		expect(fitted).toEqual([]);
+	});
+
+	describe('focusEdgeEnd', () => {
+		const nodes = {
+			card: node(100, 100, 200, 100),
+			container: node(2000, 0, 800, 600),
+			offscreen: node(30000, 20000, 200, 100)
+		};
+
+		it('frames only the chosen end', () => {
+			const { flow, fitted } = flowOver(nodes);
+			focusEdgeEnd(flow, { source: 'card', target: 'container' }, 'source');
+			focusEdgeEnd(flow, { source: 'card', target: 'container' }, 'target');
+			expect(fitted).toEqual([
+				{ x: 100, y: 100, width: 200, height: 100 },
+				{ x: 2000, y: 0, width: 800, height: 600 }
+			]);
+		});
+
+		it('frames an end that is culled off screen', () => {
+			const { flow, fitted } = flowOver(nodes);
+			focusEdgeEnd(flow, { source: 'card', target: 'offscreen' }, 'target');
+			expect(fitted).toEqual([{ x: 30000, y: 20000, width: 200, height: 100 }]);
+		});
+
+		it('does not move the camera when the end is not drawn', () => {
+			const { flow, fitted } = flowOver(nodes);
+			focusEdgeEnd(flow, { source: 'gone', target: 'card' }, 'source');
+			expect(fitted).toEqual([]);
+		});
 	});
 });

@@ -210,6 +210,14 @@ export function edgeFocusTargets(
 	return [...ids];
 }
 
+/**
+ * Move the camera onto one end of an edge: the node the flow edge is drawn to, which is an element
+ * card, a container, or the collapsed container standing in for a hidden end.
+ */
+export function focusEdgeEnd(flow: FocusableFlow, edge: EdgeEnds, end: 'source' | 'target'): void {
+	focusNodes(flow, [edge[end]]);
+}
+
 /** Move the camera onto every end of an edge: see `edgeFocusTargets`. */
 export function focusEdge(
 	flow: FocusableFlow,

@@ -201,6 +201,29 @@ export function simplifiedEdgeWidth(zoom: number): number {
 	return Math.min(SIMPLIFIED_EDGE_MAX_PX, Math.max(SIMPLIFIED_EDGE_MIN_PX, width));
 }
 
+/** Narrowest on-screen hit area of a simplified edge, in CSS pixels. */
+export const SIMPLIFIED_EDGE_HIT_MIN_PX = 8;
+
+/** How many times its drawn stroke a simplified edge's hit area is. */
+export const SIMPLIFIED_EDGE_HIT_SCALE = 4;
+
+/**
+ * On-screen hit width of a simplified edge drawn `strokePx` wide (`simplifiedEdgeWidth`) at
+ * `weight` (`simplifiedEdgeWeight`): a multiple of the drawn line, so a heavier edge is easier to
+ * click, and never under `SIMPLIFIED_EDGE_HIT_MIN_PX`.
+ */
+export function simplifiedEdgeHitWidth(strokePx: number, weight: number): number {
+	return Math.max(SIMPLIFIED_EDGE_HIT_MIN_PX, strokePx * weight * SIMPLIFIED_EDGE_HIT_SCALE);
+}
+
+/**
+ * `simplifiedEdgeHitWidth` as a CSS `stroke-width`, reading the stroke from the canvas's
+ * `--simplified-edge-width`, so a zoom changes every hit area without any edge subscribing to it.
+ */
+export function simplifiedEdgeHitWidthCss(weight: number): string {
+	return `max(${SIMPLIFIED_EDGE_HIT_MIN_PX}px, calc(var(--simplified-edge-width, ${SIMPLIFIED_EDGE_MIN_PX}px) * ${weight * SIMPLIFIED_EDGE_HIT_SCALE}))`;
+}
+
 /**
  * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
  * nothing needs every card in full at this moment.
