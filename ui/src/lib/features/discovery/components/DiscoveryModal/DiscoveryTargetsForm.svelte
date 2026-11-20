@@ -8,7 +8,7 @@
 	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import type { Daemon } from '#lib/features/daemons/types/base.ts';
 	import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
-	import { disabledWhen } from '#lib/shared/components/data/types.ts';
+	import { hiddenWhen } from '#lib/shared/components/data/types.ts';
 	import { docsUrl } from '#lib/shared/utils/docs.ts';
 	import { withRoutedTarget } from '../../utils/targets';
 	import {
@@ -117,7 +117,8 @@
 </script>
 
 {#snippet targetsHelp()}
-	<div class="flex flex-wrap items-baseline gap-x-1">
+	<!-- One size throughout: DocsHint draws its sentence at text-xs. -->
+	<div class="flex flex-wrap items-baseline gap-x-1 text-xs">
 		<span>{discovery_targetsHelp()}</span>
 		<DocsHint
 			text={discovery_leaveOutNetwork()}
@@ -164,7 +165,7 @@
 			getItemDisabledReason={(s) =>
 				isDaemonNetwork(s) ? discovery_daemonNetworkAlwaysScanned() : null}
 			itemRemoveUnavailable={(s) =>
-				disabledWhen(isDaemonNetwork(s), discovery_daemonNetworkAlwaysScanned())}
+				hiddenWhen(isDaemonNetwork(s), discovery_daemonNetworkAlwaysScanned())}
 			onAdd={(id) => (formData = withRoutedTarget(formData, id))}
 			onRemove={handleRemove}
 		/>
