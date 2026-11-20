@@ -14,8 +14,12 @@ import {
 	license_problem_serverError,
 	license_problem_timeout,
 	license_problem_untrustedCertificate,
-	license_problem_troubleshootLink
+	common_troubleshooting
 } from '#lib/paraglide/messages.js';
+import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+import type { MessageLink } from '#lib/shared/components/data/MessageWithLinks.svelte';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
+import { LICENSE_PORTAL_URL } from '#lib/shared/utils/site-links.ts';
 
 export type LicenseProblem = components['schemas']['LicenseProblem'];
 
@@ -39,6 +43,18 @@ const messages: Record<LicenseProblem, () => string> = {
 /** The cause and next step, as plain text. */
 export const licenseProblemMessage = (problem: LicenseProblem): string => messages[problem]();
 
-/** The cause and next step, with a link to the troubleshooting guide. */
+/** The cause and next step, ending with a link to the troubleshooting guide. Render it with
+ *  `licenseBannerLinks`. */
 export const licenseProblemBanner = (problem: LicenseProblem): string =>
-	`${licenseProblemMessage(problem)} ${license_problem_troubleshootLink()}`;
+	`${licenseProblemMessage(problem)} ${slot('troubleshoot')}`;
+
+/** The links the license banners place: `link` is where the license is managed, and
+ *  `troubleshoot` is the troubleshooting guide a problem banner ends with. */
+export const licenseBannerLinks = (): Record<string, MessageLink> => ({
+	// Named by its host, which reads the same in every language.
+	link: { href: LICENSE_PORTAL_URL, label: new URL(LICENSE_PORTAL_URL).host },
+	troubleshoot: {
+		href: docsUrl('/docs/troubleshooting/self-hosted-server/?edition=commercial'),
+		label: common_troubleshooting()
+	}
+});

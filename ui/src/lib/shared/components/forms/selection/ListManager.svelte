@@ -82,6 +82,9 @@
 		itemEditUnavailable?: (item: T) => Unavailable | undefined;
 		itemRemoveUnavailable?: (item: T) => Unavailable | undefined;
 		itemReorderUnavailable?: (item: T) => Unavailable | undefined;
+		/** Why an item is in the list but can't be acted on. The row shows dimmed, with this
+		 *  reason on hover. */
+		getItemDisabledReason?: (item: T) => string | null;
 		stickyHeader?: boolean;
 		reorderDisabledTooltip?: string;
 		isItemEditing?: (item: T, index: number) => boolean;
@@ -161,6 +164,7 @@
 		itemEditUnavailable = () => undefined,
 		itemRemoveUnavailable = () => undefined,
 		itemReorderUnavailable = () => undefined,
+		getItemDisabledReason = () => null,
 		stickyHeader = false,
 		reorderDisabledTooltip = undefined,
 		isItemEditing = () => false,
@@ -402,11 +406,15 @@
 				{@const removeUnavailable = itemRemoveUnavailable(item)}
 				{@const reorderUnavailable = itemReorderUnavailable(item)}
 				{@const canEdit = allowItemEdit && !editUnavailable}
+				{@const disabledReason = getItemDisabledReason(item)}
 
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
+					data-tooltip={disabledReason ?? undefined}
+					use:tooltip
 					class="
 						card flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-all
+						{disabledReason ? 'opacity-60' : ''}
 						{isHighlighted
 						? 'card-focused'
 						: selectionIndicator === 'highlight' && isItemSelected(item)

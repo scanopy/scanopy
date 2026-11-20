@@ -6,10 +6,12 @@
 		license_invalidBanner
 	} from '#lib/paraglide/messages.js';
 	import {
+		licenseBannerLinks,
 		licenseProblemBanner,
 		type LicenseProblem
 	} from '#lib/features/settings/license-problem.ts';
 	import AppBanner from './AppBanner.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
 
 	let {
 		status,
@@ -29,10 +31,11 @@
 	variant="danger"
 	icon={ShieldAlert}
 	body={status === 'expired'
-		? license_expiredBanner()
+		? license_expiredBanner({ link: slot('link') })
 		: refusedFor
-			? license_instanceRefusedBanner(refusedFor)
+			? license_instanceRefusedBanner({ ...refusedFor, link: slot('link') })
 			: problem
 				? licenseProblemBanner(problem)
-				: license_invalidBanner()}
+				: license_invalidBanner({ link: slot('link') })}
+	links={licenseBannerLinks()}
 />

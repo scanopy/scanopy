@@ -1,12 +1,19 @@
 <script lang="ts" module>
+	/** With the daemon's name, a scan is described by the daemon that runs it, as a scan picker
+	 *  wants. Without it, by when it was created. */
+	export interface DiscoveryDisplayContext {
+		daemonName?: string;
+	}
+
 	/**
-	 * A scan configuration or a run, as the popover on a discovery chip shows it. A run carries
-	 * how it ended; a configuration has no outcome, so it shows none.
+	 * A scan configuration or a run, as the popover on a discovery chip or a scan picker shows it.
+	 * A run carries how it ended; a configuration has no outcome, so it shows none.
 	 */
-	export const DiscoveryDisplay: EntityDisplayComponent<Discovery, object> = {
+	export const DiscoveryDisplay: EntityDisplayComponent<Discovery, DiscoveryDisplayContext> = {
 		getId: (discovery) => discovery.id,
 		getLabel: (discovery) => discovery.name,
-		getDescription: (discovery) => formatTimestamp(discovery.created_at),
+		getDescription: (discovery, context) =>
+			context?.daemonName ?? formatTimestamp(discovery.created_at),
 		getIcon: () => entities.getIconComponent('Discovery'),
 		getIconColor: () => entities.getColorHelper('Discovery').icon,
 		getTags: (discovery) => {
@@ -30,7 +37,7 @@
 
 	interface Props {
 		item: Discovery;
-		context?: object;
+		context?: DiscoveryDisplayContext;
 	}
 
 	let { item, context = {} }: Props = $props();

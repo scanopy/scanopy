@@ -11,6 +11,9 @@
 	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import MessageWithLinks from '#lib/shared/components/data/MessageWithLinks.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { PRICING_URL } from '#lib/shared/utils/site-links.ts';
 	import { otherAnswer } from './otherAnswer';
 	import billingPlansJson from '#lib/data/billing-plans.json';
 	import {
@@ -19,6 +22,7 @@
 		common_continue,
 		onboarding_alreadyHaveAccount,
 		onboarding_commercialNoticeBody,
+		onboarding_commercialOfferingLinkText,
 		onboarding_commercialNoticeTitle,
 		onboarding_continueLicenseTrial,
 		onboarding_homelabLicenseNoticeBody,
@@ -193,10 +197,16 @@
 						<div class="font-medium text-primary">{useCases.getName(pendingUseCase)}</div>
 					</div>
 					{#if notice === 'commercial'}
-						<InlineWarning
-							title={onboarding_commercialNoticeTitle()}
-							body={onboarding_commercialNoticeBody()}
-						/>
+						<InlineWarning title={onboarding_commercialNoticeTitle()}>
+							<p class="mt-1 text-sm">
+								<MessageWithLinks
+									text={onboarding_commercialNoticeBody({ link: slot('link') })}
+									links={{
+										link: { href: PRICING_URL, label: onboarding_commercialOfferingLinkText() }
+									}}
+								/>
+							</p>
+						</InlineWarning>
 					{:else}
 						<InlineInfo
 							title={onboarding_homelabLicenseNoticeTitle()}

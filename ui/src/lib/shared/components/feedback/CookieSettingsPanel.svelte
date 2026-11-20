@@ -4,6 +4,9 @@
 	import { type CookiePreferences, COOKIE_NAME, getGdprPreferences } from './CookieConsent.svelte';
 	import { applyAttributionToPosthog } from '#lib/shared/utils/first-touch.ts';
 	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import MessageWithLinks from '#lib/shared/components/data/MessageWithLinks.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { PRIVACY_URL } from '#lib/shared/utils/site-links.ts';
 	import {
 		common_analytics,
 		common_marketing,
@@ -14,6 +17,7 @@
 		cookies_marketingDesc,
 		cookies_necessaryDesc,
 		cookies_preferencesDesc,
+		auth_privacyLinkText,
 		cookies_rejectAll,
 		cookies_savePreferences
 	} from '#lib/paraglide/messages.js';
@@ -73,8 +77,10 @@
 {:else}
 	<div class="space-y-4">
 		<p class="text-sm text-secondary">
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted i18n content -->
-			{@html cookies_preferencesDesc()}
+			<MessageWithLinks
+				text={cookies_preferencesDesc({ privacy: slot('privacy') })}
+				links={{ privacy: { href: PRIVACY_URL, label: auth_privacyLinkText() } }}
+			/>
 		</p>
 
 		<div class="space-y-3">

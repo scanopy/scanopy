@@ -11,7 +11,7 @@ import { brokenDocsLinks, DOCS_ORIGIN, type Occurrence } from './docs-link-check
  * `ui/src`, `messages/en.json` and the metadata fixtures in `ui/src/lib/data`), NOT a
  * hand-maintained array — so a newly added docs link is covered automatically and the test
  * can't silently drift out of date. Links reach the UI through several paths (the shared `DocsHint` component, a plain `<a>` in `Tag`, `window.open`
- * in the support cards, and raw `<a>` anchors embedded in i18n strings), so we scan for the URL
+ * in the support cards, and `MessageWithLinks` link maps), so we scan for the URL
  * itself rather than any one component. Root-relative paths are covered too: literal
  * `docsUrl('/docs/…')` calls, and every `docs_path` the backend publishes in the metadata
  * fixtures (`ui/src/lib/data/*.json`). Links that warning actions open are checked by

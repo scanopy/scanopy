@@ -3,6 +3,8 @@
 	import { license_renewByBanner, license_validThroughBanner } from '#lib/paraglide/messages.js';
 	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import AppBanner from './AppBanner.svelte';
+	import { slot } from '#lib/shared/components/data/MessageWithSlots.svelte';
+	import { licenseBannerLinks } from '#lib/features/settings/license-problem.ts';
 
 	let { validThrough, hardExpiry }: { validThrough: string; hardExpiry: string } = $props();
 
@@ -11,12 +13,16 @@
 	// it before its expiry.
 	let body = $derived(
 		Date.parse(validThrough) > Date.now()
-			? license_validThroughBanner({ validThrough: formatLongDate(validThrough) })
+			? license_validThroughBanner({
+					validThrough: formatLongDate(validThrough),
+					link: slot('link')
+				})
 			: license_renewByBanner({
 					validThrough: formatLongDate(validThrough),
-					lockout: formatLongDate(hardExpiry, 'UTC')
+					lockout: formatLongDate(hardExpiry, 'UTC'),
+					link: slot('link')
 				})
 	);
 </script>
 
-<AppBanner variant="info" icon={Clock} {body} />
+<AppBanner variant="info" icon={Clock} {body} links={licenseBannerLinks()} />
