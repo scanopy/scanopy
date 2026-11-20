@@ -51937,6 +51937,11 @@
             "description": "Keep unrelated edges at full opacity when something is selected.",
             "default": false
           },
+          "show_container_names": {
+            "type": "boolean",
+            "description": "Name containers on the zoomed-out map. Search matches are named either way.",
+            "default": true
+          },
           "show_minimap": {
             "type": "boolean",
             "description": "Show the minimap.",

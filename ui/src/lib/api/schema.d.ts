@@ -17033,6 +17033,11 @@ export interface components {
              */
             no_fade_edges: boolean;
             /**
+             * @description Name containers on the zoomed-out map. Search matches are named either way.
+             * @default true
+             */
+            show_container_names: boolean;
+            /**
              * @description Show the minimap.
              * @default true
              */

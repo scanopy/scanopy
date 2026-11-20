@@ -196,6 +196,9 @@ pub struct TopologyLocalOptions {
     /// Show the minimap.
     #[serde(default = "default_true")]
     pub show_minimap: bool,
+    /// Name containers on the zoomed-out map. Search matches are named either way.
+    #[serde(default = "default_true")]
+    pub show_container_names: bool,
     /// Collapse parallel edges between the same pair of nodes into one.
     #[serde(default = "default_true")]
     pub bundle_edges: bool,
@@ -355,6 +358,7 @@ impl Default for TopologyLocalOptions {
             hide_edge_types: default_hide_edge_types(),
             tag_filter: HashMap::new(),
             show_minimap: true,
+            show_container_names: true,
             bundle_edges: true,
             edge_coloring: HashMap::new(),
         }
@@ -599,6 +603,14 @@ mod tests {
                 _ => None,
             })
             .expect("default rules carry an infrastructure rule")
+    }
+
+    /// A topology saved before container names could be turned off keeps showing them.
+    #[test]
+    fn container_names_default_on_for_saved_options() {
+        let saved_before: TopologyLocalOptions =
+            serde_json::from_value(serde_json::json!({ "show_minimap": false })).unwrap();
+        assert!(saved_before.show_container_names);
     }
 
     /// A topology saved before links could be coloured by speed reads with no colouring, which

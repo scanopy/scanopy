@@ -159,6 +159,7 @@ function defaultLocalOptions(): TopologyLocalOptions {
 		bundle_edges: true,
 		tag_filter: {},
 		show_minimap: true,
+		show_container_names: true,
 		edge_coloring: {}
 	};
 }

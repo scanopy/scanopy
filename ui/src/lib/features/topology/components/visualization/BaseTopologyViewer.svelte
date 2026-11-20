@@ -1918,7 +1918,12 @@
 			size={1}
 		/>
 
-		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} keptIds={keptDetailIds} />
+		<ContainerLabelLayer
+			nodes={$nodes}
+			active={namesUnreadable}
+			namesShown={$topologyOptions.local.show_container_names ?? true}
+			keptIds={keptDetailIds}
+		/>
 
 		{#if showControls}
 			<TopologySidebarControls

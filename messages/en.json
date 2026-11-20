@@ -3758,6 +3758,8 @@
 	"topology_shortcutZoomSelection": "Zoom to selection",
 	"topology_shortcutsTitle": "Keyboard Shortcuts",
 	"topology_showAllToReorder": "Show all rules to reorder",
+	"topology_showContainerNames": "Show Container Names",
+	"topology_showContainerNamesHelp": "Name sites, subnets and hosts when zoomed out too far to read their headers. Search matches are named either way.",
 	"topology_showDisabledRules": "Show all rules",
 	"topology_showEntity": "Show {entity}",
 	"topology_showMinimap": "Show Minimap",
