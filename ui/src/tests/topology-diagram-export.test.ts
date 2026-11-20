@@ -23,7 +23,8 @@ import { activeView } from '#lib/features/topology/queries.ts';
 import { expandedInlineGroups, inlineGroupKey } from '#lib/features/topology/collapse.ts';
 import { elementMarks } from '#lib/features/topology/element-marks.ts';
 import { queryClient, queryKeys } from '#lib/api/query-client.ts';
-import { createColorHelper } from '#lib/shared/utils/styling.ts';
+import { createColorHelper, LINK_SPEED_RAMP } from '#lib/shared/utils/styling.ts';
+import { tierOf, TIER_STROKE_WIDTHS } from '#lib/features/topology/edge-speed.ts';
 import type { Site } from '#lib/features/sites/types.ts';
 import { topologyLookup } from '#lib/features/topology/resolvers.ts';
 import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
@@ -205,8 +206,8 @@ describe('diagram describer', () => {
 		nodes: [],
 		edges: [],
 		interfaces: [
-			{ id: 'i1', display_name: 'Gi0/1' },
-			{ id: 'i2', display_name: 'eth0' }
+			{ id: 'i1', display_name: 'Gi0/1', speed_bps: 1_000_000_000 },
+			{ id: 'i2', display_name: 'eth0', speed_bps: 100_000_000 }
 		],
 		vlans: [{ id: 'v10', vlan_number: 10, name: 'users' }],
 		subnets: [SUBNET]
@@ -218,7 +219,8 @@ describe('diagram describer', () => {
 	function describerFor(
 		edges: Edge[],
 		hiddenEdgeTypes: string[],
-		nodeData: Map<string, TopologyNode> = new Map()
+		nodeData: Map<string, TopologyNode> = new Map(),
+		edgeColoring: 'Type' | 'Speed' = 'Type'
 	) {
 		return createDescriber({
 			topology,
@@ -226,6 +228,8 @@ describe('diagram describer', () => {
 			edges: new Map(edges.map((e) => [e.id, e])),
 			hiddenEdgeTypes,
 			theme: 'light',
+			edgeColoring,
+			edgeMembers: () => undefined,
 			glyph: () => undefined
 		});
 	}
@@ -292,6 +296,29 @@ describe('diagram describer', () => {
 		expect(drawn.map((e) => e.id)).toEqual(['shown']);
 		const shown = describer.edge({ id: 'shown', source: 'a', target: 'b' });
 		expect(shown?.data?.map((d) => d.value)).toEqual([expect.any(String)]);
+	});
+
+	it('colours a link by speed as the canvas does, in its slower end’s colour where they differ', () => {
+		// A 1 Gb/s port cabled to a 100 Mb/s one. A connector takes one colour, so the file shows
+		// the link at the speed it actually runs.
+		const edges = [
+			flowEdge('link', {
+				edge_type: 'PhysicalLink',
+				view_config: activeLink,
+				source_entity_id: 'i1',
+				target_entity_id: 'i2'
+			})
+		];
+		const byType = describerFor(edges, []).edge({ id: 'link', source: 'a', target: 'b' });
+		const bySpeed = describerFor(edges, [], new Map(), 'Speed').edge({
+			id: 'link',
+			source: 'a',
+			target: 'b'
+		});
+		const slow = tierOf(100_000_000)!;
+		expect(bySpeed?.color).toBe(LINK_SPEED_RAMP.light[slow]);
+		expect(bySpeed?.width).toBe(TIER_STROKE_WIDTHS[slow]);
+		expect(byType?.color).not.toBe(bySpeed?.color);
 	});
 });
 
@@ -525,6 +552,8 @@ describe('canvas styling in the export', () => {
 			edges: new Map(edges.map((e) => [e.id, e])),
 			hiddenEdgeTypes: [],
 			theme,
+			edgeColoring: 'Type',
+			edgeMembers: () => undefined,
 			glyph
 		});
 	}

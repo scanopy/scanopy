@@ -83,6 +83,7 @@
 	import ElementNode from './ElementNode.svelte';
 	import CustomEdge from './CustomEdge.svelte';
 	import TopologySidebarControls from './TopologySidebarControls.svelte';
+	import LinkSpeedLegend from './LinkSpeedLegend.svelte';
 	import TopologyLoadProgress from './TopologyLoadProgress.svelte';
 	import ContainerLabelLayer from './ContainerLabelLayer.svelte';
 	import {
@@ -1943,6 +1944,8 @@
 				maskStrokeColor={themeStore.resolvedTheme === 'dark' ? '#374151' : '#d1d5db'}
 			/>
 		{/if}
+
+		<LinkSpeedLegend />
 
 		{#if showMinimap === undefined && !$isExporting}
 			<!-- Minimize and expand write the same option as the options panel's minimap toggle. While

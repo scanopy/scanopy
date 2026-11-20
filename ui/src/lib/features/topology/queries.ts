@@ -158,7 +158,8 @@ function defaultLocalOptions(): TopologyLocalOptions {
 		no_fade_edges: false,
 		bundle_edges: true,
 		tag_filter: {},
-		show_minimap: true
+		show_minimap: true,
+		edge_coloring: {}
 	};
 }
 

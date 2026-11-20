@@ -4,6 +4,8 @@
 use super::estate_site::{ScanHistory, add_estate_site};
 use super::large_estate::{RingParams, generate_ring_estate, water_utility_site};
 use super::*;
+use crate::server::topology::types::grouping::EdgeColoring;
+use crate::server::topology::types::views::TopologyView;
 
 /// Adds the Water Utility site and everything on it to `data`. Its last scan collected from every
 /// switch.
@@ -27,10 +29,17 @@ pub(super) fn add_water_utility_site(
 
     let topology = data
         .topologies
-        .iter()
+        .iter_mut()
         .find(|t| t.base.site_id == site_id)
         .expect("every demo site has a topology");
-    data.shares.push(super::shares::water_utility_l2_share(
-        topology, user_id, now,
-    ));
+    // The rings run at 10 Gb/s and the stations' devices at 1 Gb/s: the site is where the demo
+    // shows links coloured by speed.
+    topology
+        .base
+        .options
+        .local
+        .edge_coloring
+        .insert(TopologyView::L2Physical, EdgeColoring::Speed);
+    let share = super::shares::water_utility_l2_share(topology, user_id, now);
+    data.shares.push(share);
 }

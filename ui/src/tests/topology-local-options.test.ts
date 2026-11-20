@@ -35,6 +35,7 @@ function savedOptions(): TopologyOptions {
 			bundle_edges: false,
 			no_fade_edges: true,
 			tag_filter: { L3Logical: { hidden_tag_ids: { Host: [TAG_ID] } } },
+			edge_coloring: { L2Physical: 'Speed' },
 			hide_edge_types: {
 				L3Logical: ['Hypervisor'],
 				L2Physical: ['SameHost'],

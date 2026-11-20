@@ -725,4 +725,17 @@ fn the_water_utility_share_opens_its_l2_view() {
         share.base.enabled_views,
         Some(vec![TopologyView::L2Physical])
     );
+    // The share and the topology both colour the rings by speed: 10 Gb/s ring links against
+    // the stations' slower device links.
+    use crate::server::topology::types::grouping::EdgeColoring;
+    assert_eq!(share.base.options.edge_coloring, Some(EdgeColoring::Speed));
+    assert_eq!(
+        topology
+            .base
+            .options
+            .local
+            .edge_coloring
+            .get(&TopologyView::L2Physical),
+        Some(&EdgeColoring::Speed)
+    );
 }

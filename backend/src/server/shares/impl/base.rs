@@ -6,6 +6,7 @@ use crate::server::shared::{
     product_area::ProductArea,
     storage::traits::{Entity, SqlValue, Storable},
 };
+use crate::server::topology::types::grouping::EdgeColoring;
 use crate::server::topology::types::views::TopologyView;
 use chrono::{DateTime, Utc};
 use secrecy::SecretString;
@@ -44,6 +45,10 @@ pub struct ShareOptions {
     #[serde(default)]
     #[schema(required)]
     pub show_minimap: bool,
+    /// What colours the links in views that offer more than one colouring. `None` colours them by
+    /// type.
+    #[serde(default)]
+    pub edge_coloring: Option<EdgeColoring>,
 }
 
 impl Default for ShareOptions {
@@ -53,6 +58,7 @@ impl Default for ShareOptions {
             show_zoom_controls: true,
             show_export_button: true,
             show_minimap: false,
+            edge_coloring: None,
         }
     }
 }

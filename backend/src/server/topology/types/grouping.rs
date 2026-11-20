@@ -356,6 +356,146 @@ impl TypeMetadataProvider for ElementSort {
     }
 }
 
+/// What sets the colour of the links in a view.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    EnumIter,
+    IntoStaticStr,
+)]
+pub enum EdgeColoring {
+    /// Each link in the colour of its type.
+    #[default]
+    Type,
+    /// Physical links by the speed their ports report, in `LinkSpeedTier`s.
+    Speed,
+}
+
+impl EdgeColoring {
+    pub fn applicable_views(&self) -> &'static [TopologyView] {
+        match self {
+            EdgeColoring::Type => &[
+                TopologyView::L3Logical,
+                TopologyView::L2Physical,
+                TopologyView::Workloads,
+                TopologyView::Application,
+            ],
+            EdgeColoring::Speed => &[TopologyView::L2Physical],
+        }
+    }
+}
+
+impl HasId for EdgeColoring {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for EdgeColoring {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            EdgeColoring::Type => Icon::Palette,
+            EdgeColoring::Speed => Icon::Gauge,
+        }
+    }
+}
+
+impl TypeMetadataProvider for EdgeColoring {
+    fn name(&self) -> &'static str {
+        match self {
+            EdgeColoring::Type => "Link type",
+            EdgeColoring::Speed => "Link speed",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            EdgeColoring::Type => "Each link in the colour of its type",
+            EdgeColoring::Speed => {
+                "Darker and wider for faster links, from the speed each port reports"
+            }
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "views": self.applicable_views() })
+    }
+}
+
+/// The bands link speeds are drawn in when a view colours links by speed, slowest first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema, EnumIter, IntoStaticStr)]
+pub enum LinkSpeedTier {
+    UpTo100M,
+    Gigabit,
+    TenGigabit,
+    TwentyFiveGigabitPlus,
+}
+
+impl LinkSpeedTier {
+    /// The lowest speed in the band, in bits per second. A speed belongs to the fastest band whose
+    /// lowest speed it reaches.
+    pub fn min_bps(&self) -> i64 {
+        match self {
+            LinkSpeedTier::UpTo100M => 0,
+            LinkSpeedTier::Gigabit => 1_000_000_000,
+            LinkSpeedTier::TenGigabit => 10_000_000_000,
+            LinkSpeedTier::TwentyFiveGigabitPlus => 25_000_000_000,
+        }
+    }
+}
+
+impl HasId for LinkSpeedTier {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for LinkSpeedTier {
+    fn color(&self) -> Color {
+        Color::Teal
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::Gauge
+    }
+}
+
+impl TypeMetadataProvider for LinkSpeedTier {
+    fn name(&self) -> &'static str {
+        match self {
+            LinkSpeedTier::UpTo100M => "Up to 100 Mb/s",
+            LinkSpeedTier::Gigabit => "1 Gb/s",
+            LinkSpeedTier::TenGigabit => "10 Gb/s",
+            LinkSpeedTier::TwentyFiveGigabitPlus => "25 Gb/s and up",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            LinkSpeedTier::UpTo100M => "Slower than 1 Gb/s",
+            LinkSpeedTier::Gigabit => "From 1 Gb/s to under 10 Gb/s",
+            LinkSpeedTier::TenGigabit => "From 10 Gb/s to under 25 Gb/s",
+            LinkSpeedTier::TwentyFiveGigabitPlus => "25 Gb/s or faster",
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "min_bps": self.min_bps() })
+    }
+}
+
 /// Rules that organize nodes within a container into sub-groups.
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, EnumIter, IntoStaticStr,
@@ -669,6 +809,7 @@ mod tests {
     use super::*;
     use crate::server::shared::types::metadata::TypeMetadataProvider;
     use crate::server::topology::types::base::TopologyRequestOptions;
+    use strum::IntoEnumIterator;
 
     #[test]
     fn element_sort_resolves_per_view_and_drops_inapplicable_sorts() {
@@ -685,6 +826,24 @@ mod tests {
         // Workloads has no interfaces to index, so the stored sort cannot apply there.
         assert_eq!(sort_for(TopologyView::Workloads), ElementSort::Automatic);
         assert_eq!(sort_for(TopologyView::Application), ElementSort::Automatic);
+    }
+
+    /// A view with no colouring stored, or one it does not offer, falls back to the default, so
+    /// the default must apply everywhere.
+    #[test]
+    fn default_edge_coloring_applies_to_every_view() {
+        for view in TopologyView::iter() {
+            assert!(EdgeColoring::default().applicable_views().contains(&view));
+        }
+    }
+
+    /// The UI files a speed under the fastest tier whose lowest speed it reaches, so the tiers
+    /// rise strictly and the first starts at zero: every reported speed lands in exactly one.
+    #[test]
+    fn link_speed_tiers_cover_every_speed_once() {
+        let floors: Vec<i64> = LinkSpeedTier::iter().map(|t| t.min_bps()).collect();
+        assert_eq!(floors[0], 0);
+        assert!(floors.windows(2).all(|w| w[0] < w[1]), "{floors:?}");
     }
 
     #[test]

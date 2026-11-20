@@ -3,7 +3,7 @@ use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::topology::types::edges::{EdgeHandle, EdgeTypeDiscriminants};
 use crate::server::topology::types::grouping::{
-    ContainerRule, ElementRule, ElementSort, GraphRule, IdentifiedRule,
+    ContainerRule, EdgeColoring, ElementRule, ElementSort, GraphRule, IdentifiedRule,
 };
 use crate::server::topology::types::layout::{Ixy, Uxy};
 use crate::server::topology::types::views::{
@@ -199,6 +199,10 @@ pub struct TopologyLocalOptions {
     /// Collapse parallel edges between the same pair of nodes into one.
     #[serde(default = "default_true")]
     pub bundle_edges: bool,
+    /// What colours the links, per view. A view with no entry, or with a colouring it does not
+    /// offer, colours links by type. Unknown views and colourings are dropped on read.
+    #[serde(default, deserialize_with = "deserialize_edge_coloring")]
+    pub edge_coloring: HashMap<TopologyView, EdgeColoring>,
 }
 
 fn default_true() -> bool {
@@ -275,6 +279,30 @@ where
 ///
 /// The shape is told apart by its keys, since serde would read either shape as the other: a
 /// single filter's keys are its own field names.
+/// Reads `edge_coloring`, dropping an entry whose view or colouring this build does not know, so an
+/// option saved by a newer build never fails the topology.
+fn deserialize_edge_coloring<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<TopologyView, EdgeColoring>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    let Some(object) = value.as_object() else {
+        return Ok(HashMap::new());
+    };
+    Ok(object
+        .iter()
+        .filter_map(|(key, coloring)| {
+            let view =
+                serde_json::from_value::<TopologyView>(serde_json::Value::String(key.clone()))
+                    .ok()?;
+            let coloring = serde_json::from_value::<EdgeColoring>(coloring.clone()).ok()?;
+            Some((view, coloring))
+        })
+        .collect())
+}
+
 fn deserialize_tag_filter<'de, D>(
     deserializer: D,
 ) -> Result<HashMap<TopologyView, TopologyTagFilter>, D::Error>
@@ -328,6 +356,7 @@ impl Default for TopologyLocalOptions {
             tag_filter: HashMap::new(),
             show_minimap: true,
             bundle_edges: true,
+            edge_coloring: HashMap::new(),
         }
     }
 }
@@ -570,6 +599,28 @@ mod tests {
                 _ => None,
             })
             .expect("default rules carry an infrastructure rule")
+    }
+
+    /// A topology saved before links could be coloured by speed reads with no colouring, which
+    /// colours by type; a view or colouring this build does not know is dropped, not an error.
+    #[test]
+    fn edge_coloring_reads_missing_and_unknown_entries_leniently() {
+        let saved_before: TopologyLocalOptions =
+            serde_json::from_value(serde_json::json!({ "show_minimap": true })).unwrap();
+        assert!(saved_before.edge_coloring.is_empty());
+
+        let mixed: TopologyLocalOptions = serde_json::from_value(serde_json::json!({
+            "edge_coloring": {
+                "L2Physical": "Speed",
+                "L3Logical": "Utilisation",
+                "Floorplan": "Type"
+            }
+        }))
+        .unwrap();
+        assert_eq!(
+            mixed.edge_coloring,
+            HashMap::from([(TopologyView::L2Physical, EdgeColoring::Speed)])
+        );
     }
 
     /// An MSP manages network appliances as its product, so they stay out of the infrastructure

@@ -5,7 +5,8 @@
 
 import type { Edge, InternalNode, Node } from '@xyflow/svelte';
 import { cardGlyph } from '../card-glyph';
-import type { RenderableTopology, TopologyNode } from '../types/base';
+import type { EdgeColoring } from '../edge-speed';
+import type { RenderableTopology, TopologyEdge, TopologyNode } from '../types/base';
 import { collectSourceNodes, loadIcons } from './collect';
 import { createDescriber, diagramHeader } from './describe';
 import { serializeDrawio } from './drawio';
@@ -24,6 +25,10 @@ export interface DiagramExportInput {
 	topology: RenderableTopology;
 	hiddenEdgeTypes: readonly string[];
 	theme: DiagramTheme;
+	/** What colours the links, as on the canvas. */
+	edgeColoring: EdgeColoring;
+	/** The links a collapsed edge stands for, by flow edge id. */
+	edgeMembers: (edgeId: string) => TopologyEdge[] | undefined;
 	header: { title: string; subtitle: string } | null;
 }
 
@@ -34,6 +39,8 @@ export async function buildDiagramExport(input: DiagramExportInput): Promise<Blo
 		edges: new Map(input.edges.map((e) => [e.id, e])),
 		hiddenEdgeTypes: input.hiddenEdgeTypes,
 		theme: input.theme,
+		edgeColoring: input.edgeColoring,
+		edgeMembers: input.edgeMembers,
 		glyph: cardGlyph
 	});
 	const model = buildDiagramModel({

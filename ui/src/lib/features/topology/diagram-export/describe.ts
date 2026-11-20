@@ -30,10 +30,21 @@ import {
 	type EntityLookup
 } from '#lib/shared/entity-fields/index.ts';
 import type { TagProps } from '#lib/shared/components/data/types.ts';
-import { createColorHelper } from '#lib/shared/utils/styling.ts';
+import {
+	createColorHelper,
+	LINK_SPEED_RAMP,
+	LINK_SPEED_UNKNOWN
+} from '#lib/shared/utils/styling.ts';
 import type { IconComponent } from '#lib/shared/utils/types.ts';
 import { hostOsIcon } from '#lib/features/hosts/host-os.ts';
 import type { CardGlyph } from '../card-glyph';
+import {
+	speedStrokeColors,
+	speedStrokeOf,
+	speedStrokeWidth,
+	type EdgeColoring
+} from '../edge-speed';
+import { getTopologyIndex } from '../entity-index';
 import { buildContainerRender, type SubgroupRow } from '../container-render-data';
 import { buildElementRender, currentElementRenderContext } from '../element-render-data';
 import type { IconCardGroup } from '../element-render-data';
@@ -82,6 +93,10 @@ export interface DescriberInput {
 	edges: Map<string, Edge>;
 	hiddenEdgeTypes: readonly string[];
 	theme: DiagramTheme;
+	/** What colours the links, as on the canvas. */
+	edgeColoring: EdgeColoring;
+	/** The links a collapsed edge stands for, by flow edge id. */
+	edgeMembers: (edgeId: string) => TopologyEdge[] | undefined;
 	/**
 	 * What an icon component draws, under the key the canvas caches it by: `cardGlyph` in the
 	 * app, so a card's icon in the file is the one on the card.
@@ -449,11 +464,29 @@ export function createDescriber(input: DescriberInput): TopologyDescriber {
 				data && 'dependency_id' in data
 					? topology.dependencies?.find((d) => d.id === data.dependency_id)
 					: undefined;
-			const color = dependency?.color
-				? createColorHelper(dependency.color).rgb
-				: data
-					? edgeTypes.getColorHelper(data.edge_type).rgb
-					: createColorHelper('Gray').rgb;
+			// Coloured by speed as on the canvas. A connector here takes one colour, so a link whose
+			// ends differ takes its slower end's.
+			const speed =
+				data &&
+				input.edgeColoring === 'Speed' &&
+				(data.edge_type === 'PhysicalLink' || data.edge_type === 'NeighborLink')
+					? speedStrokeOf(
+							data,
+							isBundle
+								? (data.bundleEdges as TopologyEdge[] | undefined)
+								: data.isAggregated
+									? input.edgeMembers(source.id)
+									: undefined,
+							(id) => getTopologyIndex(topology).interfacesById.get(id)?.speed_bps
+						)
+					: null;
+			const color = speed
+				? speedStrokeColors(speed, LINK_SPEED_RAMP[theme], LINK_SPEED_UNKNOWN).color
+				: dependency?.color
+					? createColorHelper(dependency.color).rgb
+					: data
+						? edgeTypes.getColorHelper(data.edge_type).rgb
+						: createColorHelper('Gray').rgb;
 			const edgeStyle = dependency?.edge_style ?? typeMeta?.edge_style;
 
 			// A bundle draws no label on the canvas. A stale link keeps its mark beside the label,
@@ -474,13 +507,17 @@ export function createDescriber(input: DescriberInput): TopologyDescriber {
 					stroke: palette.border
 				},
 				color,
-				width: restingEdgeStrokeWidth({
-					isAggregated: !!data?.isAggregated,
-					aggregatedCount: (data?.aggregatedCount as number) ?? 1,
-					isBundle,
-					bundleStrokeWidth: (data?.bundleStrokeWidth as number) ?? 2,
-					isOverlay
-				}),
+				// An edge standing for several links keeps the width of how many it stands for.
+				width:
+					speed && !isBundle && !data?.isAggregated
+						? speedStrokeWidth(speed)
+						: restingEdgeStrokeWidth({
+								isAggregated: !!data?.isAggregated,
+								aggregatedCount: (data?.aggregatedCount as number) ?? 1,
+								isBundle,
+								bundleStrokeWidth: (data?.bundleStrokeWidth as number) ?? 2,
+								isOverlay
+							}),
 				dash: !isDependencyEdge && isOverlay ? (isDotted ? 'dotted' : 'dashed') : 'solid',
 				curved: edgeStyle === 'Bezier' || edgeStyle === 'Simplebezier',
 				data: data ? edgeData(data, lookup) : []
