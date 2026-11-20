@@ -448,8 +448,6 @@ export function createDescriber(input: DescriberInput): TopologyDescriber {
 			if (
 				isEdgeHidden(data, {
 					isPreview: false,
-					simplified: false,
-					isPhysical: false,
 					hiddenEdgeTypes: input.hiddenEdgeTypes
 				})
 			) {

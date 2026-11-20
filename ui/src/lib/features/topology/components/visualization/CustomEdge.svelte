@@ -29,6 +29,7 @@
 		speedStrokeColors,
 		speedStrokeOf,
 		speedStrokeWidth,
+		UNKNOWN_STROKE_WIDTH,
 		useShareEdgeColoring
 	} from '../../edge-speed';
 	import type { TopologyEdge, RenderableTopology } from '../../types/base';
@@ -132,47 +133,35 @@
 	});
 
 	/**
-	 * Below the zoom threshold (see `shouldSimplify`) an edge draws reduced or not at all.
-	 *
-	 * Physical links stay, drawn as `simplifiedPath`; every other edge is hidden (`isEdgeHidden`).
-	 * Folded into the existing `hideEdge` gate rather than filtering the store, because the store
-	 * is also what `getLayoutedEdges` reads to decide which endpoints to force into the mounted
-	 * set — dropping edges from it would change what is culled, not just what is drawn.
+	 * Below the zoom threshold (see `shouldSimplify`) every edge draws as `simplifiedPath`, in every
+	 * view. A selected edge keeps its full stroke and label at any zoom (`detailKeptIds`), and a
+	 * preview always draws in full.
 	 */
-	// A selected edge keeps its stroke and label at any zoom (`detailKeptIds`).
 	const detailStaging = useDetailStaging();
 	let simplified = $derived($detailSimplified && !detailStaging?.keepsDetail(id));
-	let isPhysical = $derived(edgeTypeMetadata?.is_physical_edge ?? false);
 
 	/**
-	 * A simplified link: a straight line between its handles, a fixed 1.5px on screen at any zoom,
-	 * with no hit area, label, transition or animation.
+	 * A simplified edge: a straight line between its handles, 1.5 to 4px on screen depending on the
+	 * zoom (`simplifiedEdgeWidth`, read from the canvas's `--simplified-edge-width`) and twice that
+	 * when its node is selected, with no hit area, label, transition or animation.
 	 *
 	 * Drawn as `BaseEdge` (a bezier, a 50px-wide hit path, 0.4 opacity and transitions), every L2
 	 * link at fit zoom dropped panning from 120 to 44 fps on Plant (384 links) and to 47 on Water
-	 * Utility (461). Drawn like this the same links pan at 120 fps on both, and first draw grows by
-	 * 10% on Plant and 5% on Water Utility. It can't be hovered or clicked: the cards at this zoom
-	 * are a few pixels wide, and a link is picked by zooming in or from the inspector.
+	 * Utility (461). Drawn like this the same links pan at 120 fps on both, and first draw stays
+	 * within its load-to-load noise. It can't be hovered or clicked: the cards at this zoom are a
+	 * few pixels wide, and an edge is picked by zooming in or from the inspector.
 	 */
 	let simplifiedPath = $derived(`M${sourceX},${sourceY}L${targetX},${targetY}`);
 
 	let isPreview = $derived(!!(edgeData as Record<string, unknown> | undefined)?.is_preview);
 
 	/**
-	 * A preview edge is never hidden.
-	 *
-	 * The exemption used to sit inside the hide-by-type arm alone, so that hiding `Dependency`
-	 * edges did not also hide the one being drawn. Simplification was then added in front of it as
-	 * `simplified || …`, which short-circuits: past the zoom threshold every edge was hidden and
-	 * the exemption was never reached. `detailSimplified` is graph-wide and any estate large enough
-	 * to fit below the threshold has it permanently on, so dependency previews stopped drawing at
-	 * all on exactly the networks where dependencies get drawn.
+	 * Hidden only by its type being turned off. A preview edge is never hidden, so hiding
+	 * `Dependency` edges does not also hide the one being drawn.
 	 */
 	let hideEdge = $derived(
 		isEdgeHidden(edgeData, {
 			isPreview,
-			simplified,
-			isPhysical,
 			hiddenEdgeTypes: $hiddenEdgeTypes
 		})
 	);
@@ -532,11 +521,11 @@
 			d={simplifiedPath}
 			fill="none"
 			stroke={speedEnds ? `url(#${speedGradientId})` : (speedColor ?? edgeColorHelper.rgb)}
-			stroke-width={speed
-				? speedStrokeWidth(speed) + (shouldShowFull ? 1 : 0)
-				: shouldShowFull
-					? 3
-					: 1.5}
+			style:stroke-width="calc(var(--simplified-edge-width, 1.5px) * {((speed
+				? speedStrokeWidth(speed)
+				: UNKNOWN_STROKE_WIDTH) /
+				UNKNOWN_STROKE_WIDTH) *
+				(shouldShowFull ? 2 : 1)})"
 			stroke-dasharray={isOverlay ? overlayDashArray(isDotted) : undefined}
 			vector-effect="non-scaling-stroke"
 			pointer-events="none"
