@@ -80,9 +80,9 @@ describe('placeLabels', () => {
 		expect(placed[1].maxWidth).toBe(NAME_WIDTH);
 	});
 
-	it('leaves a small box bare when a few characters would not fit beside it', () => {
-		// 10px wide with a neighbour 30px to its right.
-		const boxes = [box('subnet', 300, 0, 4000, 1500), box('bridge', 0, 0, 100, 90)];
+	it('leaves a small box bare when its whole name does not fit beside it', () => {
+		// 10px wide with a neighbour 60px to its right: room for 'acc-…', not the 80px name.
+		const boxes = [box('subnet', 600, 0, 4000, 1500), box('bridge', 0, 0, 100, 90)];
 
 		expect(ids(placeLabels(boxes, pane(0.1)))).toEqual(['subnet']);
 	});

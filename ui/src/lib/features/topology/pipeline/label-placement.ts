@@ -6,11 +6,12 @@
  * nobody can read cost a great deal and say nothing. That leaves a zoomed-out map with no names
  * on it. The names drawn here go on one layer above every node, at a fixed size on screen.
  *
- * A name always starts on its own box, at the top-left corner, and runs to its full width. It is
- * cut short only where another box or another name begins, and the viewer shows it in full while
- * the pointer is on it: a name over another box reads as belonging to the box it covers. Each box
- * is named on its own, whenever it has room for at least a few characters. Larger boxes claim
- * their room first.
+ * A name always starts on its own box, at the top-left corner, and runs to its full width. A name
+ * over another box reads as belonging to the box it covers, so it stops before any box or name in
+ * its way. A box wide enough for a name may cut it to fit, down to the box's own width, and the
+ * viewer shows it in full while the pointer is on it. A name too long for its box is drawn in full
+ * on empty canvas or not at all: cut short, the names of a row of switches all read `acc-…`. Each
+ * box is named on its own, and larger boxes claim their room first.
  *
  * A layer above the nodes is not covered by the container's children, which is what rules this
  * out for the container's own header.
@@ -60,11 +61,7 @@ export interface LabelViewport {
 /** Height of a label on screen, in pixels. Matches `ContainerLabelLayer.svelte`. */
 export const LABEL_HEIGHT = 16;
 
-/**
- * Narrowest a cut name is drawn, on screen: room for about five characters and the ellipsis. Names
- * on one site tend to share a prefix (`acc-sw-058`, `acc-sw-059`), so a shorter cut would label
- * every box the same. A box with less room than this gets no name.
- */
+/** Narrowest box, on screen, that holds a name of its own and may cut it to its width. */
 export const MIN_LABEL_WIDTH = 48;
 
 /** Space kept between a cut name and the box or name it stops at, in screen pixels. */
@@ -194,10 +191,15 @@ export function placeLabels(
 				},
 				rect
 			);
-			// A box that holds a name keeps at least its own width of it: anything overlapping the
-			// box itself is not the name's to avoid.
-			maxWidth = Math.min(full, boxHoldsName ? Math.max(run, boxWidth) : run);
-			if (maxWidth < Math.min(full, MIN_LABEL_WIDTH)) continue;
+			if (boxHoldsName) {
+				// A box that holds a name keeps at least its own width of it: anything overlapping
+				// the box itself is not the name's to avoid.
+				maxWidth = Math.min(full, Math.max(run, boxWidth));
+			} else if (run < full) {
+				// A name that cannot fit on its box is drawn only in full. Cut short, the names of
+				// neighbouring boxes read the same (`acc-…`) and identify nothing.
+				continue;
+			}
 			// Whatever of the name lies past its box is canvas the next name must stay off.
 			if (rect.left + maxWidth > rect.right || rect.top + LABEL_HEIGHT > rect.bottom) {
 				occupied.add({
