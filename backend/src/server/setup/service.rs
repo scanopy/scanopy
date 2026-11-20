@@ -98,7 +98,11 @@ impl SetupService {
             .into_iter()
             .map(|d| SetupDaemon {
                 id: d.id,
-                health: DaemonHealth::of(&d.base, &policy.evaluate(d.base.version.as_ref())),
+                health: DaemonHealth::of(
+                    &d.base,
+                    &policy.evaluate(d.base.version.as_ref()),
+                    org.base.plan.is_demo(),
+                ),
                 name: d.base.name,
                 site_id: d.base.site_id,
                 version: d.base.version,

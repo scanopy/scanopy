@@ -27,7 +27,11 @@ fn outdated_version() -> Version {
 
 fn health(daemon: &Daemon) -> DaemonHealth {
     let policy = DaemonVersionPolicy::default();
-    DaemonHealth::of(&daemon.base, &policy.evaluate(daemon.base.version.as_ref()))
+    DaemonHealth::of(
+        &daemon.base,
+        &policy.evaluate(daemon.base.version.as_ref()),
+        false,
+    )
 }
 
 /// A daemon that has checked in before, on `version`.

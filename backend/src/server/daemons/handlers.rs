@@ -863,11 +863,17 @@ async fn get_by_id(
         .daemon_service
         .get_interfaced_subnet_ids(&daemon.id)
         .await;
+    let demo = state
+        .services
+        .daemon_service
+        .site_is_demo(&daemon.base.site_id)
+        .await?;
 
     Ok(Json(ApiResponse::success(DaemonResponse::new(
         daemon,
         version_status,
         interfaced_subnet_ids,
+        demo,
     ))))
 }
 
@@ -1360,13 +1366,18 @@ async fn provision_daemon(
     // Compute version status for response
     let policy = DaemonVersionPolicy::default();
     let version_status = policy.evaluate(created_daemon.base.version.as_ref());
+    let demo = state
+        .services
+        .daemon_service
+        .site_is_demo(&created_daemon.base.site_id)
+        .await?;
 
     // Install commands are not built here — the caller fetches them from the install-command
     // endpoint (which fills in the key returned below). That keeps a display-only regenerate
     // from re-minting the key.
     Ok(Json(ApiResponse::success(ProvisionDaemonResponse {
         // Freshly provisioned; interfaced subnets populate on first heartbeat.
-        daemon: DaemonResponse::new(created_daemon, version_status, Vec::new()),
+        daemon: DaemonResponse::new(created_daemon, version_status, Vec::new(), demo),
         daemon_api_key: plaintext,
     })))
 }

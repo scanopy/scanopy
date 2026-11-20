@@ -191,6 +191,24 @@ impl DaemonService {
     ///
     /// Both are reported, not only the first, so a Free org with no verified owner learns
     /// about verification before it upgrades rather than after.
+    /// Whether `org_id` is on the demo plan, which `DaemonHealth::of` reads.
+    pub async fn org_is_demo(&self, org_id: &Uuid) -> Result<bool, anyhow::Error> {
+        Ok(self
+            .organization_service
+            .get_by_id(org_id)
+            .await?
+            .is_some_and(|org| org.base.plan.is_demo()))
+    }
+
+    /// Whether the org owning `site_id` is on the demo plan. For callers holding daemon rows but
+    /// no org, such as the paginated list.
+    pub async fn site_is_demo(&self, site_id: &Uuid) -> Result<bool, anyhow::Error> {
+        match self.site_service.get_by_id(site_id).await? {
+            Some(site) => self.org_is_demo(&site.base.organization_id).await,
+            None => Ok(false),
+        }
+    }
+
     pub async fn daemon_limits(&self, org_id: Uuid) -> Result<DaemonLimits, ApiError> {
         if !self.org_has_daemon(org_id).await {
             return Ok(DaemonLimits::default());

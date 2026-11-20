@@ -18,9 +18,11 @@ use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 
 /// Whether a check-in changed a daemon's version or its health, the two things its row and its
 /// upgrade modal show. `last_seen` moves on every check-in and changes neither on its own.
+///
+/// Never a demo daemon: demo check-ins are refused before they reach this.
 fn check_in_changed(before: &DaemonBase, after: &DaemonBase, policy: &DaemonVersionPolicy) -> bool {
     let health =
-        |base: &DaemonBase| DaemonHealth::of(base, &policy.evaluate(base.version.as_ref()));
+        |base: &DaemonBase| DaemonHealth::of(base, &policy.evaluate(base.version.as_ref()), false);
     before.version != after.version || health(before) != health(after)
 }
 
