@@ -6,6 +6,7 @@ import {
 	registerUrlOwner,
 	scopeKeysIn,
 	setActiveTab,
+	syncUrl,
 	type UrlOwner
 } from '#lib/shared/stores/url-state.ts';
 
@@ -161,5 +162,51 @@ describe('openTab', () => {
 		expect(url.hash).toBe('#hosts');
 		expect(url.searchParams.get('sources')).toBe('Inferred');
 		unregister();
+	});
+
+	/** A list owner whose view is whatever it was last handed. */
+	function trackedList(isOnScreen: () => boolean) {
+		const list = { view: new URLSearchParams() };
+		const unregister = registerUrlOwner({
+			scope: 'list',
+			isActive: isOnScreen,
+			params: () => list.view,
+			keys: () => ['ids'],
+			restore: (params) => {
+				list.view = new URLSearchParams(params);
+			}
+		});
+		return { list, unregister };
+	}
+
+	// A warning action in the run report opens the hosts list and closes the modal. The close syncs
+	// the URL before the main page switches tabs, while the history list is still on screen.
+	it('hands the view to the new tab, not the list on screen when a sync runs first', async () => {
+		let tab = 'discovery-history';
+		const history = trackedList(() => tab === 'discovery-history');
+		const hosts = trackedList(() => tab === 'hosts');
+
+		openTab('hosts', new URLSearchParams('ids=a&ids=b'));
+		syncUrl();
+		await Promise.resolve();
+		tab = 'hosts';
+		setActiveTab('hosts');
+		await Promise.resolve();
+
+		expect(history.list.view.getAll('ids')).toEqual([]);
+		expect(hosts.list.view.getAll('ids')).toEqual(['a', 'b']);
+		history.unregister();
+		hosts.unregister();
+	});
+
+	it('hands the view to the list on screen when the link opens the tab already showing', async () => {
+		href = 'http://localhost/#hosts';
+		const hosts = trackedList(() => true);
+
+		openTab('hosts', new URLSearchParams('ids=a'));
+		await Promise.resolve();
+
+		expect(hosts.list.view.getAll('ids')).toEqual(['a']);
+		hosts.unregister();
 	});
 });
