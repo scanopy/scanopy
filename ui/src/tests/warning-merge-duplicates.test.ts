@@ -5,8 +5,10 @@ vi.mock('#lib/shared/stores/modal-registry.ts', () => ({
 	closeModal: vi.fn(),
 	navigateToEntity: vi.fn()
 }));
+vi.mock('#lib/shared/stores/url-state.ts', () => ({ openTab: vi.fn() }));
 
 import { closeModal, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { openTab } from '#lib/shared/stores/url-state.ts';
 import { actionFor, duplicateGroupsOf } from '#lib/features/discovery/utils/warningActions.ts';
 import { hostIdsOf, type WarningEntry } from '#lib/features/discovery/utils/warnings.ts';
 
@@ -51,15 +53,19 @@ describe('Merge duplicate hosts', () => {
 		});
 	});
 
-	it('goes to the host list when the row covers several duplicate groups', () => {
+	it('opens the host list filtered to every record to merge when the row covers several groups', () => {
 		const row = ambiguityRow(
 			{ local: 'sw-a', candidates: ['a1', 'a2'] },
-			{ local: 'sw-b', candidates: ['b1', 'b2'] }
+			{ local: 'sw-b', candidates: ['b1', 'b2'] },
+			{ local: 'sw-c', candidates: ['a2', 'a1'] }
 		);
 
 		actionFor(row, run)?.run();
 		expect(openModal).not.toHaveBeenCalled();
 		expect(closeModal).toHaveBeenCalled();
+		const [tab, params] = vi.mocked(openTab).mock.calls[0];
+		expect(tab).toBe('hosts');
+		expect(params.getAll('ids')).toEqual(['a1', 'a2', 'b1', 'b2']);
 	});
 
 	it('offers nothing for a warning stored before candidates were carried', () => {

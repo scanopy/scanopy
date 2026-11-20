@@ -1,5 +1,6 @@
 import type { components } from '#lib/api/schema';
 import { closeModal, navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { openTab } from '#lib/shared/stores/url-state.ts';
 import { credentialIntegrations, entities } from '#lib/shared/stores/metadata.ts';
 import {
 	createIntegrationCredentialLabel,
@@ -252,19 +253,25 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 
 	if (entry.code === 'LldpNeighbourAmbiguous') {
 		// Each neighbour names the hosts its identifier matched. Neighbours naming the same set are
-		// one group of records to merge. One group merges in place; several is the list, as above.
+		// one group of records to merge. One group merges in place; several is the list, filtered to
+		// those records, since the merge takes one pair at a time.
 		const groups = duplicateGroupsOf(entry);
 		if (groups.length === 0) return null;
 		return {
 			label: hosts_mergeDuplicates(),
 			icon: createIconComponent('replace'),
 			run: () => {
-				window.location.hash = 'hosts';
 				if (groups.length === 1) {
+					window.location.hash = 'hosts';
 					// The first candidate is the oldest record, so it is the one kept.
 					const [destination, other] = groups[0];
 					openModal('host-merge', { id: other, subEntityId: destination });
-				} else closeModal();
+					return;
+				}
+				const ids = new URLSearchParams();
+				for (const id of new Set(groups.flat())) ids.append('ids', id);
+				openTab('hosts', ids);
+				closeModal();
 			}
 		};
 	}
