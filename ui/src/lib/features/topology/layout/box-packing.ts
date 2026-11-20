@@ -167,3 +167,46 @@ export function packComponents(
 	}
 	return moved;
 }
+
+/** The box around `ids`, from their positions and sizes. Null when none has both. */
+export function rootBounds(
+	ids: readonly string[],
+	positions: ReadonlyMap<string, { x: number; y: number }>,
+	sizes: ReadonlyMap<string, { width: number; height: number }>
+): Box | null {
+	let left = Infinity;
+	let top = Infinity;
+	let right = -Infinity;
+	let bottom = -Infinity;
+	let any = false;
+	for (const id of ids) {
+		const p = positions.get(id);
+		const s = sizes.get(id);
+		if (!p || !s) continue;
+		any = true;
+		left = Math.min(left, p.x);
+		top = Math.min(top, p.y);
+		right = Math.max(right, p.x + s.width);
+		bottom = Math.max(bottom, p.y + s.height);
+	}
+	return any ? { x: left, y: top, width: right - left, height: bottom - top } : null;
+}
+
+/**
+ * Most a ring layout's bounding box may grow over the layout it replaces, by area. Past this the
+ * viewer zooms out so far to fit it that cards are specks, or, below its smallest zoom, cannot fit
+ * it at all and shows a stretch of empty canvas.
+ */
+export const RING_AREA_LIMIT = 4;
+
+/**
+ * Whether a ring layout may replace the layout it was made from: every position a number, and its
+ * bounding box at most `RING_AREA_LIMIT` times the area of the original's.
+ */
+export function ringLayoutAcceptable(ringed: Box | null, original: Box | null): boolean {
+	if (!ringed || !original) return false;
+	const { x, y, width, height } = ringed;
+	if (![x, y, width, height].every(Number.isFinite)) return false;
+	const originalArea = Math.max(original.width * original.height, 1);
+	return width * height <= RING_AREA_LIMIT * originalArea;
+}

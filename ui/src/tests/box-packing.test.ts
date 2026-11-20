@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { packBoxes, packComponents, type Box } from '#lib/features/topology/layout/box-packing.ts';
+import {
+	packBoxes,
+	packComponents,
+	ringLayoutAcceptable,
+	rootBounds,
+	type Box
+} from '#lib/features/topology/layout/box-packing.ts';
 import { buildRootGraph } from '#lib/features/topology/layout/ring-layout.ts';
 
 const CARD = { width: 250, height: 100 };
@@ -108,5 +114,43 @@ describe('packComponents', () => {
 		for (const id of ids) {
 			expect(moved.get(id)).toEqual({ x: positions.get(id)!.x + dx, y: positions.get(id)!.y + dy });
 		}
+	});
+});
+
+describe('ringLayoutAcceptable', () => {
+	const original = { x: 0, y: 0, width: 20_000, height: 3_000 };
+
+	it('takes a ring layout no larger than the limit allows', () => {
+		expect(ringLayoutAcceptable({ x: 0, y: 0, width: 12_000, height: 7_500 }, original)).toBe(true);
+	});
+
+	it('refuses a ring layout far larger than the one it replaces', () => {
+		// The size the ellipse reached when its growth never stopped.
+		const runaway = { x: 0, y: 0, width: 1_366_975, height: 855_300 };
+		expect(ringLayoutAcceptable(runaway, original)).toBe(false);
+	});
+
+	it('refuses a ring layout with a position that is not a number', () => {
+		expect(ringLayoutAcceptable({ x: NaN, y: 0, width: 100, height: 100 }, original)).toBe(false);
+		expect(ringLayoutAcceptable(null, original)).toBe(false);
+	});
+
+	it('measures the box around the given ids only', () => {
+		const positions = new Map([
+			['a', { x: 0, y: 0 }],
+			['b', { x: 500, y: 200 }],
+			['child', { x: 99_999, y: 99_999 }]
+		]);
+		const sizes = new Map([
+			['a', CARD],
+			['b', CARD],
+			['child', CARD]
+		]);
+		expect(rootBounds(['a', 'b'], positions, sizes)).toEqual({
+			x: 0,
+			y: 0,
+			width: 750,
+			height: 300
+		});
 	});
 });

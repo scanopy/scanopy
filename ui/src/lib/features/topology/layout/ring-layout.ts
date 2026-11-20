@@ -344,11 +344,15 @@ export function placeRings(
 			Math.max(size(node).width, size(node).height) / 2
 		);
 
-	/** Distance between the centres of two cards stacked along unit direction `u` (touching). */
+	/**
+	 * Half the distance between the centres of two cards stacked along unit direction `u`, padded
+	 * so the gap between them is `SPUR_GAP` on the axis that keeps them apart. Padding along `u`
+	 * alone would leave a diagonal stack with less than that on both axes.
+	 */
 	const extent = (id: string, u: Point) => {
 		const s = size(id);
-		const ex = Math.abs(u.x) > 1e-9 ? s.width / Math.abs(u.x) : Infinity;
-		const ey = Math.abs(u.y) > 1e-9 ? s.height / Math.abs(u.y) : Infinity;
+		const ex = Math.abs(u.x) > 1e-9 ? (s.width + SPUR_GAP) / Math.abs(u.x) : Infinity;
+		const ey = Math.abs(u.y) > 1e-9 ? (s.height + SPUR_GAP) / Math.abs(u.y) : Infinity;
 		return Math.min(ex, ey);
 	};
 
@@ -359,7 +363,7 @@ export function placeRings(
 		let previous = node;
 		let distance = 0;
 		for (const n of spurOf(node)) {
-			distance += (extent(previous, u) + extent(n, u)) / 2 + SPUR_GAP;
+			distance += (extent(previous, u) + extent(n, u)) / 2;
 			centres.set(n, { x: c.x + u.x * distance, y: c.y + u.y * distance });
 			previous = n;
 		}
@@ -452,7 +456,9 @@ export function placeRings(
 		};
 		let scale = 1;
 		draw(scale);
-		for (let tries = 0; tries < 30 && cardsCollide(); tries++) {
+		// Twelve tries is five times the size: a ring that still collides there has a spur too
+		// long for any ellipse, and growing it further only shrinks the whole map out of view.
+		for (let tries = 0; tries < 12 && cardsCollide(); tries++) {
 			scale *= 1.15;
 			draw(scale);
 		}
