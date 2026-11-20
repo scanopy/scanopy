@@ -250,6 +250,11 @@
 			<div class="space-y-8">
 				<!-- Site Details Section -->
 				<div class="space-y-4">
+					<DocsHint
+						text={sites_planningHelp()}
+						href="https://scanopy.net/docs/plan-your-deployment/sites/"
+						linkText={sites_planningHelpLinkText()}
+					/>
 					<form.Field
 						name="name"
 						validators={{
@@ -263,12 +268,6 @@
 								{field}
 								placeholder={sites_siteNamePlaceholder()}
 								required
-							/>
-							<DocsHint
-								class="mt-1"
-								text={sites_planningHelp()}
-								href="https://scanopy.net/docs/plan-your-deployment/sites/"
-								linkText={sites_planningHelpLinkText()}
 							/>
 						{/snippet}
 					</form.Field>

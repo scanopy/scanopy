@@ -44,7 +44,6 @@
 		common_update,
 		credentials_assignmentsClearedOnTypeChange,
 		credentials_createCredential,
-		credentials_description,
 		credentials_docsGuide,
 		credentials_docsGuideLinkText,
 		credentials_loginInUse,
@@ -385,9 +384,6 @@
 		     modes survive moving between tabs. -->
 		<div class="space-y-4" class:hidden={activeTab === 'assignments'}>
 			{#if activeTab === 'details'}
-				<p class="text-sm text-secondary">
-					{credentials_description()}
-				</p>
 				<DocsHint
 					text={credentials_docsGuide()}
 					href="https://scanopy.net/docs/using-scanopy/credentials/"

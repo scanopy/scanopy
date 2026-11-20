@@ -661,7 +661,6 @@
 	"credentials_daemonOsMismatch": "This credential reads files on a {declared} daemon, and \"{name}\" runs {actual}. Set the credential's Daemon OS to match to use it here.",
 	"credentials_defaultCantDelete": "A default credential can't be deleted, only unassigned",
 	"credentials_deleteImpact": "This credential is assigned to {siteCount} site(s) and {hostCount} host(s).",
-	"credentials_description": "Credentials let Scanopy collect additional data from hosts — for example, using an SNMP community string to query devices on 161/udp. Use the Assignments tab to assign this credential to networks or individual hosts.",
 	"credentials_descriptionPlaceholder": "e.g. Read-only community for the core switches",
 	"credentials_docsGuide": "Learn about credential types, targets, and assignment in the %link%.",
 	"credentials_docsGuideLinkText": "credentials overview",
