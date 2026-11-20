@@ -32,6 +32,7 @@ function savedOptions(): TopologyOptions {
 		},
 		local: {
 			show_minimap: false,
+			show_container_names: false,
 			bundle_edges: false,
 			no_fade_edges: true,
 			tag_filter: { L3Logical: { hidden_tag_ids: { Host: [TAG_ID] } } },

@@ -55,6 +55,8 @@
 		topology_dontFadeEdgesHelp,
 		topology_showMinimap,
 		topology_showMinimapHelp,
+		topology_showContainerNames,
+		topology_showContainerNamesHelp,
 		common_byTag,
 		common_edges,
 		common_clearAll,
@@ -596,6 +598,15 @@
 			path: 'local',
 			key: 'show_minimap',
 			helpText: () => topology_showMinimapHelp(),
+			section: () => common_visual()
+		},
+		{
+			id: 'show_container_names',
+			label: () => topology_showContainerNames(),
+			type: 'boolean',
+			path: 'local',
+			key: 'show_container_names',
+			helpText: () => topology_showContainerNamesHelp(),
 			section: () => common_visual()
 		}
 	];
