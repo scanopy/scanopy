@@ -181,6 +181,26 @@ export const PREWARM_ZOOM = DETAIL_ZOOM * 0.65;
  */
 export const PREWARM_RELEASE_ZOOM = PREWARM_ZOOM * 0.9;
 
+/** On-screen stroke of a simplified edge at `DETAIL_ZOOM`, in CSS pixels. */
+export const SIMPLIFIED_EDGE_MIN_PX = 1.5;
+
+/** On-screen stroke of a simplified edge once zoomed far out, in CSS pixels. */
+export const SIMPLIFIED_EDGE_MAX_PX = 4;
+
+/**
+ * On-screen stroke width of a simplified edge at `zoom`.
+ *
+ * Thicker the further out the view is, so the lines stay readable on a map of boxes a few pixels
+ * wide: 1.5px at `DETAIL_ZOOM`, growing with the square root of how far out the view is, up to
+ * 4px (reached near a zoom of 0.06, where Water Utility L2 fits). Published once per zoom change as
+ * a CSS variable on the canvas, so no edge subscribes to the zoom.
+ */
+export function simplifiedEdgeWidth(zoom: number): number {
+	if (!(zoom > 0)) return SIMPLIFIED_EDGE_MAX_PX;
+	const width = SIMPLIFIED_EDGE_MIN_PX * Math.sqrt(DETAIL_ZOOM / zoom);
+	return Math.min(SIMPLIFIED_EDGE_MAX_PX, Math.max(SIMPLIFIED_EDGE_MIN_PX, width));
+}
+
 /**
  * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
  * nothing needs every card in full at this moment.

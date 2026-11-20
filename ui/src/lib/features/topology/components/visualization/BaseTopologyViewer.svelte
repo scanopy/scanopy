@@ -36,7 +36,8 @@
 		PREWARM_ZOOM,
 		detailIsStaged,
 		detailKeptIds,
-		shouldSimplify
+		shouldSimplify,
+		simplifiedEdgeWidth
 	} from '../../pipeline/render-mode';
 	import { provideDetailStaging } from '../../detail-staging.svelte';
 	import {
@@ -1877,6 +1878,7 @@
 	class:card-static={!isEmbed}
 	class:collapse-transition={animatingCollapse}
 	class:cold-measure={coldLoadMeasure}
+	style:--simplified-edge-width="{simplifiedEdgeWidth(viewerViewport.current.zoom)}px"
 	bind:this={containerElement}
 >
 	<SvelteFlow
