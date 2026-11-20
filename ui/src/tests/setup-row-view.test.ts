@@ -104,7 +104,7 @@ describe('Failed scan rows', () => {
 		view.fix.run();
 		expect(openModal).toHaveBeenCalledWith('discovery-editor', { id: SCAN, tab: 'performance' });
 		view.guide?.run();
-		expect(open.mock.calls[0][0]).toContain('#choose-a-layout');
+		expect(open.mock.calls[0][0]).toContain('#how-many-subnets-do-you-want-to-scan-on-this-site');
 	});
 
 	it('sends a silent scan to the troubleshooting help, with no guide beside it', () => {

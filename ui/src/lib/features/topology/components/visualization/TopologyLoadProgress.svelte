@@ -1,20 +1,20 @@
 <script lang="ts">
 	import {
+		common_drawing,
+		common_measuring,
 		topology_loadStageData,
-		topology_loadStageDraw,
-		topology_loadStageLayout,
-		topology_loadStageMeasure
+		topology_loadStageLayout
 	} from '#lib/paraglide/messages.js';
 	import AnimatedProgressBar from '#lib/shared/components/data/AnimatedProgressBar.svelte';
 	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
 	import { loadProgress, stageAnimation, type LoadStage } from '../../pipeline/load-progress';
 
 	const LABELS: Record<LoadStage, () => string> = {
-		data: topology_loadStageData,
-		measure: topology_loadStageMeasure,
-		layout: topology_loadStageLayout,
-		layoutRefine: topology_loadStageLayout,
-		draw: topology_loadStageDraw
+		data: () => topology_loadStageData(),
+		measure: () => common_measuring(),
+		layout: () => topology_loadStageLayout(),
+		layoutRefine: () => topology_loadStageLayout(),
+		draw: () => common_drawing()
 	};
 
 	let progress = $derived($loadProgress);

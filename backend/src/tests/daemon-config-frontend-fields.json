@@ -27,7 +27,7 @@
     "id": "interfaces",
     "cliFlag": "--interfaces",
     "envVar": "SCANOPY_INTERFACES",
-    "helpText": "Restrict daemon to specific network interface(s). Comma-separated for multiple (e.g., eth0,eth1). Leave empty for all interfaces"
+    "helpText": "The daemon scans every network its host has an interface on. List interfaces to scan only those, for example eth0,eth1."
   },
   {
     "id": "bind_address",
