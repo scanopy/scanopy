@@ -1,4 +1,5 @@
 use super::*;
+use crate::server::topology::types::grouping::EdgeColoring;
 
 // ============================================================================
 // Shares
@@ -37,6 +38,7 @@ pub(super) fn generate_shares(
                         show_zoom_controls: false,
                         show_export_button: false,
                         show_minimap: false,
+                        edge_coloring: None,
                     },
                     enabled_views: None,
                 },
@@ -64,6 +66,7 @@ pub(super) fn generate_shares(
                         show_zoom_controls: false,
                         show_export_button: false,
                         show_minimap: false,
+                        edge_coloring: None,
                     },
                     enabled_views: None,
                 },
@@ -104,6 +107,7 @@ pub(super) fn water_utility_l2_share(
                 show_zoom_controls: true,
                 show_export_button: false,
                 show_minimap: true,
+                edge_coloring: Some(EdgeColoring::Speed),
             },
             enabled_views: Some(vec![TopologyView::L2Physical]),
         },

@@ -45,7 +45,9 @@ use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::tags::r#impl::base::TagIcon;
 use crate::server::topology::types::edges::EdgeType;
-use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
+use crate::server::topology::types::grouping::{
+    ContainerRule, EdgeColoring, ElementRule, ElementSort, LinkSpeedTier,
+};
 use crate::server::topology::types::nodes::ContainerType;
 use crate::server::topology::types::views::{InspectorSection, TopologyView};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
@@ -488,6 +490,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
 
     let element_sorts: Vec<TypeMetadata> = ElementSort::iter().map(|s| s.to_metadata()).collect();
     write_fixture(&element_sorts, output_dir, "element-sorts.json");
+
+    let edge_colorings: Vec<TypeMetadata> = EdgeColoring::iter().map(|c| c.to_metadata()).collect();
+    write_fixture(&edge_colorings, output_dir, "edge-colorings.json");
+
+    let link_speed_tiers: Vec<TypeMetadata> =
+        LinkSpeedTier::iter().map(|t| t.to_metadata()).collect();
+    write_fixture(&link_speed_tiers, output_dir, "link-speed-tiers.json");
 
     let device_types: Vec<TypeMetadata> = DeviceType::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&device_types, output_dir, "device-types.json");

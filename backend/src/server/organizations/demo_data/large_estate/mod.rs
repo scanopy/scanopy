@@ -229,8 +229,8 @@ enum AccessLinks {
     /// Each access port learned its host's MAC, and the port keeps the host's own link speed.
     ForwardingTable,
     /// As well as learning its MAC, each access port's LLDP table names the host's port, so the
-    /// L2 view draws the link port to port. Every access port runs at `speed_bps`.
-    Lldp { speed_bps: i64 },
+    /// L2 view draws the link port to port. Both ends run at the host's own speed.
+    Lldp,
 }
 
 /// Cables every attached host to its access port and bundles the estate.
@@ -248,10 +248,6 @@ fn assemble_estate(
         host_neighbor_updates,
         ..
     } = fabric;
-    let access_speed_bps = match access_links {
-        AccessLinks::ForwardingTable => None,
-        AccessLinks::Lldp { speed_bps } => Some(speed_bps),
-    };
 
     // Each access port that learned an attached host's MAC records it, as the bridge FDB does.
     let interface_index: HashMap<(Uuid, i32), usize> = interfaces
@@ -269,13 +265,13 @@ fn assemble_estate(
         // VLAN of the host's own role.
         iface.base.native_vlan_id = Some(addressing.segment(host.role).vlan.id);
         iface.base.oper_status = Some(IfOperStatus::Up);
-        iface.base.speed_bps = Some(access_speed_bps.unwrap_or(host.speed_bps));
+        iface.base.speed_bps = Some(host.speed_bps);
         iface.base.if_alias = Some(host.name.clone());
     }
 
     // The host's port is known only from what it advertised over LLDP: it has no ifIndex, since
     // nothing walks the host itself, and carries the MAC and address the scan found.
-    if let AccessLinks::Lldp { speed_bps } = access_links {
+    if access_links == AccessLinks::Lldp {
         let switch_names: HashMap<Uuid, String> = hosts_with_services
             .iter()
             .map(|h| (h.host.id, h.host.base.name.to_string()))
@@ -285,7 +281,7 @@ fn assemble_estate(
                 &hws.host,
                 0,
                 "eth0".to_string(),
-                speed_bps,
+                placement.speed_bps,
                 placement.mac.bytes(),
                 true,
                 now,

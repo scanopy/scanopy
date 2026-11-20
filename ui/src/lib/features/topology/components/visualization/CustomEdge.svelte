@@ -8,10 +8,29 @@
 		getStraightPath,
 		EdgeReconnectAnchor
 	} from '@xyflow/svelte';
-	import { hiddenEdgeTypes, topologyOptions } from '../../queries';
+	import {
+		activeView,
+		aggregatedEdgeOriginals,
+		hiddenEdgeTypes,
+		topologyOptions
+	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
-	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
+	import {
+		createColorHelper,
+		LINK_SPEED_RAMP,
+		LINK_SPEED_UNKNOWN,
+		type Color
+	} from '#lib/shared/utils/styling.ts';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
+	import { getTopologyIndex } from '../../entity-index';
+	import {
+		effectiveEdgeColoring,
+		speedStrokeColors,
+		speedStrokeOf,
+		speedStrokeWidth,
+		useShareEdgeColoring
+	} from '../../edge-speed';
 	import type { TopologyEdge, RenderableTopology } from '../../types/base';
 	import { isExporting, detailSimplified, hoveredEdgeType } from '../../interactions';
 	import {
@@ -171,6 +190,51 @@
 		return edgeTypes.getColorHelper(edgeData.edge_type);
 	});
 
+	// Links coloured by speed: a physical link by the speed its ports report, a neighbour link
+	// (which names no port) as unknown. Any other edge, or a view coloured by type, keeps its colour.
+	const shareEdgeColoring = useShareEdgeColoring();
+	let bySpeed = $derived(
+		effectiveEdgeColoring($topologyOptions.local, $activeView, shareEdgeColoring) === 'Speed' &&
+			(edgeData?.edge_type === 'PhysicalLink' || edgeData?.edge_type === 'NeighborLink')
+	);
+	/**
+	 * The band this edge shows, and each end's band where the two differ. An edge standing for
+	 * several links (a bundle, or links between collapsed containers) shows its fastest link.
+	 */
+	let speed = $derived.by(() => {
+		if (!bySpeed || !edgeData || !topology) return null;
+		const interfaces = getTopologyIndex(topology).interfacesById;
+		return speedStrokeOf(
+			edgeData,
+			isBundle
+				? (anyEdgeData?.bundleEdges as TopologyEdge[] | undefined)
+				: isAggregated
+					? $aggregatedEdgeOriginals.get(id)
+					: undefined,
+			(interfaceId) => interfaces.get(interfaceId)?.speed_bps
+		);
+	});
+	// An export draws in its own theme by setting the class on the document, which the theme store
+	// does not follow.
+	let darkTheme = $derived(
+		$isExporting
+			? typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+			: themeStore.resolvedTheme === 'dark'
+	);
+	let speedColors = $derived(
+		speed
+			? speedStrokeColors(
+					speed,
+					darkTheme ? LINK_SPEED_RAMP.dark : LINK_SPEED_RAMP.light,
+					LINK_SPEED_UNKNOWN
+				)
+			: null
+	);
+	let speedColor = $derived(speedColors?.color ?? null);
+	// Ends in different bands: each half in its own end's colour, meeting at the middle.
+	let speedEnds = $derived(speedColors?.ends ?? null);
+	let speedGradientId = $derived(`link-speed-${id.replace(/[^\w-]/g, '_')}`);
+
 	// Determine if this edge should use the two-color dashed effect
 	let isGroupEdge = $derived(edgeTypeMetadata?.is_dependency_edge ?? false);
 	let useMultiColorDash = $derived((isGroupEdge && shouldShowFull) || isPreview);
@@ -199,6 +263,13 @@
 			isOverlay
 		});
 		if (isAggregated || isBundle) return resting;
+		// By speed, width is the band's, one wider when highlighted, so the order still reads.
+		if (speed) {
+			const width = speedStrokeWidth(speed);
+			const highlighted =
+				isEdgeTypeHovered || (!$topologyOptions.local.no_fade_edges && shouldShowFull);
+			return highlighted ? width + 1 : width;
+		}
 		if (isEdgeTypeHovered) return 3;
 		if (!$topologyOptions.local.no_fade_edges && (shouldShowFull || isPreview)) return 3;
 		return resting;
@@ -235,7 +306,9 @@
 	let edgeStyle = $derived.by(() => {
 		// For group edges with multi-color dash: white dashes
 		// For non-group dashed edges: use standard 5 5 pattern with edge color
-		let strokeColor = edgeColorHelper.rgb;
+		let strokeColor: string = speedEnds
+			? `url(#${speedGradientId})`
+			: (speedColor ?? edgeColorHelper.rgb);
 		let dashArray = '';
 
 		const isDark =
@@ -429,6 +502,23 @@
 				interactionWidth={0}
 				class="solid-base"
 			/>
+		{/if}
+
+		<!-- A link whose ends report speeds in different bands: each half in its own end's colour. -->
+		{#if speedEnds}
+			<defs>
+				<linearGradient
+					id={speedGradientId}
+					gradientUnits="userSpaceOnUse"
+					x1={sourceX}
+					y1={sourceY}
+					x2={targetX}
+					y2={targetY}
+				>
+					<stop offset="50%" stop-color={speedEnds[0]} />
+					<stop offset="50%" stop-color={speedEnds[1]} />
+				</linearGradient>
+			</defs>
 		{/if}
 
 		<!-- Primary edge layer (white dashes for group edges when shown, normal for everything else) -->

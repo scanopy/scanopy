@@ -41,6 +41,7 @@
 	import FilterGroup from './FilterGroup.svelte';
 	import GroupingRuleEditor from './GroupingRuleEditor.svelte';
 	import ElementSortSelect from './ElementSortSelect.svelte';
+	import EdgeColoringSelect from './EdgeColoringSelect.svelte';
 	import EntityFilterHeader from './EntityFilterHeader.svelte';
 	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
 	import { compareTagsByGroup } from '#lib/features/tags/groups.ts';
@@ -776,6 +777,7 @@
 	<!-- Visual Options -->
 	<div class="space-y-3">
 		<p class="text-xs text-tertiary">{topology_displayHelp()}</p>
+		<EdgeColoringSelect />
 		{#each sections as section (section.name)}
 			{#each section.fields as def (def.id)}
 				{#if def.type === 'boolean'}

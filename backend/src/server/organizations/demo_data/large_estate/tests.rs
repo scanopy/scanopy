@@ -320,10 +320,10 @@ fn ring_links_resolve_port_to_port_at_ten_gigabit() {
     }
 }
 
-/// Every station switch has a handful of devices cabled to it, each on a 1 Gb/s access port that
-/// learned its MAC.
+/// Every station switch has a handful of devices cabled to it, each on an access port that learned
+/// its MAC and reports a speed.
 #[test]
-fn every_station_carries_a_handful_of_devices_on_gigabit_ports() {
+fn every_station_carries_a_handful_of_devices_on_access_ports() {
     let estate = ring_estate(&RingParams::default());
     let names = names(&estate);
     let mut per_switch: HashMap<&str, usize> = HashMap::new();
@@ -331,7 +331,7 @@ fn every_station_carries_a_handful_of_devices_on_gigabit_ports() {
         let Some(fdb) = &iface.base.fdb_macs else {
             continue;
         };
-        assert_eq!(iface.base.speed_bps, Some(GIGABIT));
+        assert!(iface.base.speed_bps.is_some());
         *per_switch
             .entry(names[&iface.base.host_id].as_str())
             .or_default() += fdb.value().0.len();
@@ -376,7 +376,7 @@ fn ring_estate_names_and_macs_are_unique_and_distinct_from_plant() {
 
 /// Every station device is linked port to port from the access port that learned it: the
 /// switch's LLDP table names the device's port, which has no ifIndex because nothing walks the
-/// device, and both ends run at 1 Gb/s. The L2 view draws each as a physical link.
+/// device, and both ends report the device's own speed. The L2 view draws each as a physical link.
 #[test]
 fn every_station_device_is_linked_from_its_access_port() {
     let estate = ring_estate(&RingParams::default());
@@ -397,8 +397,8 @@ fn every_station_device_is_linked_from_its_access_port() {
         assert_eq!(link.target_if_index, None);
         let device_port = ports[&(link.target_host_name.as_str(), None)];
         let switch_port = ports[&(link.source_host_name.as_str(), Some(link.source_if_index))];
-        assert_eq!(device_port.base.speed_bps, Some(GIGABIT));
-        assert_eq!(switch_port.base.speed_bps, Some(GIGABIT));
+        assert!(device_port.base.speed_bps.is_some());
+        assert_eq!(device_port.base.speed_bps, switch_port.base.speed_bps);
         // The switch port learned the device's MAC, the one its own port carries.
         let device_mac = device_port
             .base
@@ -426,4 +426,22 @@ fn every_station_device_is_linked_from_its_access_port() {
     for device in devices {
         assert_eq!(linked.get(device.as_str()), Some(&1), "{device}");
     }
+}
+
+/// Field controllers run at 100 Mb/s and cameras and HMIs at 1 Gb/s, against 10 Gb/s on the
+/// rings, so a view coloured by link speed shows more than one speed among the station devices.
+#[test]
+fn station_devices_run_at_more_than_one_speed() {
+    let estate = ring_estate(&RingParams::default());
+    let device_speeds: HashSet<Option<i64>> = estate
+        .interfaces
+        .iter()
+        .filter(|i| i.base.if_index.is_none())
+        .map(|i| i.base.speed_bps)
+        .collect();
+    assert!(device_speeds.contains(&Some(GIGABIT)), "{device_speeds:?}");
+    assert!(
+        device_speeds.contains(&Some(GIGABIT / 10)),
+        "{device_speeds:?}"
+    );
 }

@@ -71,6 +71,8 @@ export const COVERED_FIXTURES = [
 	{ file: 'container-rule-types.json', key: 'container_rule_types', kind: 'typeMetadata' },
 	{ file: 'element-rule-types.json', key: 'element_rule_types', kind: 'typeMetadata' },
 	{ file: 'element-sorts.json', key: 'element_sorts', kind: 'typeMetadata' },
+	{ file: 'edge-colorings.json', key: 'edge_colorings', kind: 'typeMetadata' },
+	{ file: 'link-speed-tiers.json', key: 'link_speed_tiers', kind: 'typeMetadata' },
 	{ file: 'views.json', key: 'views', kind: 'typeMetadata' },
 	{ file: 'inspector-sections.json', key: 'inspector_sections', kind: 'typeMetadata' },
 	{ file: 'ports.json', key: 'ports', kind: 'typeMetadata' },

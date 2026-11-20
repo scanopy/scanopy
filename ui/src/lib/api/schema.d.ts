@@ -10686,6 +10686,11 @@ export interface components {
             view_config?: components["schemas"]["EdgeViewConfig"];
         };
         /**
+         * @description What sets the colour of the links in a view.
+         * @enum {string}
+         */
+        EdgeColoring: "Type" | "Speed";
+        /**
          * @description Whether an edge is visible by default or hidden behind a toggle
          * @enum {string}
          */
@@ -16079,6 +16084,7 @@ export interface components {
         };
         /** @description Share display options */
         ShareOptions: {
+            edge_coloring?: components["schemas"]["EdgeColoring"] | null;
             /** @description Viewer sees the export button. */
             show_export_button: boolean;
             /** @description Viewer can open the inspector for a selected element. */
@@ -16987,6 +16993,14 @@ export interface components {
              * @default true
              */
             bundle_edges: boolean;
+            /**
+             * @description What colours the links, per view. A view with no entry, or with a colouring it does not
+             *     offer, colours links by type. Unknown views and colourings are dropped on read.
+             * @default {}
+             */
+            edge_coloring: {
+                [key: string]: components["schemas"]["EdgeColoring"];
+            };
             /**
              * @description Edge types to leave out of the drawing, per view. A view with no entry hides the edge
              *     types that view hides by default. Unknown edge types and views are dropped on read rather

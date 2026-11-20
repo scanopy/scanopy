@@ -29986,6 +29986,14 @@
           }
         ]
       },
+      "EdgeColoring": {
+        "type": "string",
+        "description": "What sets the colour of the links in a view.",
+        "enum": [
+          "Type",
+          "Speed"
+        ]
+      },
       "EdgeDefaultVisibility": {
         "type": "string",
         "description": "Whether an edge is visible by default or hidden behind a toggle",
@@ -41959,6 +41967,17 @@
           "show_minimap"
         ],
         "properties": {
+          "edge_coloring": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdgeColoring",
+                "description": "What colours the links in views that offer more than one colouring. `None` colours them by\ntype."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "show_export_button": {
             "type": "boolean",
             "description": "Viewer sees the export button."
@@ -43853,6 +43872,24 @@
             "type": "boolean",
             "description": "Collapse parallel edges between the same pair of nodes into one.",
             "default": true
+          },
+          "edge_coloring": {
+            "type": "object",
+            "description": "What colours the links, per view. A view with no entry, or with a colouring it does not\noffer, colours links by type. Unknown views and colourings are dropped on read.",
+            "default": {},
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EdgeColoring"
+            },
+            "propertyNames": {
+              "type": "string",
+              "description": "Which topology view is being rendered",
+              "enum": [
+                "L2Physical",
+                "L3Logical",
+                "Workloads",
+                "Application"
+              ]
+            }
           },
           "hide_edge_types": {
             "type": "object",

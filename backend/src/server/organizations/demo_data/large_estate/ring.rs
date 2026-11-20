@@ -20,8 +20,6 @@ pub const WATER_UTILITY_NAMING: SiteNaming = SiteNaming {
     serial_base: 0x80_0000,
 };
 
-const GIGABIT: i64 = 1_000_000_000;
-
 /// The shape of a ring estate.
 #[derive(Debug, Clone)]
 pub struct RingParams {
@@ -253,13 +251,7 @@ pub fn generate_ring_estate(
         fabric.access_ports(),
         now,
     );
-    assemble_estate(
-        fabric,
-        attached,
-        addressing,
-        AccessLinks::Lldp { speed_bps: GIGABIT },
-        now,
-    )
+    assemble_estate(fabric, attached, addressing, AccessLinks::Lldp, now)
 }
 
 /// The site the demo seeds the ring estate as. Created after Plant so it sorts after it.

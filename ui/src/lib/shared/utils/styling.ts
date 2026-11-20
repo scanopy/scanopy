@@ -204,6 +204,25 @@ export const COLOR_MAP: Record<Color, ColorStyle> = {
 	}
 };
 
+/**
+ * Stroke colours for links coloured by speed, one per speed band, slowest first: physical links'
+ * teal, light to dark against a light canvas and dark to light against a dark one, so a faster
+ * link always stands out more. Tailwind's teal steps, as hex; the slowest light-theme step is the
+ * teal physical links are drawn in by type.
+ *
+ * Both ramps pass the dataviz palette validator as ordinal ramps: one hue, lightness monotone, every
+ * step at least 0.06 apart, and the faintest step at 2.32:1 against the light canvas
+ * (`--color-topology-bg`, `#f8fafc`) and 3.42:1 against the dark one (`#15131e`). Tailwind's paler
+ * teals fall under the 2:1 floor on the light canvas.
+ */
+export const LINK_SPEED_RAMP = {
+	light: ['#00bba7', '#009689', '#00786f', '#0b4f4a'], // teal-500, -600, -700, -900
+	dark: ['#00786f', '#00bba7', '#46ecd5', '#cbfbf1'] // teal-700, -500, -300, -100
+} as const;
+
+/** Stroke colour of a link whose speed is unknown, in either theme. */
+export const LINK_SPEED_UNKNOWN = 'rgb(156, 163, 175)'; // gray-400
+
 // Export available colors array derived from COLOR_MAP keys
 export const AVAILABLE_COLORS = Object.keys(COLOR_MAP) as Color[];
 

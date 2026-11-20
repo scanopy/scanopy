@@ -27,6 +27,10 @@
 	import { searchOpen } from '#lib/features/topology/interactions.ts';
 	import { createTopologyKeydownHandler } from '#lib/features/topology/keyboard.ts';
 	import { views } from '#lib/shared/stores/metadata.ts';
+	import {
+		provideShareEdgeColoring,
+		type EdgeColoring
+	} from '#lib/features/topology/edge-speed.ts';
 
 	export let shareId: string | undefined = undefined;
 	export let topology: RenderableTopology;
@@ -36,6 +40,8 @@
 	export let isEmbed: boolean = false;
 	export let shareName: string = '';
 	export let showMinimap: boolean = false;
+	/** The share's own link colouring, ahead of the topology's stored choice. */
+	export let edgeColoring: EdgeColoring | null = null;
 	export let exportFeatures: ExportFeatures | undefined = undefined;
 	export let enabledViews: string[] = [];
 	export let currentView: string = 'L3Logical';
@@ -78,6 +84,7 @@
 	// Create a context store for the topology so child components (inspectors) can access it
 	const topologyContext = writable<RenderableTopology>(topology);
 	setContext('topology', topologyContext);
+	provideShareEdgeColoring(edgeColoring);
 
 	// Create local stores for selected node/edge (instead of using global store).
 	// BaseTopologyViewer resolves these via getContext and uses them as its selection source.
