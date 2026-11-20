@@ -2,6 +2,7 @@ import { getContext } from 'svelte';
 import { get, type Writable } from 'svelte/store';
 import type { Node, Edge } from '@xyflow/svelte';
 import type { TopologyNode } from './types/base';
+import type { NodeDetail } from './pipeline/render-mode';
 import {
 	selectedNode as globalSelectedNode,
 	selectedEdge as globalSelectedEdge,
@@ -64,6 +65,41 @@ export function selectEdge(edge: Edge, stores: SelectionStores = defaultStores) 
 	clearSearch();
 	stores.selectedEdge.set(edge);
 	stores.selectedNode.set(null);
+}
+
+/** What a click on a node does: nothing, the same as a canvas click, or select a node. */
+export type NodeClickAction =
+	{ type: 'ignore' } | { type: 'pane' } | { type: 'select'; id: string };
+
+/**
+ * Decide what a click on a node does.
+ *
+ * A click while the viewport moved is the end of a pan, so it does nothing. An element card is
+ * selected. A container at full detail is selected only through its title chip; its body holds
+ * the children, so a click there acts like one on the canvas. A container drawn as a box has no
+ * title, so a click anywhere on it selects it.
+ *
+ * A `hidden` subcontainer draws nothing: what is under the pointer is its parent's box. So its
+ * click goes to the nearest ancestor that is drawn, and follows that ancestor's rule.
+ *
+ * `tierOf` returns what a container draws (`ContainerNode`'s `data-detail`), or undefined when it
+ * is not mounted; `parentOf` returns a node's parent container.
+ */
+export function resolveNodeClick(input: {
+	nodeId: string;
+	isContainer: boolean;
+	viewportMoved: boolean;
+	onTitle: boolean;
+	tierOf: (id: string) => NodeDetail | undefined;
+	parentOf: (id: string) => string | undefined;
+}): NodeClickAction {
+	const { nodeId, isContainer, viewportMoved, onTitle, tierOf, parentOf } = input;
+	if (viewportMoved) return { type: 'ignore' };
+	if (!isContainer || onTitle) return { type: 'select', id: nodeId };
+	let id: string | undefined = nodeId;
+	while (id && tierOf(id) === 'hidden') id = parentOf(id);
+	if (id && tierOf(id) === 'boxed') return { type: 'select', id };
+	return { type: 'pane' };
 }
 
 export function clearSelection(stores: SelectionStores = defaultStores) {

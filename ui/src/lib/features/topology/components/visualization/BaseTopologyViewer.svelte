@@ -128,6 +128,7 @@
 		clearSelection,
 		handleModifierNodeClick,
 		handleBoxSelect,
+		resolveNodeClick,
 		useSelectionStores,
 		type SelectionStores
 	} from '../../selection';
@@ -156,7 +157,7 @@
 	import { cacheCollapsedSizes, reconcileMeasuredSizes } from '../../pipeline/post-render';
 	import throttle from 'just-throttle';
 	import { computeEdgeDisplayUpdates } from '../../pipeline/sync-edge-display';
-	import { shouldCull } from '../../pipeline/render-mode';
+	import { shouldCull, type NodeDetail } from '../../pipeline/render-mode';
 	import {
 		installDiagnostics,
 		installLayoutSnapshot,
@@ -1586,15 +1587,31 @@
 
 	let ignoreNextSelectionChange = false;
 
+	/** What a mounted container draws, from its `data-detail`. Read only on a click. */
+	function containerTier(id: string): NodeDetail | undefined {
+		const selector = `.svelte-flow__node[data-id="${CSS.escape(id)}"] [data-detail]`;
+		const tier = containerElement?.querySelector<HTMLElement>(selector)?.dataset.detail;
+		return tier as NodeDetail | undefined;
+	}
+
 	function handleNodeClick({ node, event }: { node: Node; event: MouseEvent | TouchEvent }) {
-		if (viewportMoved) return;
-		// A container is selected through its title chip. Its body holds the children, so a click
-		// there acts like one on the canvas.
-		const onTitle =
-			event.target instanceof Element && event.target.closest('[data-container-title]');
-		if (node.type === 'Container' && !onTitle) {
+		const action = resolveNodeClick({
+			nodeId: node.id,
+			isContainer: node.type === 'Container',
+			viewportMoved,
+			onTitle: event.target instanceof Element && !!event.target.closest('[data-container-title]'),
+			tierOf: containerTier,
+			parentOf: (id) => getInternalNode(id)?.parentId
+		});
+		if (action.type === 'ignore') return;
+		if (action.type === 'pane') {
 			handlePaneClick();
 			return;
+		}
+		if (action.id !== node.id) {
+			const target = getInternalNode(action.id)?.internals.userNode;
+			if (!target) return;
+			node = target;
 		}
 		// Multi-select drives dependency creation, so it's an edit action: disable
 		// it when read-only (snapshot / share). Single-select (read-only inspect)

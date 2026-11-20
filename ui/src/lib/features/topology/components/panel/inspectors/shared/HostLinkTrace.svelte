@@ -4,7 +4,7 @@
 	import { ArrowRight } from '@lucide/svelte';
 	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import { linksOfHost, type HostLink } from '#lib/features/topology/edge-tracing.ts';
-	import { focusLink } from '#lib/features/topology/viewport-fit.ts';
+	import { focusEdge } from '#lib/features/topology/viewport-fit.ts';
 	import { selectEdge, useSelectionStores } from '#lib/features/topology/selection.ts';
 	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
@@ -42,7 +42,7 @@
 
 	function follow(link: HostLink) {
 		selectEdge(link.edge, stores);
-		focusLink(flow, link.edge);
+		focusEdge(flow, link.edge);
 	}
 </script>
 

@@ -13,6 +13,7 @@
 	import InspectorEdgeNeighborLink from './edges/InspectorEdgeNeighborLink.svelte';
 	import InspectorEdgeSameContainer from './edges/InspectorEdgeSameContainer.svelte';
 	import InspectorEdgeAggregated from './edges/InspectorEdgeAggregated.svelte';
+	import EdgeFocusButton from './shared/EdgeFocusButton.svelte';
 	import { inspector_edgeDataUnavailable } from '#lib/paraglide/messages.js';
 
 	type EdgeType = components['schemas']['EdgeTypeDiscriminants'];
@@ -97,6 +98,11 @@
 </script>
 
 <div class="w-full space-y-4">
+	{#if edgeData}
+		<div class="flex justify-end">
+			<EdgeFocusButton {edge} originals={originalEdges} />
+		</div>
+	{/if}
 	{#if !edgeData}
 		<div class="space-y-3">
 			<p class="text-sm text-tertiary">{inspector_edgeDataUnavailable()}</p>

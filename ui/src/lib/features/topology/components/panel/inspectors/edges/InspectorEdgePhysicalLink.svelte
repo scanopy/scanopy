@@ -9,7 +9,6 @@
 		common_source,
 		common_speed,
 		common_target,
-		topology_focusLink,
 		topology_focusNode,
 		topology_neighborEvidence,
 		topology_speedMismatchNote
@@ -21,7 +20,7 @@
 	import type { Edge } from '@xyflow/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { Crosshair } from '@lucide/svelte';
-	import { focusLink, focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
+	import { focusNodes, outermostNode } from '#lib/features/topology/viewport-fit.ts';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
 	import { formatBitsPerSecond, formatRelativeTime } from '#lib/shared/utils/formatting.ts';
@@ -104,21 +103,11 @@
 </script>
 
 <div class="space-y-4">
-	<div class="flex items-center gap-2">
-		{#if protocol}
+	{#if protocol}
+		<div class="flex items-center gap-2">
 			<Tag {...discoveryProtocols.getTag(protocol)} />
-		{/if}
-		{#if edge}
-			{@const current = edge}
-			<button
-				class="btn-icon ml-auto p-0.5"
-				onclick={() => focusLink(flow, current)}
-				title={topology_focusLink()}
-			>
-				<Crosshair class="h-3.5 w-3.5" />
-			</button>
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	{#if evidenceRow?.neighbor_seen_at}
 		<div class="flex items-center gap-2 text-sm">

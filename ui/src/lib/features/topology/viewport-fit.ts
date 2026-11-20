@@ -178,12 +178,45 @@ export function outermostNode(
 	return current;
 }
 
-/** Move the camera onto both ends of a link: the outermost containers its endpoints sit in. */
-export function focusLink(flow: FocusableFlow, edge: { source: string; target: string }): void {
-	focusNodes(flow, [
-		outermostNode(edge.source, flow.getInternalNode),
-		outermostNode(edge.target, flow.getInternalNode)
-	]);
+/** The two ends of an edge, as node ids. */
+interface EdgeEnds {
+	source: string;
+	target: string;
+}
+
+/** A flow edge, with the edges a bundle draws as one line in its data. */
+export interface FocusableEdge extends EdgeEnds {
+	data?: { bundleEdges?: readonly EdgeEnds[] } | Record<string, unknown>;
+}
+
+/**
+ * The node ids an edge's focus action frames: the flow edge's own ends, plus every end of the
+ * edges it stands for, both the originals of an aggregated edge and the members of a bundle.
+ *
+ * An aggregated edge already points at the collapsed containers that stand in for hidden ends.
+ * Those hidden ends are not adopted, so `boundsOfAdoptedNodes` skips them and the containers
+ * are framed instead.
+ */
+export function edgeFocusTargets(
+	edge: FocusableEdge,
+	originals: readonly EdgeEnds[] = []
+): string[] {
+	const bundled = (edge.data?.bundleEdges as readonly EdgeEnds[] | undefined) ?? [];
+	const ids = new Set([edge.source, edge.target]);
+	for (const member of [...originals, ...bundled]) {
+		ids.add(member.source);
+		ids.add(member.target);
+	}
+	return [...ids];
+}
+
+/** Move the camera onto every end of an edge: see `edgeFocusTargets`. */
+export function focusEdge(
+	flow: FocusableFlow,
+	edge: FocusableEdge,
+	originals: readonly EdgeEnds[] = []
+): void {
+	focusNodes(flow, edgeFocusTargets(edge, originals));
 }
 
 /** A viewport transform: pan offset in screen pixels and zoom. */
