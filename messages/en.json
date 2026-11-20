@@ -2244,7 +2244,7 @@
 	"meta_discovery_types_SelfReport_name": "SelfReport",
 	"meta_discovery_types_Unified_description": "Unified discovery combining self-report, network scanning, and integrations",
 	"meta_discovery_types_Unified_name": "Unified",
-	"meta_edge_colorings_Speed_description": "Darker and wider for faster links, from the speed each port reports",
+	"meta_edge_colorings_Speed_description": "A colour for each speed band, wider for faster links, from the speed each port reports",
 	"meta_edge_colorings_Speed_name": "Link speed",
 	"meta_edge_colorings_Type_description": "Each link in the colour of its type",
 	"meta_edge_colorings_Type_name": "Link type",

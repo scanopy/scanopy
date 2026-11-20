@@ -205,19 +205,14 @@ export const COLOR_MAP: Record<Color, ColorStyle> = {
 };
 
 /**
- * Stroke colours for links coloured by speed, one per speed band, slowest first: physical links'
- * teal, light to dark against a light canvas and dark to light against a dark one, so a faster
- * link always stands out more. Tailwind's teal steps, as hex; the slowest light-theme step is the
- * teal physical links are drawn in by type.
- *
- * Both ramps pass the dataviz palette validator as ordinal ramps: one hue, lightness monotone, every
- * step at least 0.06 apart, and the faintest step at 2.32:1 against the light canvas
- * (`--color-topology-bg`, `#f8fafc`) and 3.42:1 against the dark one (`#15131e`). Tailwind's paler
- * teals fall under the 2:1 floor on the light canvas.
+ * Stroke colours for links coloured by speed, one per speed band, slowest first: a hue of its own
+ * for each band, so the bands tell apart at a glance. Width (`TIER_STROKE_WIDTHS`) carries the
+ * order as well, for anyone who cannot tell the hues apart. Tailwind's 600 steps on a light
+ * canvas and 400 steps on a dark one, as hex; 1 Gb/s is the teal physical links are drawn in by type.
  */
-export const LINK_SPEED_RAMP = {
-	light: ['#00bba7', '#009689', '#00786f', '#0b4f4a'], // teal-500, -600, -700, -900
-	dark: ['#00786f', '#00bba7', '#46ecd5', '#cbfbf1'] // teal-700, -500, -300, -100
+export const LINK_SPEED_COLORS = {
+	light: ['#e17100', '#009689', '#155dfc', '#7f22fe'], // amber, teal, blue, violet 600
+	dark: ['#ffb900', '#00d5be', '#51a2ff', '#a684ff'] // amber, teal, blue, violet 400
 } as const;
 
 /** Stroke colour of a link whose speed is unknown, in either theme. */
