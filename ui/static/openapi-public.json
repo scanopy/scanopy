@@ -45401,7 +45401,8 @@
           "repack_disconnected",
           "align_layers_top",
           "force_overview",
-          "ring_detection"
+          "ring_detection",
+          "pack_components"
         ],
         "properties": {
           "algorithm": {
@@ -45420,6 +45421,10 @@
           },
           "handle_strategy": {
             "$ref": "#/components/schemas/ViewHandleStrategy"
+          },
+          "pack_components": {
+            "type": "boolean",
+            "description": "Whether the connected groups of root containers are tiled to the screen's aspect after layout,\neach keeping its own layout, so root containers with no link fill the width instead of\nstacking in columns."
           },
           "repack_disconnected": {
             "type": "boolean",
