@@ -5,7 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '#lib/api/query-client.ts';
 import { apiClient } from '#lib/api/client.ts';
-import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import { fetchByIds, requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Subnet, SubnetCreatePurpose, SubnetResponse } from './types/base';
 import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 
@@ -70,8 +70,10 @@ export function useSubnetsByIds(idsGetter: () => string[]) {
 			queryKey: [...queryKeys.subnets.all, 'byIds', ids],
 			queryFn: async (): Promise<SubnetResponse[]> => {
 				if (ids.length === 0) return [];
-				return unwrapData(
-					await apiClient.GET('/api/v1/subnets', { params: { query: { ids, limit: 0 } } })
+				return fetchByIds(ids, async (batch) =>
+					unwrapData(
+						await apiClient.GET('/api/v1/subnets', { params: { query: { ids: batch, limit: 0 } } })
+					)
 				);
 			},
 			enabled: ids.length > 0

@@ -13,7 +13,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryKeys } from '#lib/api/query-client.ts';
 import { apiClient } from '#lib/api/client.ts';
-import { requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
+import { fetchByIds, requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
 import { pushSuccess } from '#lib/shared/stores/feedback.ts';
 import { hostDisplayName } from './host-display-name';
 import {
@@ -439,19 +439,21 @@ export function useHostsByIds(idsGetter: () => string[]) {
 			queryFn: async (): Promise<Host[]> => {
 				if (ids.length === 0) return [];
 
-				const hostResponses = unwrapData(
-					await apiClient.GET('/api/v1/hosts', {
-						params: {
-							query: {
-								ids: ids,
-								limit: 0, // No pagination when fetching by IDs
-								// This hook returns primitives (`toHostPrimitive` drops the
-								// children) and populates no child cache, so the nested
-								// entities were downloaded and thrown away.
-								include_children: false
+				const hostResponses = await fetchByIds(ids, async (batch) =>
+					unwrapData(
+						await apiClient.GET('/api/v1/hosts', {
+							params: {
+								query: {
+									ids: batch,
+									limit: 0, // No pagination when fetching by IDs
+									// This hook returns primitives (`toHostPrimitive` drops the
+									// children) and populates no child cache, so the nested
+									// entities were downloaded and thrown away.
+									include_children: false
+								}
 							}
-						}
-					})
+						})
+					)
 				);
 
 				return hostResponses.map(toHostPrimitive);

@@ -12,7 +12,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryKeys } from '#lib/api/query-client.ts';
 import { apiClient } from '#lib/api/client.ts';
-import { requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
+import { fetchByIds, requireSuccess, unwrapData, unwrapEnvelope } from '#lib/api/query-helpers.ts';
 import type { Service } from './types/base';
 import { utcTimeZoneSentinel } from '#lib/shared/utils/formatting.ts';
 import { v4 as uuidv4 } from 'uuid';
@@ -116,15 +116,17 @@ export function useServicesByIds(idsGetter: () => string[]) {
 			queryFn: async (): Promise<Service[]> => {
 				if (ids.length === 0) return [];
 
-				return unwrapData(
-					await apiClient.GET('/api/v1/services', {
-						params: {
-							query: {
-								ids: ids,
-								limit: 0 // No pagination when fetching by IDs
+				return fetchByIds(ids, async (batch) =>
+					unwrapData(
+						await apiClient.GET('/api/v1/services', {
+							params: {
+								query: {
+									ids: batch,
+									limit: 0 // No pagination when fetching by IDs
+								}
 							}
-						}
-					})
+						})
+					)
 				);
 			},
 			enabled: ids.length > 0

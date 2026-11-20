@@ -1,7 +1,7 @@
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '#lib/api/query-client.ts';
 import { apiClient } from '#lib/api/client.ts';
-import { unwrapData } from '#lib/api/query-helpers.ts';
+import { fetchByIds, unwrapData } from '#lib/api/query-helpers.ts';
 import type { components } from '#lib/api/schema';
 
 export type Interface = components['schemas']['Interface'];
@@ -30,9 +30,13 @@ export function useInterfacesByIds(idsGetter: () => string[]) {
 		const ids = idsGetter();
 		return {
 			queryKey: [...queryKeys.interfaces.all, 'byIds', ids],
-			queryFn: async (): Promise<Interface[]> =>
-				unwrapData(
-					await apiClient.GET('/api/v1/interfaces', { params: { query: { ids, limit: 0 } } })
+			queryFn: (): Promise<Interface[]> =>
+				fetchByIds(ids, async (batch) =>
+					unwrapData(
+						await apiClient.GET('/api/v1/interfaces', {
+							params: { query: { ids: batch, limit: 0 } }
+						})
+					)
 				),
 			enabled: ids.length > 0
 		};
