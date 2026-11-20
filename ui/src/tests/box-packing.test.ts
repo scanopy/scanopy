@@ -121,18 +121,22 @@ describe('ringLayoutAcceptable', () => {
 	const original = { x: 0, y: 0, width: 20_000, height: 3_000 };
 
 	it('takes a ring layout no larger than the limit allows', () => {
-		expect(ringLayoutAcceptable({ x: 0, y: 0, width: 12_000, height: 7_500 }, original)).toBe(true);
+		expect(ringLayoutAcceptable({ x: 0, y: 0, width: 12_000, height: 7_500 }, original, 1.6)).toBe(
+			true
+		);
 	});
 
 	it('refuses a ring layout far larger than the one it replaces', () => {
 		// The size the ellipse reached when its growth never stopped.
 		const runaway = { x: 0, y: 0, width: 1_366_975, height: 855_300 };
-		expect(ringLayoutAcceptable(runaway, original)).toBe(false);
+		expect(ringLayoutAcceptable(runaway, original, 1.6)).toBe(false);
 	});
 
 	it('refuses a ring layout with a position that is not a number', () => {
-		expect(ringLayoutAcceptable({ x: NaN, y: 0, width: 100, height: 100 }, original)).toBe(false);
-		expect(ringLayoutAcceptable(null, original)).toBe(false);
+		expect(ringLayoutAcceptable({ x: NaN, y: 0, width: 100, height: 100 }, original, 1.6)).toBe(
+			false
+		);
+		expect(ringLayoutAcceptable(null, original, 1.6)).toBe(false);
 	});
 
 	it('measures the box around the given ids only', () => {

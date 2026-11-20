@@ -271,6 +271,62 @@ describe('placeRings', () => {
 		expect(overlaps(graph.nodes, positions)).toBe(0);
 	});
 
+	it('draws expanded stations and their device cards without overlaps, at the size they need', () => {
+		// The shapes of the demo's water utility L2 view, fully expanded: tall station and core
+		// cards with flat device cards hanging off them. A tall card cleared on one axis beside a
+		// flat one cleared on the other used to overlap at any size, so the ellipse grew to its cap.
+		const links: [string, string][] = [...twoRings(49)];
+		const sizes = new Map<string, Size>([
+			['A', { width: 350, height: 880 }],
+			['B', { width: 350, height: 880 }]
+		]);
+		const device = { width: 350, height: 179 };
+		for (let i = 0; i < 49; i++) {
+			for (const side of ['e', 'w']) {
+				const station = `${side}${i}`;
+				sizes.set(station, { width: 350, height: 720 + (i % 3) * 80 });
+				for (let h = 0; h < 3 + (i % 4); h++) {
+					links.push([station, `${station}-h${h}`]);
+					sizes.set(`${station}-h${h}`, device);
+				}
+			}
+		}
+		for (const [core, server] of [
+			['A', 's1'],
+			['A', 's2'],
+			['B', 's3']
+		]) {
+			links.push([core, server]);
+			sizes.set(server, device);
+		}
+		const graph = graphOf(links);
+		const positions = placeRings(graph, detectRings(graph), sizes)!;
+
+		const ids = graph.nodes;
+		let overlapping = 0;
+		for (let i = 0; i < ids.length; i++) {
+			for (let j = i + 1; j < ids.length; j++) {
+				const [a, b] = [positions.get(ids[i])!, positions.get(ids[j])!];
+				const [sa, sb] = [sizes.get(ids[i])!, sizes.get(ids[j])!];
+				if (
+					a.x < b.x + sb.width &&
+					b.x < a.x + sa.width &&
+					a.y < b.y + sb.height &&
+					b.y < a.y + sa.height
+				) {
+					overlapping++;
+				}
+			}
+		}
+		expect(overlapping).toBe(0);
+
+		// Neighbours side by side need about 375px and stacked ones about 900px, so each half of
+		// the ellipse runs about 31,000px and the ellipse is about 24,000px wide. The cap on its
+		// growth would make it five times that.
+		const xs = ids.map((id) => positions.get(id)!.x);
+		expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(32_000);
+	});
+
 	it('leaves components with no ring unplaced', () => {
 		const links: [string, string][] = [...cycle('a', 'b', 'c', 'd', 'e'), ['x', 'y']];
 		const graph = graphOf(links);
