@@ -27,7 +27,7 @@ import type { LayoutState, XY } from './types';
  * Part of every key. Bump it when a change makes stored layouts wrong without changing any input
  * the key covers: ELK options, card markup or styling that alters a card's size.
  */
-export const LAYOUT_STORE_VERSION = 3;
+export const LAYOUT_STORE_VERSION = 4;
 
 /** Entries kept, most recently used first. A fully expanded large view is about a megabyte. */
 const MAX_ENTRIES = 8;

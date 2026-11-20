@@ -15,7 +15,13 @@ import { noteElkRun } from '../diagnostics';
 import { connectedGroups, dependencyOrder, pinChildOrder } from './child-order';
 import { getViewLayout, type ViewLayoutConfig } from './view-layout';
 import { detectRings, placeRings, rootGraphOf, type RootGraph } from './ring-layout';
-import { packBoxes, packComponents, slotsBeside } from './box-packing';
+import {
+	packBoxes,
+	packComponents,
+	ringLayoutAcceptable,
+	rootBounds,
+	slotsBeside
+} from './box-packing';
 
 /**
  * The port-constraint a container's own ports can honour.
@@ -1749,13 +1755,23 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 		return repackDisconnectedContainers(layoutResult, input);
 	}
 	const graph = rootGraphOfInput(input);
+	const baseline = viewLayout.pack_components
+		? packRootComponents(layoutResult, graph)
+		: repackDisconnectedContainers(layoutResult, input);
 	const withRings = viewLayout.ring_detection ? applyRingLayout(layoutResult, graph) : null;
+	if (!withRings) return baseline;
 	// Ring placement leaves every component without a ring where ELK put it, so it is always
 	// packed, even in a view that does not otherwise pack.
-	if (withRings || viewLayout.pack_components) {
-		return packRootComponents(withRings ?? layoutResult, graph);
-	}
-	return repackDisconnectedContainers(layoutResult, input);
+	const ringed = packRootComponents(withRings, graph);
+	// The ring layout is a refinement of ELK's, never a risk to it: a ringed layout with a
+	// position that is not a number, or far larger than ELK's, is dropped for ELK's.
+	const ringedBounds = rootBounds(graph.nodes, ringed.nodePositions, ringed.containerSizes);
+	const baselineBounds = rootBounds(graph.nodes, baseline.nodePositions, baseline.containerSizes);
+	if (ringLayoutAcceptable(ringedBounds, baselineBounds)) return ringed;
+	console.warn(
+		`[scanopy] ring layout dropped for the layered one: ${JSON.stringify(ringedBounds)} against ${JSON.stringify(baselineBounds)}`
+	);
+	return baseline;
 }
 
 /** Root containers, linked wherever a layout edge joins two of them (see `rootGraphOf`). */
