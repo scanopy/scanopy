@@ -4,8 +4,9 @@
 //! A scan always sweeps its daemon's interfaced subnets. The rows hold only the routed subnets
 //! added on top of them, so a configuration's `subnet_ids` lists those, and `None` means the
 //! interfaced subnets alone. Dispatch sends the daemon the union (see
-//! [`resolve_scan_targets`]), and a run's record names what it swept (see
-//! [`swept_subnet_ids`]). See [`DiscoverySubnet`].
+//! [`resolve_scan_targets`]). A run's rows hold every subnet it swept (see
+//! [`swept_subnet_ids`]), and a deleted subnet leaves the runs that swept it. See
+//! [`DiscoverySubnet`].
 use super::*;
 use crate::server::shared::relations as R;
 
@@ -51,34 +52,48 @@ pub(crate) fn recorded_discovery_type(session: &DiscoveryUpdatePayload) -> Disco
     discovery_type
 }
 
+/// A run's swept subnets as read back: `None` when it recorded none (a run from before runs
+/// recorded them, or one whose daemon reported none), and otherwise the recorded subnets that
+/// still exist, which is empty once every one of them is deleted.
+pub(crate) fn run_subnet_targets(recorded: Option<&[Uuid]>, rows: Vec<Uuid>) -> Option<Vec<Uuid>> {
+    recorded.map(|_| rows)
+}
+
 impl DiscoveryService {
-    /// Replace `discovery`'s target rows with the routed subnets its type names. Its daemon's
-    /// interfaced subnets are left out, because every scan sweeps them. A historical run keeps
-    /// the targets it ran with in its own record, which a later subnet deletion leaves alone.
+    /// Replace `discovery`'s rows with the subnets its type names. A scan's daemon's interfaced
+    /// subnets are left out, because every scan sweeps them. A historical run keeps every subnet
+    /// it swept, interfaced ones included, except any deleted since the run was dispatched.
     pub async fn save_subnet_targets(&self, discovery: &Discovery) -> Result<()> {
-        if !discovery.base.run_type.is_live_config() {
-            return Ok(());
-        }
         let mut discovery_type = discovery.base.discovery_type.clone();
         let Some(targets) = discovery_type.subnet_targets_mut() else {
             return Ok(());
         };
-        let interfaced: HashSet<Uuid> = match self.daemon_service.get() {
-            Some(daemon_service) if targets.as_ref().is_some_and(|t| !t.is_empty()) => {
-                daemon_service
+        let listed: HashSet<Uuid> = targets.iter().flatten().copied().collect();
+        let kept: HashSet<Uuid> = if listed.is_empty() {
+            listed
+        } else if discovery.base.run_type.is_live_config() {
+            let interfaced: HashSet<Uuid> = match self.daemon_service.get() {
+                Some(daemon_service) => daemon_service
                     .interfaced_subnet_ids(&discovery.base.daemon_id)
                     .await?
                     .into_iter()
-                    .collect()
-            }
-            _ => HashSet::new(),
+                    .collect(),
+                None => HashSet::new(),
+            };
+            listed.difference(&interfaced).copied().collect()
+        } else {
+            let ids: Vec<Uuid> = listed.into_iter().collect();
+            let filter = StorableFilter::<Subnet>::new_from_site_ids(&[discovery.base.site_id])
+                .entity_ids(&ids)
+                .live();
+            self.subnet_service
+                .get_all(filter)
+                .await?
+                .into_iter()
+                .map(|s| s.id)
+                .collect()
         };
-        let rows: Vec<DiscoverySubnet> = targets
-            .iter()
-            .flatten()
-            .copied()
-            .filter(|id| !interfaced.contains(id))
-            .collect::<HashSet<Uuid>>()
+        let rows: Vec<DiscoverySubnet> = kept
             .into_iter()
             .map(|subnet_id| DiscoverySubnet {
                 discovery_id: discovery.id,
@@ -92,12 +107,12 @@ impl DiscoveryService {
     }
 
     /// Set each scan's routed subnet targets from its rows: the targets whose subnets still
-    /// exist, and none once the last of them is deleted. A historical run reads the targets it
-    /// recorded.
+    /// exist, and none once the last of them is deleted. A historical run gets the subnets it
+    /// swept that still exist, on its record and on the session it holds. See
+    /// [`run_subnet_targets`].
     pub(crate) async fn attach_subnet_targets(&self, discoveries: &mut [Discovery]) -> Result<()> {
         let ids: Vec<Uuid> = discoveries
             .iter()
-            .filter(|d| d.base.run_type.is_live_config())
             .filter(|d| d.base.discovery_type.has_subnet_targets())
             .map(|d| d.id)
             .collect();
@@ -119,15 +134,20 @@ impl DiscoveryService {
                 .or_default()
                 .push(row.subnet_id);
         }
-        for discovery in discoveries
-            .iter_mut()
-            .filter(|d| d.base.run_type.is_live_config())
-        {
-            let Some(targets) = discovery.base.discovery_type.subnet_targets_mut() else {
-                continue;
-            };
-            let ids = by_scan.remove(&discovery.id).unwrap_or_default();
-            *targets = (!ids.is_empty()).then_some(ids);
+        for discovery in discoveries.iter_mut() {
+            let rows = by_scan.remove(&discovery.id).unwrap_or_default();
+            let base = &mut discovery.base;
+            if let RunType::Historical { results } = &mut base.run_type {
+                let Some(targets) = base.discovery_type.subnet_targets_mut() else {
+                    continue;
+                };
+                *targets = run_subnet_targets(targets.as_deref(), rows);
+                if let Some(session_targets) = results.discovery_type.subnet_targets_mut() {
+                    *session_targets = targets.clone();
+                }
+            } else if let Some(targets) = base.discovery_type.subnet_targets_mut() {
+                *targets = (!rows.is_empty()).then_some(rows);
+            }
         }
         Ok(())
     }
@@ -212,5 +232,19 @@ mod tests {
             None
         );
         assert_eq!(swept_subnet_ids(None, None), None);
+    }
+
+    /// A run that recorded no subnets reads back as none, which the UI shows as the daemon's
+    /// interfaced subnets; one whose recorded subnets were all deleted reads back as an empty
+    /// list, not as none.
+    #[test]
+    fn a_run_whose_subnets_were_deleted_still_reads_as_having_recorded_some() {
+        let rows = ids(1);
+        assert_eq!(run_subnet_targets(None, Vec::new()), None);
+        assert_eq!(
+            run_subnet_targets(Some(&ids(2)), Vec::new()),
+            Some(Vec::new())
+        );
+        assert_eq!(run_subnet_targets(Some(&ids(2)), rows.clone()), Some(rows));
     }
 }

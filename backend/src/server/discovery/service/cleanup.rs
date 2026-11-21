@@ -375,7 +375,20 @@ impl DiscoveryService {
                 error = %e,
                 "Failed to create historical discovery record for stalled session"
             );
-        } else if let Err(e) = self.record_warnings(&historical_discovery).await {
+            return;
+        }
+        if let Err(e) = self.save_subnet_targets(&historical_discovery).await {
+            super::dispatch::record_finish_error(
+                super::dispatch::DiscoveryFinishStep::SweptSubnets,
+            );
+            tracing::error!(
+                session_id = %session_id,
+                discovery_id = %historical_discovery.id,
+                error = %e,
+                "Failed to record swept subnets for stalled session"
+            );
+        }
+        if let Err(e) = self.record_warnings(&historical_discovery).await {
             super::dispatch::record_finish_error(
                 super::dispatch::DiscoveryFinishStep::WarningRecords,
             );

@@ -48,7 +48,6 @@
 		daemons_troubleshoot_connectedTitle,
 		daemons_connectedCoversCidr,
 		daemons_connectedMissesCidr,
-		daemons_addRoutedCidr,
 		daemons_troubleshoot_connectedDesc,
 		daemons_troubleshoot_testingConnection,
 		daemons_troubleshoot_reachablePolling,
@@ -82,8 +81,6 @@
 		/** The network this daemon is being installed for, from subnet create. */
 		expectedCidr?: string | null;
 		onViewDiscovery?: () => void;
-		/** Add `expectedCidr`, which the host isn't on, to the daemon's scan as a routed network. */
-		onAddRoutedCidr?: () => void;
 		onAdvanced?: (() => void) | null;
 		daemonMode?: DaemonMode;
 		daemonName?: string;
@@ -112,7 +109,6 @@
 		daemonNetworks = [],
 		expectedCidr = null,
 		onViewDiscovery,
-		onAddRoutedCidr,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
 		daemonName = 'scanopy-daemon',
@@ -349,9 +345,6 @@
 							<p class="text-sm text-secondary">
 								{daemons_connectedMissesCidr({ cidr: expectedCidr })}
 							</p>
-							<button type="button" class="btn-secondary mt-2" onclick={() => onAddRoutedCidr?.()}>
-								{daemons_addRoutedCidr()}
-							</button>
 						{/if}
 					</div>
 				{/if}
