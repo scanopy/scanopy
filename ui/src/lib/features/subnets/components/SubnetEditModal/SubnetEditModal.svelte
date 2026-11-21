@@ -48,6 +48,7 @@
 	} from '#lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
 	import {
 		useDiscoveriesQuery,
+		useInitiateDiscoveryMutation,
 		useUpdateDiscoveryMutation
 	} from '#lib/features/discovery/queries.ts';
 	import type { Discovery } from '#lib/features/discovery/types/base.ts';
@@ -219,6 +220,7 @@
 	const daemonsQuery = useDaemonsQuery();
 	const discoveriesQuery = useDiscoveriesQuery();
 	const updateDiscoveryMutation = useUpdateDiscoveryMutation();
+	const initiateDiscoveryMutation = useInitiateDiscoveryMutation();
 	let allScans = $derived(liveUnifiedScans(discoveriesQuery.data ?? []));
 	let siteScans = $derived(allScans.filter((d) => d.site_id === selectedSiteId));
 	function scanLabel(d: Discovery): string {
@@ -380,12 +382,17 @@
 					await onUpdate(subnet.id, subnetData);
 				} else {
 					const created = await onCreate(subnetData, chosenPurpose);
+					// Add the subnet to the scan, then run the scan. A failed run shows the API's
+					// error toast, and the subnet stays on the scan for its next run.
 					if (created && scan) {
+						let added = false;
 						try {
 							await updateDiscoveryMutation.mutateAsync(withRoutedTarget(scan, created.id));
+							added = true;
 						} catch {
 							pushError(subnets_routedAddFailed({ subnet: created.name, scan: scanLabel(scan) }));
 						}
+						if (added) await initiateDiscoveryMutation.mutateAsync(scan.id).catch(() => {});
 					}
 				}
 			} finally {

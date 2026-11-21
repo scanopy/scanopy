@@ -9,7 +9,6 @@
 	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
 	import type { InstallArtifacts } from '../../../types/base';
 	import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
-	import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 	import type { DaemonMode } from '../../../types/base';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useTestReachabilityMutation, useRetryDaemonConnectionMutation } from '../../../queries';
@@ -48,12 +47,8 @@
 		daemons_troubleshoot_troubleTitleServerPoll,
 		daemons_troubleshoot_connectedTitle,
 		daemons_connectedCoversCidr,
-		daemons_connectedFindingNetworks,
 		daemons_connectedMissesCidr,
-		daemons_addNetworks,
 		daemons_addRoutedCidr,
-		daemons_connectedRoutedHint,
-		daemons_connectedNetworksIntro,
 		daemons_troubleshoot_connectedDesc,
 		daemons_troubleshoot_testingConnection,
 		daemons_troubleshoot_reachablePolling,
@@ -82,13 +77,11 @@
 		hasErrors: boolean;
 		isFirstDaemon?: boolean;
 		connectionStatus?: DaemonConnectionStatus;
-		/** The networks its host is on, which its first scan covers. Empty until the daemon reports them. */
+		/** The subnets its host has an interface with. Empty until the daemon reports them. */
 		daemonNetworks?: SubnetResponse[];
 		/** The network this daemon is being installed for, from subnet create. */
 		expectedCidr?: string | null;
 		onViewDiscovery?: () => void;
-		/** Open the daemon's scan on Targets, to add networks it routes to. */
-		onAddNetworks?: () => void;
 		/** Add `expectedCidr`, which the host isn't on, to the daemon's scan as a routed network. */
 		onAddRoutedCidr?: () => void;
 		onAdvanced?: (() => void) | null;
@@ -119,7 +112,6 @@
 		daemonNetworks = [],
 		expectedCidr = null,
 		onViewDiscovery,
-		onAddNetworks,
 		onAddRoutedCidr,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
@@ -345,40 +337,27 @@
 						{daemons_troubleshoot_connectedDesc()}
 					</p>
 				</div>
-				<div class="w-full max-w-md text-left">
-					{#if daemonNetworks.length === 0}
-						<p class="text-center text-sm text-tertiary">{daemons_connectedFindingNetworks()}</p>
-					{:else}
-						<p class="mb-2 text-sm text-secondary">{daemons_connectedNetworksIntro()}</p>
-						<ul class="space-y-1">
-							{#each daemonNetworks as network (network.id)}
-								<li class="flex items-center justify-between gap-4 text-sm">
-									<span class="font-mono text-primary">{network.cidr}</span>
-									<span class="text-tertiary">{subnetTypes.getName(network.subnet_type)}</span>
-								</li>
-							{/each}
-						</ul>
-						{#if expectedCidr && daemonNetworks.some((n) => n.cidr === expectedCidr)}
-							<p class="mt-3 text-sm text-secondary">
+				<!-- Once the daemon reports its interfaces, whether it covers the range asked for from
+				     subnet create. -->
+				{#if expectedCidr && daemonNetworks.length > 0}
+					<div class="w-full max-w-md text-left">
+						{#if daemonNetworks.some((n) => n.cidr === expectedCidr)}
+							<p class="text-sm text-secondary">
 								{daemons_connectedCoversCidr({ cidr: expectedCidr })}
 							</p>
-						{:else if expectedCidr}
-							<p class="mt-3 text-sm text-secondary">
+						{:else}
+							<p class="text-sm text-secondary">
 								{daemons_connectedMissesCidr({ cidr: expectedCidr })}
 							</p>
 							<button type="button" class="btn-secondary mt-2" onclick={() => onAddRoutedCidr?.()}>
 								{daemons_addRoutedCidr()}
 							</button>
 						{/if}
-						<p class="mt-3 text-sm text-secondary">{daemons_connectedRoutedHint()}</p>
-					{/if}
-				</div>
+					</div>
+				{/if}
 				<div class="flex flex-wrap justify-center gap-2">
 					<button type="button" class="btn-primary" onclick={() => onViewDiscovery?.()}>
 						{common_viewTopology()}
-					</button>
-					<button type="button" class="btn-secondary" onclick={() => onAddNetworks?.()}>
-						{daemons_addNetworks()}
 					</button>
 				</div>
 				{#if hasEmail && isFirstDaemon}
