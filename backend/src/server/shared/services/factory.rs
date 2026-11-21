@@ -334,6 +334,7 @@ impl ServiceFactory {
             entity_tag_service.clone(),
             credential_service.clone(),
             site_service.clone(),
+            subnet_service.clone(),
             organization_service.clone(),
             discovery_warning_service.clone(),
             crate::server::config::get_deployment_type(&config),

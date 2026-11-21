@@ -29,6 +29,7 @@ use crate::server::shared::storage::traits::{Entity, PaginatedResult, Storable, 
 use crate::server::shared::types::api::ApiError;
 use crate::server::sites::service::SiteService;
 use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::service::SubnetService;
 use crate::server::tags::entity_tags::EntityTagService;
 use anyhow::anyhow;
 use anyhow::{Error, Result};
@@ -94,6 +95,8 @@ pub struct DiscoveryService {
     entity_tag_service: Arc<EntityTagService>,
     credential_service: Arc<CredentialService>,
     site_service: Arc<SiteService>,
+    /// Checks which of a run's swept subnets still exist before its rows are written.
+    subnet_service: Arc<SubnetService>,
     organization_service: Arc<OrganizationService>,
     /// Each historical run's warnings, stored as rows beside it.
     warning_service: Arc<DiscoveryWarningService>,

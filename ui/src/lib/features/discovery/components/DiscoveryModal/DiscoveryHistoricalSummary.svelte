@@ -13,7 +13,9 @@
 	import { useSubnetsQuery, getSubnetById } from '#lib/features/subnets/queries.ts';
 	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
 	import scanSettingsFields from '#lib/data/scan-settings.json';
-	import { subnetTypes, type FieldDefinition } from '#lib/shared/stores/metadata.ts';
+	import { entities, subnetTypes, type FieldDefinition } from '#lib/shared/stores/metadata.ts';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
 	import {
 		discovery_runDetails,
 		discovery_hostNamingFallback,
@@ -25,6 +27,7 @@
 		discovery_scanModeLight,
 		discovery_subnetsScanned,
 		discovery_allInterfacedSubnets,
+		discovery_sweptSubnetsDeleted,
 		discovery_dockerScanDetails,
 		discovery_scanMode,
 		discovery_scanTuning,
@@ -36,7 +39,6 @@
 		common_hosts,
 		common_ipAddresses,
 		common_unknownEntity,
-		common_unknown,
 		common_finished,
 		common_hostId,
 		common_ipAddress,
@@ -67,16 +69,20 @@
 			: null
 	);
 
-	// The subnets the run swept, by name. A run records them; one recorded before runs did, or by
-	// a daemon that reports none, has no list, and the caller shows the interfaced-subnets line.
+	// The subnets the run swept. A run recorded before runs did, or by a daemon that reports none,
+	// has no list (`null`). One whose swept subnets were all deleted since has an empty list.
 	// Loopback and other ranges a scan doesn't sweep are left out, as the digest leaves them out.
-	function sweptSubnetNames(subnetIds: string[] | null): string | null {
-		const names = (subnetIds ?? [])
-			.map((id) => getSubnetById(subnetsData, id))
-			.filter((s) => !s || subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible)
-			.map((s) => s?.name ?? common_unknown());
-		return names.length > 0 ? names.join(', ') : null;
-	}
+	let sweptIds = $derived(
+		payload.discovery_type.type === 'Unified' || payload.discovery_type.type === 'Network'
+			? payload.discovery_type.subnet_ids
+			: null
+	);
+	let sweptSubnets = $derived(
+		(sweptIds ?? []).flatMap((id) => {
+			const s = getSubnetById(subnetsData, id);
+			return s && subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible ? [s] : [];
+		})
+	);
 
 	// Scan settings field metadata for label lookup
 	const fields = scanSettingsFields as FieldDefinition[];
@@ -125,6 +131,27 @@
 			: ''
 	);
 </script>
+
+{#snippet sweptSubnetsRow()}
+	<InfoRow label={discovery_subnetsScanned()}>
+		{#if sweptIds === null}
+			{discovery_allInterfacedSubnets()}
+		{:else if sweptIds.length === 0}
+			{discovery_sweptSubnetsDeleted()}
+		{:else}
+			<div class="flex flex-wrap justify-end gap-1.5">
+				{#each sweptSubnets as subnet (subnet.id)}
+					<EntityTag
+						entityRef={entityRef('Subnet', subnet.id, subnet)}
+						label={subnet.name}
+						icon={entities.getIconComponent('Subnet')}
+						color={entities.getColorHelper('Subnet').color}
+					/>
+				{/each}
+			</div>
+		{/if}
+	</InfoRow>
+{/snippet}
 
 <div class="space-y-4">
 	<!-- Status Banner: the phase, and only the phase. Why a run ended the way it did, and the
@@ -194,9 +221,7 @@
 		<!-- Settings for Unified -->
 	{:else if payload.discovery_type.type === 'Unified'}
 		<InfoCard title={discovery_scanSettings()}>
-			<InfoRow label={discovery_subnetsScanned()}>
-				{sweptSubnetNames(payload.discovery_type.subnet_ids) ?? discovery_allInterfacedSubnets()}
-			</InfoRow>
+			{@render sweptSubnetsRow()}
 			<InfoRow label={discovery_hostNamingFallback()}>
 				{hostNamingLabel}
 			</InfoRow>
@@ -212,9 +237,7 @@
 		<!-- Settings for Network -->
 	{:else if payload.discovery_type.type === 'Network'}
 		<InfoCard title={discovery_scanSettings()}>
-			<InfoRow label={discovery_subnetsScanned()}>
-				{sweptSubnetNames(payload.discovery_type.subnet_ids) ?? discovery_allInterfacedSubnets()}
-			</InfoRow>
+			{@render sweptSubnetsRow()}
 		</InfoCard>
 
 		<!-- Docker/SelfReport host_id card -->
