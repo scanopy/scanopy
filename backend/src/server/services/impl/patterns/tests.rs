@@ -2240,3 +2240,46 @@ fn google_cast_binds_the_advertised_port_unless_a_cast_device_holds_it() {
     let params = ctx.create_params_with_ports(&baseline, &unbound);
     assert!(GoogleCast.discovery_pattern().matches(&params).is_err());
 }
+
+/// rapportd listens on a port the OS picks; the `_companion-link._tcp` SRV record names it.
+#[test]
+fn companion_link_binds_the_advertised_port() {
+    use crate::server::services::definitions::companion_link::CompanionLink;
+
+    let mut ctx = TestContext::new();
+    let scanned = vec![PortType::new_tcp(55139)];
+    ctx.dns_sd = Some(announcing_on(DnsSdServiceType::COMPANION_LINK, &[], 55139));
+    let baseline = ctx.create_baseline_params(&scanned);
+    let params = ctx.create_params_with_ports(&baseline, &scanned);
+    let link = CompanionLink
+        .discovery_pattern()
+        .matches(&params)
+        .expect("an advertised Companion Link matches");
+    assert_eq!(link.ports, scanned);
+}
+
+/// A Zyxel EX5401-B1 serves hostapd's WPS device description on 49152. A bare 404 there, which
+/// the same server returns for `/`, is not evidence.
+#[test]
+fn wps_upnp_matches_the_wfa_device_description() {
+    let description = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:device-1-0\">\
+        <device><deviceType>urn:schemas-wifialliance-org:device:WFADevice:1</deviceType>\
+        <friendlyName>WPS Access Point</friendlyName><manufacturer>ZYXEL</manufacturer>\
+        <modelName>EX5401-B1</modelName></device></root>";
+    assert!(definition_matches_status(
+        "WPS UPnP",
+        PortType::new_tcp(49152),
+        "/wps_device.xml",
+        200,
+        &[("server", "Unspecified, UPnP/1.0, Unspecified")],
+        description
+    ));
+    assert!(!definition_matches_status(
+        "WPS UPnP",
+        PortType::new_tcp(49152),
+        "/wps_device.xml",
+        404,
+        &[],
+        ""
+    ));
+}

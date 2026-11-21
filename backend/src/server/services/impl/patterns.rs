@@ -574,7 +574,8 @@ impl DnsSdServiceType {
     pub const AIRPLAY: &'static str = "_airplay._tcp";
     /// AirPlay audio (Remote Audio Output Protocol). HomePods and AirPlay speakers.
     pub const RAOP: &'static str = "_raop._tcp";
-    /// Apple's device-to-device pairing channel, on Apple TVs and HomePods.
+    /// Apple's device-to-device pairing and Continuity channel (rapportd), on Macs, iPhones, iPads,
+    /// Apple TVs and HomePods.
     pub const COMPANION_LINK: &'static str = "_companion-link._tcp";
     /// Apple device metadata; TXT `model=` carries the hardware identifier.
     pub const DEVICE_INFO: &'static str = "_device-info._tcp";
