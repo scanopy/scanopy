@@ -75,7 +75,6 @@
 	} from '#lib/features/discovery/queries.ts';
 	import { liveUnifiedScans, withRoutedTarget } from '#lib/features/discovery/utils/targets.ts';
 	import type { Discovery } from '#lib/features/discovery/types/base.ts';
-	import { openModal } from '#lib/shared/stores/modal-registry.ts';
 	import SubnetEditModal from '#lib/features/subnets/components/SubnetEditModal/SubnetEditModal.svelte';
 	import { useCreateSubnetMutation } from '#lib/features/subnets/queries.ts';
 	import type { Subnet } from '#lib/features/subnets/types/base.ts';
@@ -683,15 +682,6 @@
 		);
 	}
 
-	/** Open the new daemon's scan on its Targets tab, to add the networks it routes to. */
-	async function handleAddNetworks() {
-		const scan = await defaultScan();
-		if (!scan) return;
-		handleOnClose();
-		window.location.hash = 'discovery-scans';
-		openModal('discovery-editor', { id: scan.id, tab: 'targets', entityData: scan });
-	}
-
 	// The network asked for from subnet create, which the daemon's host turned out not to be on, is
 	// created over this modal and added to the daemon's scan as a routed network.
 	let routedScan = $state<Discovery | null>(null);
@@ -1042,7 +1032,6 @@
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
-							onAddNetworks={handleAddNetworks}
 							onAddRoutedCidr={handleAddRoutedCidr}
 							{daemonNetworks}
 							{expectedCidr}
