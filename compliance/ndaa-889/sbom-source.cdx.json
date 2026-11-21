@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:ddcda147-c7b6-4e8e-9815-9da77f65cda8",
+  "serialNumber": "urn:uuid:fcd2e617-d7b7-4321-988e-07ce32abfbfd",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-14T19:23:10Z",
+    "timestamp": "2026-11-21T19:58:27Z",
     "tools": {
       "components": [
         {
@@ -46191,12 +46191,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/scanopy-server@0.20.0?package-id=eb5e6dea88d41ea8",
+      "bom-ref": "pkg:cargo/scanopy-server@0.20.1?package-id=eda47ca96132171f",
       "type": "library",
       "name": "scanopy-server",
-      "version": "0.20.0",
-      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.20.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/scanopy-server@0.20.0",
+      "version": "0.20.1",
+      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.20.1:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/scanopy-server@0.20.1",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -46216,23 +46216,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-server:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-server:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_server:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_server:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -46241,12 +46241,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/scanopy-ui@0.20.0?package-id=c3c0d4e73206183c",
+      "bom-ref": "pkg:npm/scanopy-ui@0.20.1?package-id=f52dc257c1445c45",
       "type": "library",
       "name": "scanopy-ui",
-      "version": "0.20.0",
-      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.20.0:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/scanopy-ui@0.20.0",
+      "version": "0.20.1",
+      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.20.1:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/scanopy-ui@0.20.1",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -46266,23 +46266,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.20.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.20.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -63266,11 +63266,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "a6451bcf47f40bee924174f9ecae0ee97880107d"
+          "content": "1a76109442249ec8f7a2539d766d91ff287a89c8"
         },
         {
           "alg": "SHA-256",
-          "content": "9397420fa6f5278d7b8064a3d6cbba92227539cebf8ea9a7ad823459739ffed7"
+          "content": "8a14d995c8327a781e9eac7747d77c5b79e494c7d46bdbf668d9c2a6a8f2ab4f"
         }
       ]
     },
@@ -63341,11 +63341,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "ed8bb8ca6dfbaf05b4133618c5499f206a0adbb1"
+          "content": "f4a8725b3234c5359f8ce8045c5175c07918e08b"
         },
         {
           "alg": "SHA-256",
-          "content": "b2e18940ddad26545de434246d75b4d9df479d47b9e6bdc7943a875266800a07"
+          "content": "5453907e672d266abcc1cad3872bab3b9498d578faa205b47074b69c221c1f44"
         }
       ]
     },
@@ -63371,11 +63371,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "dd7cb0320be6ad75c7d7b23f0ad8b9743775e11c"
+          "content": "be8e05aef40d24dd478acc07d24cbd719ecafefa"
         },
         {
           "alg": "SHA-256",
-          "content": "c18aae5fc06646d33f31a3b41133ab671388e1a1ae3820eafee95a2ca13f7230"
+          "content": "a6a88693eb57018b6de1380a09b0f33222e2579b969301d097a66366201682b6"
         }
       ]
     }
@@ -68223,7 +68223,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/scanopy-server@0.20.0?package-id=eb5e6dea88d41ea8",
+      "ref": "pkg:cargo/scanopy-server@0.20.1?package-id=eda47ca96132171f",
       "dependsOn": [
         "pkg:cargo/anstyle-query@1.1.5?package-id=3eb3e92be11ef569",
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
@@ -70941,7 +70941,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/scanopy-ui@0.20.0?package-id=c3c0d4e73206183c",
+      "ref": "pkg:npm/scanopy-ui@0.20.1?package-id=f52dc257c1445c45",
       "dependsOn": [
         "pkg:npm/%40beyonk/gdpr-cookie-consent-banner@16.0.3?package-id=43a0ad131a5330ac",
         "pkg:npm/%40lucide/svelte@1.65.0?package-id=ef6522c6d3967f38",
