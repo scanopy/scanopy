@@ -300,14 +300,13 @@ impl DiscoveryWarningCode {
             | Self::GuestOutsideScan
             | Self::GuestBehindHypervisor
             | Self::GuestIsolated
-            // Scan settings: the duration to raise, or the coverage to narrow, or — for the
-            // middlebox case — the "Trust Port-Only Detections" opt-in, once the reader has
-            // decided the addresses really are empty.
+            // A daemon on the subnet, for the middlebox case.
             | Self::ConnectionsWithoutProtocolResponse
+            // Scan settings: the duration to raise.
             | Self::ScanTimeLimitWithEstimate
             | Self::ScanTimeLimit
             | Self::WarningsTruncated
-            // The cutoff and rate to change, or the subnet to take out of the scan's targets.
+            // The cutoff to lower, or the subnet to narrow or take out of the scan's targets.
             | Self::ArpSweepTruncated
             | Self::IcmpSweepTruncated
             | Self::SubnetProbedWithoutInterface
@@ -619,10 +618,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} did not finish reporting {groups}, so what it read was recorded and the rest refreshes on the next complete scan."
             }
             Self::SnmpWalkBridgeMibAbsent => {
-                "{addresses} did not answer for {groups}, which these switches commonly do not implement. Their MAC-address-table and VLAN membership cannot be read over SNMP; a UniFi controller integration reports the same data where one manages the device."
+                "{addresses} did not answer for {groups}, which these switches commonly do not implement. Their MAC-address-table and VLAN membership cannot be read over SNMP."
             }
             Self::SnmpWalkNoAnswer => {
-                "{addresses} returned no {groups} data. On the device, check that the SNMP view granted to this community or user includes these tables; earlier values stay until a scan reads them."
+                "{addresses} returned no {groups} data, which usually means the SNMP view the device grants this credential's community or user leaves those tables out. Earlier values stay until a scan reads them."
             }
             Self::SnmpWalkFailed => {
                 "The read of {groups} from {addresses} returned nothing: its last request {cause} after retries. Earlier values stay until a scan reads them."
@@ -676,16 +675,16 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} answered both {first} and {second}, and both integrations reported a full interface table. Scanopy merged the two sets. On a port both describe, {first} answered first, so Scanopy used its row and its neighbours. Running both is supported."
             }
             Self::CredentialTargetNotScanned => {
-                "The {credential} credential for {addresses} was not tried: no subnet this scan covers contains that address. Point the credential at a host this scan reaches, or add the address's subnet to the scan's targets."
+                "The {credential} credential for {addresses} was not tried: no subnet this scan covers contains that address. Point the credential at a host this scan reaches."
             }
             Self::CredentialTargetNotResponding => {
-                "The {credential} credential for {addresses} was not tried, because nothing answered there during the scan — check the address is right and the host is online."
+                "The {credential} credential for {addresses} was not tried, because nothing answered there during the scan: the address is wrong, or the host was offline. Check the credential's target."
             }
             Self::CredentialGateClosed => {
                 "The {credential} credential for {addresses} was not tried, because port {ports} was not open there — check the port configured on the credential."
             }
             Self::CredentialDaemonOsMismatch => {
-                "The {credential} credential is set to read files on {declared} daemons, and {daemon} runs {actual}, so it skipped the credential. Change the credential's Daemon OS, or scan with a {declared} daemon."
+                "The {credential} credential is set to read files on {declared} daemons, and {daemon} runs {actual}, so it skipped the credential. Change the credential's Daemon OS."
             }
             Self::CredentialNeedsNewerDaemon => {
                 "The {credential} credential {gap}. That needs a daemon newer than {required}, and {daemon} runs {version}. Upgrade the daemon to use it."
@@ -715,16 +714,16 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The {credential} credential for {addresses} signed in, then ran past this integration's time limit on one host before it finished. ({detail}) The next scan tries again."
             }
             Self::CredentialUnreachable => {
-                "The {credential} credential for {addresses} could not be reached. Check the credential's address and port, and that the service is running on that host. ({detail})"
+                "The {credential} credential for {addresses} could not be reached: the address or port on the credential is wrong, or the service is not running on that host. Check the credential's address and port. ({detail})"
             }
             Self::CredentialTimedOut => {
-                "The {credential} credential for {addresses} got no answer before it timed out. Check the credential's address and port, and that the service is running on that host. ({detail})"
+                "The {credential} credential for {addresses} got no answer before it timed out: the address or port on the credential is wrong, or the service is not running on that host. Check the credential's address and port. ({detail})"
             }
             Self::IntegrationWithoutCredential => {
                 "Scans found {integration} on {count} host(s), and no {integration} credential has connected to them. Create one for these hosts to {discovers}."
             }
             Self::GuestOutsideScan => {
-                "{addresses} run on {integration} at addresses no subnet this scan covers, so they were recorded without ports or services. Add their subnet to the discovery, or scan it from a daemon on that network."
+                "{addresses} run on {integration} at addresses no subnet this scan covers, so they were recorded without ports or services. Add their subnet to the scan's targets."
             }
             Self::GuestBehindHypervisor => {
                 "{addresses} run on {integration} on {bridge}, a bridge with no uplink that only {hypervisor} has an address on, so this scan reached no ports or services on them. Run a daemon on {hypervisor} to scan them."
@@ -733,13 +732,13 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} run on {integration} on {bridge}, a bridge with no uplink and no hypervisor address, so no daemon outside it reaches them and they were recorded without ports or services. Install a daemon on a guest attached to {bridge} to scan them."
             }
             Self::ConnectionsWithoutProtocolResponse => {
-                "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses hold devices, install a daemon on {cidr} to scan them from inside it, or turn on Trust Port-Only Detections in the scan's settings to record a host wherever a port answers."
+                "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses hold devices, install a daemon on {cidr} to scan them from inside it."
             }
             Self::ScanTimeLimitWithEstimate => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::ScanTimeLimit => {
-                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Fix any slow-subnet warning on this run first, then raise Max Discovery Duration on the scan's Detection tab."
+                "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Raise Max Discovery Duration on the scan's Performance tab."
             }
             Self::DcpSweepTimedOut => {
                 "The PROFINET device sweep did not finish within {seconds}s, so devices that answer only to it are missing from this scan. The next scan runs the sweep again. If it repeats, report a bug."
@@ -748,16 +747,16 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The ping sweep did not finish within {seconds}s, so hosts that answer only to ping are missing from this scan. The next scan runs the sweep again. If it repeats, report a bug."
             }
             Self::ReverseDnsTimedOut => {
-                "{count} reverse DNS lookup(s) got no answer in time, so those hosts have no hostname from DNS in this scan. If this repeats, check the DNS resolver the daemon's host uses."
+                "{count} reverse DNS lookup(s) got no answer in time from the DNS resolver the daemon's host uses, so those hosts have no hostname from DNS in this scan."
             }
             Self::ArpSweepTruncated => {
-                "{cidr} holds {subnet_addresses} addresses and the ARP sweep covered the first {addresses_swept}, the most that ARP Scan Cutoff /{cutoff} allows, so hosts past that point were not found. Lower ARP Scan Cutoff on the scan's Performance tab to cover the subnet, and raise ARP Scan Rate to keep the sweep short. A switch running Dynamic ARP Inspection rate-limits or shuts a port that sends ARP too fast, so check its limit before raising the rate."
+                "{cidr} holds {subnet_addresses} addresses and the ARP sweep covered the first {addresses_swept}, the most that ARP Scan Cutoff /{cutoff} allows, so hosts past that point were not found. Lower ARP Scan Cutoff on the scan's Performance tab to cover the subnet."
             }
             Self::IcmpSweepTruncated => {
-                "The ping sweep stopped after {addresses_pinged} addresses, the most that ARP Scan Cutoff /{cutoff} allows, so {cidrs} were not pinged in full and hosts there that answer only to ping were not found. Lower ARP Scan Cutoff on the scan's Performance tab, or move some of these subnets to a scan of their own."
+                "The ping sweep stopped after {addresses_pinged} addresses, the most that ARP Scan Cutoff /{cutoff} allows, so {cidrs} were not pinged in full and hosts there that answer only to ping were not found. Lower ARP Scan Cutoff on the scan's Performance tab."
             }
             Self::SubnetProbedWithoutInterface => {
-                "This scan spent about {minutes} minutes on {addresses} addresses in {cidr} that hold nothing. The daemon has no interface on that subnet, so it probed each address over TCP, where a daemon on the subnet sweeps it with ARP in seconds. Install a daemon on that subnet, narrow the target to the part that holds hosts, or remove it from the scan's targets."
+                "This scan spent about {minutes} minutes on {addresses} addresses in {cidr} that hold nothing. The daemon has no interface on that subnet, so it probed each address over TCP, where a daemon on the subnet sweeps it with ARP in seconds. Narrow the target to the part that holds hosts, or remove it from the scan's targets."
             }
             Self::ContainerSubnetScanned => {
                 "{cidr} is a container bridge network, and this scan probed it over the network. Docker and Podman discovery read the same containers from the runtime in seconds. Remove it from the scan's targets."
@@ -766,22 +765,22 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{daemon} has a file-descriptor limit of {fd_limit}, so it deep-scanned {concurrency} host(s) at a time where it otherwise scans {expected_concurrency}, and the scan took longer. Raise the hard file-descriptor limit for the daemon and restart it."
             }
             Self::PortScanDescriptorsExhausted => {
-                "The port scan ran out of file descriptors and cut its batch {reductions} time(s), down to {lowest_batch_size} ports at once. Ports probed at those moments returned no result, so open ports may be missing from hosts in this scan. Raise the daemon's hard file-descriptor limit and restart it, or lower Port Scan Batch Size on the scan's Performance tab."
+                "The port scan ran out of file descriptors and cut its batch {reductions} time(s), down to {lowest_batch_size} ports at once. Ports probed at those moments returned no result, so open ports may be missing from hosts in this scan. Raise the daemon's hard file-descriptor limit and restart it."
             }
             Self::InterfaceFilterMatchedNothing => {
                 "Interfaces in {daemon}'s configuration is set to {filters}, and its host has {interfaces}, so the daemon found no subnet of its own to scan. Set Interfaces to names from that list, or clear it, and restart the daemon."
             }
             Self::ArpSweepUnavailable => {
-                "{daemon} could not send ARP, so this scan found hosts only where a probed port answered, recorded no MAC addresses, and took longer. Run the daemon as root or grant it the NET_RAW and NET_ADMIN capabilities. On Windows, install Npcap, or turn off Use Npcap ARP on the scan's Performance tab."
+                "{daemon} could not send ARP, so this scan found hosts only where a probed port answered, recorded no MAC addresses, and took longer. Sending ARP takes root or the NET_RAW and NET_ADMIN capabilities, and on Windows with Use Npcap ARP on, an Npcap install."
             }
             Self::IcmpSweepUnavailable => {
-                "{daemon} could not open a raw ICMP socket, so hosts that answer only to ping were not found. Run the daemon as root, or grant it the NET_RAW capability."
+                "{daemon} could not open a raw ICMP socket, which takes root or the NET_RAW capability, so hosts that answer only to ping were not found."
             }
             Self::LldpNeighbourNotFound => {
                 "LLDP/CDP neighbours name devices this site has not discovered ({count} in total), so they draw no links. This is expected where the far end is an endpoint or unmanaged device; a device that should have been scanned means the identifier it advertises is not one this site holds."
             }
             Self::LldpNeighbourAmbiguous => {
-                "LLDP/CDP neighbours advertise an identifier that several hosts on this site hold ({count} in total), so none of them can be picked and no link is drawn. This is usually duplicate records for one device rather than a device that was missed — merge the duplicates and the link resolves."
+                "LLDP/CDP neighbours advertise an identifier that several hosts on this site hold ({count} in total), so no link is drawn to any of them. If those hosts are one device recorded twice, merge them and the link resolves. If they are separate devices, they share a default identifier such as a sysName, and no link is drawn until one of them advertises another."
             }
             Self::LldpPortNoStrategy => {
                 "LLDP/CDP neighbours resolved to a device but advertise a port id of a subtype there is no lookup for ({count} in total), so Physical Topology draws a dashed device-level link instead of a port-to-port one."
@@ -808,10 +807,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The daemon that ran this scan is on {daemon_version}. Upgrade it."
             }
             Self::DaemonInDesktopVm => {
-                "{daemon} runs inside {vm}'s virtual machine, so it can't see ARP, mDNS or LLDP traffic on your network: hosts get no MAC addresses or mDNS names, and switches no LLDP links. Install a daemon directly on the machine, outside {vm}, then delete this one."
+                "{daemon} runs inside {vm}'s virtual machine, so it can't see ARP, mDNS or LLDP traffic on your network: hosts get no MAC addresses or mDNS names, and switches no LLDP links. Install a daemon directly on the machine, outside {vm}."
             }
             Self::WarningsTruncated => {
-                "{elided} further warnings from this scan were not recorded, because it produced more than the scan record holds. Fix the warnings shown, and the rest appear on the next scan."
+                "{elided} further warnings from this scan were not recorded, because it produced more than the scan record holds. A later scan that raises fewer warnings records them."
             }
             // The UI fills this with the legacy sentence as written, or, for a code from a newer
             // daemon, with a sentence saying to upgrade the server and rescan.
@@ -836,35 +835,39 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             "issue_category": self.issue_category().map(|c| c.id()),
             "snmp_check": self.snmp_check(),
             "snmp_check_group": self.snmp_check_group(),
-            "settings_docs_path": self.settings_docs_path(),
+            "docs_path": self.docs_path(),
         })
     }
 }
 
 /// The docs section listing every scan setting.
 const SCAN_SETTINGS_DOCS_PATH: &str = "/docs/using-scanopy/discovery/scans/#scan-settings";
-/// The docs section listing every daemon configuration parameter.
-const DAEMON_SETTINGS_DOCS_PATH: &str = "/docs/reference/daemon-configuration/#parameter-reference";
+/// The firewalled-segments guide's section on credentials for hosts behind the firewall.
+const FIREWALLED_SEGMENT_CREDENTIALS_DOCS_PATH: &str =
+    "/docs/guides/networking/firewalled-segments/#credentials-for-hosts-in-the-segment";
 
 impl DiscoveryWarningCode {
-    /// The docs page for the setting this code's description names, as a root-relative path the
-    /// UI turns into a link beside the row. `None` for a code that names no setting.
+    /// The one docs page for this code, as a root-relative path the UI turns into a link beside the
+    /// row. `None` for a code with no page.
     ///
-    /// A description that tells the reader to change a setting links to where that setting is
-    /// documented. The test below holds every scan-setting label to that.
-    pub fn settings_docs_path(&self) -> Option<&'static str> {
+    /// Where the row has an action button that opens the setting, the link may explain the warning
+    /// instead. Where there is no action, a description that tells the reader to change a setting
+    /// links to where that setting is documented, and the test below holds every scan-setting label
+    /// to that.
+    pub fn docs_path(&self) -> Option<&'static str> {
         match self {
             Self::ArpSweepTruncated
             | Self::IcmpSweepTruncated
             | Self::ArpSweepUnavailable
-            | Self::PortScanDescriptorsExhausted
             | Self::ScanTimeLimit
-            | Self::ScanTimeLimitWithEstimate
-            | Self::ConnectionsWithoutProtocolResponse => Some(SCAN_SETTINGS_DOCS_PATH),
+            | Self::ScanTimeLimitWithEstimate => Some(SCAN_SETTINGS_DOCS_PATH),
 
-            // `CredentialTlsFailed` names a daemon setting too, and its row's button already
-            // opens the daemon configuration guide.
-            Self::InterfaceFilterMatchedNothing => Some(DAEMON_SETTINGS_DOCS_PATH),
+            // `CredentialTlsFailed` and `InterfaceFilterMatchedNothing` name daemon settings, and
+            // their rows' buttons open the daemon configuration guide.
+
+            // The row's button opens the credential's targets; the guide explains why a host past a
+            // firewall was not scanned.
+            Self::CredentialTargetNotScanned => Some(FIREWALLED_SEGMENT_CREDENTIALS_DOCS_PATH),
 
             _ => None,
         }
@@ -1161,7 +1164,7 @@ mod tests {
                 .find(|label| code.description().contains(label.as_str()));
             if let Some(label) = named {
                 assert!(
-                    code.settings_docs_path().is_some(),
+                    code.docs_path().is_some(),
                     "{} names {label} and links no docs page",
                     code.id()
                 );

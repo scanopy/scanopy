@@ -9,7 +9,7 @@
 	import { slugifySiteName } from '#lib/features/daemons/utils.ts';
 	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
-	import { credentialTypes, entities } from '#lib/shared/stores/metadata.ts';
+	import { credentialTypes, entities, signupIntents } from '#lib/shared/stores/metadata.ts';
 	import type { TypedTypeMetadata, CredentialTypeMetadata } from '#lib/shared/stores/metadata.ts';
 	import type { Credential, CredentialType } from '#lib/features/credentials/types/base.ts';
 	import { osFamilyOf, type DaemonOS } from '#lib/features/daemons/utils.ts';
@@ -193,26 +193,41 @@
 	// host is already claimed by another pending credential it stays in the list but
 	// is shown disabled with a reason (see dropdownDisabledReason). Configurable types
 	// (e.g. multiple Docker Proxies on different hosts) are never blanket-blocked.
+	// The credential categories the org's signup intents call for, listed first. Nothing is
+	// preselected, and the order within each group stays as the backend declares it.
+	let preferredCategories = $derived(
+		new Set(
+			(organization?.intents ?? []).flatMap(
+				(intent) => signupIntents.getItem(intent)?.metadata?.credential_categories ?? []
+			)
+		)
+	);
 	let typeOptions = $derived(
-		credentialTypes.getItems().filter((t) => {
-			// A login is assigned nowhere; a credential here picks or creates one in its own form.
-			if (isLoginType(t.id)) return false;
-			// A daemon-host-only type (the local socket) can only be added once (one daemon
-			// host). Locked-only rows are excluded: they span every host on the site, and
-			// one assigned to some *other* host leaves this daemon's host free. When one
-			// genuinely occupies it, that reaches the dropdown through
-			// `claimedDaemonHostIntegrations` instead, which disables the option with a
-			// reason rather than hiding it.
-			if (
-				isDaemonHostOnlyTargets(t.metadata?.targets) &&
-				pendingCredentials.some(
-					(p) => !isLockedOnly(p) && p.credential.credential_type.type === t.id
-				)
-			) {
-				return false;
-			}
-			return true;
-		})
+		[...credentialTypes.getItems()]
+			.sort(
+				(a, b) =>
+					Number(!preferredCategories.has(a.category ?? '')) -
+					Number(!preferredCategories.has(b.category ?? ''))
+			)
+			.filter((t) => {
+				// A login is assigned nowhere; a credential here picks or creates one in its own form.
+				if (isLoginType(t.id)) return false;
+				// A daemon-host-only type (the local socket) can only be added once (one daemon
+				// host). Locked-only rows are excluded: they span every host on the site, and
+				// one assigned to some *other* host leaves this daemon's host free. When one
+				// genuinely occupies it, that reaches the dropdown through
+				// `claimedDaemonHostIntegrations` instead, which disables the option with a
+				// reason rather than hiding it.
+				if (
+					isDaemonHostOnlyTargets(t.metadata?.targets) &&
+					pendingCredentials.some(
+						(p) => !isLockedOnly(p) && p.credential.credential_type.type === t.id
+					)
+				) {
+					return false;
+				}
+				return true;
+			})
 	);
 
 	// Reason an option is unselectable in the add dropdown (null = selectable):

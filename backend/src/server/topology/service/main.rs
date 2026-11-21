@@ -11,6 +11,7 @@ use strum::IntoEnumIterator;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
+use super::bundle_closure::OrphanRows;
 use super::metadata_filter;
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
@@ -26,7 +27,10 @@ use crate::server::{
     },
     interfaces::{r#impl::base::Interface, service::InterfaceService},
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
-    organizations::{r#impl::base::UseCase, service::OrganizationService},
+    organizations::{
+        r#impl::{base::UseCase, intent::SignupIntent},
+        service::OrganizationService,
+    },
     ports::{r#impl::base::Port, service::PortService},
     services::{r#impl::base::Service, service::ServiceService},
     shared::{
@@ -72,6 +76,9 @@ pub struct TagHidden {
     pub hosts: Vec<Host>,
     pub subnets: Vec<Subnet>,
     pub services: Vec<Service>,
+    /// The rows that left the bundle with a removed parent: the hidden rows' children, which come
+    /// back with them, and a dismissed host's, which stay out because their host never does.
+    pub orphans: OrphanRows,
 }
 
 impl TagHidden {
@@ -294,6 +301,26 @@ impl TopologyService {
             .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))
     }
 
+    /// The view the topology tab opens on for `site_id`: the one the org's `intents` call for,
+    /// when the site has the data for it. The caller passes the intents, so a list of sites
+    /// fetches the organization once.
+    ///
+    /// The support lookup reads every interface and IP address of the site, so it runs only
+    /// when the view the intents prefer needs data to be offered. Workloads and L3 Logical
+    /// never do, and an org with no intents opens on the default view.
+    pub async fn starting_view(
+        &self,
+        intents: &[SignupIntent],
+        site_id: Uuid,
+    ) -> Result<TopologyView, Error> {
+        let preferred = TopologyView::starting_for(intents, &TopologyViewSupport::ALL);
+        if preferred.is_supported(&TopologyViewSupport::NONE) {
+            return Ok(preferred);
+        }
+        let support = self.get_view_support(site_id).await?;
+        Ok(TopologyView::starting_for(intents, &support))
+    }
+
     /// The request options a new topology in `organization_id` starts with.
     pub async fn default_request_options(
         &self,
@@ -435,10 +462,11 @@ impl TopologyService {
         let (hidden_services, services): (Vec<Service>, Vec<Service>) = services
             .into_iter()
             .partition(|service| is_hidden(&service.base.tags));
-        let tag_hidden = TagHidden {
+        let mut tag_hidden = TagHidden {
             hosts: hidden_hosts,
             subnets: hidden_subnets,
             services: hidden_services,
+            orphans: OrphanRows::default(),
         };
         let vlans = self
             .vlan_service
@@ -491,7 +519,7 @@ impl TopologyService {
             .collect();
         let services: Vec<TopologyServiceRow> = services.into_iter().map(Into::into).collect();
 
-        let data = TopologyData {
+        let mut data = TopologyData {
             hosts,
             ip_addresses,
             subnets,
@@ -519,6 +547,9 @@ impl TopologyService {
             // Set by the topology data endpoint, which knows the caller's organization.
             has_interface_credential: false,
         };
+        // Dismissed and hidden rows take their interfaces, addresses, services and neighbour rows
+        // with them, so no builder meets a row whose parent is gone (GH #852).
+        tag_hidden.orphans = data.remove_orphans();
         Ok((data, tag_hidden))
     }
 
@@ -584,19 +615,19 @@ impl TopologyService {
             .resolved_for_site(site_id, None)
             .await?
             .is_empty();
-        let interfaces = self
-            .interface_service
-            .get_all(StorableFilter::<Interface>::new_from_site_ids(&[site_id]))
-            .await?;
-        let ip_addresses = self
-            .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]))
-            .await?;
-        let l2_physical = any_interface_qualifies_l2_physical(
-            &interfaces,
-            &ip_addresses,
-            has_resolved_neighbours,
-        );
+        // Resolved neighbours qualify the site alone, so the interface and IP address reads,
+        // every row of each on the site, run only without them.
+        let l2_physical = has_resolved_neighbours || {
+            let interfaces = self
+                .interface_service
+                .get_all(StorableFilter::<Interface>::new_from_site_ids(&[site_id]))
+                .await?;
+            let ip_addresses = self
+                .ip_address_service
+                .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]))
+                .await?;
+            any_interface_qualifies_l2_physical(&interfaces, &ip_addresses, false)
+        };
 
         let application = match self.site_service.get_by_id(&site_id).await? {
             Some(site) => {
@@ -644,6 +675,27 @@ impl TopologyService {
         // reference a tag applied to nothing (e.g. ByTag on an unused tag); the
         // frontend needs its name/color to label the group, so ship it too.
         self.augment_grouping_rule_tags(&mut data, &options).await?;
+        let data = Self::render_loaded(data, tag_hidden, &options, views);
+        tracing::debug!(
+            %site_id,
+            ?views,
+            hosts = data.hosts.len(),
+            load_ms = loaded.as_millis(),
+            build_ms = (started.elapsed() - loaded).as_millis(),
+            "Built topology render data"
+        );
+        Ok(data)
+    }
+
+    /// Filter a loaded bundle and build each of `views` from it: everything the render path does
+    /// once the rows are read.
+    pub(crate) fn render_loaded(
+        mut data: TopologyData,
+        tag_hidden: TagHidden,
+        options: &TopologyOptions,
+        views: &[TopologyView],
+    ) -> TopologyData {
+        let started = Instant::now();
         let tag_hidden_bundle = (!tag_hidden.is_empty()).then(|| {
             let mut bundle = Self::with_tag_hidden(&data, tag_hidden);
             let ctx = FilterValueContext::for_bundle(
@@ -651,7 +703,7 @@ impl TopologyService {
                 bundle.data.interfaces.iter().map(|i| &i.interface),
                 &bundle.data.ip_addresses,
             );
-            Self::apply_server_metadata_filters(&mut bundle.data, &options, &ctx);
+            Self::apply_server_metadata_filters(&mut bundle.data, options, &ctx);
             bundle
         });
         // One context for both the server-side drop and the values the frontend reads, so a
@@ -661,13 +713,13 @@ impl TopologyService {
             data.interfaces.iter().map(|i| &i.interface),
             &data.ip_addresses,
         );
-        Self::apply_server_metadata_filters(&mut data, &options, &filter_ctx);
+        Self::apply_server_metadata_filters(&mut data, options, &filter_ctx);
         data.stamp_filter_values(&filter_ctx);
         if let Some(bundle) = tag_hidden_bundle {
-            data.hidden_by_tag = self.hidden_by_tag_per_view(&bundle, &options, views);
+            data.hidden_by_tag = Self::hidden_by_tag_per_view(&bundle, options, views);
         }
         let filtered = started.elapsed();
-        let (nodes, edges) = self.build_view_graphs(&data, &options, views);
+        let (nodes, edges) = Self::build_view_graphs(&data, options, views);
         let built = started.elapsed();
         data.node_entities = nodes
             .iter()
@@ -681,16 +733,13 @@ impl TopologyService {
         data.nodes = nodes;
         data.edges = edges;
         tracing::debug!(
-            %site_id,
             ?views,
-            hosts = data.hosts.len(),
-            load_ms = loaded.as_millis(),
-            filter_ms = (filtered - loaded).as_millis(),
+            filter_ms = filtered.as_millis(),
             build_ms = (built - filtered).as_millis(),
             node_entities_ms = (started.elapsed() - built).as_millis(),
-            "Built topology render data"
+            "Rendered topology bundle"
         );
-        Ok(data)
+        data
     }
 
     /// `data` with the Visibility-hidden rows put back, and which type each of those rows is.
@@ -716,21 +765,23 @@ impl TopologyService {
         );
 
         let mut with_hidden = data.clone();
-        let services: Vec<Service> = data
-            .services
-            .iter()
-            .map(|s| s.service.clone())
-            .chain(hidden.services.iter().cloned())
-            .collect();
-        with_hidden.hosts.extend(TopologyHost::wrap_all(
-            hidden.hosts,
-            &data.ip_addresses,
-            &services,
-        ));
         with_hidden.subnets.extend(hidden.subnets);
         with_hidden
             .services
             .extend(hidden.services.into_iter().map(Into::into));
+        hidden.orphans.restore_into(&mut with_hidden);
+        let services: Vec<Service> = with_hidden
+            .services
+            .iter()
+            .map(|s| s.service.clone())
+            .collect();
+        with_hidden.hosts.extend(TopologyHost::wrap_all(
+            hidden.hosts,
+            &with_hidden.ip_addresses,
+            &services,
+        ));
+        // A dismissed host's rows came back with the hidden ones; their host didn't.
+        with_hidden.remove_orphans();
         TagHiddenBundle {
             data: with_hidden,
             hidden_types,
@@ -740,12 +791,11 @@ impl TopologyService {
     /// Per view, how many Visibility-hidden rows of each type it would have drawn. A view that
     /// would draw none of them has no entry.
     fn hidden_by_tag_per_view(
-        &self,
         bundle: &TagHiddenBundle,
         options: &TopologyOptions,
         views: &[TopologyView],
     ) -> HashMap<TopologyView, HashMap<EntityDiscriminants, usize>> {
-        let (nodes, _) = self.build_view_graphs(&bundle.data, options, views);
+        let (nodes, _) = Self::build_view_graphs(&bundle.data, options, views);
         nodes
             .into_iter()
             .filter_map(|(view, view_nodes)| {
@@ -805,6 +855,10 @@ impl TopologyService {
                 ctx,
             ),
         );
+
+        // What a filter dropped takes its children with it. `filtered_out` counts only the rows a
+        // filter matched.
+        data.remove_orphans();
 
         let dropped: usize = filtered_out
             .values()
@@ -877,7 +931,6 @@ impl TopologyService {
     /// export, and share paths (the graph is no longer persisted). Returns one
     /// node/edge slice per requested view.
     pub fn build_view_graphs(
-        &self,
         data: &TopologyData,
         options: &TopologyOptions,
         views: &[TopologyView],
@@ -901,7 +954,7 @@ impl TopologyService {
             .collect();
 
         for &view in views {
-            let (nodes, edges) = self.build_graph(BuildGraphParams {
+            let (nodes, edges) = Self::build_graph(BuildGraphParams {
                 hosts: &hosts,
                 ip_addresses: &data.ip_addresses,
                 services: &services,
@@ -931,7 +984,7 @@ impl TopologyService {
         (nodes_by_view, edges_by_view)
     }
 
-    pub fn build_graph(&self, params: BuildGraphParams) -> (Vec<Node>, Vec<Edge>) {
+    pub fn build_graph(params: BuildGraphParams) -> (Vec<Node>, Vec<Edge>) {
         let BuildGraphParams {
             hosts,
             ip_addresses,
@@ -978,6 +1031,17 @@ impl TopologyService {
         // Select builder by view and build nodes + edges
         let builder = super::view::builder_for_view(view);
         let (mut all_nodes, mut all_edges) = builder.build(&ctx, &grouping);
+        // Every view passes here, so a builder that names a container it never emitted costs the
+        // map those elements and logs an error, instead of failing the client's layout whole.
+        let dropped = super::graph_integrity::drop_dangling_nodes(&mut all_nodes);
+        if !dropped.is_empty() {
+            tracing::error!(
+                ?view,
+                count = dropped.len(),
+                node_ids = ?dropped.iter().take(20).collect::<Vec<_>>(),
+                "Topology builder emitted nodes inside containers it never emitted; dropped them"
+            );
+        }
         super::child_order::order_children(&mut all_nodes, grouping.element_sort, &ctx);
 
         // Set per-view edge configuration and the view-independent relation identity

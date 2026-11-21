@@ -15,7 +15,13 @@
 		Moon
 	} from '@lucide/svelte';
 	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
-	import { activeView, hiddenEdgeTypes } from '../queries';
+	import {
+		activeView,
+		aggregatedEdgeOriginals,
+		hiddenEdgeTypes,
+		topologyOptions
+	} from '../queries';
+	import { effectiveEdgeColoring, useShareEdgeColoring } from '../edge-speed';
 	import type { RenderableTopology } from '../types/base';
 	import { escapeXml } from '../diagram-export/xml';
 	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
@@ -94,6 +100,8 @@
 		/** Modal-registry slug; threaded into GenericModal so closing clears the registry. */
 		name?: string;
 	} = $props();
+	// A share sets its own link colouring; outside a share this is null.
+	const shareEdgeColoring = useShareEdgeColoring();
 
 	const { getNodes, getEdges, getInternalNode, getNodesBounds, getViewport, setViewport } =
 		useSvelteFlow();
@@ -749,6 +757,12 @@
 						topology,
 						hiddenEdgeTypes: $hiddenEdgeTypes,
 						theme: exportTheme,
+						edgeColoring: effectiveEdgeColoring(
+							$topologyOptions.local,
+							$activeView,
+							shareEdgeColoring
+						),
+						edgeMembers: (id) => $aggregatedEdgeOriginals.get(id),
 						header: includeHeader ? exportHeader(new Date()) : null
 					});
 					triggerDownload(blob, buildExportFilename(format));

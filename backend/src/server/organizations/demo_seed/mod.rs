@@ -56,7 +56,7 @@ fn collect_entity_tags<T: Entity>(entities: &[T], out: &mut Vec<EntityTag>) {
             for &tag_id in tags {
                 out.push(EntityTag::new(EntityTagBase::new(
                     entity.id(),
-                    T::entity_type(),
+                    T::ENTITY_TYPE,
                     tag_id,
                 )));
             }
@@ -429,6 +429,13 @@ pub(crate) async fn insert_demo_data(
         .storage()
         .create_many(&demo_data.discoveries)
         .await?;
+    // A scan's subnet targets are rows of their own, which need its subnets (step 4).
+    for discovery in &demo_data.discoveries {
+        services
+            .discovery_service
+            .save_subnet_targets(discovery)
+            .await?;
+    }
     // The historical runs' warnings are rows of their own, written beside each run.
     for discovery in &demo_data.discoveries {
         services

@@ -98,7 +98,11 @@ impl SetupService {
             .into_iter()
             .map(|d| SetupDaemon {
                 id: d.id,
-                health: DaemonHealth::of(&d.base, &policy.evaluate(d.base.version.as_ref())),
+                health: DaemonHealth::of(
+                    &d.base,
+                    &policy.evaluate(d.base.version.as_ref()),
+                    org.base.plan.is_demo(),
+                ),
                 name: d.base.name,
                 site_id: d.base.site_id,
                 version: d.base.version,
@@ -135,6 +139,10 @@ impl SetupService {
         let run_warnings = self
             .discovery_service
             .latest_runs_per_daemon(&daemon_ids)
+            .await?;
+        let failed_scans = self
+            .discovery_service
+            .latest_failed_scans_per_daemon(&daemon_ids)
             .await?;
 
         let (host_sites, subnet_sites) = match entity {
@@ -203,6 +211,7 @@ impl SetupService {
             targetless_credentials,
             uncovered_integrations: group_by_integration(uncovered),
             run_warnings,
+            failed_scans,
             first_scan_daemon_id,
             unconfirmed_hosts,
             unconfirmed_subnets,
@@ -215,6 +224,7 @@ impl SetupService {
                 .await?,
             plan: org.base.plan,
             cloud: self.deployment_type == DeploymentType::Cloud,
+            intents: org.base.intents.clone().unwrap_or_default(),
             can_write: entity.map(|e| {
                 Resource::iter()
                     .filter(|r| e.can(*r, Action::Write))
@@ -223,11 +233,15 @@ impl SetupService {
         })
     }
 
-    /// Every type's entries in declaration order, which groups them by tier.
+    /// Every type's entries in declaration order, which groups them by tier, with the Setup
+    /// steps the org's intents name moved up ([`SetupContext::list_rank`]).
     pub fn list(ctx: &SetupContext) -> Vec<SetupListEntry> {
-        SetupItemDiscriminants::iter()
+        let mut entries: Vec<SetupListEntry> = SetupItemDiscriminants::iter()
             .flat_map(|t| t.items(ctx))
-            .collect()
+            .collect();
+        // Stable, so entries of one rank keep declaration order.
+        entries.sort_by_key(|entry| ctx.list_rank(SetupItemDiscriminants::from(&entry.item)));
+        entries
     }
 
     /// Record each Setup type the org's rows show done and `organizations.setup` doesn't hold
@@ -248,6 +262,7 @@ impl SetupService {
                     SetupOperation::Completed {
                         item_type,
                         subject_id: None,
+                        answers: None,
                     },
                     entity.clone(),
                 )
@@ -547,6 +562,27 @@ mod tests {
             ]
         );
         assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 5);
+    }
+
+    /// A failed scan shows only to a member who reads scans on its daemon's site.
+    #[test]
+    fn a_failed_scan_shows_only_on_the_readers_sites() {
+        let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let failed = |site_id| SetupItem::FailedScans {
+            daemon_id: Uuid::new_v4(),
+            daemon_name: "edge-01".to_string(),
+            site_id,
+            reason: crate::daemon::discovery::types::base::DiscoveryTerminalReason::SessionSilent,
+            scans: Vec::new(),
+        };
+        let shown: Vec<Vec<Uuid>> = SetupService::for_reader(
+            vec![entry(failed(mine)), entry(failed(other))],
+            &member_on(&[mine]),
+        )
+        .into_iter()
+        .map(|e| e.site_ids)
+        .collect();
+        assert_eq!(shown, [vec![mine]]);
     }
 
     /// A member sees Issues on its own sites only, and every Setup item.

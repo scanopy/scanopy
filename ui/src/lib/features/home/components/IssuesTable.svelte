@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight } from '@lucide/svelte';
+	import { ArrowRight, BookOpen } from '@lucide/svelte';
 	import DataControls from '#lib/shared/components/data/DataControls.svelte';
 	import Loading from '#lib/shared/components/feedback/Loading.svelte';
 	import DaemonTroubleshootingModal from '#lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
@@ -9,10 +9,13 @@
 	import { setupItemTiers } from '#lib/shared/stores/metadata.ts';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useInitiateDiscoveryMutation } from '#lib/features/discovery/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
 	import { useIssuesListQuery } from '../queries';
 	import { entryId, type SetupItemType, type SetupListEntry } from '../setup-list';
 	import { setupRowView } from '../setup-row-view';
-	import { reportShown, setupLookups } from '../setup-lookups.svelte';
+	import { setupLookups } from '../setup-lookups.svelte';
+	import { downloadCsvFrom } from '#lib/shared/utils/csvExport.ts';
 	import SetupItemSummary from './SetupItemSummary.svelte';
 	import { issueColumns } from './IssuesTable.columns';
 
@@ -40,7 +43,13 @@
 	let sites = $derived(sitesQuery.data ?? []);
 	const lookups = setupLookups(() => issues);
 
-	let showTroubleshooting = $state(false);
+	const startScan = useInitiateDiscoveryMutation();
+	const daemonsQuery = useDaemonsQuery();
+	/** The daemon whose connection help is open, if any. */
+	let troubleshootDaemonId = $state<string | null>(null);
+	let troubleshootDaemon = $derived(
+		(daemonsQuery.data ?? []).find((d) => d.id === troubleshootDaemonId)
+	);
 
 	/** What a row says and does. Issues ask no questions, so `onAnswer` is never called. */
 	function viewOf(entry: SetupListEntry) {
@@ -48,23 +57,44 @@
 			setup,
 			lookups,
 			onAnswer: () => {},
-			onTroubleshoot: () => (showTroubleshooting = true)
+			onTroubleshoot: (daemonId) => (troubleshootDaemonId = daemonId),
+			onRetryScans: (scanIds) => scanIds.forEach((id) => startScan.mutate(id))
 		});
 	}
 
-	/** One action per Issue: its fix, named on the row. Only the button runs it. */
+	/**
+	 * An Issue's fix, named on the row as its primary button, and the docs section for a fix the
+	 * button can't make beside it when there is one. Only the buttons run them.
+	 */
 	function issueActions(entry: SetupListEntry): RowAction[] {
-		const fix = viewOf(entry).fix;
+		const { fix, guide } = viewOf(entry);
 		return [
 			{
 				label: fix.label,
 				icon: ArrowRight,
 				showLabel: true,
+				primary: true,
 				onClick: () => {
-					trackEvent('setup_item_action_clicked', { item_type: entry.item.type });
+					trackEvent('setup_item_action_clicked', { item_type: entry.item.type, action: 'fix' });
 					fix.run();
 				}
-			}
+			},
+			...(guide
+				? [
+						{
+							label: guide.label,
+							icon: BookOpen,
+							showLabel: true,
+							onClick: () => {
+								trackEvent('setup_item_action_clicked', {
+									item_type: entry.item.type,
+									action: 'guide'
+								});
+								guide.run();
+							}
+						}
+					]
+				: [])
 		];
 	}
 
@@ -74,7 +104,10 @@
 		issueColumns({ sites: () => sites, issueSites: () => issueSites, issueCell })
 	);
 
-	$effect(() => reportShown(issues));
+	/** The Issues the table's filters and order select, every page. */
+	async function handleCsvExport() {
+		await downloadCsvFrom('dashboard/issues', page.listQuery);
+	}
 </script>
 
 {#snippet issueCell(entry: SetupListEntry)}
@@ -96,10 +129,12 @@
 		onQueryChange={page.onQueryChange}
 		serverQuery={{ stale: false, tags: false, search: false }}
 		getActions={issueActions}
+		onCsvExport={handleCsvExport}
 	/>
 {/if}
 
 <DaemonTroubleshootingModal
-	isOpen={showTroubleshooting}
-	onClose={() => (showTroubleshooting = false)}
+	daemon={troubleshootDaemon}
+	isOpen={troubleshootDaemonId !== null}
+	onClose={() => (troubleshootDaemonId = null)}
 />

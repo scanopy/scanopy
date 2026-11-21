@@ -241,9 +241,7 @@ impl Entity for Vlan {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Vlan
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Vlan;
 
     const ENTITY_NAME_SINGULAR: &'static str = "VLAN";
     const ENTITY_NAME_PLURAL: &'static str = "VLANs";

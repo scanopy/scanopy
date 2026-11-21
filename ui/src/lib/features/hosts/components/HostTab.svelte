@@ -248,7 +248,37 @@
 	}
 
 	let otherHost = $state<Host | null>(null);
+	// The host a merge opened from elsewhere (a scan warning) preselects to merge into.
+	let mergeDestination = $state<Host | null>(null);
 	let showHostMergeModal = $state(false);
+
+	// The hosts a merge deep link names: `id` merges away into `subEntityId`. Either can sit off
+	// this page, so they load by id.
+	const mergeLinkQuery = useHostsByIds(() =>
+		$modalState.name === 'host-merge'
+			? [$modalState.id, $modalState.subEntityId].filter((id): id is string => !!id)
+			: []
+	);
+
+	// Deep-link: merge duplicate hosts named by a scan warning.
+	$effect(() => {
+		const known = [...hostsData, ...(mergeLinkQuery.data ?? [])];
+		const result = resolveModalDeepLink(
+			$modalState,
+			'host-merge',
+			known,
+			showHostMergeModal,
+			otherHost?.id
+		);
+		if (!result) return;
+		const destinationId = $modalState.subEntityId;
+		const destination = destinationId ? known.find((h) => h.id === destinationId) : undefined;
+		// Wait for the destination to load rather than open without it.
+		if (destinationId && !destination) return;
+		mergeDestination = destination ?? null;
+		otherHost = result;
+		showHostMergeModal = true;
+	});
 	let resolvingHost = $state<Host | null>(null);
 	let showUnconfirmedHost = $state(false);
 
@@ -305,6 +335,7 @@
 	let hostFields = $derived(
 		hostColumns({
 			lookup: () => lookup,
+			hosts: () => hostsData,
 			services: () => servicesData,
 			allServices: () => allServicesData,
 			ipAddresses: () => ipAddressesData,
@@ -437,7 +468,13 @@
 
 	function handleStartMerge(host: Host) {
 		otherHost = host;
+		mergeDestination = null;
 		showHostMergeModal = true;
+	}
+
+	function handleCloseMerge() {
+		showHostMergeModal = false;
+		mergeDestination = null;
 	}
 
 	function handleRescanHost(host: Host) {
@@ -487,7 +524,7 @@
 				otherHostId,
 				otherHostName: otherHost ? hostDisplayName(otherHost) : undefined
 			});
-			showHostMergeModal = false;
+			handleCloseMerge();
 			otherHost = null;
 		} catch {
 			// Error handled by mutation
@@ -603,8 +640,9 @@
 <HostMergeModal
 	isOpen={showHostMergeModal}
 	{otherHost}
+	destinationHost={mergeDestination}
 	onMerge={handleMergeHosts}
-	onClose={() => (showHostMergeModal = false)}
+	onClose={handleCloseMerge}
 />
 
 <UnconfirmedHostModal

@@ -121,6 +121,7 @@ export function boundsOfNodes(nodes: readonly BoundableNode[]): Rect | null {
 /** The parts of an adopted SvelteFlow node `boundsOfAdoptedNodes` reads. */
 export interface AdoptedNode {
 	internals: { positionAbsolute: { x: number; y: number } };
+	parentId?: string;
 	measured?: { width?: number; height?: number };
 	width?: number;
 	height?: number;
@@ -163,4 +164,89 @@ export interface FocusableFlow {
 export function focusNodes(flow: FocusableFlow, ids: readonly string[]): void {
 	const bounds = boundsOfAdoptedNodes(ids, flow.getInternalNode);
 	if (bounds) void flow.fitBounds(bounds, { padding: 0.5, duration: 300 });
+}
+
+/** The outermost container a node sits in, or the node itself when it sits in none. */
+export function outermostNode(
+	id: string,
+	lookup: (id: string) => Pick<AdoptedNode, 'parentId'> | undefined
+): string {
+	let current = id;
+	for (let parent = lookup(current)?.parentId; parent; parent = lookup(current)?.parentId) {
+		current = parent;
+	}
+	return current;
+}
+
+/** The two ends of an edge, as node ids. */
+interface EdgeEnds {
+	source: string;
+	target: string;
+}
+
+/** A flow edge, with the edges a bundle draws as one line in its data. */
+export interface FocusableEdge extends EdgeEnds {
+	data?: { bundleEdges?: readonly EdgeEnds[] } | Record<string, unknown>;
+}
+
+/**
+ * The node ids an edge's focus action frames: the flow edge's own ends, plus every end of the
+ * edges it stands for, both the originals of an aggregated edge and the members of a bundle.
+ *
+ * An aggregated edge already points at the collapsed containers that stand in for hidden ends.
+ * Those hidden ends are not adopted, so `boundsOfAdoptedNodes` skips them and the containers
+ * are framed instead.
+ */
+export function edgeFocusTargets(
+	edge: FocusableEdge,
+	originals: readonly EdgeEnds[] = []
+): string[] {
+	const bundled = (edge.data?.bundleEdges as readonly EdgeEnds[] | undefined) ?? [];
+	const ids = new Set([edge.source, edge.target]);
+	for (const member of [...originals, ...bundled]) {
+		ids.add(member.source);
+		ids.add(member.target);
+	}
+	return [...ids];
+}
+
+/**
+ * Move the camera onto one end of an edge: the node the flow edge is drawn to, which is an element
+ * card, a container, or the collapsed container standing in for a hidden end.
+ */
+export function focusEdgeEnd(flow: FocusableFlow, edge: EdgeEnds, end: 'source' | 'target'): void {
+	focusNodes(flow, [edge[end]]);
+}
+
+/** Move the camera onto every end of an edge: see `edgeFocusTargets`. */
+export function focusEdge(
+	flow: FocusableFlow,
+	edge: FocusableEdge,
+	originals: readonly EdgeEnds[] = []
+): void {
+	focusNodes(flow, edgeFocusTargets(edge, originals));
+}
+
+/** A viewport transform: pan offset in screen pixels and zoom. */
+export interface ViewportTransform {
+	x: number;
+	y: number;
+	zoom: number;
+}
+
+/**
+ * Whether the canvas still sits where the last whole-graph fit put it.
+ *
+ * Opening or closing the options panel changes the room a fit has, so a fitted graph is refitted
+ * around it. A viewport the user has since panned, zoomed or focused is theirs to keep: selecting
+ * a node or a link opens the panel, and refitting then threw the selection away at the zoom of the
+ * whole graph. Half a pixel and a thousandth of the zoom absorb d3's float round trip.
+ */
+export function isAtFit(current: ViewportTransform, fit: ViewportTransform | null): boolean {
+	if (!fit) return false;
+	return (
+		Math.abs(current.x - fit.x) < 0.5 &&
+		Math.abs(current.y - fit.y) < 0.5 &&
+		Math.abs(current.zoom - fit.zoom) <= fit.zoom * 1e-3
+	);
 }

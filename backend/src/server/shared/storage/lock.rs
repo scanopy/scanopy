@@ -297,7 +297,7 @@ pub async fn xact_lock(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::setup_test_db;
+    use crate::tests::{setup_pooled_test_db, setup_test_db};
 
     fn uuid_a() -> Uuid {
         Uuid::parse_str("11111111-2222-3333-4444-555555555555").unwrap()
@@ -453,77 +453,13 @@ mod tests {
         t2.await.unwrap();
     }
 
-    /// A Postgres container and a transaction-mode PgBouncer in front of it, as Neon's pooled
-    /// endpoint runs. Returns a pool straight to Postgres and one through PgBouncer.
-    async fn setup_pooled_db() -> (
-        PgPool,
-        PgPool,
-        Vec<testcontainers::ContainerAsync<testcontainers::GenericImage>>,
-    ) {
-        use testcontainers::{GenericImage, ImageExt, core::WaitFor, runners::AsyncRunner};
-
-        let run = Uuid::new_v4().simple().to_string();
-        let network = format!("scanopy-lock-{run}");
-        let db_host = format!("scanopy-lock-db-{run}");
-
-        let postgres = GenericImage::new("postgres", "17-alpine")
-            .with_wait_for(WaitFor::message_on_stderr(
-                "database system is ready to accept connections",
-            ))
-            .with_env_var("POSTGRES_PASSWORD", "password")
-            .with_env_var("POSTGRES_DB", "scanopy_test")
-            .with_network(network.clone())
-            .with_container_name(db_host.clone())
-            .start()
-            .await
-            .unwrap();
-        // Round-robin over a pool of four makes consecutive statements from one client land on
-        // different backends, which a busy pooler does anyway.
-        let pgbouncer = GenericImage::new("edoburu/pgbouncer", "v1.26.1-p0")
-            .with_wait_for(WaitFor::message_on_stderr("process up"))
-            .with_env_var("DB_HOST", db_host)
-            .with_env_var("DB_USER", "postgres")
-            .with_env_var("DB_PASSWORD", "password")
-            .with_env_var("DB_NAME", "scanopy_test")
-            .with_env_var("AUTH_TYPE", "scram-sha-256")
-            .with_env_var("POOL_MODE", "transaction")
-            .with_env_var("DEFAULT_POOL_SIZE", "4")
-            .with_env_var("SERVER_ROUND_ROBIN", "1")
-            .with_env_var("MAX_PREPARED_STATEMENTS", "100")
-            .with_network(network)
-            .start()
-            .await
-            .unwrap();
-
-        let url = |port: u16| format!("postgres://postgres:password@127.0.0.1:{port}/scanopy_test");
-        let direct = PgPool::connect(&url(postgres.get_host_port_ipv4(5432).await.unwrap()))
-            .await
-            .unwrap();
-        let pooled = PgPool::connect(&url(pgbouncer.get_host_port_ipv4(5432).await.unwrap()))
-            .await
-            .unwrap();
-
-        // Open all four server connections, so round-robin has backends to rotate through.
-        let mut warm = Vec::new();
-        for _ in 0..4 {
-            let mut tx = pooled.begin().await.unwrap();
-            sqlx::query("SELECT 1").execute(&mut *tx).await.unwrap();
-            warm.push(tx);
-        }
-        for tx in warm {
-            tx.commit().await.unwrap();
-        }
-
-        (direct, pooled, vec![postgres, pgbouncer])
-    }
-
     /// Behind a transaction-mode pooler (prod's Neon endpoint), a released lock must be free.
     /// A session-level lock taken on one backend and unlocked from another stays held until the
     /// pooler recycles the first, which is how registration's `TagGroups` lock outlived its
     /// guard and timed out the billing run's cloud setup on 2026-10-19.
     #[tokio::test]
     async fn test_released_lock_is_free_behind_transaction_pooler() {
-        let (direct, pooled, _containers) = setup_pooled_db().await;
+        let (direct, pooled, _db) = setup_pooled_test_db(4).await;
 
         for _ in 0..10 {
             let key = LockKey::TagGroups {

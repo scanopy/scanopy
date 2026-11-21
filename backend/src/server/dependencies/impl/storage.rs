@@ -185,9 +185,7 @@ impl Entity for Dependency {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Dependency
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Dependency;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Dependency";
     const ENTITY_NAME_PLURAL: &'static str = "Dependencies";

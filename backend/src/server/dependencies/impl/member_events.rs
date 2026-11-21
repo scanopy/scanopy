@@ -68,6 +68,7 @@ impl Operation for DependencyMemberChange {
     fn metadata<'a>(
         &'a self,
         scope: &'a DependencyMemberChangeScope,
+        _flags: &'a Self::Flags,
     ) -> impl Serialize + Send + 'a {
         DependencyMemberChangeMetadata {
             scope,

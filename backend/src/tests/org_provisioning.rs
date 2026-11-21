@@ -45,6 +45,7 @@ async fn sign_up(state: &AppState, email: &str) -> anyhow::Result<Uuid> {
                     site_id: Uuid::new_v4(),
                 }),
                 use_case: UseCase::InternalIt,
+                answers: Default::default(),
             }),
             permissions: None,
             site_assignments: Vec::new(),

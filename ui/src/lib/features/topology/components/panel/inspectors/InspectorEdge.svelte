@@ -13,6 +13,7 @@
 	import InspectorEdgeNeighborLink from './edges/InspectorEdgeNeighborLink.svelte';
 	import InspectorEdgeSameContainer from './edges/InspectorEdgeSameContainer.svelte';
 	import InspectorEdgeAggregated from './edges/InspectorEdgeAggregated.svelte';
+	import EdgeFocusActions from './shared/EdgeFocusActions.svelte';
 	import { inspector_edgeDataUnavailable } from '#lib/paraglide/messages.js';
 
 	type EdgeType = components['schemas']['EdgeTypeDiscriminants'];
@@ -62,7 +63,8 @@
 		},
 		PhysicalLink: {
 			component: InspectorEdgePhysicalLink,
-			props: (_edge, data) => ({
+			props: (edge, data) => ({
+				edge,
 				sourceEntityId: data.source_entity_id,
 				targetEntityId: data.target_entity_id,
 				protocol: data.protocol
@@ -70,7 +72,8 @@
 		},
 		NeighborLink: {
 			component: InspectorEdgeNeighborLink,
-			props: (_edge, data) => ({
+			props: (edge, data) => ({
+				edge,
 				sourceHostId: data.source_host_id,
 				targetHostId: data.target_host_id,
 				protocol: data.protocol
@@ -95,6 +98,9 @@
 </script>
 
 <div class="w-full space-y-4">
+	{#if edgeData}
+		<EdgeFocusActions {edge} originals={originalEdges} />
+	{/if}
 	{#if !edgeData}
 		<div class="space-y-3">
 			<p class="text-sm text-tertiary">{inspector_edgeDataUnavailable()}</p>

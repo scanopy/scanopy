@@ -1,7 +1,9 @@
 //! Shared fixture generation logic used by both the `generate-fixtures` binary
 //! and integration tests.
 
-use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
+use crate::daemon::discovery::types::base::{
+    DiscoveryPhase, DiscoveryTerminalReason, ScanFailureFix,
+};
 use crate::daemon::discovery::types::warnings::{
     ClaimSource, DesktopVm, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause,
     SnmpWalkGroup, WarningRemedy,
@@ -23,6 +25,7 @@ use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::DiscoveryType;
 use crate::server::email::messages::EmailCategory;
 use crate::server::hosts::r#impl::device_type::DeviceType;
+use crate::server::organizations::r#impl::{base::UseCase, intent::SignupIntent};
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
@@ -38,10 +41,13 @@ use crate::server::shared::types::entity_field::FieldGroup;
 use crate::server::shared::types::metadata::{
     EntityMetadata, EntityMetadataProvider, MetadataProvider, TypeMetadata,
 };
+use crate::server::subnets::r#impl::create_purpose::SubnetCreatePurpose;
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::tags::r#impl::base::TagIcon;
 use crate::server::topology::types::edges::EdgeType;
-use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
+use crate::server::topology::types::grouping::{
+    ContainerRule, EdgeColoring, ElementRule, ElementSort, LinkSpeedTier,
+};
 use crate::server::topology::types::nodes::ContainerType;
 use crate::server::topology::types::views::{InspectorSection, TopologyView};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
@@ -142,7 +148,7 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
         };
         assert!(
             svg.contains("currentColor") && !svg.contains("<script"),
-            "{} is drawn in the text colour, so it must use currentColor and carry no script",
+            "{} is drawn in the text color, so it must use currentColor and carry no script",
             file.display()
         );
         entry.markup = Some(svg);
@@ -173,6 +179,15 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
     let subnet_types: Vec<TypeMetadata> = SubnetType::iter().map(|t| t.to_metadata()).collect();
     write_fixture(&subnet_types, output_dir, "subnet-types.json");
 
+    let subnet_create_purposes: Vec<TypeMetadata> = SubnetCreatePurpose::iter()
+        .map(|p| p.to_metadata())
+        .collect();
+    write_fixture(
+        &subnet_create_purposes,
+        output_dir,
+        "subnet-create-purposes.json",
+    );
+
     let edge_types: Vec<TypeMetadata> = EdgeType::iter().map(|t| t.to_metadata()).collect();
     write_fixture(&edge_types, output_dir, "edge-types.json");
 
@@ -200,6 +215,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
         output_dir,
         "discovery-terminal-reasons.json",
     );
+
+    // The fix an Issues row for a scan that didn't finish offers, named by each reason's
+    // `issue_fix`.
+    let scan_failure_fixes: Vec<TypeMetadata> =
+        ScanFailureFix::iter().map(|f| f.to_metadata()).collect();
+    write_fixture(&scan_failure_fixes, output_dir, "scan-failure-fixes.json");
 
     // Scan warnings: the code carries the sentence template, and the three enums after it carry
     // the values that fill its slots. All four have to reach the UI, or the English the codes
@@ -470,6 +491,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
     let element_sorts: Vec<TypeMetadata> = ElementSort::iter().map(|s| s.to_metadata()).collect();
     write_fixture(&element_sorts, output_dir, "element-sorts.json");
 
+    let edge_colorings: Vec<TypeMetadata> = EdgeColoring::iter().map(|c| c.to_metadata()).collect();
+    write_fixture(&edge_colorings, output_dir, "edge-colorings.json");
+
+    let link_speed_tiers: Vec<TypeMetadata> =
+        LinkSpeedTier::iter().map(|t| t.to_metadata()).collect();
+    write_fixture(&link_speed_tiers, output_dir, "link-speed-tiers.json");
+
     let device_types: Vec<TypeMetadata> = DeviceType::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&device_types, output_dir, "device-types.json");
 
@@ -491,6 +519,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
 
     let cancel_reasons: Vec<TypeMetadata> = CancelReason::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&cancel_reasons, output_dir, "cancel-reasons.json");
+
+    // The signup's two questions: whose network, and what Scanopy should do.
+    let use_cases: Vec<TypeMetadata> = UseCase::iter().map(|u| u.to_metadata()).collect();
+    write_fixture(&use_cases, output_dir, "use-cases.json");
+    let signup_intents: Vec<TypeMetadata> = SignupIntent::iter().map(|i| i.to_metadata()).collect();
+    write_fixture(&signup_intents, output_dir, "signup-intents.json");
 
     let save_offers: Vec<TypeMetadata> = SaveOffer::iter().map(|o| o.to_metadata()).collect();
     write_fixture(&save_offers, output_dir, "save-offers.json");

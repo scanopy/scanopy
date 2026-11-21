@@ -1564,6 +1564,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/issues/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export dashboard Issues to CSV
+         * @description Every Issue the caller sees that matches the filters, in the list's order, ignoring `limit`
+         *     and `offset`.
+         */
+        get: operations["export_dashboard_issues_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -2170,7 +2191,7 @@ export interface paths {
          *     - **Ports**: Transferred to destination. If a port with the same number and protocol already
          *       exists, bindings are remapped to use the existing port.
          *     - **Services**: Transferred to destination with deduplication.
-         *       See [upsert behavior](https://scanopy.net/docs/discovery/#upsert-behavior) for details.
+         *       See [upsert behavior](https://scanopy.net/docs/using-scanopy/discovery/naming-and-deduplication/#upsert-behavior) for details.
          *
          *     ### Restrictions
          *
@@ -3390,8 +3411,11 @@ export interface paths {
         get: operations["get_subnet_by_id"];
         /**
          * Update subnet
-         * @description Updates subnet properties. If the CIDR is being changed, validates that
-         *     all existing ip_addresses on this subnet have IPs within the new CIDR range.
+         * @description Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon
+         *     interface, a container bridge, a device, or the Internet and Remote Network rows), on
+         *     `0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be
+         *     left in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one
+         *     are merged into it, and addresses are re-filed in the most specific subnet that holds them.
          */
         put: operations["update_subnet"];
         post?: never;
@@ -4225,7 +4249,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.7"
+         *       "server_version": "0.20.0"
          *     }
          */
         ApiMeta: {
@@ -4236,7 +4260,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.7
+             * @example 0.20.0
              */
             server_version: string;
         };
@@ -4265,19 +4289,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-12T15:27:57.615877Z",
+             *       "created_at": "2026-11-20T18:46:52.266512Z",
              *       "first_discovery_id": null,
-             *       "id": "e6219cfd-d25e-43e5-885a-2206d82a94a5",
+             *       "id": "64eca7bc-56e3-4cf6-a098-10c4515e583f",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-12T15:27:57.615877Z",
+             *       "last_seen_at": "2026-11-20T18:46:52.266512Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-12T15:27:57.615877Z",
-             *       "valid_from": "2026-11-12T15:27:57.615877Z",
+             *       "updated_at": "2026-11-20T18:46:52.266512Z",
+             *       "valid_from": "2026-11-20T18:46:52.266512Z",
              *       "valid_to": null
              *     }
              */
@@ -5193,19 +5217,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-12T15:27:57.575049Z",
+             *               "created_at": "2026-11-20T18:46:52.222126Z",
              *               "first_discovery_id": null,
-             *               "id": "149ca749-8b5a-44a4-9a1d-8f35d78f2b18",
+             *               "id": "d82715c2-10f1-4c29-bc18-d88474af4b65",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-12T15:27:57.575049Z",
+             *               "last_seen_at": "2026-11-20T18:46:52.222126Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-12T15:27:57.575049Z",
-             *               "valid_from": "2026-11-12T15:27:57.575049Z",
+             *               "updated_at": "2026-11-20T18:46:52.222126Z",
+             *               "valid_from": "2026-11-20T18:46:52.222126Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5218,7 +5242,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Gogs",
+             *           "service_definition": "Skype For Business Server",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5801,6 +5825,10 @@ export interface components {
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
             data?: {
+                /** @description The text typed for "Something else" as an intent. */
+                intent_other?: string | null;
+                /** @description The intents saved so far. `None` until the intent step is answered. */
+                intents?: components["schemas"]["SignupIntent"][] | null;
                 /** @description Organization name from pending setup */
                 org_name?: string | null;
                 site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -5812,6 +5840,8 @@ export interface components {
                 /** @description Current onboarding step (if any) */
                 step?: string | null;
                 use_case?: components["schemas"]["UseCase"] | null;
+                /** @description The text typed for "Something else" as the use case. */
+                use_case_other?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5870,6 +5900,8 @@ export interface components {
                  *     yet started doesn't count.
                  */
                 readonly daemon_connected: boolean;
+                /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+                readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6250,19 +6282,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-12T15:27:57.609636Z",
+             *           "created_at": "2026-11-20T18:46:52.260452Z",
              *           "first_discovery_id": null,
-             *           "id": "113fcc87-462c-46d4-97ec-d1a95cabdccc",
+             *           "id": "4331a2f6-b8f2-4c2c-b243-9cac9469611a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-12T15:27:57.609636Z",
+             *           "last_seen_at": "2026-11-20T18:46:52.260452Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-12T15:27:57.609636Z",
-             *           "valid_from": "2026-11-12T15:27:57.609636Z",
+             *           "updated_at": "2026-11-20T18:46:52.260452Z",
+             *           "valid_from": "2026-11-20T18:46:52.260452Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6275,7 +6307,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Gogs",
+             *       "service_definition": "Skype For Business Server",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6690,6 +6722,12 @@ export interface components {
         ApiResponse_SubnetResponse: {
             /** @description A subnet together with what is derived from the rest of its site. */
             data?: components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -7975,19 +8013,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-12T15:27:57.575854Z",
+         *       "created_at": "2026-11-20T18:46:52.225618Z",
          *       "first_discovery_id": null,
-         *       "id": "a587d1c9-ccc4-40f9-8d4c-85469831b23f",
+         *       "id": "aec10768-ad26-4342-9c4c-4d5ed23c48f1",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-12T15:27:57.575854Z",
+         *       "last_seen_at": "2026-11-20T18:46:52.225618Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-12T15:27:57.575854Z",
-         *       "valid_from": "2026-11-12T15:27:57.575854Z",
+         *       "updated_at": "2026-11-20T18:46:52.225618Z",
+         *       "valid_from": "2026-11-20T18:46:52.225618Z",
          *       "valid_to": null
          *     }
          */
@@ -8238,6 +8276,30 @@ export interface components {
             /** @description Whether the address has no account yet, and so can be registered. */
             available: boolean;
         };
+        /** @description Why a subnet's range can't be changed by hand. `None` on a subnet means it can. */
+        CidrLock: {
+            /** @enum {string} */
+            type: "Organizational";
+        } | {
+            /**
+             * Format: uuid
+             * @description The runtime service that owns the bridge.
+             */
+            service_id: string;
+            /** @enum {string} */
+            type: "ContainerBridge";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that reports it.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "DaemonInterface";
+        } | {
+            /** @enum {string} */
+            type: "Discovered";
+        };
         /**
          * @description Where a device's claim about itself came from.
          *
@@ -8377,7 +8439,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "Skype For Business Server",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9038,7 +9100,7 @@ export interface components {
          *     filters on its value, which reads the same in every language.
          * @enum {string}
          */
-        DaemonHealth: "unsupported" | "unreachable" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
+        DaemonHealth: "unsupported" | "unreachable" | "not_checking_in" | "standby" | "awaiting_connection" | "deprecated" | "outdated" | "unknown" | "healthy";
         /**
          * @description Legacy heartbeat payload for backwards compatibility with pre-v0.14.0 daemons.
          *     Old daemons call POST /api/daemons/{id}/heartbeat with this payload.
@@ -9178,9 +9240,10 @@ export interface components {
             capabilities?: components["schemas"]["LegacyCapabilities"];
             /**
              * @description The subnets the daemon's host is attached to, as its last session classified them. The
-             *     server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
-             *     the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
-             *     them once after each session; older daemons send them on every report.
+             *     server resolves these via SubnetService::resolve_reported (match by CIDR, create the new
+             *     ones) and replaces the daemon's interfaced subnets with them when the set differs. Absent:
+             *     leave them as they are. A daemon sends them once after each session; older daemons send
+             *     them on every report.
              */
             interfaced_subnets?: components["schemas"]["Subnet"][] | null;
             /**
@@ -9434,7 +9497,7 @@ export interface components {
          *     ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
          * @enum {string}
          */
-        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima";
+        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima" | "Wsl";
         /**
          * @description What a host is, as a device: the class its icon stands for on the map.
          *
@@ -10632,6 +10695,11 @@ export interface components {
             view_config?: components["schemas"]["EdgeViewConfig"];
         };
         /**
+         * @description What sets the color of the links in a view.
+         * @enum {string}
+         */
+        EdgeColoring: "Type" | "Speed";
+        /**
          * @description Whether an edge is visible by default or hidden behind a toggle
          * @enum {string}
          */
@@ -11038,6 +11106,28 @@ export interface components {
             svg_export: boolean;
             /** @description Viewer may export the diagram as an editable Visio (VSDX) file. */
             vsdx_export: boolean;
+        };
+        /** @description A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish. */
+        FailedScan: {
+            /** @description The error the run ended with, if it has one. */
+            error?: string | null;
+            /** @description The scan's name. */
+            name: string;
+            /**
+             * @description The scan's next run is a full scan again, because the full scan that didn't finish
+             *     doesn't count.
+             */
+            next_run_full: boolean;
+            /**
+             * Format: uuid
+             * @description The scan's latest run, which didn't finish.
+             */
+            run_id: string;
+            /**
+             * Format: uuid
+             * @description The scan.
+             */
+            scan_id: string;
         };
         FdbMacs: {
             /** @description MAC addresses the switch learned on this port. A port with one learned MAC can be resolved to a neighbor link; several indicate an uplink. */
@@ -11720,19 +11810,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-12T15:27:57.574045Z",
+         *               "created_at": "2026-11-20T18:46:52.221147Z",
          *               "first_discovery_id": null,
-         *               "id": "0f1a22f7-d820-401d-ba48-751d64023dc8",
+         *               "id": "094999ea-c422-4104-acee-6c1277b640ab",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-12T15:27:57.574045Z",
+         *               "last_seen_at": "2026-11-20T18:46:52.221147Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-12T15:27:57.574045Z",
-         *               "valid_from": "2026-11-12T15:27:57.574045Z",
+         *               "updated_at": "2026-11-20T18:46:52.221147Z",
+         *               "valid_from": "2026-11-20T18:46:52.221147Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11745,7 +11835,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "Skype For Business Server",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -13492,6 +13582,10 @@ export interface components {
         };
         /** @description Response from onboarding state endpoint */
         OnboardingStateResponse: {
+            /** @description The text typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /** @description The intents saved so far. `None` until the intent step is answered. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Organization name from pending setup */
             org_name?: string | null;
             site?: components["schemas"]["OnboardingSiteState"] | null;
@@ -13503,12 +13597,20 @@ export interface components {
             /** @description Current onboarding step (if any) */
             step?: string | null;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case. */
+            use_case_other?: string | null;
         };
         /** @description Request to save onboarding step */
         OnboardingStepRequest: {
+            /** @description The text typed for "Something else" as an intent: 3 to 200 characters once trimmed. */
+            intent_other?: string | null;
+            /** @description What the signup wants Scanopy to do. An empty list records a skip. */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /** @description Identifier of the onboarding step the user has reached. */
             step: string;
             use_case?: components["schemas"]["UseCase"] | null;
+            /** @description The text typed for "Something else" as the use case: 3 to 200 characters once trimmed. */
+            use_case_other?: string | null;
         };
         /**
          * @description Direction for ORDER BY clauses.
@@ -13566,6 +13668,13 @@ export interface components {
             readonly discount_save_offer_percent_off?: number | null;
             /** @description Whether a payment method is on file. */
             readonly has_payment_method?: boolean;
+            /** @description What the signup typed for "Something else" as an intent. */
+            intent_other?: string | null;
+            /**
+             * @description What the signup wants Scanopy to do. `None` when never asked (orgs created before the
+             *     question, invites); empty when the signup skipped it.
+             */
+            intents?: components["schemas"]["SignupIntent"][] | null;
             /**
              * Format: date-time
              * @description Most recent save-offer-discount application. NULL = never. Drives the
@@ -13627,6 +13736,11 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+            /**
+             * @description What the signup typed for "Something else" as the use case. `None` for any other use
+             *     case, and for orgs created before it was asked.
+             */
+            use_case_other?: string | null;
         };
         /** @description The signed-in user's organization, with what the server derives about it. */
         OrganizationResponse: components["schemas"]["Organization"] & {
@@ -13635,6 +13749,8 @@ export interface components {
              *     yet started doesn't count.
              */
             readonly daemon_connected: boolean;
+            /** @description The plan the signup's intents call for on each hosting tab of the plan picker, with why. */
+            readonly plan_recommendation: components["schemas"]["PlanRecommendations"];
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -13652,7 +13768,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.7"
+         *       "server_version": "0.20.0"
          *     }
          */
         PaginatedApiMeta: {
@@ -13665,7 +13781,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.7
+             * @example 0.20.0
              */
             server_version: string;
         };
@@ -14149,8 +14265,8 @@ export interface components {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
                 /**
-                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-                 *     step still Open.
+                 * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+                 *     a day: an Issue, or a first step still Open.
                  */
                 alerts_when_stuck: boolean;
                 item: components["schemas"]["SetupItem"];
@@ -14176,6 +14292,12 @@ export interface components {
         PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: (components["schemas"]["Subnet"] & {
+                readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+                /**
+                 * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+                 *     only the rest are a person's to change.
+                 */
+                discovered_vlan_ids: string[];
                 /**
                  * Format: int32
                  * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -14529,6 +14651,17 @@ export interface components {
              * @description Length of the free trial, in days. Zero when the plan has no trial.
              */
             trial_days: number;
+        };
+        PlanRecommendation: {
+            /** @description The recommended plan's type, as in `BillingPlan.type`. */
+            plan: string;
+            /** @description The intents that call for this plan rather than the one below it. */
+            reasons: components["schemas"]["RecommendationReason"][];
+        };
+        /** @description The recommendation on each hosting tab of the plan picker. */
+        PlanRecommendations: {
+            cloud?: components["schemas"]["PlanRecommendation"] | null;
+            self_hosted?: components["schemas"]["PlanRecommendation"] | null;
         };
         /**
          * @description Derived subscription status — our domain enum, never Stripe's raw status.
@@ -15032,6 +15165,15 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
+        /**
+         * @description One picked intent the recommended plan serves, and the features it needs that the plan below
+         *     lacks. On the lowest plan, every feature the intent needs.
+         */
+        RecommendationReason: {
+            /** @description Feature ids, as in `features.json`. */
+            features: string[];
+            intent: components["schemas"]["SignupIntent"];
+        };
         /** @description The Setup item a client finished. */
         RecordSetupRequest: {
             /**
@@ -15230,6 +15372,11 @@ export interface components {
              */
             percent_off: number;
         };
+        /**
+         * @description What the Issues row for a scan that didn't finish offers, by why it ended.
+         * @enum {string}
+         */
+        ScanFailureFix: "RetryScan" | "OpenRun" | "TroubleshootConnection" | "RescheduleScan" | "RaiseMaxDuration";
         /**
          * @description Scan performance settings. Lives on the discovery entity.
          *     Numeric fields are `Option<T>` — `None` means "use daemon default".
@@ -15457,19 +15604,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-12T15:27:57.575588Z",
+         *           "created_at": "2026-11-20T18:46:52.225115Z",
          *           "first_discovery_id": null,
-         *           "id": "d0693bfd-760a-49ed-ab32-4c676d5f8889",
+         *           "id": "d0db72fa-489d-4cfa-a2f5-42da10dfe724",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-12T15:27:57.575588Z",
+         *           "last_seen_at": "2026-11-20T18:46:52.225115Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-12T15:27:57.575588Z",
-         *           "valid_from": "2026-11-12T15:27:57.575588Z",
+         *           "updated_at": "2026-11-20T18:46:52.225115Z",
+         *           "valid_from": "2026-11-20T18:46:52.225115Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15482,7 +15629,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Gogs",
+         *       "service_definition": "Skype For Business Server",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15737,6 +15884,25 @@ export interface components {
             warnings: components["schemas"]["DiscoveryWarning"][];
         } | {
             /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            /** @description The daemon's name. */
+            daemon_name: string;
+            /** @description Why the runs ended. */
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @description The scans, newest run first. */
+            scans: components["schemas"]["FailedScan"][];
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "FailedScans";
+        } | {
+            /**
              * Format: int64
              * @description The unconfirmed hosts on the site.
              */
@@ -15814,7 +15980,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "FailedScans" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15839,6 +16005,15 @@ export interface components {
             daemon_id: string;
             /** @enum {string} */
             type: "RunWarning";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            reason: components["schemas"]["DiscoveryTerminalReason"];
+            /** @enum {string} */
+            type: "FailedScans";
         };
         /**
          * @description Where a Setup item stands. Issues are always Open.
@@ -15856,8 +16031,8 @@ export interface components {
          */
         SetupListEntry: {
             /**
-             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
-             *     step still Open.
+             * @description Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open
+             *     a day: an Issue, or a first step still Open.
              */
             alerts_when_stuck: boolean;
             item: components["schemas"]["SetupItem"];
@@ -15964,6 +16139,7 @@ export interface components {
         };
         /** @description Share display options */
         ShareOptions: {
+            edge_coloring?: components["schemas"]["EdgeColoring"] | null;
             /** @description Viewer sees the export button. */
             show_export_button: boolean;
             /** @description Viewer can open the inspector for a selected element. */
@@ -15997,6 +16173,8 @@ export interface components {
             /** @description The shared topology record. */
             topology: components["schemas"]["Topology"];
         };
+        /** @enum {string} */
+        SignupIntent: "current_diagram" | "troubleshooting" | "workloads" | "application_dependencies" | "client_documentation" | "inventory" | "audit_evidence" | "other";
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -16410,8 +16588,9 @@ export interface components {
             virtualization_service_id: string | null;
             /**
              * @description VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of
-             *     `Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,
-             *     so anything sent here on create/update is ignored by `to_params`.
+             *     `Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;
+             *     the ones discovery found stay whatever is sent, since the next scan would restore them. Not a
+             *     column on `subnets`: `SubnetService` writes the junction.
              */
             vlan_ids?: string[];
         };
@@ -16435,6 +16614,12 @@ export interface components {
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at" | "source" | "managed_by" | "utilization";
         /** @description A subnet together with what is derived from the rest of its site. */
         SubnetResponse: components["schemas"]["Subnet"] & {
+            readonly cidr_lock: components["schemas"]["CidrLock"] | null;
+            /**
+             * @description The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so
+             *     only the rest are a person's to change.
+             */
+            discovered_vlan_ids: string[];
             /**
              * Format: int32
              * @description How many ranges this one sits inside: 0 for a range nested in nothing.
@@ -16697,6 +16882,12 @@ export interface components {
              * @description The site this entity belongs to.
              */
             site_id: string;
+            /**
+             * @description The view the topology tab opens on: the one the organization's intents call for, when
+             *     the site has the data for it (`TopologyView::starting_for`). Worked out on each list
+             *     read, never stored.
+             */
+            readonly starting_view?: components["schemas"]["TopologyView"];
         };
         /**
          * @description Bundle of entities + the built graph that feed the topology render, export,
@@ -16866,6 +17057,14 @@ export interface components {
              */
             bundle_edges: boolean;
             /**
+             * @description What colours the links, per view. A view with no entry, or with a colouring it does not
+             *     offer, colours links by type. Unknown views and colourings are dropped on read.
+             * @default {}
+             */
+            edge_coloring: {
+                [key: string]: components["schemas"]["EdgeColoring"];
+            };
+            /**
              * @description Edge types to leave out of the drawing, per view. A view with no entry hides the edge
              *     types that view hides by default. Unknown edge types and views are dropped on read rather
              *     than failing the topology.
@@ -16897,6 +17096,11 @@ export interface components {
              */
             no_fade_edges: boolean;
             /**
+             * @description Name containers on the zoomed-out map. Search matches are named either way.
+             * @default true
+             */
+            show_container_names: boolean;
+            /**
              * @description Show the minimap.
              * @default true
              */
@@ -16921,7 +17125,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "0090024c-060e-405e-a1a3-612b44de4dd1",
+             *           "id": "439d7ead-655d-4b26-a2d3-023fced2e0be",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16931,23 +17135,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
+             *           "id": "be222347-041f-421a-bb7f-1d4a97c1ab82",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "32f70dd7-d122-4244-a49b-ec78410135ec",
+             *           "id": "75d93859-1e0a-41d7-a463-b793b0ed7fd1",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "4e7f2742-496d-45b7-b7fc-5e1e12c0e182",
+             *           "id": "b7a43477-899a-4413-9b36-8d559f7e0110",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "625649ca-c6aa-4881-bb08-013c4813a69e",
+             *           "id": "be222347-041f-421a-bb7f-1d4a97c1ab82",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16961,19 +17165,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "2a42eb3d-a650-43d4-8bfc-638630246381",
+             *         "id": "fa35e0f1-c417-4c22-a981-82e6f2df3847",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "fe033ceb-773a-4ae4-9940-1185da932095",
+             *         "id": "e3b9b19d-7226-4769-88f9-fc082e86286d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e7d9cebb-0cbf-4f8a-902e-9b2d2004be1d",
+             *         "id": "b7fd4635-f3da-4260-b550-61f6e99c55d5",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "7cf54692-90c3-43b1-b045-6cc7fd038287",
+             *         "id": "e1c0f940-7ef8-432d-9f59-971e8820fc77",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16994,7 +17198,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7893f01d-e36f-41a7-b156-084f5f08f988",
+             *         "id": "997fa815-929b-472f-8c85-d8eb386670d1",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -17003,19 +17207,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "11f82579-53b9-4f4f-9cdb-df3b235f38a1",
+             *         "id": "2d45d76f-8da3-48c5-ad91-7bafd21fbab9",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "a45c7bb8-2ffb-48c2-86f9-ddfe9ba8e575",
+             *         "id": "f3cf9570-5d0a-4494-a14e-609c0a9d927a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "1cf8f35e-5d99-4cc7-8ca4-7b3827769167",
+             *         "id": "ab6c811a-2581-47e5-b8fb-61d2a2c0f42a",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c2711e95-628d-4d5f-9b31-6f8b151eb0b8",
+             *         "id": "55882564-f8ff-4445-80b7-a71b6ad6e7e3",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17171,6 +17375,13 @@ export interface components {
              *     looking at costs another round trip to the operator (GH #668).
              */
             address: string | null;
+            /**
+             * @description The hosts on this site the identifier matched, for an ambiguous one: the records a person
+             *     merges when they are one device. Empty for a neighbour that matched nothing, and on warnings
+             *     stored before it was carried. Comes from the server's site-scoped lookups, never from a
+             *     daemon's report.
+             */
+            candidate_host_ids: string[];
             /**
              * Format: uuid
              * @description The local device that saw the neighbour, not the far end — the far end is what could not
@@ -17365,8 +17576,11 @@ export interface components {
          * @enum {string}
          */
         UpstreamSupport: "Vendor" | "Undocumented";
-        /** @enum {string} */
-        UseCase: "homelab" | "internal_it" | "msp" | "other";
+        /**
+         * @description Declaration order is the order the signup step lists the options in.
+         * @enum {string}
+         */
+        UseCase: "internal_it" | "msp" | "homelab" | "other";
         User: components["schemas"]["UserBase"] & {
             /**
              * Format: date-time
@@ -17662,10 +17876,21 @@ export interface components {
             force_overview: boolean;
             handle_strategy: components["schemas"]["ViewHandleStrategy"];
             /**
+             * @description Whether the connected groups of root containers are tiled to the screen's aspect after layout,
+             *     each keeping its own layout, so root containers with no link fill the width instead of
+             *     stacking in columns.
+             */
+            pack_components: boolean;
+            /**
              * @description Whether root containers with no cross-container edges are moved beside the connected
              *     ones after layout.
              */
             repack_disconnected: boolean;
+            /**
+             * @description Whether root containers that form rings (closed loops of links) are placed as loops, with
+             *     everything else hanging off them. A graph with no ring is laid out as if this were off.
+             */
+            ring_detection: boolean;
             /** @description Whether edges between root containers are passed to the root layout. */
             root_edges: boolean;
             root_order: components["schemas"]["ViewRootOrder"];
@@ -21137,6 +21362,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
+                };
+            };
+        };
+    };
+    export_dashboard_issues_csv: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file containing Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };
@@ -26117,7 +26382,10 @@ export interface operations {
     };
     create_subnet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description What the subnet is for. Sent with the `subnet_created` event; nothing stores it. */
+                purpose?: ("Scan" | "Record") | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -26403,7 +26671,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Subnet"];
                 };
             };
-            /** @description CIDR change would orphan existing ip_addresses */
+            /** @description The CIDR can't be changed to the one requested */
             400: {
                 headers: {
                     [name: string]: unknown;

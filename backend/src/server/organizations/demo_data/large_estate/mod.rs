@@ -13,7 +13,13 @@ use std::collections::HashMap;
 
 mod addressing;
 mod endpoints;
+mod ring;
 mod switches;
+
+pub use ring::{
+    RingParams, WATER_UTILITY_NAMING, WATER_UTILITY_SITE_NAME, generate_ring_estate,
+    water_utility_site,
+};
 
 #[cfg(test)]
 mod tests;
@@ -23,6 +29,27 @@ use addressing::{Addressing, Role, build_segments};
 
 /// The demo site the default estate is seeded as.
 pub const PLANT_SITE_NAME: &str = "Plant";
+
+/// What a generated site's names and addresses are made from.
+#[derive(Debug, Clone, Copy)]
+pub struct SiteNaming {
+    /// Prefixes subnet names, switch locations ("Plant / Core") and the SNMP contact.
+    pub label: &'static str,
+    /// The DNS suffix of every host that is in DNS.
+    pub domain: &'static str,
+    /// The first address of the site's range. Subnets are carved from here upwards.
+    pub base: Ipv4Addr,
+    /// Added to each attached host's index before it becomes the last three bytes of its MAC, so
+    /// two sites' hosts never share a MAC.
+    pub serial_base: usize,
+}
+
+pub const PLANT_NAMING: SiteNaming = SiteNaming {
+    label: PLANT_SITE_NAME,
+    domain: "plant.local",
+    base: Ipv4Addr::new(10, 40, 0, 0),
+    serial_base: 0,
+};
 
 /// The shape of a generated estate.
 #[derive(Debug, Clone)]
@@ -157,7 +184,8 @@ pub fn generate_large_estate(
     let mut addressing = build_segments(
         site,
         organization_id,
-        params.vlans,
+        &PLANT_NAMING,
+        addressing::truncated_plan(params.vlans),
         |role| match role {
             Role::Management => params.switch_count() + params.firewalls,
             Role::Office => plan.demand(Role::Office) + params.firewalls,
@@ -186,10 +214,37 @@ pub fn generate_large_estate(
         now,
     );
 
+    assemble_estate(
+        fabric,
+        attached,
+        addressing,
+        AccessLinks::ForwardingTable,
+        now,
+    )
+}
+
+/// What an access switch records of the hosts cabled to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccessLinks {
+    /// Each access port learned its host's MAC, and the port keeps the host's own link speed.
+    ForwardingTable,
+    /// As well as learning its MAC, each access port's LLDP table names the host's port, so the
+    /// L2 view draws the link port to port. Both ends run at the host's own speed.
+    Lldp,
+}
+
+/// Cables every attached host to its access port and bundles the estate.
+fn assemble_estate(
+    fabric: switches::Fabric,
+    attached: endpoints::AttachedHosts,
+    addressing: Addressing,
+    access_links: AccessLinks,
+    now: DateTime<Utc>,
+) -> LargeEstate {
     let switches::Fabric {
         mut hosts_with_services,
         mut interfaces,
-        neighbor_updates,
+        mut neighbor_updates,
         host_neighbor_updates,
         ..
     } = fabric;
@@ -212,6 +267,41 @@ pub fn generate_large_estate(
         iface.base.oper_status = Some(IfOperStatus::Up);
         iface.base.speed_bps = Some(host.speed_bps);
         iface.base.if_alias = Some(host.name.clone());
+    }
+
+    // The host's port is known only from what it advertised over LLDP: it has no ifIndex, since
+    // nothing walks the host itself, and carries the MAC and address the scan found.
+    if access_links == AccessLinks::Lldp {
+        let switch_names: HashMap<Uuid, String> = hosts_with_services
+            .iter()
+            .map(|h| (h.host.id, h.host.base.name.to_string()))
+            .collect();
+        for (placement, hws) in attached.placements.iter().zip(&attached.hosts) {
+            let mut port = switches::port_interface(
+                &hws.host,
+                0,
+                "eth0".to_string(),
+                placement.speed_bps,
+                placement.mac.bytes(),
+                true,
+                now,
+            );
+            port.base.if_index = None;
+            port.base.if_type = None;
+            port.base.mac_address = Some(MacEvidence::new(
+                MacEvidenceValue(placement.mac),
+                AttributeSource::ArpReply,
+            ));
+            port.base.ip_address_id = hws.ip_addresses.first().map(|ip| ip.id);
+            port.base.native_vlan_id = Some(addressing.segment(placement.role).vlan.id);
+            interfaces.push(port);
+            neighbor_updates.push(NeighborUpdate {
+                source_host_name: switch_names[&placement.switch_host_id].clone(),
+                source_if_index: placement.port,
+                target_host_name: placement.name.clone(),
+                target_if_index: None,
+            });
+        }
     }
 
     let daemon_host_id = attached.daemon_host_id;

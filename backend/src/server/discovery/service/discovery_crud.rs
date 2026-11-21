@@ -16,6 +16,23 @@ impl DiscoveryService {
         Ok(())
     }
 
+    /// Refuse a schedule the scheduler can't parse, read the way `schedule_discovery` reads it.
+    /// Saved, it would be disabled at the next server start with only a log line to say so.
+    pub(crate) fn validate_schedule(run_type: &RunType) -> Result<()> {
+        if let Some(schedule) = run_type.schedule()
+            && JobBuilder::new()
+                .with_cron_job_type()
+                .with_schedule(schedule.cron_schedule)
+                .is_err()
+        {
+            bail_validation!(
+                "Invalid schedule '{}'. Use a cron expression with seconds first, like '0 0 2 * * *'.",
+                schedule.cron_schedule
+            );
+        }
+        Ok(())
+    }
+
     /// Create a new scheduled discovery
     pub async fn create_discovery(
         self: &Arc<Self>,
@@ -23,6 +40,7 @@ impl DiscoveryService {
         authentication: AuthenticatedEntity,
     ) -> Result<Discovery> {
         Self::validate_timezone(&discovery.base.run_type)?;
+        Self::validate_schedule(&discovery.base.run_type)?;
         let mut created_discovery = if discovery.id == Uuid::nil() {
             self.discovery_storage
                 .create(&Discovery::new(discovery.base))
@@ -32,6 +50,7 @@ impl DiscoveryService {
         };
         // Storage returns the entity as given, so the computed field is set here.
         created_discovery.next_run_is_full_scan = created_discovery.full_scan_is_due();
+        self.save_subnet_targets(&created_discovery).await?;
 
         // Save tags to junction table
         if let Some(entity_tag_service) = self.entity_tag_service()
@@ -132,5 +151,29 @@ impl DiscoveryService {
                 .await;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scheduled(cron: &str) -> RunType {
+        RunType::Scheduled {
+            cron_schedule: cron.to_string(),
+            last_run: None,
+            enabled: true,
+            timezone: Some("Europe/London".to_string()),
+        }
+    }
+
+    /// The API takes what the scheduler can run, and refuses what it would disable at boot.
+    #[test]
+    fn a_schedule_the_scheduler_cannot_parse_is_refused() {
+        assert!(DiscoveryService::validate_schedule(&scheduled("0 0 2 * * *")).is_ok());
+        // The scheduler reads six fields, seconds first.
+        assert!(DiscoveryService::validate_schedule(&scheduled("0 2 * * *")).is_err());
+        assert!(DiscoveryService::validate_schedule(&scheduled("every night")).is_err());
+        assert!(DiscoveryService::validate_schedule(&RunType::default()).is_ok());
     }
 }

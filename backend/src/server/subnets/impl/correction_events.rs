@@ -84,7 +84,11 @@ impl Operation for SubnetCorrection {
         format!("subnet_{}", to_snake_case(self.discriminant().as_ref())).into()
     }
 
-    fn metadata<'a>(&'a self, scope: &'a SubnetCorrectionScope) -> impl Serialize + Send + 'a {
+    fn metadata<'a>(
+        &'a self,
+        scope: &'a SubnetCorrectionScope,
+        _flags: &'a Self::Flags,
+    ) -> impl Serialize + Send + 'a {
         SubnetCorrectionMetadata {
             site_id: scope.site_id,
             subnet_id: scope.subnet_id,

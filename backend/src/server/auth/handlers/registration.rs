@@ -3,7 +3,9 @@ use super::*;
 use crate::server::auth::disposable_email::is_disposable_email;
 use crate::server::auth::email_domain::{DomainCheck, check_email_domain};
 use crate::server::auth::r#impl::api::CheckEmailResponse;
+use crate::server::auth::r#impl::base::SignupAnswers;
 use crate::server::openapi::tags as api_tags;
+use crate::server::organizations::r#impl::intent::{OTHER_ANSWER_MAX_CHARS, other_answer};
 use crate::server::shared::types::api::ApiJson;
 
 /// Check whether an email is available
@@ -174,16 +176,7 @@ pub(crate) async fn register(
     let provision_org = if let Some(org_id) = org_id {
         ProvisionOrg::Existing(org_id)
     } else if let Ok(Some(mut pending_setup)) = session.get::<PendingSetup>("pending_setup").await {
-        // Read the latest use_case from session (set via /onboarding-step) so
-        // a frontend update after /setup is reflected at register time.
-        if let Some(use_case) = session
-            .get::<UseCase>("onboarding_use_case")
-            .await
-            .ok()
-            .flatten()
-        {
-            pending_setup.use_case = use_case;
-        }
+        apply_onboarding_answers(&session, &mut pending_setup).await;
         ProvisionOrg::New(pending_setup)
     } else {
         return Err(ApiError::internal_error(
@@ -294,6 +287,7 @@ pub(crate) async fn setup(
         org_name: request.organization_name.trim().to_string(),
         site,
         use_case: UseCase::Other,
+        answers: SignupAnswers::default(),
     };
 
     session
@@ -341,6 +335,63 @@ pub async fn clear_pending_setup(session: &Session) {
     let _ = session.remove::<PendingSetup>("pending_setup").await;
     let _ = session.remove::<String>("onboarding_step").await;
     let _ = session.remove::<String>("onboarding_use_case").await;
+    let _ = session
+        .remove::<SignupAnswers>(ONBOARDING_ANSWERS_KEY)
+        .await;
+}
+
+/// Session key for the answers `/onboarding-step` saves beside the use case.
+const ONBOARDING_ANSWERS_KEY: &str = "onboarding_answers";
+
+/// Fill the pending setup with the answers saved by `/onboarding-step`, read at register time so
+/// an answer changed after `/setup` still counts. Free text is kept only where "Something else"
+/// was picked. Both the password and the OIDC register paths call this.
+pub async fn apply_onboarding_answers(session: &Session, pending_setup: &mut PendingSetup) {
+    if let Some(use_case) = session
+        .get::<UseCase>("onboarding_use_case")
+        .await
+        .ok()
+        .flatten()
+    {
+        pending_setup.use_case = use_case;
+    }
+    let answers: SignupAnswers = session
+        .get(ONBOARDING_ANSWERS_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+    pending_setup.answers = answers.for_use_case(pending_setup.use_case);
+}
+
+/// The answers in an `/onboarding-step` request, with free text trimmed and a blank one dropped.
+/// A text answer over 200 characters is refused.
+fn answers_from_request(request: &OnboardingStepRequest) -> Result<SignupAnswers, ApiError> {
+    let text = |value: &Option<String>| -> Result<Option<String>, ApiError> {
+        let Some(text) = value.as_deref() else {
+            return Ok(None);
+        };
+        other_answer(text).map_err(|_| {
+            ApiError::bad_request(&format!(
+                "An answer to \"Something else\" must be at most {OTHER_ANSWER_MAX_CHARS} \
+                 characters"
+            ))
+        })
+    };
+    Ok(SignupAnswers {
+        use_case_other: text(&request.use_case_other)?,
+        // Each intent once, in the order picked.
+        intents: request.intents.as_ref().map(|picked| {
+            let mut intents = Vec::with_capacity(picked.len());
+            for intent in picked {
+                if !intents.contains(intent) {
+                    intents.push(*intent);
+                }
+            }
+            intents
+        }),
+        intent_other: text(&request.intent_other)?,
+    })
 }
 
 /// Store onboarding step in session
@@ -357,6 +408,23 @@ pub(crate) async fn onboarding_step(
     session: Session,
     ApiJson(request): ApiJson<OnboardingStepRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
+    // Checked before anything is saved, so a refused request changes nothing.
+    let update = answers_from_request(&request)?;
+
+    let mut answers: SignupAnswers = session
+        .get(ONBOARDING_ANSWERS_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
+    answers.merge(update);
+    session
+        .insert(ONBOARDING_ANSWERS_KEY, answers)
+        .await
+        .map_err(|e| {
+            ApiError::internal_error(&format!("Failed to save onboarding answers: {}", e))
+        })?;
+
     session
         .insert("onboarding_step", request.step)
         .await
@@ -389,6 +457,12 @@ pub(crate) async fn onboarding_state(
 ) -> ApiResult<Json<ApiResponse<OnboardingStateResponse>>> {
     let step: Option<String> = session.get("onboarding_step").await.ok().flatten();
     let use_case: Option<UseCase> = session.get("onboarding_use_case").await.ok().flatten();
+    let answers: SignupAnswers = session
+        .get(ONBOARDING_ANSWERS_KEY)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_default();
 
     let (org_name, site, site_id) = if let Some(pending_setup) = session
         .get::<PendingSetup>("pending_setup")
@@ -409,6 +483,9 @@ pub(crate) async fn onboarding_state(
     Ok(Json(ApiResponse::success(OnboardingStateResponse {
         step,
         use_case,
+        use_case_other: answers.use_case_other,
+        intents: answers.intents,
+        intent_other: answers.intent_other,
         org_name,
         site,
         site_id,
@@ -418,6 +495,7 @@ pub(crate) async fn onboarding_state(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::organizations::r#impl::intent::SignupIntent;
 
     #[test]
     fn only_cloud_signups_may_skip_the_site() {
@@ -440,5 +518,94 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(site.name, "Lab");
+    }
+
+    fn step(
+        use_case_other: Option<&str>,
+        intents: Option<Vec<SignupIntent>>,
+        intent_other: Option<&str>,
+    ) -> OnboardingStepRequest {
+        OnboardingStepRequest {
+            step: "intents".to_string(),
+            use_case: None,
+            use_case_other: use_case_other.map(String::from),
+            intents,
+            intent_other: intent_other.map(String::from),
+        }
+    }
+
+    /// A step request carrying a "Something else" answer over the limit is refused whole, so
+    /// nothing it carries is saved. A blank answer is dropped, others are stored trimmed, and
+    /// each intent once.
+    #[test]
+    fn onboarding_answers_are_bounded_trimmed_and_deduplicated() {
+        assert!(answers_from_request(&step(None, None, Some(&"x".repeat(201)))).is_err());
+        let blank = answers_from_request(&step(Some("   "), Some(vec![]), Some(""))).unwrap();
+        assert_eq!(blank.use_case_other, None);
+        assert_eq!(blank.intent_other, None);
+
+        let answers = answers_from_request(&step(
+            Some("  a school project "),
+            Some(vec![
+                SignupIntent::Inventory,
+                SignupIntent::Other,
+                SignupIntent::Inventory,
+            ]),
+            Some(" client audits "),
+        ))
+        .expect("within bounds");
+        assert_eq!(answers.use_case_other.as_deref(), Some("a school project"));
+        assert_eq!(
+            answers.intents,
+            Some(vec![SignupIntent::Inventory, SignupIntent::Other])
+        );
+        assert_eq!(answers.intent_other.as_deref(), Some("client audits"));
+
+        // A skip is an empty list, kept apart from never answering.
+        let skipped = answers_from_request(&step(None, Some(vec![]), None)).unwrap();
+        assert_eq!(skipped.intents, Some(vec![]));
+        assert_eq!(
+            answers_from_request(&step(None, None, None))
+                .unwrap()
+                .intents,
+            None
+        );
+    }
+
+    /// Text typed for "Something else" and then abandoned for another option is not stored.
+    #[test]
+    fn free_text_is_kept_only_where_something_else_was_picked() {
+        let typed = SignupAnswers {
+            use_case_other: Some("a school project".to_string()),
+            intents: Some(vec![SignupIntent::Inventory]),
+            intent_other: Some("client audits".to_string()),
+        };
+
+        let stored = typed.clone().for_use_case(UseCase::InternalIt);
+        assert_eq!(stored.use_case_other, None);
+        assert_eq!(stored.intent_other, None);
+        assert_eq!(stored.intents, Some(vec![SignupIntent::Inventory]));
+
+        let mut with_other = typed;
+        with_other.intents = Some(vec![SignupIntent::Other]);
+        let stored = with_other.for_use_case(UseCase::Other);
+        assert_eq!(stored.use_case_other.as_deref(), Some("a school project"));
+        assert_eq!(stored.intent_other.as_deref(), Some("client audits"));
+    }
+
+    /// A later step request only overwrites the answers it carries.
+    #[test]
+    fn a_step_request_keeps_answers_it_does_not_carry() {
+        let mut saved = SignupAnswers {
+            use_case_other: Some("a school project".to_string()),
+            intents: None,
+            intent_other: None,
+        };
+        saved.merge(SignupAnswers {
+            intents: Some(vec![SignupIntent::Workloads]),
+            ..Default::default()
+        });
+        assert_eq!(saved.use_case_other.as_deref(), Some("a school project"));
+        assert_eq!(saved.intents, Some(vec![SignupIntent::Workloads]));
     }
 }

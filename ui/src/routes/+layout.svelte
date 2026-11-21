@@ -9,10 +9,12 @@
 	import { browser } from '$app/env';
 	import { captureFirstTouch } from '#lib/shared/utils/first-touch.ts';
 	import { trackPointerFocus } from '#lib/shared/utils/pointer-focus.ts';
+	import { cacheLocale } from '#lib/i18n/locale.ts';
 
 	// Snapshot landing URL/UTMs before any auth redirect can rewrite the URL
 	if (browser) {
 		captureFirstTouch();
+		cacheLocale();
 	}
 
 	let { children }: { children: Snippet } = $props();

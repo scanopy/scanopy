@@ -338,6 +338,7 @@ erDiagram
   text license_key_type
   boolean bills_by_invoice
   text license_server_version
+  jsonb setup
 }
 "public.topologies" {
   uuid id
@@ -361,6 +362,7 @@ erDiagram
   text icon
   uuid tag_group_id FK
   integer position
+  jsonb source
 }
 "public.invites" {
   uuid id
@@ -522,6 +524,7 @@ erDiagram
   text daemon_os
   text description
   uuid login_credential_id FK
+  jsonb source
 }
 "public.site_credentials" {
   uuid site_id FK

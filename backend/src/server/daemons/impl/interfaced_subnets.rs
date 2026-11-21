@@ -1,7 +1,7 @@
 //! Daemon ↔ interfaced-subnet junction table types.
 //!
-//! Models the `daemon_interfaced_subnets` junction table as a `ChildStorableEntity`
-//! row, stored through `GenericChildStorage`. Replaces the referential-
+//! Models the `daemon_interfaced_subnets` junction table, stored through
+//! `GenericPostgresStorage`. Each row belongs to its daemon and its subnet. Replaces the referential-
 //! integrity-free `capabilities.interfaced_subnet_ids` JSONB blob: a real FK to
 //! `subnets(id) ON DELETE CASCADE` means deleting a subnet removes its junction
 //! rows instead of leaving a dangling id. Cardinality is many-to-many (daemons
@@ -12,10 +12,7 @@ use sqlx::{Row, postgres::PgRow};
 use std::fmt::Display;
 use uuid::Uuid;
 
-use crate::server::shared::storage::{
-    child::ChildStorableEntity,
-    traits::{SqlValue, Storable},
-};
+use crate::server::shared::storage::traits::{SqlValue, Storable};
 
 /// A junction record linking a daemon to a subnet it has an interface on.
 #[derive(Debug, Clone, Default)]
@@ -40,6 +37,11 @@ impl Storable for DaemonInterfacedSubnet {
 
     fn table_name() -> &'static str {
         "daemon_interfaced_subnets"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::INTERFACED_SUBNET_DAEMON, &R::INTERFACED_SUBNET_SUBNET]
     }
 
     fn new(base: Self::BaseData) -> Self {
@@ -68,15 +70,5 @@ impl Storable for DaemonInterfacedSubnet {
             daemon_id: row.get("daemon_id"),
             subnet_id: row.get("subnet_id"),
         })
-    }
-}
-
-impl ChildStorableEntity for DaemonInterfacedSubnet {
-    fn parent_column() -> &'static str {
-        "daemon_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.daemon_id
     }
 }

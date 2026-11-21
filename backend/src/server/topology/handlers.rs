@@ -183,8 +183,18 @@ async fn get_topology_data(
         && org.base.plan.features().includes_topology()
         && org.has_setup(SetupItemDiscriminants::RunFirstScan)
     {
+        // The view the tab opened on, by the same rule the list response gives the tab.
+        let starting = state
+            .services
+            .topology_service
+            .starting_view(
+                org.base.intents.as_deref().unwrap_or_default(),
+                params.site_id,
+            )
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
         let entity = auth.into_entity();
-        for item_type in setup_items_viewed(params.view) {
+        for item_type in setup_items_viewed(params.view, starting) {
             if org.has_setup(item_type) {
                 continue;
             }
@@ -196,6 +206,7 @@ async fn get_topology_data(
                     SetupOperation::Completed {
                         item_type,
                         subject_id: None,
+                        answers: None,
                     },
                     entity.clone(),
                 )
@@ -210,10 +221,14 @@ async fn get_topology_data(
 }
 
 /// The Setup items viewing `view` on the topology tab completes: OpenTopology, and ExploreViews
-/// for a view other than the default. A fetch of every view (`None`) is no view switch.
-fn setup_items_viewed(view: Option<TopologyView>) -> Vec<SetupItemDiscriminants> {
+/// for a view other than the one the tab opened on (`starting`). A fetch of every view (`None`)
+/// is no view switch.
+fn setup_items_viewed(
+    view: Option<TopologyView>,
+    starting: TopologyView,
+) -> Vec<SetupItemDiscriminants> {
     let mut viewed = vec![SetupItemDiscriminants::OpenTopology];
-    if view.is_some_and(|v| v != TopologyView::default()) {
+    if view.is_some_and(|v| v != starting) {
         viewed.push(SetupItemDiscriminants::ExploreViews);
     }
     viewed
@@ -297,17 +312,28 @@ async fn get_all_topologies(
     //
     // The infrastructure rule the grouping-rules migration wrote has no categories; it takes the
     // organization's set here, so the rule editor shows what the rule is meant to hold.
-    let use_case = Topology::get_service(&state)
-        .organization_use_case(organization_id)
+    //
+    // The organization is read once for every row: its use case fills the infrastructure rule,
+    // and its intents pick each site's starting view.
+    let organization = state
+        .services
+        .organization_service
+        .get_by_id(&organization_id)
         .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .ok_or_else(|| ApiError::internal_error("Organization not found"))?;
+    let intents = organization.base.intents.as_deref().unwrap_or_default();
     for topology in &mut result.items {
         topology.base.options.request.merge_missing_hide_defaults();
         topology
             .base
             .options
             .request
-            .populate_empty_infra_rule(use_case);
+            .populate_empty_infra_rule(organization.base.use_case);
+        topology.base.starting_view = Topology::get_service(&state)
+            .starting_view(intents, topology.base.site_id)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
     let limit = pagination.effective_limit().unwrap_or(0);
@@ -632,13 +658,22 @@ async fn export_confluence(
 mod setup_tests {
     use super::*;
 
+    /// Exploring means viewing a view other than the one the tab opened on, whichever view that
+    /// was.
     #[test]
-    fn only_a_view_other_than_the_default_completes_explore_views() {
-        let explores =
-            |view| setup_items_viewed(view).contains(&SetupItemDiscriminants::ExploreViews);
-        assert!(!explores(Some(TopologyView::default())));
-        assert!(!explores(None));
-        assert!(explores(Some(TopologyView::Workloads)));
-        assert!(setup_items_viewed(None).contains(&SetupItemDiscriminants::OpenTopology));
+    fn only_a_view_other_than_the_starting_view_completes_explore_views() {
+        for starting in TopologyView::iter() {
+            let explores = |view| {
+                setup_items_viewed(view, starting).contains(&SetupItemDiscriminants::ExploreViews)
+            };
+            assert!(!explores(Some(starting)), "{starting:?}");
+            assert!(!explores(None), "{starting:?}");
+            for other in TopologyView::iter().filter(|v| *v != starting) {
+                assert!(explores(Some(other)), "{starting:?} -> {other:?}");
+            }
+            assert!(
+                setup_items_viewed(None, starting).contains(&SetupItemDiscriminants::OpenTopology)
+            );
+        }
     }
 }

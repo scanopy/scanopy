@@ -207,6 +207,7 @@ pub enum Logo {
     NetBsd,
     NetbootXyz,
     Netdata,
+    Netflix,
     Nextcloud,
     NexusRepository,
     NginxProxyManager,
@@ -278,6 +279,7 @@ pub enum Logo {
     Rustdesk,
     SabNzbd,
     SaltProject,
+    Samsung,
     Sangoma,
     Sap,
     Scanopy,
@@ -433,7 +435,10 @@ impl Logo {
                 format!("https://cdn.jsdelivr.net/gh/selfhst/icons/{path}")
             }
             LogoSource::SimpleIcons(slug) => match self.theming() {
-                Theming::Paired { .. } => format!("https://simpleicons.org/icons/{slug}.svg"),
+                // simpleicons.org/icons/ returns 404 for every icon; the npm package holds the same files.
+                Theming::Paired { .. } => {
+                    format!("https://cdn.jsdelivr.net/npm/simple-icons/icons/{slug}.svg")
+                }
                 Theming::Fixed | Theming::TextColor => {
                     format!("https://cdn.simpleicons.org/{slug}")
                 }

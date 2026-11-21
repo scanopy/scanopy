@@ -231,10 +231,10 @@ pub struct SubnetBase {
     /// Will be automatically set to Manual for creation through API
     pub source: EntitySource,
     /// VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of
-    /// `Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,
-    /// so anything sent here on create/update is ignored by `to_params`.
+    /// `Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;
+    /// the ones discovery found stay whatever is sent, since the next scan would restore them. Not a
+    /// column on `subnets`: `SubnetService` writes the junction.
     #[serde(default)]
-    #[schema(read_only)]
     pub vlan_ids: Vec<Uuid>,
     /// Tags assigned to this entity.
     #[serde(default)]
@@ -374,6 +374,13 @@ impl Subnet {
         match ip_network {
             IpNetwork::V6(_) => None,
             IpNetwork::V4(ipv4_network) => {
+                // A Windows adapter can report 0.0.0.0/0, which would become a subnet holding
+                // every address and be swept from 0.0.0.0. Every other prefix is
+                // kept, however short, so a real large network is not dropped.
+                if ipv4_network.prefix() == 0 {
+                    return None;
+                }
+
                 // Non-loopback CIDRs on loopback ip_addresses (e.g. 10.99.0.0/24 aliased
                 // on lo0) are real networks, not loopback
                 if subnet_type.is_loopback() && ipv4_network.ip().octets()[0] != 127 {
@@ -553,8 +560,10 @@ impl crate::server::shared::events::log::EntityLog for Subnet {
 }
 
 impl ChangeTriggersTopologyStaleness<Subnet> for Subnet {
-    fn triggers_staleness(&self, _other: Option<Subnet>) -> bool {
-        false
+    /// A moved range regroups the addresses topology draws inside it; nothing else about a subnet
+    /// changes the layout.
+    fn triggers_staleness(&self, other: Option<Subnet>) -> bool {
+        other.is_some_and(|before| before.base.cidr.value() != self.base.cidr.value())
     }
 }
 
@@ -587,6 +596,21 @@ mod tests {
             AttributeSource::DaemonSelfReport,
         );
         assert!(result.is_some(), "/2 prefix should be accepted");
+    }
+
+    #[test]
+    fn from_discovery_rejects_the_whole_address_space_and_keeps_shorter_real_prefixes() {
+        let from = |cidr: &str| {
+            Subnet::from_discovery(
+                "Ethernet 2".to_string(),
+                &IpNetwork::from_str(cidr).unwrap(),
+                Uuid::nil(),
+                AttributeSource::DaemonSelfReport,
+            )
+        };
+        assert!(from("0.0.0.0/0").is_none());
+        assert!(from("10.0.0.0/1").is_some());
+        assert!(from("10.0.0.0/8").is_some());
     }
 
     fn subnet(subnet_type: SubnetType, virtualization_service_id: Option<Uuid>) -> Subnet {

@@ -1317,6 +1317,7 @@ Apache License 2.0 (Apache-2.0)
 --------------------------------------------------------------------------------
 Used by:
   - linux-raw-sys 0.11.0 (https://github.com/sunfishcode/linux-raw-sys)
+  - linux-raw-sys 0.12.1 (https://github.com/sunfishcode/linux-raw-sys)
   - linux-raw-sys 0.4.15 (https://github.com/sunfishcode/linux-raw-sys)
   - rustix 0.38.44 (https://github.com/bytecodealliance/rustix)
   - rustix 1.1.2 (https://github.com/bytecodealliance/rustix)
@@ -3931,7 +3932,7 @@ Used by:
 Apache License 2.0 (Apache-2.0)
 --------------------------------------------------------------------------------
 Used by:
-  - local-ip-address 0.6.5 (https://github.com/LeoBorai/local-ip-address)
+  - local-ip-address 0.6.13 (https://github.com/LeoBorai/local-ip-address)
 
                                  Apache License
                            Version 2.0, January 2004
@@ -6889,15 +6890,15 @@ limitations under the License.
 Apache License 2.0 (Apache-2.0)
 --------------------------------------------------------------------------------
 Used by:
-  - futures-channel 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-core 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-executor 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-io 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-macro 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-sink 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-task 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures-util 0.3.31 (https://github.com/rust-lang/futures-rs)
-  - futures 0.3.31 (https://github.com/rust-lang/futures-rs)
+  - futures-channel 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-core 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-executor 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-io 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-macro 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-sink 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-task 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures-util 0.3.34 (https://github.com/rust-lang/futures-rs)
+  - futures 0.3.34 (https://github.com/rust-lang/futures-rs)
 
                               Apache License
                         Version 2.0, January 2004
@@ -8992,7 +8993,7 @@ Apache License 2.0 (Apache-2.0)
 --------------------------------------------------------------------------------
 Used by:
   - tokio-rustls 0.24.1 (https://github.com/rustls/tokio-rustls)
-  - tokio-rustls 0.26.4 (https://github.com/rustls/tokio-rustls)
+  - tokio-rustls 0.26.6 (https://github.com/rustls/tokio-rustls)
 
                               Apache License
                         Version 2.0, January 2004
@@ -11112,8 +11113,6 @@ Used by:
   - btoi 0.5.0 (https://github.com/niklasf/rust-btoi)
   - bumpalo 3.19.0 (https://github.com/fitzgen/bumpalo)
   - bytes-utils 0.1.4 (https://github.com/vorner/bytes-utils)
-  - bzip2-sys 0.1.13+1.0.8 (https://github.com/alexcrichton/bzip2-rs)
-  - bzip2 0.5.2 (https://github.com/trifectatechfoundation/bzip2-rs)
   - cfg-if 1.0.4 (https://github.com/rust-lang/cfg-if)
   - compression-codecs 0.4.38 (https://github.com/Nullus157/async-compression)
   - compression-core 0.4.32 (https://github.com/Nullus157/async-compression)
@@ -11168,10 +11167,10 @@ Used by:
   - itertools 0.14.0 (https://github.com/rust-itertools/itertools)
   - lazy_static 1.5.0 (https://github.com/rust-lang-nursery/lazy-static.rs)
   - linux-raw-sys 0.11.0 (https://github.com/sunfishcode/linux-raw-sys)
+  - linux-raw-sys 0.12.1 (https://github.com/sunfishcode/linux-raw-sys)
   - linux-raw-sys 0.4.15 (https://github.com/sunfishcode/linux-raw-sys)
   - lock_api 0.4.14 (https://github.com/Amanieu/parking_lot)
   - log 0.4.28 (https://github.com/rust-lang/log)
-  - lzma-sys 0.1.20 (https://github.com/alexcrichton/xz2-rs)
   - markup5ever 0.36.1 (https://github.com/servo/html5ever)
   - mime 0.3.17 (https://github.com/hyperium/mime)
   - mysql_common 0.38.2 (https://github.com/blackbeam/rust_mysql_common)
@@ -11251,10 +11250,9 @@ Used by:
   - unicode-width 0.2.2 (https://github.com/unicode-rs/unicode-width)
   - unicode-xid 0.2.6 (https://github.com/unicode-rs/unicode-xid)
   - url 2.5.8 (https://github.com/servo/rust-url)
-  - uuid 1.26.0 (https://github.com/uuid-rs/uuid)
+  - uuid 1.29.0 (https://github.com/uuid-rs/uuid)
   - web_atoms 0.2.0 (https://github.com/servo/html5ever)
   - xdg 2.5.2 (https://github.com/whitequark/rust-xdg)
-  - xz2 0.1.7 (https://github.com/alexcrichton/xz2-rs)
 
                               Apache License
                         Version 2.0, January 2004
@@ -12305,7 +12303,6 @@ Used by:
   - aes-gcm 0.11.1 (https://github.com/RustCrypto/AEADs)
   - aes 0.8.4 (https://github.com/RustCrypto/block-ciphers)
   - aes 0.9.3 (https://github.com/RustCrypto/block-ciphers)
-  - argon2 0.5.3 (https://github.com/RustCrypto/password-hashes/tree/master/argon2)
   - argon2 0.6.0 (https://github.com/RustCrypto/password-hashes)
   - base16ct 0.2.0 (https://github.com/RustCrypto/formats/tree/master/base16ct)
   - base16ct 1.0.0 (https://github.com/RustCrypto/formats)
@@ -12358,11 +12355,11 @@ Used by:
   - p384 0.13.1 (https://github.com/RustCrypto/elliptic-curves/tree/master/p384)
   - p384 0.14.0 (https://github.com/RustCrypto/elliptic-curves)
   - p521 0.14.0 (https://github.com/RustCrypto/elliptic-curves)
-  - password-hash 0.5.0 (https://github.com/RustCrypto/traits/tree/master/password-hash)
-  - pbkdf2 0.12.2 (https://github.com/RustCrypto/password-hashes/tree/master/pbkdf2)
+  - password-hash 0.6.1 (https://github.com/RustCrypto/traits)
   - pbkdf2 0.13.0 (https://github.com/RustCrypto/password-hashes)
   - pem-rfc7468 0.7.0 (https://github.com/RustCrypto/formats/tree/master/pem-rfc7468)
   - pem-rfc7468 1.0.0 (https://github.com/RustCrypto/formats)
+  - phc 0.6.1 (https://github.com/RustCrypto/formats)
   - pkcs1 0.7.5 (https://github.com/RustCrypto/formats/tree/master/pkcs1)
   - pkcs1 0.8.0-rc.4 (https://github.com/RustCrypto/formats)
   - pkcs5 0.8.1 (https://github.com/RustCrypto/formats)
@@ -14502,7 +14499,7 @@ Used by:
   - bon-macros 3.8.1 (https://github.com/elastio/bon)
   - bon 3.8.1 (https://github.com/elastio/bon)
   - cassandra-protocol 4.0.1 (https://github.com/krojew/cdrs-tokio)
-  - constant_time_eq 0.3.1 (https://github.com/cesarb/constant_time_eq)
+  - constant_time_eq 0.6.1 (https://codeberg.org/cesarb/constant_time_eq)
   - crc32c 0.6.8 (https://github.com/zowens/crc32c)
   - delegate 0.13.5 (https://github.com/kobzol/rust-delegate)
   - directories-next 2.0.0 (https://github.com/xdg-rs/dirs/tree/master/directories)
@@ -14528,7 +14525,7 @@ Used by:
   - miniz_oxide 0.8.9 (https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide)
   - objc2-core-foundation 0.3.2 (https://github.com/madsmtm/objc2)
   - objc2-system-configuration 0.3.2 (https://github.com/madsmtm/objc2)
-  - pageant 0.2.3 (https://github.com/warp-tech/russh)
+  - pageant 0.2.5 (https://github.com/warp-tech/russh)
   - paste 1.0.15 (https://github.com/dtolnay/paste)
   - pastey 0.2.3 (https://github.com/as1100k/pastey)
   - pear 0.2.9 (https://github.com/SergioBenitez/Pear)
@@ -14555,7 +14552,7 @@ Used by:
   - redact 0.1.11 (https://github.com/eopb/redact)
   - russh-cryptovec 0.62.0 (https://github.com/warp-tech/russh)
   - russh-util 0.52.0 (https://github.com/warp-tech/russh)
-  - russh 0.64.1 (https://github.com/warp-tech/russh)
+  - russh 0.65.1 (https://github.com/warp-tech/russh)
   - rustversion 1.0.22 (https://github.com/dtolnay/rustversion)
   - ryu 1.0.20 (https://github.com/dtolnay/ryu)
   - semver 1.0.27 (https://github.com/dtolnay/semver)
@@ -14584,6 +14581,7 @@ Used by:
   - time-macros 0.2.27 (https://github.com/time-rs/time)
   - time 0.3.47 (https://github.com/time-rs/time)
   - typed-path 0.12.3 (https://github.com/chipsenkbeil/typed-path)
+  - typed-path 0.13.0 (https://github.com/chipsenkbeil/typed-path)
   - uncased 0.9.10 (https://github.com/SergioBenitez/uncased)
   - unicode-ident 1.0.22 (https://github.com/dtolnay/unicode-ident)
   - utf-8 0.7.6 (https://github.com/SimonSapin/rust-utf8)
@@ -14591,8 +14589,6 @@ Used by:
   - whoami 1.6.1 (https://github.com/ardaku/whoami)
   - widestring 1.2.1 (https://github.com/VoidStarKat/widestring-rs)
   - yaml-rust2 0.8.1 (https://github.com/Ethiraric/yaml-rust2)
-  - zstd-safe 7.2.4 (https://github.com/gyscos/zstd-rs)
-  - zstd-sys 2.0.16+zstd.1.5.7 (https://github.com/gyscos/zstd-rs)
 
 Apache License
 Version 2.0, January 2004
@@ -15273,8 +15269,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 BSD 3-Clause "New" or "Revised" License (BSD-3-Clause)
 --------------------------------------------------------------------------------
 Used by:
-  - neli-proc-macros 0.1.4 (https://github.com/jbaublitz/neli)
-  - neli 0.6.5 (https://github.com/jbaublitz/neli)
+  - neli-proc-macros 0.2.2 (https://github.com/jbaublitz/neli)
+  - neli 0.7.5 (https://github.com/jbaublitz/neli)
 
 BSD 3-Clause License
 
@@ -17929,35 +17925,6 @@ SOFTWARE.
 MIT License (MIT)
 --------------------------------------------------------------------------------
 Used by:
-  - lzma-rs 0.3.0 (https://github.com/gendx/lzma-rs)
-
-MIT License
-
-Copyright (c) 2017 - 2018  Guillaume Endignoux
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License (MIT)
---------------------------------------------------------------------------------
-Used by:
   - tap 1.0.1 (https://github.com/myrrlyn/tap)
 
 MIT License
@@ -18954,6 +18921,35 @@ SOFTWARE.
 MIT License (MIT)
 --------------------------------------------------------------------------------
 Used by:
+  - getset 0.1.7 (https://github.com/jbaublitz/getset)
+
+MIT License
+
+Copyright (c) [year] [fullname]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+--------------------------------------------------------------------------------
+MIT License (MIT)
+--------------------------------------------------------------------------------
+Used by:
   - bytesstr 1.0.2 (https://github.com/kbalt/bytesstr)
 
 MIT License
@@ -19093,38 +19089,6 @@ THE SOFTWARE.
 MIT License (MIT)
 --------------------------------------------------------------------------------
 Used by:
-  - deflate64 0.1.10 (https://github.com/anatawa12/deflate64-rs)
-
-The MIT License (MIT)
-
-Copyright (c) .NET Foundation and Contributors
-Copyright (c) anatawa12 2023
-
-All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License (MIT)
---------------------------------------------------------------------------------
-Used by:
   - spin 0.9.8 (https://github.com/mvdnes/spin-rs.git)
 
 The MIT License (MIT)
@@ -19154,6 +19118,7 @@ MIT License (MIT)
 --------------------------------------------------------------------------------
 Used by:
   - tracing-core 0.1.34 (https://github.com/tokio-rs/tracing)
+  - zip 9.5.1 (https://github.com/zip-rs/zip2)
 
 The MIT License (MIT)
 
@@ -19177,37 +19142,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-
---------------------------------------------------------------------------------
-MIT License (MIT)
---------------------------------------------------------------------------------
-Used by:
-  - zip 2.4.2 (https://github.com/zip-rs/zip2.git)
-
-The MIT License (MIT)
-
-Copyright (c) 2014 Mathijs van de Nes
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-Some files in the "tests/data" subdirectory of this repository are under other
-licences; see files named LICENSE.*.txt for details.
 
 --------------------------------------------------------------------------------
 MIT License (MIT)
@@ -19828,22 +19762,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License (MIT)
---------------------------------------------------------------------------------
-Used by:
-  - zstd 0.13.3 (https://github.com/gyscos/zstd-rs)
-
-The MIT License (MIT)
-Copyright (c) 2016 Alexandre Bury
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
@@ -21270,6 +21188,34 @@ SPDX-License-Identifier: Unicode-3.0
 
 Portions of ICU4X may have been adapted from ICU4C and/or ICU4J.
 ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation and others.
+
+
+--------------------------------------------------------------------------------
+zlib License (Zlib)
+--------------------------------------------------------------------------------
+Used by:
+  - libz-rs-sys 0.5.5 (https://github.com/trifectatechfoundation/zlib-rs)
+  - zlib-rs 0.5.5 (https://github.com/trifectatechfoundation/zlib-rs)
+
+(C) 2024 Trifecta Tech Foundation 
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source distribution.
 
 
 --------------------------------------------------------------------------------

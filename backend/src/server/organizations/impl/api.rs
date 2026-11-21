@@ -26,4 +26,7 @@ pub struct OrganizationResponse {
     /// yet started doesn't count.
     #[schema(read_only)]
     pub daemon_connected: bool,
+    /// The plan the signup's intents call for on each hosting tab of the plan picker, with why.
+    #[schema(read_only)]
+    pub plan_recommendation: crate::server::billing::recommendation::PlanRecommendations,
 }

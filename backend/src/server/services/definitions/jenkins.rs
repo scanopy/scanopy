@@ -24,8 +24,10 @@ impl ServiceDefinition for Jenkins {
         DeviceTypeImplication::Server
     }
     fn discovery_pattern(&self) -> Pattern<'_> {
+        // Jenkins sets `X-Jenkins` on every response, the 403 of a secured instance included. A
+        // link to jenkins.io is not evidence: any page can carry one.
         Pattern::AnyOf(vec![
-            Pattern::Endpoint(PortType::Http8080, "/", "jenkins.io", None),
+            Pattern::Header(Some(PortType::Http8080), "x-jenkins", "", Some(200..500)),
             Pattern::Header(Some(PortType::Https), "x-jenkins", "", Some(200..500)),
         ])
     }

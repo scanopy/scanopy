@@ -647,13 +647,15 @@ pub struct DaemonResponse {
 
 impl DaemonResponse {
     /// The response for `daemon`, with its health derived from its record and version status.
+    /// `demo` is whether the org is on the demo plan: see [`DaemonHealth::of`].
     pub fn new(
         daemon: Daemon,
         version_status: DaemonVersionStatus,
         interfaced_subnet_ids: Vec<Uuid>,
+        demo: bool,
     ) -> Self {
         Self {
-            health: DaemonHealth::of(&daemon.base, &version_status),
+            health: DaemonHealth::of(&daemon.base, &version_status, demo),
             id: daemon.id,
             created_at: daemon.created_at,
             updated_at: daemon.updated_at,
@@ -663,6 +665,12 @@ impl DaemonResponse {
         }
     }
 }
+
+/// How long a DaemonPoll daemon may go without checking in before its health says so. It checks
+/// in on every work request, every 30 seconds by default. The server doesn't know an interval a
+/// user set, so this sits at three times the 5-minute stall threshold, well above any interval
+/// that still lets a scan report progress.
+const CHECK_IN_GRACE: chrono::TimeDelta = chrono::TimeDelta::minutes(15);
 
 /// A daemon's status, the most severe that applies, in that order.
 ///
@@ -686,6 +694,7 @@ impl DaemonResponse {
 pub enum DaemonHealth {
     Unsupported,
     Unreachable,
+    NotCheckingIn,
     Standby,
     AwaitingConnection,
     Deprecated,
@@ -696,18 +705,16 @@ pub enum DaemonHealth {
 
 impl DaemonHealth {
     /// The status `daemon` is in, given its version status.
-    pub fn of(daemon: &DaemonBase, version: &DaemonVersionStatus) -> Self {
+    ///
+    /// `demo` is whether the daemon's org is on the demo plan. A demo daemon reports only its
+    /// version's status: demo check-ins are refused, so its `last_seen` never moves and the
+    /// connection states would only ever drift into it after a reset.
+    pub fn of(daemon: &DaemonBase, version: &DaemonVersionStatus, demo: bool) -> Self {
         if version.status == VersionHealthStatus::Unsupported {
             return Self::Unsupported;
         }
-        if daemon.is_unreachable {
-            return Self::Unreachable;
-        }
-        if daemon.standby {
-            return Self::Standby;
-        }
-        if daemon.last_seen.is_none() {
-            return Self::AwaitingConnection;
+        if !demo && let Some(connection) = Self::connection_state(daemon) {
+            return connection;
         }
         match version.status {
             VersionHealthStatus::Deprecated => Self::Deprecated,
@@ -715,6 +722,36 @@ impl DaemonHealth {
             VersionHealthStatus::Unknown => Self::Unknown,
             VersionHealthStatus::Current | VersionHealthStatus::Unsupported => Self::Healthy,
         }
+    }
+
+    /// The connection or check-in state `daemon` is in, if any: the states that outrank its
+    /// version's.
+    fn connection_state(daemon: &DaemonBase) -> Option<Self> {
+        if daemon.is_unreachable {
+            return Some(Self::Unreachable);
+        }
+        if daemon.mode == DaemonMode::DaemonPoll
+            && daemon.last_seen.is_some_and(|seen| {
+                crate::server::shared::clock::now().signed_duration_since(seen) > CHECK_IN_GRACE
+            })
+        {
+            return Some(Self::NotCheckingIn);
+        }
+        if daemon.standby {
+            return Some(Self::Standby);
+        }
+        if daemon.last_seen.is_none() {
+            return Some(Self::AwaitingConnection);
+        }
+        None
+    }
+
+    /// The server has no working connection to the daemon: it lost it, or never had one.
+    pub fn is_disconnected(self) -> bool {
+        matches!(
+            self,
+            Self::Unreachable | Self::NotCheckingIn | Self::AwaitingConnection
+        )
     }
 }
 
@@ -727,7 +764,7 @@ impl HasId for DaemonHealth {
 impl EntityMetadataProvider for DaemonHealth {
     fn color(&self) -> Color {
         match self {
-            Self::Unsupported | Self::Unreachable => Color::Red,
+            Self::Unsupported | Self::Unreachable | Self::NotCheckingIn => Color::Red,
             Self::Standby => Color::Purple,
             Self::AwaitingConnection => Color::Blue,
             Self::Deprecated => Color::Orange,
@@ -741,6 +778,7 @@ impl EntityMetadataProvider for DaemonHealth {
         match self {
             Self::Unsupported => Icon::Ban,
             Self::Unreachable => Icon::WifiOff,
+            Self::NotCheckingIn => Icon::Unplug,
             Self::Standby => Icon::Moon,
             Self::AwaitingConnection => Icon::Hourglass,
             Self::Deprecated => Icon::TriangleAlert,
@@ -756,6 +794,7 @@ impl TypeMetadataProvider for DaemonHealth {
         match self {
             Self::Unsupported => "Unsupported",
             Self::Unreachable => "Unreachable",
+            Self::NotCheckingIn => "Not checking in",
             Self::Standby => "Standby",
             Self::AwaitingConnection => "Awaiting connection",
             Self::Deprecated => "Deprecated",
@@ -772,6 +811,9 @@ impl TypeMetadataProvider for DaemonHealth {
             }
             Self::Unreachable => {
                 "The server stopped polling the daemon after repeated failed connections."
+            }
+            Self::NotCheckingIn => {
+                "The daemon hasn't checked in with the server for over 15 minutes. Check that it is running and can reach the server."
             }
             Self::Standby => {
                 "The daemon has run no discovery in 30 days, so the server sends it no work."
@@ -1182,52 +1224,121 @@ mod health_tests {
         };
         let status = policy.evaluate(base.version.as_ref());
         assert_eq!(status.status, VersionHealthStatus::Unsupported);
-        assert_eq!(DaemonHealth::of(&base, &status), DaemonHealth::Unsupported);
+        assert_eq!(
+            DaemonHealth::of(&base, &status, false),
+            DaemonHealth::Unsupported
+        );
 
         base.version = Some(env!("CARGO_PKG_VERSION").parse().unwrap());
         base.is_unreachable = false;
         base.last_seen = None;
         let status = policy.evaluate(base.version.as_ref());
         assert_eq!(
-            DaemonHealth::of(&base, &status),
+            DaemonHealth::of(&base, &status, false),
             DaemonHealth::AwaitingConnection
         );
     }
 
     /// Every combination of daemon state and version status lands on one health value, and only a
-    /// daemon that has connected, is reachable, is not on standby and runs a Current version is
-    /// Healthy.
+    /// daemon that has connected, is reachable, has checked in lately, is not on standby and runs
+    /// a Current version is Healthy.
     #[test]
     fn only_a_connected_current_daemon_is_healthy() {
         use strum::IntoEnumIterator;
 
         let mut status = DaemonVersionPolicy::default().evaluate(None);
         let mut reached = std::collections::HashSet::new();
+        let now = crate::server::shared::clock::now();
         for version in VersionHealthStatus::iter() {
             status.status = version;
-            for (is_unreachable, standby, connected) in
-                itertools::iproduct!([false, true], [false, true], [false, true])
+            for (is_unreachable, standby, connected, silent) in
+                itertools::iproduct!([false, true], [false, true], [false, true], [false, true])
             {
+                let seen = if silent {
+                    now - CHECK_IN_GRACE * 2
+                } else {
+                    now
+                };
                 let base = DaemonBase {
                     is_unreachable,
                     standby,
-                    last_seen: connected.then(crate::server::shared::clock::now),
+                    last_seen: connected.then_some(seen),
                     ..Default::default()
                 };
-                let health = DaemonHealth::of(&base, &status);
+                let health = DaemonHealth::of(&base, &status, false);
                 reached.insert(<&str>::from(health));
                 let expect_healthy = version == VersionHealthStatus::Current
                     && connected
+                    && !silent
                     && !is_unreachable
                     && !standby;
                 assert_eq!(
                     health == DaemonHealth::Healthy,
                     expect_healthy,
-                    "{version:?}, unreachable={is_unreachable}, standby={standby}, connected={connected} gave {health:?}"
+                    "{version:?}, unreachable={is_unreachable}, standby={standby}, connected={connected}, silent={silent} gave {health:?}"
                 );
             }
         }
         assert_eq!(reached.len(), DaemonHealth::iter().count());
+    }
+
+    /// Only a daemon that polls the server can stop checking in. The server polls a ServerPoll
+    /// daemon, so its poll loop marks it Unreachable instead.
+    #[test]
+    fn only_a_polling_daemon_that_went_quiet_is_not_checking_in() {
+        let status = DaemonVersionPolicy::default()
+            .evaluate(Some(&env!("CARGO_PKG_VERSION").parse().unwrap()));
+        let quiet = crate::server::shared::clock::now() - CHECK_IN_GRACE * 2;
+        let mut base = DaemonBase {
+            mode: DaemonMode::DaemonPoll,
+            last_seen: Some(quiet),
+            ..Default::default()
+        };
+        assert_eq!(
+            DaemonHealth::of(&base, &status, false),
+            DaemonHealth::NotCheckingIn
+        );
+        base.mode = DaemonMode::ServerPoll;
+        assert_eq!(
+            DaemonHealth::of(&base, &status, false),
+            DaemonHealth::Healthy
+        );
+    }
+
+    /// A demo daemon reports its version's status only: every connection and check-in state
+    /// gives way to it, so a current one is Healthy and an outdated one stays Outdated.
+    #[test]
+    fn a_demo_daemon_reports_only_its_version() {
+        use strum::IntoEnumIterator;
+
+        let mut status = DaemonVersionPolicy::default().evaluate(None);
+        let quiet = crate::server::shared::clock::now() - CHECK_IN_GRACE * 2;
+        for (is_unreachable, standby, connected) in
+            itertools::iproduct!([false, true], [false, true], [false, true])
+        {
+            let base = DaemonBase {
+                mode: DaemonMode::DaemonPoll,
+                is_unreachable,
+                standby,
+                last_seen: connected.then_some(quiet),
+                ..Default::default()
+            };
+            for version in VersionHealthStatus::iter() {
+                status.status = version;
+                let expected = match version {
+                    VersionHealthStatus::Current => DaemonHealth::Healthy,
+                    VersionHealthStatus::Outdated => DaemonHealth::Outdated,
+                    VersionHealthStatus::Deprecated => DaemonHealth::Deprecated,
+                    VersionHealthStatus::Unsupported => DaemonHealth::Unsupported,
+                    VersionHealthStatus::Unknown => DaemonHealth::Unknown,
+                };
+                assert_eq!(
+                    DaemonHealth::of(&base, &status, true),
+                    expected,
+                    "{version:?}, unreachable={is_unreachable}, standby={standby}, connected={connected}"
+                );
+            }
+        }
     }
 }
 

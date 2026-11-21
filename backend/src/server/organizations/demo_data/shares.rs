@@ -1,4 +1,5 @@
 use super::*;
+use crate::server::topology::types::grouping::EdgeColoring;
 
 // ============================================================================
 // Shares
@@ -37,6 +38,7 @@ pub(super) fn generate_shares(
                         show_zoom_controls: false,
                         show_export_button: false,
                         show_minimap: false,
+                        edge_coloring: None,
                     },
                     enabled_views: None,
                 },
@@ -64,6 +66,7 @@ pub(super) fn generate_shares(
                         show_zoom_controls: false,
                         show_export_button: false,
                         show_minimap: false,
+                        edge_coloring: None,
                     },
                     enabled_views: None,
                 },
@@ -72,4 +75,41 @@ pub(super) fn generate_shares(
     }
 
     shares
+}
+
+/// Fixed UUID of the Water Utility's L2 share, so its link stays the same across demo resets.
+pub const WATER_UTILITY_L2_SHARE_ID: Uuid = Uuid::from_u128(0xc1b2c3d4_e5f6_7890_abcd_ef1234567890);
+
+/// A share of the Water Utility site's L2 view alone, with the inspect panel and zoom controls,
+/// so a link opens straight onto the rings and each link can be traced.
+pub(super) fn water_utility_l2_share(
+    topology: &Topology,
+    user_id: Uuid,
+    now: DateTime<Utc>,
+) -> Share {
+    use crate::server::topology::types::views::TopologyView;
+    Share {
+        id: WATER_UTILITY_L2_SHARE_ID,
+        created_at: now,
+        updated_at: now,
+        base: ShareBase {
+            topology_id: topology.id,
+            site_id: topology.base.site_id,
+            created_by: user_id,
+            name: "Water Utility L2 Rings".to_string(),
+            is_enabled: true,
+            expires_at: None,
+            password_hash: None,
+            password: None,
+            allowed_domains: None,
+            options: ShareOptions {
+                show_inspect_panel: true,
+                show_zoom_controls: true,
+                show_export_button: false,
+                show_minimap: true,
+                edge_coloring: Some(EdgeColoring::Speed),
+            },
+            enabled_views: Some(vec![TopologyView::L2Physical]),
+        },
+    }
 }

@@ -142,6 +142,24 @@ impl DiscoveryType {
         )
     }
 
+    /// Whether this type sweeps subnets a scan can choose. See [`Self::subnet_targets_mut`].
+    pub fn has_subnet_targets(&self) -> bool {
+        matches!(self, Self::Network { .. } | Self::Unified { .. })
+    }
+
+    /// The subnet targets of a type that sweeps chosen subnets: `Some(None)` for one with no
+    /// targets, which covers every subnet its daemon has an interface on. `None` for a type with
+    /// no subnet targets at all.
+    pub fn subnet_targets_mut(&mut self) -> Option<&mut Option<Vec<Uuid>>> {
+        match self {
+            Self::Network { subnet_ids, .. } | Self::Unified { subnet_ids, .. } => Some(subnet_ids),
+            Self::SelfReport { .. }
+            | Self::Docker { .. }
+            | Self::Rescan { .. }
+            | Self::InterfaceRefresh { .. } => None,
+        }
+    }
+
     /// The hosts a one-shot rescan is verifying. `None` for every other type,
     /// so `Some` also answers "is this a rescan".
     pub fn rescan_target_host_ids(&self) -> Option<&[Uuid]> {

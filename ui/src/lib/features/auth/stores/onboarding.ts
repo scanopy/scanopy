@@ -1,9 +1,15 @@
 import { writable, get } from 'svelte/store';
-import type { UseCase, SiteSetup } from '../types/base';
+import type { UseCase, SiteSetup, SignupIntent } from '../types/base';
 import type { PlanPickerHosting } from '#lib/features/billing/types.ts';
 
 export interface OnboardingState {
 	useCase: UseCase | null;
+	/** The text typed for "Something else" as the use case. */
+	useCaseOther: string | null;
+	/** What the signup wants Scanopy to do. `null` until answered, empty when skipped. */
+	intents: SignupIntent[] | null;
+	/** The text typed for "Something else" as an intent. */
+	intentOther: string | null;
 	/** Where Scanopy runs, chosen at signup (preselected from `?hosting=`). Opens the plan picker on that tab. */
 	hosting: PlanPickerHosting | null;
 	organizationName: string;
@@ -22,20 +28,16 @@ export function asksForSite(hosting: PlanPickerHosting | null, cloudDeployment: 
 	return !(cloudDeployment && hosting === 'self_hosted');
 }
 
-export type OnboardingStep = 'hosting' | 'use_case' | 'setup' | 'register';
+export const ONBOARDING_STEPS = ['hosting', 'use_case', 'intents', 'setup', 'register'] as const;
+export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 /**
  * The new-org signup steps, in order. A server that sells both cloud and
- * self-hosted plans asks where Scanopy runs first. A self-hosted license
- * buyer then skips the use case, which their own server asks for instead.
+ * self-hosted plans asks where Scanopy runs first. Every signup, a self-hosted
+ * license buyer included, then says whose network it is and what it wants done.
  */
-export function onboardingSteps(
-	asksHosting: boolean,
-	hosting: PlanPickerHosting | null
-): OnboardingStep[] {
-	if (!asksHosting) return ['use_case', 'setup', 'register'];
-	if (hosting === 'self_hosted') return ['hosting', 'setup', 'register'];
-	return ['hosting', 'use_case', 'setup', 'register'];
+export function onboardingSteps(asksHosting: boolean): OnboardingStep[] {
+	return ONBOARDING_STEPS.filter((step) => asksHosting || step !== 'hosting');
 }
 
 // Fields to persist to localStorage (for billing page autofill)
@@ -76,6 +78,9 @@ const persisted = loadPersistedState();
 
 const initialState: OnboardingState = {
 	useCase: persisted.useCase,
+	useCaseOther: null,
+	intents: null,
+	intentOther: null,
 	hosting: persisted.hosting,
 	organizationName: '',
 	site: { name: '' },
@@ -108,10 +113,20 @@ function createOnboardingStore() {
 				hosting: state.hosting // Preserve for billing page
 			})),
 
-		setUseCase: (useCase: UseCase) =>
+		/** The use case, and its "Something else" text (`null` for any other use case). */
+		setUseCase: (useCase: UseCase, useCaseOther: string | null = null) =>
 			updateAndPersist((state) => ({
 				...state,
-				useCase
+				useCase,
+				useCaseOther
+			})),
+
+		/** The intents, and the "Something else" text. An empty list records a skip. */
+		setIntents: (intents: SignupIntent[], intentOther: string | null = null) =>
+			update((state) => ({
+				...state,
+				intents,
+				intentOther
 			})),
 
 		setHosting: (hosting: PlanPickerHosting) =>

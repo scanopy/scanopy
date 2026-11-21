@@ -205,6 +205,7 @@ async fn daemons(
         .await?;
     let ids: Vec<Uuid> = found.items.iter().map(|d| d.id).collect();
     let subnet_ids = s.daemon_service.get_interfaced_subnet_ids_batch(&ids).await;
+    let demo = s.daemon_service.org_is_demo(&scope.organization_id).await?;
     let policy = DaemonVersionPolicy::default();
     Ok(Page {
         items: found
@@ -213,7 +214,7 @@ async fn daemons(
             .map(|d| {
                 let version_status = policy.evaluate(d.base.version.as_ref());
                 let interfaced = subnet_ids.get(&d.id).cloned().unwrap_or_default();
-                SearchHit::Daemon(DaemonResponse::new(d, version_status, interfaced))
+                SearchHit::Daemon(DaemonResponse::new(d, version_status, interfaced, demo))
             })
             .collect(),
         total_count: found.total_count,

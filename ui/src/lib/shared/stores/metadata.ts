@@ -2,6 +2,9 @@ import { writable, get } from 'svelte/store';
 import type { components } from '#lib/api/schema';
 import serviceDefinitionsJson from '#lib/data/service-definitions.json';
 import subnetTypesJson from '#lib/data/subnet-types.json';
+import subnetCreatePurposesJson from '#lib/data/subnet-create-purposes.json';
+import useCasesJson from '#lib/data/use-cases.json';
+import signupIntentsJson from '#lib/data/signup-intents.json';
 import edgeTypesJson from '#lib/data/edge-types.json';
 import dependencyTypesJson from '#lib/data/dependency-types.json';
 import entitiesJson from '#lib/data/entities.json';
@@ -12,6 +15,7 @@ import portsJson from '#lib/data/ports.json';
 import discoveryTypesJson from '#lib/data/discovery-types.json';
 import discoveryPhasesJson from '#lib/data/discovery-phases.json';
 import discoveryTerminalReasonsJson from '#lib/data/discovery-terminal-reasons.json';
+import scanFailureFixesJson from '#lib/data/scan-failure-fixes.json';
 import billingPlansJson from '#lib/data/billing-plans-all.json';
 import planStatusesJson from '#lib/data/plan-statuses.json';
 import emailCategoriesJson from '#lib/data/email-categories.json';
@@ -124,6 +128,9 @@ export interface CredentialTypeMetadata {
 export interface MetadataRegistry {
 	service_definitions: TypeMetadata[];
 	subnet_types: TypeMetadata[];
+	subnet_create_purposes: TypeMetadata[];
+	use_cases: TypeMetadata[];
+	signup_intents: TypeMetadata[];
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
@@ -134,6 +141,7 @@ export interface MetadataRegistry {
 	discovery_types: TypeMetadata[];
 	discovery_phases: TypeMetadata[];
 	discovery_terminal_reasons: TypeMetadata[];
+	scan_failure_fixes: TypeMetadata[];
 	billing_plans: TypeMetadata[];
 	plan_statuses: TypeMetadata[];
 	email_categories: TypeMetadata[];
@@ -344,6 +352,9 @@ export interface DiscoveryTerminalReasonMetadata {
 	is_stall: boolean;
 	/** The daemon's own log lines for the run say what happened. */
 	explained_by_daemon_logs: boolean;
+	/** What the Issues row for a run that ended this way offers. `null` for a run that finished
+	 *  or that someone stopped. */
+	issue_fix: components['schemas']['ScanFailureFix'] | null;
 }
 
 export interface ContainerTypeMetadata {
@@ -362,6 +373,9 @@ export interface ContainerTypeMetadata {
 export const metadata = writable<MetadataRegistry>({
 	service_definitions: serviceDefinitionsJson,
 	subnet_types: subnetTypesJson,
+	subnet_create_purposes: subnetCreatePurposesJson,
+	use_cases: useCasesJson,
+	signup_intents: signupIntentsJson,
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
@@ -372,6 +386,7 @@ export const metadata = writable<MetadataRegistry>({
 	discovery_types: discoveryTypesJson,
 	discovery_phases: discoveryPhasesJson,
 	discovery_terminal_reasons: discoveryTerminalReasonsJson,
+	scan_failure_fixes: scanFailureFixesJson,
 	billing_plans: billingPlansJson,
 	plan_statuses: planStatusesJson,
 	email_categories: emailCategoriesJson,
@@ -559,6 +574,20 @@ export const serviceDefinitions = createTypeMetadataHelpers<
 export const subnetTypes = createTypeMetadataHelpers<'subnet_types', SubnetTypeMetadata>(
 	'subnet_types'
 );
+/** The create flow's first question: what the subnet is for. */
+export const subnetCreatePurposes = createTypeMetadataHelpers<'subnet_create_purposes', object>(
+	'subnet_create_purposes'
+);
+/** The signup's first question: whose network the org documents. */
+export const useCases = createTypeMetadataHelpers<'use_cases', object>('use_cases');
+export interface SignupIntentMetadata {
+	/** The credential categories (`credential-types.json` `category`) the daemon wizard lists first. */
+	credential_categories: string[];
+}
+/** The signup's second question: what the org wants Scanopy to do. */
+export const signupIntents = createTypeMetadataHelpers<'signup_intents', SignupIntentMetadata>(
+	'signup_intents'
+);
 export const edgeTypes = createTypeMetadataHelpers<'edge_types', EdgeTypeMetadata>('edge_types');
 export const dependencyTypes = createTypeMetadataHelpers<
 	'dependency_types',
@@ -659,6 +688,17 @@ export const discoveryTerminalReasons = createTypeMetadataHelpers<
 	'discovery_terminal_reasons',
 	DiscoveryTerminalReasonMetadata
 >('discovery_terminal_reasons');
+/** What `ScanFailureFix` metadata carries. */
+export interface ScanFailureFixMetadata {
+	/** The docs page the row links to. */
+	docs_url: string | null;
+}
+/** The fix an Issues row for a scan that didn't finish offers (button label, icon, docs link),
+ *  keyed by `ScanFailureFix`. */
+export const scanFailureFixes = createTypeMetadataHelpers<
+	'scan_failure_fixes',
+	ScanFailureFixMetadata
+>('scan_failure_fixes');
 export const billingPlans = createTypeMetadataHelpers<'billing_plans', BillingPlanMetadata>(
 	'billing_plans'
 );

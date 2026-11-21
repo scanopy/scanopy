@@ -110,13 +110,24 @@ impl PaginatedList for Daemon {
             .daemon_service
             .get_interfaced_subnet_ids_batch(&ids)
             .await;
+        // Every row is in the caller's org, so the first row's site names the plan for the page.
+        let demo = match rows.first() {
+            Some(daemon) => {
+                state
+                    .services
+                    .daemon_service
+                    .site_is_demo(&daemon.base.site_id)
+                    .await?
+            }
+            None => false,
+        };
         let policy = DaemonVersionPolicy::default();
         Ok(rows
             .into_iter()
             .map(|daemon| {
                 let version_status = policy.evaluate(daemon.base.version.as_ref());
                 let interfaced = subnets.remove(&daemon.id).unwrap_or_default();
-                DaemonResponse::new(daemon, version_status, interfaced)
+                DaemonResponse::new(daemon, version_status, interfaced, demo)
             })
             .collect())
     }

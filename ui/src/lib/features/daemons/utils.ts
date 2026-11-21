@@ -16,6 +16,19 @@ import {
 export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/reference/daemon-status/';
 
 /**
+ * The daemon to name when asking someone to finish connecting one: the newest that has never
+ * connected, on `siteId` when one is given. Every screen that sends a person to fix a daemon
+ * instead of creating another asks this, so they all name the same one.
+ */
+export function awaitingDaemon(daemons: Daemon[], siteId?: string | null): Daemon | null {
+	return (
+		daemons
+			.filter((d) => d.health === 'awaiting_connection' && (!siteId || d.site_id === siteId))
+			.sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
+	);
+}
+
+/**
  * Whether a daemon is known to predate unified discovery: it has checked in, and the version it
  * reported is below the floor.
  *

@@ -521,6 +521,7 @@ const DAEMON_REPORTED_UNCHECKED: &[(&str, &str)] = &[
     ("ProvisionalSubnet", "seen_by_host_ids"),
     ("ProvisionalSubnet", "subnet_id"),
     ("UnconfirmedHost", "host_id"),
+    ("UnmatchedNeighbour", "candidate_host_ids"),
     ("UnmatchedNeighbour", "host_id"),
     ("UnresolvedPort", "host_id"),
     ("UnresolvedPort", "remote_host_id"),

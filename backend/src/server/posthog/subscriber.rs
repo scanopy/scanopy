@@ -17,7 +17,8 @@ use crate::{
         warnings::DiscoveryWarningCode,
     },
     server::{
-        organizations::r#impl::base::UseCase,
+        billing::recommendation::PlanRecommendations,
+        organizations::r#impl::{base::UseCase, intent::SignupIntent},
         posthog::service::PosthogService,
         setup::types::SetupOperation,
         shared::{
@@ -49,8 +50,8 @@ struct PersonProperties<'a> {
     plan_type: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     organization_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    use_case: Option<&'a UseCase>,
+    #[serde(flatten)]
+    signup: SignupProperties<'a>,
 }
 
 /// Organization group properties an event sets when it settles the org's plan.
@@ -60,10 +61,72 @@ struct OrgGroupProperties<'a> {
     plan_type: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<&'a str>,
+    #[serde(flatten)]
+    signup: SignupProperties<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    created_at: Option<String>,
+}
+
+/// The signup's answers and the plans they call for, set on the person and the org group when
+/// the org is created. Every field is left out when absent, so other events don't clear them.
+#[derive(Serialize, Default)]
+struct SignupProperties<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     use_case: Option<&'a UseCase>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    created_at: Option<String>,
+    use_case_other: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    intents: Option<&'a [SignupIntent]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    intent_other: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recommended_cloud_plan: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recommended_self_hosted_plan: Option<String>,
+}
+
+/// The person and organization group properties `OrgCreated` sets. `None` for any other
+/// operation.
+fn org_created_properties<'a>(
+    operation: &'a AuthOperation,
+    organization_id: Uuid,
+    created_at: String,
+) -> Option<(PersonProperties<'a>, OrgGroupProperties<'a>)> {
+    let AuthOperation::OrgCreated {
+        org_name,
+        plan,
+        use_case,
+        use_case_other,
+        intents,
+        intent_other,
+        ..
+    } = operation
+    else {
+        return None;
+    };
+    let recommendations = PlanRecommendations::for_intents(intents.as_deref());
+    let signup = || SignupProperties {
+        use_case: Some(use_case),
+        use_case_other: use_case_other.as_deref(),
+        intents: intents.as_deref(),
+        intent_other: intent_other.as_deref(),
+        recommended_cloud_plan: recommendations.cloud.as_ref().map(|r| r.plan.clone()),
+        recommended_self_hosted_plan: recommendations.self_hosted.as_ref().map(|r| r.plan.clone()),
+    };
+    let plan_type = plan.as_ref().map(|plan| plan.id());
+    Some((
+        PersonProperties {
+            plan_type,
+            organization_id: Some(organization_id),
+            signup: signup(),
+        },
+        OrgGroupProperties {
+            plan_type,
+            name: Some(org_name),
+            signup: signup(),
+            created_at: Some(created_at),
+        },
+    ))
 }
 
 /// A warning bucket's metadata plus how many warnings it collapsed.
@@ -159,27 +222,11 @@ impl Subscriber<AuthOperation> for PosthogService {
             };
             failures.extend(result.err());
 
-            if let AuthOperation::OrgCreated {
-                org_name,
-                plan,
-                use_case,
-                ..
-            } = &event.operation
-                && let Some(org_id) = event.scope.organization_id
+            if let Some(org_id) = event.scope.organization_id
+                && let Some((person, group)) =
+                    org_created_properties(&event.operation, org_id, event.timestamp.to_rfc3339())
             {
-                let person = PersonProperties {
-                    plan_type: plan.as_ref().map(|plan| plan.id()),
-                    organization_id: Some(org_id),
-                    use_case: Some(use_case),
-                };
                 failures.extend(self.identify(&distinct_id, &person).await.err());
-
-                let group = OrgGroupProperties {
-                    plan_type: plan.as_ref().map(|plan| plan.id()),
-                    name: Some(org_name),
-                    use_case: Some(use_case),
-                    created_at: Some(event.timestamp.to_rfc3339()),
-                };
                 failures.extend(
                     self.group_identify("organization", &org_id.to_string(), &group)
                         .await
@@ -234,12 +281,12 @@ impl Subscriber<BillingOperation> for PosthogService {
             let person = PersonProperties {
                 plan_type: Some(plan_type),
                 organization_id: None,
-                use_case: None,
+                signup: SignupProperties::default(),
             };
             let group = OrgGroupProperties {
                 plan_type: Some(plan_type),
                 name: None,
-                use_case: None,
+                signup: SignupProperties::default(),
                 created_at: None,
             };
             failures.extend(self.identify(&distinct_id, &person).await.err());
@@ -494,6 +541,9 @@ mod tests {
                             org_name: "Acme".to_string(),
                             plan: Some(get_commercial_self_hosted_plan()),
                             use_case: UseCase::InternalIt,
+                            use_case_other: None,
+                            intents: Some(vec![SignupIntent::CurrentDiagram]),
+                            intent_other: None,
                             site: None,
                         },
                         owner.clone(),
@@ -571,6 +621,7 @@ mod tests {
                         SetupOperation::Completed {
                             item_type: SetupItemDiscriminants::InstallDaemon,
                             subject_id: Some(Uuid::new_v4()),
+                            answers: None,
                         },
                     ),
                     organization_id,
@@ -585,6 +636,7 @@ mod tests {
                         SetupOperation::Completed {
                             item_type: SetupItemDiscriminants::RunFirstScan,
                             subject_id: Some(Uuid::new_v4()),
+                            answers: None,
                         },
                     ),
                     organization_id,
@@ -792,5 +844,73 @@ mod tests {
 
         assert_eq!(person(&sent), Some(user_id.to_string()));
         assert_eq!(person(&viewed), Some(format!("org:{organization_id}")));
+    }
+
+    fn org_created(
+        use_case: UseCase,
+        use_case_other: Option<&str>,
+        intents: Option<Vec<SignupIntent>>,
+    ) -> AuthOperation {
+        AuthOperation::OrgCreated {
+            org_name: "Acme".to_string(),
+            plan: None,
+            use_case,
+            use_case_other: use_case_other.map(String::from),
+            intents,
+            intent_other: None,
+            site: None,
+        }
+    }
+
+    /// The person and the org group get the same signup answers and recommended plans, so a
+    /// cohort built on either reads the same values.
+    #[test]
+    fn org_created_sets_the_signup_answers_on_person_and_group() {
+        let intents = vec![SignupIntent::CurrentDiagram, SignupIntent::AuditEvidence];
+        let operation = org_created(
+            UseCase::Other,
+            Some("a school project"),
+            Some(intents.clone()),
+        );
+        let (person, group) =
+            org_created_properties(&operation, Uuid::new_v4(), "now".to_string()).expect("set");
+        let recommended = PlanRecommendations::for_intents(Some(&intents));
+
+        for properties in [json!(person), json!(group)] {
+            assert_eq!(properties["use_case"], json!("other"));
+            assert_eq!(properties["use_case_other"], json!("a school project"));
+            assert_eq!(
+                properties["intents"],
+                json!(["current_diagram", "audit_evidence"])
+            );
+            assert!(properties.get("intent_other").is_none());
+            assert_eq!(
+                properties["recommended_cloud_plan"],
+                json!(recommended.cloud.as_ref().expect("recommended").plan)
+            );
+            assert_eq!(
+                properties["recommended_self_hosted_plan"],
+                json!(recommended.self_hosted.as_ref().expect("recommended").plan)
+            );
+        }
+    }
+
+    /// An org never asked for intents sets no intent or recommendation property, so it can be
+    /// told apart from one that skipped (an empty list).
+    #[test]
+    fn an_org_never_asked_sets_no_intents() {
+        let operation = org_created(UseCase::Homelab, None, None);
+        let (person, group) =
+            org_created_properties(&operation, Uuid::new_v4(), "now".to_string()).expect("set");
+        for properties in [json!(person), json!(group)] {
+            for key in ["use_case_other", "intents", "recommended_cloud_plan"] {
+                assert!(properties.get(key).is_none(), "{key}");
+            }
+        }
+
+        let skipped = org_created(UseCase::Homelab, None, Some(vec![]));
+        let (person, _) =
+            org_created_properties(&skipped, Uuid::new_v4(), "now".to_string()).expect("set");
+        assert_eq!(json!(person)["intents"], json!([]));
     }
 }

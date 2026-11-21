@@ -346,7 +346,13 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
         );
         tracing::warn!("  Docker proxy config will no longer be read from daemon in v0.16.0.");
         tracing::warn!("  Migrate by creating a DockerProxy credential in the Scanopy UI.");
-        tracing::warn!("  See: https://scanopy.net/docs/guides/unified-discovery-migration/");
+        tracing::warn!("  See: https://scanopy.net/docs/using-scanopy/discovery/");
+    }
+
+    if config.use_npcap_arp {
+        tracing::warn!(
+            "Deprecated config: --use-npcap-arp / SCANOPY_USE_NPCAP_ARP has no effect. Set Use Npcap ARP (Windows) on the scan's Performance tab."
+        );
     }
 
     {
@@ -362,7 +368,7 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
             tracing::warn!(
                 "  Scan settings are now configured per-discovery on the server and will no longer be read from daemon in v0.16.0."
             );
-            tracing::warn!("  See: https://scanopy.net/docs/guides/unified-discovery-migration/");
+            tracing::warn!("  See: https://scanopy.net/docs/using-scanopy/discovery/");
         }
     }
 

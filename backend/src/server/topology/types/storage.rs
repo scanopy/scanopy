@@ -1,4 +1,5 @@
 use crate::server::shared::entities::EntityDiscriminants;
+use crate::server::topology::types::views::TopologyView;
 use crate::server::{
     shared::{
         product_area::ProductArea,
@@ -39,7 +40,13 @@ impl Storable for Topology {
             id,
             created_at,
             updated_at,
-            base: Self::BaseData { site_id, options },
+            base:
+                Self::BaseData {
+                    site_id,
+                    options,
+                    // Worked out on each list read, so it has no column.
+                    starting_view: _,
+                },
         } = self.clone();
 
         Ok((
@@ -66,6 +73,8 @@ impl Storable for Topology {
             base: TopologyBase {
                 site_id: row.get("site_id"),
                 options,
+                // Filled by the list handler, which knows the org's intents.
+                starting_view: TopologyView::default(),
             },
         })
     }
@@ -88,9 +97,7 @@ impl Entity for Topology {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Topology
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Topology;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Topology";
     const ENTITY_NAME_PLURAL: &'static str = "Topologies";

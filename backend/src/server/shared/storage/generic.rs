@@ -42,6 +42,16 @@ where
         }
     }
 
+    /// The entity's columns, qualified by its table so a filter's JOIN can't make one ambiguous.
+    pub(crate) fn select_list() -> String {
+        let table = T::table_name();
+        T::select_columns()
+            .iter()
+            .map(|column| format!("{table}.{column}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
     /// Generate INSERT query dynamically
     fn build_insert_query(columns: &[&str]) -> String {
         let placeholders: Vec<String> = (1..=columns.len()).map(|i| format!("${}", i)).collect();
@@ -191,6 +201,7 @@ where
             Bound::OptUuidArray(v) => query.bind(v),
             Bound::I32(v) => query.bind(v),
             Bound::OptI32(v) => query.bind(v),
+            Bound::I32Array(v) => query.bind(v),
             Bound::I64(v) => query.bind(v),
             Bound::OptI64(v) => query.bind(v),
             Bound::Bool(v) => query.bind(v),
@@ -220,7 +231,7 @@ where
         let (columns, values) = entity.to_params()?;
         let query_str = Self::build_insert_query(&columns);
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in &values {
             query = Self::bind_value(query, value)?;
         }
@@ -254,6 +265,25 @@ where
     /// Maximum bind parameters per PostgreSQL query
     const MAX_BIND_PARAMS: usize = 65535;
 
+    /// Row batches for a bulk insert, in order: each a power of two rows (37 rows go as 32, 4
+    /// and 1), and within `MAX_BIND_PARAMS` binds. The row count is part of an insert's statement
+    /// text, so batch sizes from this small set keep a table to a few cached insert statements
+    /// instead of one per row count.
+    fn insert_batches(entities: &[T], cols_per_row: usize) -> Vec<&[T]> {
+        fn floor_power_of_two(n: usize) -> usize {
+            1 << (usize::BITS - 1 - n.leading_zeros())
+        }
+        let most = floor_power_of_two(Self::MAX_BIND_PARAMS / cols_per_row.max(1));
+        let mut batches = Vec::new();
+        let mut rest = entities;
+        while !rest.is_empty() {
+            let (batch, tail) = rest.split_at(floor_power_of_two(rest.len()).min(most));
+            batches.push(batch);
+            rest = tail;
+        }
+        batches
+    }
+
     /// Internal: bulk create entities with any executor.
     /// Chunks automatically to stay under PostgreSQL's bind parameter limit.
     pub async fn create_many_with_executor(
@@ -267,9 +297,7 @@ where
         // Get column count from first entity to calculate chunk size
         let (columns, _) = entities[0].to_params()?;
         let cols_per_row = columns.len();
-        let chunk_size = Self::MAX_BIND_PARAMS / cols_per_row;
-
-        for chunk in entities.chunks(chunk_size) {
+        for chunk in Self::insert_batches(entities, cols_per_row) {
             // Collect all params first to get owned column names
             let all_params: Vec<(Vec<&'static str>, Vec<SqlValue>)> = chunk
                 .iter()
@@ -277,7 +305,7 @@ where
                 .collect::<Result<_, _>>()?;
 
             let query_str = Self::build_bulk_insert_query(&all_params[0].0, chunk.len());
-            let mut query = sqlx::query(&query_str).persistent(false);
+            let mut query = sqlx::query(&query_str);
 
             for (_, values) in &all_params {
                 for value in values {
@@ -343,7 +371,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -409,11 +437,7 @@ where
         let pagination_clause = filter.to_pagination_clause();
         let join_clause = filter.to_join_clause();
 
-        let select = if filter.has_joins() {
-            format!("{}.*", T::table_name())
-        } else {
-            "*".to_string()
-        };
+        let select = Self::select_list();
 
         let query_str = format!(
             "SELECT {} FROM {} {} {} ORDER BY created_at ASC {}",
@@ -424,7 +448,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -447,16 +471,14 @@ where
 
         let (columns, _) = entities[0].to_params()?;
         let cols_per_row = columns.len();
-        let chunk_size = Self::MAX_BIND_PARAMS / cols_per_row.max(1);
-
-        for chunk in entities.chunks(chunk_size) {
+        for chunk in Self::insert_batches(entities, cols_per_row) {
             let all_params: Vec<(Vec<&'static str>, Vec<SqlValue>)> = chunk
                 .iter()
                 .map(|e| e.to_params())
                 .collect::<Result<_, _>>()?;
 
             let query_str = Self::build_bulk_insert_query(&all_params[0].0, chunk.len());
-            let mut query = sqlx::query(&query_str).persistent(false);
+            let mut query = sqlx::query(&query_str);
 
             for (_, values) in &all_params {
                 for value in values {
@@ -493,7 +515,6 @@ where
             T::table_name()
         );
         sqlx::query(&query_str)
-            .persistent(false)
             .bind(snapshot_id)
             .bind(ids)
             .execute(&mut **tx)
@@ -516,7 +537,7 @@ where
         for entity in entities {
             let (columns, values) = entity.to_params()?;
             let query_str = Self::build_update_query(&columns);
-            let mut query = sqlx::query(&query_str).persistent(false);
+            let mut query = sqlx::query(&query_str);
             for value in &values {
                 query = Self::bind_value(query, value)?;
             }
@@ -549,11 +570,12 @@ where
     pub async fn get_by_id(&mut self, id: &Uuid) -> Result<Option<T>, anyhow::Error> {
         let filter = StorableFilter::<T>::new_from_entity_id(id);
         let query_str = format!(
-            "SELECT * FROM {} {}",
+            "SELECT {} FROM {} {}",
+            GenericPostgresStorage::<T>::select_list(),
             T::table_name(),
             filter.to_where_clause()
         );
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -569,11 +591,12 @@ where
     pub async fn get_by_id_for_update(&mut self, id: &Uuid) -> Result<Option<T>, anyhow::Error> {
         let filter = StorableFilter::<T>::new_from_entity_id(id);
         let query_str = format!(
-            "SELECT * FROM {} {} FOR UPDATE",
+            "SELECT {} FROM {} {} FOR UPDATE",
+            GenericPostgresStorage::<T>::select_list(),
             T::table_name(),
             filter.to_where_clause()
         );
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -601,7 +624,7 @@ where
     pub async fn update(&mut self, entity: &mut T) -> Result<T, anyhow::Error> {
         let (columns, values) = entity.to_params()?;
         let query_str = GenericPostgresStorage::<T>::build_update_query(&columns);
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in &values {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -655,7 +678,7 @@ where
         for entity in entities {
             let (columns, values) = entity.to_params()?;
             let query_str = Self::build_update_query(&columns);
-            let mut query = sqlx::query(&query_str).persistent(false);
+            let mut query = sqlx::query(&query_str);
             for value in &values {
                 query = Self::bind_value(query, value)?;
             }
@@ -675,11 +698,7 @@ where
 
     async fn get_unique(&self, filter: StorableFilter<T>) -> Result<Unique<T>, anyhow::Error> {
         let join_clause = filter.to_join_clause();
-        let select = if filter.has_joins() {
-            format!("{}.*", T::table_name())
-        } else {
-            "*".to_string()
-        };
+        let select = Self::select_list();
 
         // `LIMIT 2` is the whole mechanism: enough to prove a second row exists, never more than
         // needed to say so. It also makes this strictly cheaper than the unbounded scan it
@@ -693,7 +712,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
 
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
@@ -721,13 +740,7 @@ where
     ) -> Result<Vec<T>, anyhow::Error> {
         let pagination_clause = filter.to_pagination_clause();
         let join_clause = filter.to_join_clause();
-
-        // Use table-qualified SELECT when JOINing to avoid column conflicts
-        let select = if filter.has_joins() {
-            format!("{}.*", T::table_name())
-        } else {
-            "*".to_string()
-        };
+        let select = Self::select_list();
 
         let query_str = format!(
             "SELECT {} FROM {} {} {} ORDER BY {} {}",
@@ -739,7 +752,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -756,7 +769,7 @@ where
             filter.to_join_clause(),
             filter.to_where_clause()
         );
-        let mut count_query = sqlx::query(&count_query_str).persistent(false);
+        let mut count_query = sqlx::query(&count_query_str);
         for value in filter.values() {
             count_query = Self::bind_value(count_query, value)?;
         }
@@ -781,7 +794,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -818,7 +831,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -851,7 +864,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -885,7 +898,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut count_query = sqlx::query(&count_query_str).persistent(false);
+        let mut count_query = sqlx::query(&count_query_str);
         for value in filter.values() {
             count_query = Self::bind_value(count_query, value)?;
         }
@@ -896,13 +909,7 @@ where
 
         // Then get the paginated results
         let pagination_clause = filter.to_pagination_clause();
-
-        // Use table-qualified SELECT when JOINing to avoid column conflicts
-        let select = if filter.has_joins() {
-            format!("{}.*", T::table_name())
-        } else {
-            "*".to_string()
-        };
+        let select = Self::select_list();
 
         let query_str = format!(
             "SELECT {} FROM {} {} {} ORDER BY {} {}",
@@ -914,7 +921,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -934,7 +941,7 @@ where
         let (columns, values) = entity.to_params()?;
         let query_str = Self::build_update_query(&columns);
 
-        let mut query = sqlx::query(&query_str).persistent(false);
+        let mut query = sqlx::query(&query_str);
         for value in &values {
             query = Self::bind_value(query, value)?;
         }
@@ -948,11 +955,7 @@ where
     async fn delete(&self, id: &Uuid) -> Result<(), anyhow::Error> {
         let query_str = format!("DELETE FROM {} WHERE id = $1", T::table_name());
 
-        sqlx::query(&query_str)
-            .persistent(false)
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(&query_str).bind(id).execute(&self.pool).await?;
 
         tracing::trace!("Deleted {} with id: {}", T::table_name(), id);
 
@@ -967,7 +970,6 @@ where
         let query_str = format!("DELETE FROM {} WHERE id = ANY($1)", T::table_name());
 
         let result = sqlx::query(&query_str)
-            .persistent(false)
             .bind(ids)
             .execute(&self.pool)
             .await?;

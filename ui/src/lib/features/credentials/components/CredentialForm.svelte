@@ -928,8 +928,8 @@
 	}
 </script>
 
-<!-- The selected type's integration guide. One rendering for the dedicated modal (top of the
-     identity section, with the other feedback boxes) and the daemon/discovery wizards (top of each
+<!-- The selected type's integration guide. One rendering for the dedicated modal (under the
+     type field) and the daemon/discovery wizards (top of each
      compact row). -->
 {#snippet integrationDocsHint()}
 	{#if integrationDocsPath}
@@ -1125,10 +1125,6 @@
 		<!-- Standard mode: name/type and the field groups, laid out by `fieldCards`. A caller showing
 		     one section unmounts the other's fields, so validation only reaches what is on screen; the
 		     values and modes live in this component and the form, and survive. -->
-		{#if section !== 'fields'}
-			{@render integrationDocsHint()}
-		{/if}
-
 		{#if needsLogin && section !== 'identity'}
 			{@render loginField()}
 		{/if}
@@ -1172,6 +1168,7 @@
 	{#if showTypeSelector}
 		{@render typeField()}
 	{/if}
+	{@render integrationDocsHint()}
 {/snippet}
 
 {#snippet compactNameField()}

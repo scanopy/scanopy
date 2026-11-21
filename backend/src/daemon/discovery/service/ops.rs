@@ -1937,7 +1937,7 @@ impl DiscoveryOps {
     ) -> Result<(Vec<Service>, Vec<Port>), Error> {
         use crate::server::services::definitions::{
             docker_container::DockerContainer, open_ports::OpenPorts,
-            podman_container::PodmanContainer, web_service::WebService,
+            podman_container::PodmanContainer,
         };
 
         let ServiceMatchBaselineParams { all_ports, .. } = baseline_params;
@@ -1957,10 +1957,6 @@ impl DiscoveryOps {
             if !ServiceDefinitionExt::is_generic(s) {
                 0
             } else if s.id() == OpenPorts.id() {
-                4
-            } else if s.id() == WebService.id() {
-                // Takes what answered HTTP and nothing else claimed, before the catch-all takes
-                // the rest.
                 3
             } else if s.id() == DockerContainer.id()
                 || s.id() == PodmanContainer.id()

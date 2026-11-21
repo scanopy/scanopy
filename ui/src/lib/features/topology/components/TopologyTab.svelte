@@ -136,26 +136,11 @@
 	const organizationQuery = useOrganizationQuery();
 	const activeSessionsQuery = useActiveSessionsQuery();
 	const configQuery = useConfigQuery();
-	// Single bundle query for the topology view's entity set. `snapshot_id =
-	// undefined` returns live entities; `snapshot_id = <id>` returns the
-	// captured set as-of that snapshot's `taken_at`. Same code path for both
-	// — see backend `GET /api/v1/topologies/data`.
-	// Gated on `isActive`: this is the heaviest query in the app and it is the only
-	// subscriber to its key, so holding it while the tab is off-screen keeps the
-	// bundle — and the discovery SSE stream's throttled refetch of it — off pages
-	// that are not showing a graph.
-	const topologyDataQuery = useTopologyDataQuery(
-		() => $selectedSiteId ?? undefined,
-		() => $selectedSnapshotId ?? undefined,
-		() => $activeView,
-		() => isActive
-	);
 
 	// Derived data
 	let topologiesData = $derived(topologiesQuery.data ?? []);
 	let sitesData = $derived(sitesQuery.data ?? []);
 	let organizationLoad = $derived(loadFailure(organizationQuery));
-	let topologyLoad = $derived(loadFailure(sitesQuery, topologiesQuery, topologyDataQuery));
 
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 
@@ -224,6 +209,49 @@
 		if (!siteId) return null;
 		return topologiesData.find((t) => t.site_id === siteId) ?? null;
 	});
+
+	// Open each site on the view the server picked from the org's intents (`starting_view`), once
+	// per site in a session. A `?view=` link, or a view the user switched to, wins: once the
+	// view differs from the last one set here, the user chose it. Reactive: the data query waits
+	// for the site to be in it, so it never fetches the view the tab held before.
+	const startingViewSites = new SvelteSet<string>();
+	let lastStartingView: string | null = null;
+	let userPickedView = false;
+	$effect(() => {
+		const row = currentTopologyRow;
+		if (!row?.starting_view || startingViewSites.has(row.site_id)) return;
+		startingViewSites.add(row.site_id);
+		const current = get(activeView);
+		if (urlParams.view || (lastStartingView !== null && current !== lastStartingView)) {
+			userPickedView = true;
+		}
+		if (userPickedView) return;
+		lastStartingView = row.starting_view;
+		activeView.set(row.starting_view);
+	});
+	let startingViewSettled = $derived(
+		!currentTopologyRow?.starting_view || startingViewSites.has(currentTopologyRow.site_id)
+	);
+
+	// Single bundle query for the topology view's entity set. `snapshot_id =
+	// undefined` returns live entities; `snapshot_id = <id>` returns the
+	// captured set as-of that snapshot's `taken_at`. Same code path for both
+	// — see backend `GET /api/v1/topologies/data`.
+	// Gated on `isActive`: this is the heaviest query in the app and it is the only
+	// subscriber to its key, so holding it while the tab is off-screen keeps the
+	// bundle — and the discovery SSE stream's throttled refetch of it — off pages
+	// that are not showing a graph.
+	// Also held until the topology rows arrive and the site's starting view is applied: the query
+	// is keyed by view, so fetching first would pull the view the tab held before, then the
+	// starting view's, both site-sized. Declared after what the gate reads: svelte-query reads its
+	// options as the query is created.
+	const topologyDataQuery = useTopologyDataQuery(
+		() => $selectedSiteId ?? undefined,
+		() => $selectedSnapshotId ?? undefined,
+		() => $activeView,
+		() => isActive && !topologiesQuery.isPending && startingViewSettled
+	);
+	let topologyLoad = $derived(loadFailure(sitesQuery, topologiesQuery, topologyDataQuery));
 
 	// What the user can do on the site this topology belongs to.
 	let isReadOnly = $derived(!can('Topology', 'Write', currentTopologyRow?.site_id));
@@ -434,11 +462,14 @@
 	});
 
 	// Record ExploreViews once the user views another view: each view shown on the tab is sent
-	// once with mark_viewed=true, and the server records ExploreViews for any but the default.
+	// once with mark_viewed=true, and the server records ExploreViews for any but the one the tab
+	// opened on. The starting view is never sent: it records nothing, and the request rebuilds the
+	// whole bundle, which on every page load doubled the largest download in the app.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	let viewsMarked = new Set<string>();
 	$effect(() => {
 		const view = $activeView;
+		const startingView = currentTopologyRow?.starting_view;
 		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
 		if (
 			isActive &&
@@ -447,6 +478,8 @@
 			topologyAccess &&
 			setup.includes('OpenTopology') &&
 			!setup.includes('ExploreViews') &&
+			startingView != null &&
+			view !== startingView &&
 			!viewsMarked.has(view)
 		) {
 			viewsMarked.add(view);
@@ -834,6 +867,7 @@
 						displayComponent={SiteDisplay}
 						onSelect={handleSiteChange}
 						options={sitesData}
+						maxWidth="16rem"
 					/>
 
 					<div class="card-divider-v self-stretch"></div>

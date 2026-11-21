@@ -23,6 +23,8 @@
 		daemons_config_namePlaceholder,
 		daemons_config_portHelpServerPoll,
 		daemons_siteCannotChange,
+		daemons_docsPlanning,
+		daemons_docsPlanningLinkText,
 		daemons_docsPollingMode,
 		daemons_docsPollingModeLinkText,
 		daemons_httpDaemonUrlWarning,
@@ -119,6 +121,12 @@
 </script>
 
 <div class="space-y-4">
+	<DocsHint
+		text={daemons_docsPlanning()}
+		href="https://scanopy.net/docs/plan-your-deployment/daemons/"
+		linkText={daemons_docsPlanningLinkText()}
+	/>
+
 	{#if !isFirstDaemon}
 		<SelectSite
 			{selectedSiteId}
@@ -169,7 +177,7 @@
 
 	<DocsHint
 		text={daemons_docsPollingMode()}
-		href="https://scanopy.net/docs/setting-up-daemons/planning-daemon-deployment/#choosing-a-polling-mode"
+		href="https://scanopy.net/docs/plan-your-deployment/daemons/#choosing-a-polling-mode"
 		linkText={daemons_docsPollingModeLinkText()}
 	/>
 

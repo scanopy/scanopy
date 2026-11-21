@@ -36,7 +36,7 @@ impl SearchScope {
 
     /// The sites whose `T` rows this search may read, or `None` when it may not read `T`.
     pub fn site_ids<T: Entity>(&self) -> Option<Vec<Uuid>> {
-        self.reader.readable_site_ids(T::entity_type().resource())
+        self.reader.readable_site_ids(T::ENTITY_TYPE.resource())
     }
 }
 
@@ -80,7 +80,7 @@ impl SearchQuery {
         let mut filter = if T::HAS_SCD2 { filter.live() } else { filter };
         // One condition per tag, so they combine with AND.
         for tag_id in &self.tag_ids {
-            filter = filter.has_any_tags(std::slice::from_ref(tag_id), T::entity_type());
+            filter = filter.has_any_tags(std::slice::from_ref(tag_id), T::ENTITY_TYPE);
         }
         if !self.text.is_empty() {
             filter = filter.text_search(&self.text);

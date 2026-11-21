@@ -258,6 +258,7 @@ mod tests {
                 },
                 ip_addresses: vec![row(host_id, lan, "192.168.65.3"), bridge_row],
                 same_device: vec![],
+                inferred_twins: vec![],
             },
             lan,
             bridge,

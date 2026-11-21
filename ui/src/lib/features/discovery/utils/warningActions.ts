@@ -1,5 +1,6 @@
 import type { components } from '#lib/api/schema';
 import { closeModal, navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { openTab } from '#lib/shared/stores/url-state.ts';
 import { credentialIntegrations, entities } from '#lib/shared/stores/metadata.ts';
 import {
 	createIntegrationCredentialLabel,
@@ -10,6 +11,7 @@ import type { IconComponent } from '#lib/shared/utils/types.ts';
 import {
 	credentials_sshLoginRequired,
 	daemons_upgradeDaemon,
+	discovery_fixAddCredentialTarget,
 	discovery_fixAddSubnetToScan,
 	discovery_fixDaemonConfigGuide,
 	discovery_fixChangeCredentialTarget,
@@ -30,6 +32,7 @@ import {
 	discovery_fixRemoveSubnetFromScan,
 	discovery_fixSetDaemonOs,
 	discovery_fixUpdateSecret,
+	hosts_mergeDuplicates,
 	hosts_resolveUnconfirmed,
 	subnets_resolveRange,
 	support_reportBug
@@ -64,9 +67,9 @@ export interface WarningRunContext {
  * names the change.
  */
 const SCAN_SETTING_FIXES = new Map<WarningEntry['code'], { tab: string; label: () => string }>([
-	// Max Discovery Duration lives on Detection, not Performance.
-	['ScanTimeLimit', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
-	['ScanTimeLimitWithEstimate', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
+	// Max Discovery Duration lives on Performance.
+	['ScanTimeLimit', { tab: 'performance', label: () => discovery_fixRaiseTimeLimit() }],
+	['ScanTimeLimitWithEstimate', { tab: 'performance', label: () => discovery_fixRaiseTimeLimit() }],
 	// Not CredentialCollectionTimedOut: its limit is the integration's own, per host, which no
 	// scan setting moves.
 	// The guests' subnet is added to the scan's targets.
@@ -98,9 +101,7 @@ const FD_LIMIT_FIXES = new Set<WarningEntry['code']>([
 ]);
 
 /** How to raise the daemon's file-descriptor limit, per operating system and install method. */
-const FD_LIMIT_GUIDE = docsUrl(
-	'/docs/setting-up-daemons/troubleshooting-setup/#too-many-open-files-error'
-);
+const FD_LIMIT_GUIDE = docsUrl('/docs/troubleshooting/daemon-setup/#too-many-open-files-error');
 
 /**
  * Codes whose fix is a new daemon, and where it goes: beside guests only a daemon on their
@@ -130,6 +131,10 @@ const CREDENTIAL_FIXES = new Map<WarningEntry['code'], { tab: CredentialTab; lab
 		[
 			'CredentialTargetNotScanned',
 			{ tab: 'assignments', label: () => discovery_fixChangeCredentialTarget() }
+		],
+		[
+			'CredentialWithoutTarget',
+			{ tab: 'assignments', label: () => discovery_fixAddCredentialTarget() }
 		],
 		[
 			'CredentialTargetNotResponding',
@@ -167,6 +172,21 @@ function openCredential(credentialId: string | undefined, tab: CredentialTab) {
 		return;
 	}
 	openModal('credential-editor', { id: credentialId, tab });
+}
+
+/**
+ * The distinct sets of hosts an ambiguity row's neighbours could not choose between, each in the
+ * order the server found them (oldest first). A set of fewer than two names nothing to merge, which
+ * is every warning stored before the candidates were carried.
+ */
+export function duplicateGroupsOf(entry: Pick<WarningEntry, 'warnings'>): string[][] {
+	const groups = new Map<string, string[]>();
+	for (const w of entry.warnings) {
+		if (w.code !== 'LldpNeighbourAmbiguous' || w.candidate_host_ids.length < 2) continue;
+		const key = [...w.candidate_host_ids].sort().join(',');
+		if (!groups.has(key)) groups.set(key, w.candidate_host_ids);
+	}
+	return [...groups.values()];
 }
 
 /**
@@ -231,6 +251,31 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 		};
 	}
 
+	if (entry.code === 'LldpNeighbourAmbiguous') {
+		// Each neighbour names the hosts its identifier matched. Neighbours naming the same set are
+		// one group of records to merge. One group merges in place; several is the list, filtered to
+		// those records, since the merge takes one pair at a time.
+		const groups = duplicateGroupsOf(entry);
+		if (groups.length === 0) return null;
+		return {
+			label: hosts_mergeDuplicates(),
+			icon: createIconComponent('replace'),
+			run: () => {
+				if (groups.length === 1) {
+					window.location.hash = 'hosts';
+					// The first candidate is the oldest record, so it is the one kept.
+					const [destination, other] = groups[0];
+					openModal('host-merge', { id: other, subEntityId: destination });
+					return;
+				}
+				const ids = new URLSearchParams();
+				for (const id of new Set(groups.flat())) ids.append('ids', id);
+				openTab('hosts', ids);
+				closeModal();
+			}
+		};
+	}
+
 	if (entry.code === 'IntegrationWithoutCredential') {
 		// The row's title names its integration, so every occurrence under it is that one.
 		const found = entry.warnings.flatMap((w) =>
@@ -290,9 +335,9 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 		};
 	}
 
-	// Accepting a self-signed certificate is the scanning daemon's own configuration, which only
-	// its host can change, so the guide is the destination.
-	if (entry.code === 'CredentialTlsFailed') {
+	// Accepting a self-signed certificate and the interface filter are the scanning daemon's own
+	// configuration, which only its host can change, so the guide is the destination.
+	if (entry.code === 'CredentialTlsFailed' || entry.code === 'InterfaceFilterMatchedNothing') {
 		return {
 			label: discovery_fixDaemonConfigGuide(),
 			icon: createIconComponent('book-open'),

@@ -15,7 +15,9 @@ const FALLBACK_LAYOUT: ViewLayoutConfig = {
 	root_edges: true,
 	repack_disconnected: true,
 	align_layers_top: false,
-	force_overview: true
+	force_overview: true,
+	ring_detection: false,
+	pack_components: false
 };
 
 /** How the layout pipeline lays out a view, from the backend's view metadata. */

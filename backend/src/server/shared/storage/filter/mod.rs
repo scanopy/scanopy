@@ -465,14 +465,14 @@ mod tests {
     }
 
     #[test]
-    fn user_permissions_in_emits_in_clause() {
+    fn user_permissions_in_binds_one_array() {
         let f = StorableFilter::<crate::server::users::r#impl::base::User>::new()
             .user_permissions_in(&[UserOrgPermissions::Owner, UserOrgPermissions::Admin]);
         assert_eq!(f.conditions.len(), 1);
         let c = &f.conditions[0];
         assert!(c.contains("permissions"));
-        assert!(c.contains("IN ($1, $2)"), "condition was: {c}");
-        assert_eq!(f.values.len(), 2);
+        assert!(c.contains("= ANY($1)"), "condition was: {c}");
+        assert_eq!(f.values.len(), 1);
     }
 
     #[test]
@@ -558,7 +558,7 @@ mod tests {
             clause.contains("s.valid_to IS NULL"),
             "superseded SCD2 service rows must not resurrect a host. Clause was: {clause}"
         );
-        assert_eq!(filter.values().len(), 2);
+        assert_eq!(filter.values().len(), 1, "the names bind as one array");
     }
 
     /// `discovery_type` is JSONB and the tab filters on its discriminant, so the
@@ -570,7 +570,7 @@ mod tests {
         let clause = filter.to_where_clause();
 
         assert!(
-            clause.contains("discovery_type->>'type' IN ($1)"),
+            clause.contains("discovery_type->>'type' = ANY($1)"),
             "expected a JSON tag comparison, got: {clause}"
         );
         assert_eq!(filter.values().len(), 1);
@@ -587,10 +587,10 @@ mod tests {
         let clause = filter.to_where_clause();
 
         assert!(
-            clause.contains("hosts.source->>'type' IN ($1, $2)"),
+            clause.contains("hosts.source->>'type' = ANY($1)"),
             "expected a JSON tag comparison, got: {clause}"
         );
-        assert_eq!(filter.values().len(), 2);
+        assert_eq!(filter.values().len(), 1);
     }
 
     /// Every inclusion filter added for server-side field filtering shares the

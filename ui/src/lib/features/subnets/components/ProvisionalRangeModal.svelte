@@ -45,7 +45,7 @@
 		/** Marks the range confirmed. Owned by the tab, which holds the mutation. */
 		onConfirm: (subnet: Subnet) => Promise<void> | void;
 		/** Opens the subnet editor on this subnet. */
-		onCorrect: (subnet: Subnet) => void;
+		onCorrect: (subnet: SubnetResponse) => void;
 		/** Folds this subnet into the one that covers it. */
 		onMerge: (subnet: Subnet, into: Subnet) => Promise<void> | void;
 		onClose: () => void;

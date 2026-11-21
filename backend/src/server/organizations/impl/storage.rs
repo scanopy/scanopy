@@ -2,17 +2,22 @@ use chrono::{DateTime, Utc};
 use semver::Version;
 use sqlx::Row;
 use sqlx::postgres::PgRow;
+use strum::IntoEnumIterator;
 use uuid::Uuid;
 
 use crate::server::license::types::LicenseKeyType;
 use crate::server::{
     billing::types::base::BillingPlan,
-    organizations::r#impl::base::{Organization, OrganizationBase},
+    organizations::r#impl::{
+        base::{Organization, OrganizationBase},
+        intent::SignupIntent,
+    },
     setup::types::SetupItemDiscriminants,
     shared::{
         entities::EntityDiscriminants,
         product_area::ProductArea,
         storage::traits::{Entity, SqlValue, Storable},
+        types::metadata::HasId,
     },
 };
 
@@ -66,6 +71,9 @@ impl Storable for Organization {
                     license_entitlement_at,
                     notifications,
                     use_case,
+                    use_case_other,
+                    intents,
+                    intent_other,
                     license_paid_through,
                     license_checkin_at,
                     license_key_version,
@@ -106,6 +114,9 @@ impl Storable for Organization {
                 "license_entitlement_at",
                 "notifications",
                 "use_case",
+                "use_case_other",
+                "intents",
+                "intent_other",
                 "license_paid_through",
                 "license_checkin_at",
                 "license_key_version",
@@ -142,6 +153,11 @@ impl Storable for Organization {
                         .and_then(|v| v.as_str().map(String::from))
                         .unwrap_or_else(|| "other".to_string()),
                 )),
+                SqlValue::OptionalString(use_case_other),
+                SqlValue::OptionalStringArray(
+                    intents.map(|intents| intents.iter().map(|i| i.id().to_string()).collect()),
+                ),
+                SqlValue::OptionalString(intent_other),
                 SqlValue::OptionTimestamp(license_paid_through),
                 SqlValue::OptionTimestamp(license_checkin_at),
                 SqlValue::I64(license_key_version),
@@ -210,6 +226,21 @@ impl Storable for Organization {
                     .flatten()
                     .and_then(|s| serde_json::from_value(serde_json::json!(s)).ok())
                     .unwrap_or_default(),
+                use_case_other: row.try_get("use_case_other").unwrap_or(None),
+                // An intent this build no longer knows is dropped rather than failing the read.
+                // NULL stays `None`: the org was never asked.
+                intents: row
+                    .try_get::<Option<Vec<String>>, _>("intents")
+                    .unwrap_or(None)
+                    .map(|names| {
+                        names
+                            .iter()
+                            .filter_map(|name| {
+                                SignupIntent::iter().find(|i| i.id() == name.as_str())
+                            })
+                            .collect()
+                    }),
+                intent_other: row.try_get("intent_other").unwrap_or(None),
                 license_paid_through: row.try_get("license_paid_through").unwrap_or(None),
                 license_checkin_at: row.try_get("license_checkin_at").unwrap_or(None),
                 license_key_version: row.try_get("license_key_version").unwrap_or(0),
@@ -255,9 +286,7 @@ impl Entity for Organization {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Organization
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Organization;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Organization";
     const ENTITY_NAME_PLURAL: &'static str = "Organizations";

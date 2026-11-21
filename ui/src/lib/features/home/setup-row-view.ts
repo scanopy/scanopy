@@ -22,7 +22,13 @@ import {
 } from '#lib/features/topology/queries.ts';
 import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
 import { openTab } from '#lib/shared/stores/url-state.ts';
-import { daemonHealths, setupItems } from '#lib/shared/stores/metadata.ts';
+import {
+	daemonHealths,
+	discoveryTerminalReasons,
+	scanFailureFixes,
+	setupItems
+} from '#lib/shared/stores/metadata.ts';
+import { docsUrl } from '#lib/shared/utils/docs.ts';
 import {
 	common_answer,
 	common_getStarted,
@@ -34,13 +40,15 @@ import {
 	dependencies_createDependency,
 	gettingStarted_stepDaemonLabel,
 	gettingStarted_stepDiscoveryLabel,
+	home_failedScans_layoutGuide,
+	home_failedScans_nextRunFull,
 	home_nudges_apiKeysAction,
 	home_nudges_dependenciesAction,
 	home_nudges_exploreViewsAction,
 	home_nudges_inviteTeamAction,
 	home_nudges_multiSiteAction,
 	home_nudges_shareAction,
-	home_nudges_tagsAction,
+	home_nudges_tagHostsAction,
 	home_nudges_targetlessCredentialAction,
 	home_nudges_targetlessCredentialDescription,
 	home_nudges_unconfirmedHostsDescription,
@@ -49,7 +57,8 @@ import {
 	home_nudges_unconfirmedSubnetsDescription,
 	home_setup_installDaemonOnSite,
 	home_setup_openDaemon,
-	home_setup_scheduleScan,
+	home_setup_runScan,
+	home_setup_securitySoftwareGuide,
 	home_setup_troubleshootConnection
 } from '#lib/paraglide/messages.js';
 import type { SetupItem, SetupItemType } from './setup-list';
@@ -68,6 +77,7 @@ export interface SetupLookups {
 	) => (Record<string, unknown> & Parameters<typeof hostDisplayName>[0]) | undefined;
 	site: (id: string) => Record<string, unknown> | undefined;
 	credential: CredentialLookup;
+	scan: (id: string) => object | undefined;
 }
 
 /**
@@ -88,6 +98,8 @@ export interface SetupRowView {
 	sentence: string;
 	subjects: SetupSubject[];
 	fix: SetupFix;
+	/** A docs section for a fix the button can't make, offered beside it. */
+	guide?: SetupFix;
 }
 
 /** What a row reads and calls besides its item. */
@@ -97,8 +109,10 @@ export interface SetupRowContext {
 	lookups: SetupLookups;
 	/** Opens the question a question item asks. */
 	onAnswer: (itemType: 'AnswerReferralSource' | 'AnswerProfile') => void;
-	/** Opens the daemon troubleshooting help. */
-	onTroubleshoot: () => void;
+	/** Opens the connection help for one daemon. */
+	onTroubleshoot: (daemonId: string) => void;
+	/** Starts a run of each of these scans. */
+	onRetryScans: (scanIds: string[]) => void;
 }
 
 function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1]) {
@@ -126,9 +140,14 @@ function reviewInferred(tab: string, siteId: string) {
 	return () => openTab(tab, new URLSearchParams({ sources: 'Inferred', site_ids: siteId }));
 }
 
+/** Opens the scans list filtered to one daemon's scans. */
+function daemonScans(daemonId: string) {
+	return () => openTab('discovery-scans', new URLSearchParams({ daemon_ids: daemonId }));
+}
+
 /** What the row for `item` says and does, by item type. */
 export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowView {
-	const { setup, lookups, onAnswer, onTroubleshoot } = ctx;
+	const { setup, lookups, onAnswer, onTroubleshoot, onRetryScans } = ctx;
 	const hostSubjects = (ids: string[]) =>
 		allOf('Host', ids, (id) => {
 			const host = lookups.host(id);
@@ -148,12 +167,13 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			const { daemon_id: id, name, health } = item;
 			// A daemon that isn't talking to the server gets the connection help; one on an
 			// old release, or one that never reported its version, gets the upgrade; one on
-			// standby has had no scan in 30 days, so it gets a scan to schedule.
+			// standby has had no scan in 30 days, and starting one of its scans wakes it, so it
+			// gets its own scans, each with Run.
 			const fix: SetupFix =
-				health === 'awaiting_connection' || health === 'unreachable'
-					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
+				health === 'awaiting_connection' || health === 'unreachable' || health === 'not_checking_in'
+					? { label: home_setup_troubleshootConnection(), run: () => onTroubleshoot(id) }
 					: health === 'standby'
-						? { label: home_setup_scheduleScan(), run: () => go('discovery-scans') }
+						? { label: home_setup_runScan(), run: daemonScans(id) }
 						: health === 'outdated' ||
 							  health === 'deprecated' ||
 							  health === 'unsupported' ||
@@ -166,11 +186,23 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 									label: home_setup_openDaemon(),
 									run: () => navigateToEntity('Daemon', id, lookups.daemon(id))
 								};
+			// A daemon that never connected can't report why. Security software blocking it is the
+			// cause the docs single out.
+			const guideUrl = docsUrl(
+				'/docs/troubleshooting/daemon-setup/#daemon-never-connects-security-software-blocks-it'
+			);
 			return {
 				title,
 				sentence: daemonHealths.getDescription(health),
 				subjects: [{ type: 'Daemon', id, label: name, data: lookups.daemon(id) }],
-				fix
+				fix,
+				guide:
+					health === 'awaiting_connection'
+						? {
+								label: home_setup_securitySoftwareGuide(),
+								run: () => window.open(guideUrl, '_blank', 'noopener,noreferrer')
+							}
+						: undefined
 			};
 		}
 		case 'UncoveredIntegration': {
@@ -258,6 +290,76 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 						}
 			};
 		}
+		case 'FailedScans': {
+			const { daemon_id: daemonId, daemon_name, reason, scans } = item;
+			// Newest run first: the run to open, and the scan whose schedule to move.
+			const newest = scans[0];
+			const fixType = discoveryTerminalReasons.getMetadata(reason).issue_fix ?? 'OpenRun';
+			const run: () => void = (() => {
+				switch (fixType) {
+					case 'RetryScan':
+						return () => onRetryScans(scans.map((s) => s.scan_id));
+					case 'TroubleshootConnection':
+						return () => onTroubleshoot(daemonId);
+					case 'RescheduleScan':
+						return () =>
+							go('discovery-scans', 'discovery-editor', { id: newest?.scan_id, tab: 'schedule' });
+					case 'RaiseMaxDuration':
+						return () =>
+							go('discovery-scans', 'discovery-editor', {
+								id: newest?.scan_id,
+								tab: 'performance'
+							});
+					case 'OpenRun':
+						return () =>
+							go('discovery-history', 'discovery-history-detail', { id: newest?.run_id });
+				}
+			})();
+			// What the fix's docs section teaches: splitting a scan that runs too long across daemons.
+			const guideLabel = ((): string | undefined => {
+				switch (fixType) {
+					case 'RaiseMaxDuration':
+						return home_failedScans_layoutGuide();
+					case 'TroubleshootConnection':
+					case 'RetryScan':
+					case 'RescheduleScan':
+					case 'OpenRun':
+						return undefined;
+				}
+			})();
+			const guideUrl = scanFailureFixes.getMetadata(fixType).docs_url;
+			return {
+				title,
+				// What ended the run, the newest run's error, that it drew no links, and whether a full
+				// scan runs full again.
+				sentence: [
+					discoveryTerminalReasons.getDescription(reason),
+					// The daemon's text, which often ends without a full stop.
+					...(newest?.error
+						? [/[.!?]$/.test(newest.error) ? newest.error : `${newest.error}.`]
+						: []),
+					sentence,
+					...(scans.some((s) => s.next_run_full) ? [home_failedScans_nextRunFull()] : [])
+				].join(' '),
+				subjects: [
+					...scans.map((s) => ({
+						type: 'Discovery' as const,
+						id: s.scan_id,
+						label: s.name,
+						data: lookups.scan(s.scan_id)
+					})),
+					{ type: 'Daemon', id: daemonId, label: daemon_name, data: lookups.daemon(daemonId) }
+				],
+				fix: { label: scanFailureFixes.getName(fixType), run },
+				guide:
+					guideLabel && guideUrl
+						? {
+								label: guideLabel,
+								run: () => window.open(guideUrl, '_blank', 'noopener,noreferrer')
+							}
+						: undefined
+			};
+		}
 		case 'UnconfirmedHosts':
 			return {
 				title,
@@ -283,10 +385,12 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 				label: gettingStarted_stepDaemonLabel(),
 				run: () => go('daemons', 'create-daemon')
 			});
+		// Registration creates and starts the first daemon's scans, so its list shows the scan
+		// running, or Run if it stopped.
 		case 'RunFirstScan':
 			return plain({
 				label: gettingStarted_stepDiscoveryLabel(),
-				run: () => go('discovery-scans')
+				run: item.daemon_id ? daemonScans(item.daemon_id) : () => go('discovery-scans')
 			});
 		case 'OpenTopology':
 			return plain({ label: common_viewTopology(), run: () => go('topology') });
@@ -331,7 +435,9 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 				run: () => go('credentials', 'credential-editor')
 			});
 		case 'Tags':
-			return plain({ label: home_nudges_tagsAction(), run: () => go('tags', 'tag-editor') });
+			// The step needs a tag on an entity. Each host's Tags cell assigns one, and creates it
+			// from a typed name when the org has none.
+			return plain({ label: home_nudges_tagHostsAction(), run: () => go('hosts') });
 		case 'InviteTeam':
 			return plain({
 				label: home_nudges_inviteTeamAction(),

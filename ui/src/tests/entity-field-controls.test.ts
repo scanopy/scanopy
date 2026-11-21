@@ -91,6 +91,8 @@ const GUEST_STATE: ColumnDecision = {
 };
 
 /** The run that first or last found an entity: one chip, and Created and Last seen already say when. */
+/** A hidden column holding an enum's wire value for the CSV export; the Issue column filters it. */
+const CSV_ONLY = none('Wire value for the CSV export; the Issue column covers it');
 const FOUND_BY = none('A scan run; Created and Last seen order by when');
 
 /** Keyed by tab path relative to `src/lib/features`. */
@@ -98,7 +100,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'hosts/components/HostTab.svelte': {
 		listPath: '/api/v1/hosts',
 		columns: {
-			name: serverIdentity('Unique per host'),
+			// Filtered by id: a scan warning's "Merge duplicate hosts" links to the records to merge.
+			name: { sort: true, group: 'Unique per host', filter: { param: 'ids' } },
 			hostname: serverIdentity('Near-unique per host'),
 			virtualized_by: server('virtualization_service_ids'),
 			interface_ip: serverIdentity('Unique per host'),
@@ -319,7 +322,11 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			type: server('types'),
 			category: server('categories'),
-			site_ids: { ...SHARED_ARRAY, filter: { param: 'site_ids' } }
+			site_ids: { ...SHARED_ARRAY, filter: { param: 'site_ids' } },
+			issue_type: CSV_ONLY,
+			health: CSV_ONLY,
+			integration: CSV_ONLY,
+			warning_code: CSV_ONLY
 		}
 	},
 	'user_api_keys/components/UserApiKeyTab.svelte': {

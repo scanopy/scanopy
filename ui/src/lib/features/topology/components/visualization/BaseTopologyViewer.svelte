@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { writable, derived, get, type Writable } from 'svelte/store';
+	import { writable, derived, get } from 'svelte/store';
 	import {
 		SvelteFlow,
 		MiniMap,
@@ -35,7 +35,9 @@
 		PREWARM_RELEASE_ZOOM,
 		PREWARM_ZOOM,
 		detailIsStaged,
-		shouldSimplify
+		detailKeptIds,
+		shouldSimplify,
+		simplifiedEdgeWidth
 	} from '../../pipeline/render-mode';
 	import { provideDetailStaging } from '../../detail-staging.svelte';
 	import {
@@ -43,7 +45,9 @@
 		DEFAULT_MIN_ZOOM,
 		boundsOfNodes,
 		focusNodes,
-		zoomFloorFor
+		isAtFit,
+		zoomFloorFor,
+		type ViewportTransform
 	} from '../../viewport-fit';
 	import '@xyflow/svelte/dist/style.css';
 	import './topology-viewer.css';
@@ -52,9 +56,6 @@
 	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		baseFlowEdges,
-		selectedNodes,
-		selectedEdge as selectedEdgeStore,
-		selectedNode as selectedNodeStore,
 		topologyOptions,
 		optionsPanelExpanded,
 		updateTopologyOptions,
@@ -85,6 +86,7 @@
 	import ElementNode from './ElementNode.svelte';
 	import CustomEdge from './CustomEdge.svelte';
 	import TopologySidebarControls from './TopologySidebarControls.svelte';
+	import LinkSpeedLegend from './LinkSpeedLegend.svelte';
 	import TopologyLoadProgress from './TopologyLoadProgress.svelte';
 	import ContainerLabelLayer from './ContainerLabelLayer.svelte';
 	import {
@@ -126,9 +128,11 @@
 		clearSelection,
 		handleModifierNodeClick,
 		handleBoxSelect,
+		resolveNodeClick,
+		useSelectionStores,
 		type SelectionStores
 	} from '../../selection';
-	import { onMount, tick, setContext, getContext } from 'svelte';
+	import { onMount, tick, setContext, untrack } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
 	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
 	import { containerTypes } from '#lib/shared/stores/metadata.ts';
@@ -153,7 +157,7 @@
 	import { cacheCollapsedSizes, reconcileMeasuredSizes } from '../../pipeline/post-render';
 	import throttle from 'just-throttle';
 	import { computeEdgeDisplayUpdates } from '../../pipeline/sync-edge-display';
-	import { shouldCull } from '../../pipeline/render-mode';
+	import { shouldCull, type NodeDetail } from '../../pipeline/render-mode';
 	import {
 		installDiagnostics,
 		installLayoutSnapshot,
@@ -215,18 +219,13 @@
 		topologyContext.set(topology);
 	});
 
-	// Resolve selection stores from context (share/embed) or fall back to global stores.
-	// We pass the store *reference* through, not its value, so $/get() don't apply.
-	/* eslint-disable svelte/require-store-reactive-access */
-	const selNodeStore = getContext<Writable<Node | null>>('selectedNode') ?? selectedNodeStore;
-	const selEdgeStore = getContext<Writable<Edge | null>>('selectedEdge') ?? selectedEdgeStore;
-	const selNodesStore = getContext<Writable<Node[]>>('selectedNodes') ?? selectedNodes;
-	/* eslint-enable svelte/require-store-reactive-access */
-	const selectionStores: SelectionStores = {
+	// Selection stores from context (share/embed), or the global ones.
+	const selectionStores: SelectionStores = useSelectionStores();
+	const {
 		selectedNode: selNodeStore,
 		selectedEdge: selEdgeStore,
 		selectedNodes: selNodesStore
-	};
+	} = selectionStores;
 
 	/**
 	 * Node count at or above which the collapse fade is skipped in favour of a single store write.
@@ -254,8 +253,7 @@
 	let viewportMoved = false;
 	let viewportMoveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const { fitView, fitBounds, setViewport, getNodes, getInternalNode, getViewport } =
-		useSvelteFlow();
+	const { fitBounds, setViewport, getNodes, getInternalNode, getViewport } = useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
 
@@ -435,8 +433,12 @@
 		const target = viewportFor(bounds, minZoomFor(bounds));
 		publishDetailFor(fitNodes, target.zoom);
 		await setViewport(target);
+		lastFitViewport = getViewport();
 		return target.zoom;
 	}
+
+	/** Where the last whole-graph fit left the canvas, for `isAtFit`. */
+	let lastFitViewport: ViewportTransform | null = null;
 
 	/**
 	 * Publish the zoom and the reduced-detail state for `detailNodes` drawn at `zoom`.
@@ -498,12 +500,13 @@
 	const nodeTypes = { Container: ContainerNode, Element: ElementNode };
 	const customEdgeTypes = { custom: CustomEdge };
 
-	// Refit viewport when panel expands/collapses (after 300ms CSS transition)
+	// Refit a fitted graph around the panel when it expands or collapses (after its 300ms CSS
+	// transition). A viewport the user moved stays where it is: see `isAtFit`.
 	let panelInitialized = false;
 	$effect(() => {
 		if ($optionsPanelExpanded !== undefined) {
-			if (panelInitialized) {
-				setTimeout(() => fitView({ padding: getFitViewPadding() }), 300);
+			if (panelInitialized && untrack(() => isAtFit(getViewport(), lastFitViewport))) {
+				setTimeout(() => void triggerFitView(), 300);
 			}
 			panelInitialized = true;
 		}
@@ -520,6 +523,12 @@
 	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const distrustedLayoutKeys = new Set<string>();
+	/**
+	 * Store key of the layout on screen, set by the run that laid it out. A later run that needs no
+	 * layout (a refetch) can be the one whose size check finds the drift, and the stored entry
+	 * behind what is on screen has to go then too.
+	 */
+	let renderedLayoutKey: string | null = null;
 
 	/**
 	 * A DOM measurement pass is running.
@@ -659,6 +668,19 @@
 	const detailStaging = provideDetailStaging();
 	$effect(() => detailStaging.set(detailStaged, detailPrewarming));
 	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
+
+	// The selection draws in full at any zoom: see `detailKeptIds`. A derived count, so a node
+	// write that keeps the count re-runs nothing here.
+	let storeNodeCount = $derived($nodes.length);
+	let keptDetailIds = $derived(
+		detailKeptIds({
+			nodeCount: storeNodeCount,
+			selectedNode: $selNodeStore,
+			selectedNodes: $selNodesStore,
+			selectedEdge: $selEdgeStore
+		})
+	);
+	$effect(() => detailStaging.keep(keptDetailIds));
 
 	let cullOffscreen = $derived(
 		shouldCull({
@@ -868,29 +890,32 @@
 			.finally(() => {
 				noteRunEnd();
 				setLoadInProgress(false);
-				endLoadOfRun(scope);
-				clearTimeout(longRunTimer);
-				runIsLong = false;
+				// Only re-run if an input actually differs from what the run
+				// consumed. Most mid-run writes are the pipeline's own (prepare
+				// seeding collapse state) or derived stores re-emitting an
+				// identical value during option hydration — re-running for those
+				// costs two elk.layout() calls and changes nothing.
+				let rerun = false;
 				if (pendingReload) {
 					pendingReload = false;
-					// Only re-run if an input actually differs from what the run
-					// consumed. Most mid-run writes are the pipeline's own (prepare
-					// seeding collapse state) or derived stores re-emitting an
-					// identical value during option hydration — re-running for those
-					// costs two elk.layout() calls and changes nothing.
 					const consumed = inFlightInputs;
-					inFlightInputs = null;
-					if (consumed) {
-						const changed = reloadInputsDiff(consumed, currentReloadInputs());
-						if (changed.length === 0) {
-							perf.count('reload-suppressed');
-							return;
-						}
-						for (const field of changed) perf.count(`reload-cause:${field}`);
+					const changed = consumed ? reloadInputsDiff(consumed, currentReloadInputs()) : null;
+					if (changed?.length === 0) perf.count('reload-suppressed');
+					else {
+						for (const field of changed ?? []) perf.count(`reload-cause:${field}`);
+						rerun = true;
 					}
-					triggerLoad('pending');
 				}
 				inFlightInputs = null;
+				// A re-run is the same load: the bar stays up and the re-run continues it from the
+				// stage this run reached. Ending it here would start the re-run's bar from zero.
+				if (rerun) {
+					triggerLoad('pending');
+				} else {
+					endLoadOfRun(scope);
+					clearTimeout(longRunTimer);
+					runIsLong = false;
+				}
 			});
 	}
 
@@ -1093,7 +1118,6 @@
 		// layout engine — see `layout-store.ts`. `distrustedLayoutKeys` holds keys whose stored
 		// sizes disagreed with what rendered, so the re-layout that follows runs for real.
 		let layoutKey: string | null = null;
-		let layoutFromStore = false;
 		let layoutToStore: { sizes: Map<string, XY>; result: LayoutResult } | null = null;
 
 		if (needsElk) {
@@ -1110,7 +1134,7 @@
 				: await readStoredLayout(layoutKey);
 			storeLookupDone();
 			if (isStale()) return;
-			layoutFromStore = storedLayout !== undefined;
+			const layoutFromStore = storedLayout !== undefined;
 			perf.count(layoutFromStore ? 'layout-store:hit' : 'layout-store:miss');
 
 			const measureDone = perf.stage('measure');
@@ -1258,6 +1282,7 @@
 				return;
 			}
 			visibleNodes = layoutResult.visibleNodes;
+			renderedLayoutKey = layoutKey;
 			if (!layoutFromStore && layoutResult.engineResult) {
 				layoutToStore = { sizes: elementNodeSizes, result: layoutResult.engineResult };
 			}
@@ -1473,12 +1498,14 @@
 				// self-heal fires every time, and each recursion is a full pipeline
 				// run including two more elk.layout() calls.
 				perf.count('post-render-relayout');
-				// A stored layout whose sizes the DOM just contradicted is wrong for this content.
-				// Drop it, and keep the re-layout below from reading it back.
-				if (layoutFromStore && layoutKey) {
+				// The layout on screen was built around sizes the DOM just contradicted. Drop its
+				// stored entry, and keep the re-layout below from reading it back. Not only when this
+				// run read the store: a refetch run lays nothing out, and when it finds the drift the
+				// entry behind the screen is still the wrong one.
+				if (renderedLayoutKey) {
 					perf.count('layout-store:invalidated');
-					deleteStoredLayout(layoutKey);
-					distrustedLayoutKeys.add(layoutKey);
+					deleteStoredLayout(renderedLayoutKey);
+					distrustedLayoutKeys.add(renderedLayoutKey);
 				}
 				// Invalidate structureKey to force ELK re-run. Do NOT
 				// invalidate baseKey — base structure hasn't changed, and
@@ -1560,15 +1587,31 @@
 
 	let ignoreNextSelectionChange = false;
 
+	/** What a mounted container draws, from its `data-detail`. Read only on a click. */
+	function containerTier(id: string): NodeDetail | undefined {
+		const selector = `.svelte-flow__node[data-id="${CSS.escape(id)}"] [data-detail]`;
+		const tier = containerElement?.querySelector<HTMLElement>(selector)?.dataset.detail;
+		return tier as NodeDetail | undefined;
+	}
+
 	function handleNodeClick({ node, event }: { node: Node; event: MouseEvent | TouchEvent }) {
-		if (viewportMoved) return;
-		// A container is selected through its title chip. Its body holds the children, so a click
-		// there acts like one on the canvas.
-		const onTitle =
-			event.target instanceof Element && event.target.closest('[data-container-title]');
-		if (node.type === 'Container' && !onTitle) {
+		const action = resolveNodeClick({
+			nodeId: node.id,
+			isContainer: node.type === 'Container',
+			viewportMoved,
+			onTitle: event.target instanceof Element && !!event.target.closest('[data-container-title]'),
+			tierOf: containerTier,
+			parentOf: (id) => getInternalNode(id)?.parentId
+		});
+		if (action.type === 'ignore') return;
+		if (action.type === 'pane') {
 			handlePaneClick();
 			return;
+		}
+		if (action.id !== node.id) {
+			const target = getInternalNode(action.id)?.internals.userNode;
+			if (!target) return;
+			node = target;
 		}
 		// Multi-select drives dependency creation, so it's an edit action: disable
 		// it when read-only (snapshot / share). Single-select (read-only inspect)
@@ -1663,6 +1706,10 @@
 	}
 
 	function handleEdgePointerEnter({ edge }: { edge: Edge }) {
+		// A simplified edge draws no hover state, and sweeping the pointer across a zoomed-out map
+		// enters hundreds of them, each rewriting every edge's display state. Leave stays unguarded,
+		// so an edge hovered before zooming out still clears.
+		if (get(detailSimplified) && !detailStaging.keepsDetail(edge.id)) return;
 		setEdgeHover(edge, true, get(edges));
 		syncEdgeDisplayState();
 	}
@@ -1851,6 +1898,7 @@
 	class:card-static={!isEmbed}
 	class:collapse-transition={animatingCollapse}
 	class:cold-measure={coldLoadMeasure}
+	style:--simplified-edge-width="{simplifiedEdgeWidth(viewerViewport.current.zoom)}px"
 	bind:this={containerElement}
 >
 	<SvelteFlow
@@ -1890,7 +1938,12 @@
 			size={1}
 		/>
 
-		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} />
+		<ContainerLabelLayer
+			nodes={$nodes}
+			active={namesUnreadable}
+			namesShown={$topologyOptions.local.show_container_names ?? true}
+			keptIds={keptDetailIds}
+		/>
 
 		{#if showControls}
 			<TopologySidebarControls
@@ -1923,6 +1976,8 @@
 				maskStrokeColor={themeStore.resolvedTheme === 'dark' ? '#374151' : '#d1d5db'}
 			/>
 		{/if}
+
+		<LinkSpeedLegend />
 
 		{#if showMinimap === undefined && !$isExporting}
 			<!-- Minimize and expand write the same option as the options panel's minimap toggle. While

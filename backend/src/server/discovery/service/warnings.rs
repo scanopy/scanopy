@@ -4,7 +4,7 @@ use super::*;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::service::{FoundIntegration, SiteTriedAt};
-use crate::server::setup::items::{DaemonRunWarnings, is_setup_issue_warning};
+use crate::server::setup::items::{DaemonRunWarnings, FailedScanRun, is_setup_issue_warning};
 use crate::server::sites::r#impl::Site;
 
 impl DiscoveryService {
@@ -66,22 +66,55 @@ impl DiscoveryService {
         Ok((found, tried_at))
     }
 
+    /// A daemon's recorded runs the Setup list reads, newest first: the 20 latest, rescans left
+    /// out, since a rescan touches one host and would hide what the last full scan found. Run
+    /// warnings and failed scans both read this window, so they agree on which runs count.
+    fn latest_runs_filter(daemon_id: &Uuid) -> StorableFilter<Discovery> {
+        StorableFilter::<Discovery>::new_from_uuid_column("daemon_id", daemon_id)
+            .historical_discovery()
+            .exclude_rescans()
+            .limit(20)
+    }
+
+    /// Each daemon's scans whose latest run in [`Self::latest_runs_filter`]'s window didn't
+    /// finish, newest first. A later completed run of the scan replaces the failed one, which
+    /// clears it, and so does a run someone cancelled. A run of a scan deleted since, or recorded
+    /// before runs named their scan, has nothing to rerun and is left out.
+    pub async fn latest_failed_scans_per_daemon(
+        &self,
+        daemon_ids: &[Uuid],
+    ) -> Result<Vec<FailedScanRun>> {
+        let mut failed = Vec::new();
+        for daemon_id in daemon_ids {
+            let scans: HashMap<Uuid, Discovery> = self
+                .discovery_storage
+                .get_all(
+                    StorableFilter::<Discovery>::new_from_uuid_column("daemon_id", daemon_id)
+                        .live_configs(),
+                )
+                .await?
+                .into_iter()
+                .map(|d| (d.id, d))
+                .collect();
+            let runs = self
+                .discovery_storage
+                .get_all_ordered(Self::latest_runs_filter(daemon_id), "updated_at DESC")
+                .await?;
+            failed.extend(failed_scan_runs(*daemon_id, &runs, &scans));
+        }
+        Ok(failed)
+    }
+
     /// Each daemon's latest completed run of each discovery type, newest first, holding only the
     /// warnings that are Setup issues. A newer run of a type replaces the older one, so a warning
     /// clears once the next run of its type comes back clean, and a run of another type leaves it.
-    ///
-    /// A rescan is skipped: it touches one host, so it would hide what the last full scan found.
     pub async fn latest_runs_per_daemon(
         &self,
         daemon_ids: &[Uuid],
     ) -> Result<Vec<DaemonRunWarnings>> {
         let mut latest = Vec::new();
         for daemon_id in daemon_ids {
-            let filter = StorableFilter::<Discovery>::new_from_uuid_column("daemon_id", daemon_id)
-                .historical_discovery()
-                .exclude_rescans()
-                .completed_runs()
-                .limit(20);
+            let filter = Self::latest_runs_filter(daemon_id).completed_runs();
             let runs = self
                 .discovery_storage
                 .get_all_ordered(filter, "updated_at DESC")
@@ -191,5 +224,194 @@ impl DiscoveryService {
             }
         }
         Ok(())
+    }
+}
+
+/// The scans among `scans` (a daemon's live configs) whose newest run in `runs` (newest first)
+/// didn't finish, with whether the run before it failed too.
+fn failed_scan_runs(
+    daemon_id: Uuid,
+    runs: &[Discovery],
+    scans: &HashMap<Uuid, Discovery>,
+) -> Vec<FailedScanRun> {
+    // Each scan's runs' end reasons and errors, newest first, in the order its newest run appears.
+    type Ended<'a> = (Uuid, Option<DiscoveryTerminalReason>, Option<&'a String>);
+    let mut by_scan: Vec<(Uuid, Vec<Ended>)> = Vec::new();
+    for run in runs {
+        let RunType::Historical { results } = &run.base.run_type else {
+            continue;
+        };
+        let Some(scan_id) = results.discovery_id else {
+            continue;
+        };
+        let ended = (
+            run.id,
+            DiscoveryTerminalReason::of_run(results.phase, results.reason),
+            results.error.as_ref(),
+        );
+        match by_scan.iter_mut().find(|(id, _)| *id == scan_id) {
+            Some((_, runs)) => runs.push(ended),
+            None => by_scan.push((scan_id, vec![ended])),
+        }
+    }
+    let failed =
+        |reason: Option<DiscoveryTerminalReason>| reason.is_some_and(|r| r.issue_fix().is_some());
+    by_scan
+        .into_iter()
+        .filter_map(|(scan_id, ended)| {
+            let scan = scans.get(&scan_id)?;
+            let &(run_id, Some(reason), error) = ended.first()? else {
+                return None;
+            };
+            failed(Some(reason)).then(|| FailedScanRun {
+                daemon_id,
+                scan_id,
+                scan_name: scan.base.name.clone(),
+                run_id,
+                reason,
+                error: error.cloned(),
+                previous_run_failed: ended.get(1).is_some_and(|&(_, r, _)| failed(r)),
+                scheduled: scan.base.run_type.is_scheduled_enabled(),
+                next_run_full: scan.next_run_is_full_scan,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scan(scheduled: bool) -> Discovery {
+        let mut scan = Discovery {
+            id: Uuid::new_v4(),
+            ..Default::default()
+        };
+        scan.base.name = "Office LAN".to_string();
+        if scheduled {
+            scan.base.run_type = RunType::Scheduled {
+                cron_schedule: "0 0 * * * *".to_string(),
+                last_run: None,
+                enabled: true,
+                timezone: None,
+            };
+        }
+        scan
+    }
+
+    /// A recorded run of `scan` that ended in `phase`, with `reason` as the server stored it.
+    fn run(
+        scan: &Discovery,
+        phase: DiscoveryPhase,
+        reason: Option<DiscoveryTerminalReason>,
+    ) -> Discovery {
+        let mut results = DiscoveryUpdatePayload::new(
+            Uuid::new_v4(),
+            Uuid::nil(),
+            Uuid::nil(),
+            DiscoveryType::default(),
+            None,
+        );
+        results.phase = phase;
+        results.reason = reason;
+        results.discovery_id = Some(scan.id);
+        let mut run = Discovery {
+            id: Uuid::new_v4(),
+            ..Default::default()
+        };
+        run.base.run_type = RunType::Historical {
+            results: Box::new(results),
+        };
+        run
+    }
+
+    fn failed(scan: &Discovery, reason: DiscoveryTerminalReason) -> Discovery {
+        run(scan, DiscoveryPhase::Failed, Some(reason))
+    }
+
+    fn scans(list: &[&Discovery]) -> HashMap<Uuid, Discovery> {
+        list.iter().map(|s| (s.id, (*s).clone())).collect()
+    }
+
+    /// Each reason a run can fail with makes its scan a failed scan, carrying the run's error. A run
+    /// that completed, or that someone cancelled, doesn't.
+    #[test]
+    fn a_scan_whose_latest_run_failed_is_listed_with_its_reason() {
+        use strum::IntoEnumIterator;
+        let s = scan(false);
+        for reason in DiscoveryTerminalReason::iter() {
+            let mut run = failed(&s, reason);
+            if let RunType::Historical { results } = &mut run.base.run_type {
+                results.error = Some("raw socket denied".to_string());
+            }
+            let found = failed_scan_runs(Uuid::nil(), &[run], &scans(&[&s]));
+            let listed = !matches!(
+                reason,
+                DiscoveryTerminalReason::Completed | DiscoveryTerminalReason::UserCancelled
+            );
+            assert_eq!(found.len(), usize::from(listed), "{reason:?}");
+            if listed {
+                assert_eq!(found[0].reason, reason);
+                assert_eq!(found[0].error.as_deref(), Some("raw socket denied"));
+            }
+        }
+    }
+
+    /// A later completed run of the same scan clears it; another scan's failure stays.
+    #[test]
+    fn a_completed_rerun_clears_only_its_own_scan() {
+        let (a, b) = (scan(false), scan(false));
+        let runs = [
+            run(
+                &a,
+                DiscoveryPhase::Complete,
+                Some(DiscoveryTerminalReason::Completed),
+            ),
+            failed(&b, DiscoveryTerminalReason::SessionSilent),
+            failed(&a, DiscoveryTerminalReason::DaemonReportedFailure),
+        ];
+        let found = failed_scan_runs(Uuid::nil(), &runs, &scans(&[&a, &b]));
+        assert_eq!(found.iter().map(|f| f.scan_id).collect::<Vec<_>>(), [b.id]);
+    }
+
+    /// A run recorded before runs carried a reason reads its phase. A deleted scan has nothing to
+    /// rerun.
+    #[test]
+    fn a_failed_run_without_a_reason_counts_and_a_deleted_scans_does_not() {
+        let (kept, deleted) = (scan(false), scan(false));
+        let runs = [
+            run(&kept, DiscoveryPhase::Failed, None),
+            failed(&deleted, DiscoveryTerminalReason::DaemonReportedFailure),
+        ];
+        let found = failed_scan_runs(Uuid::nil(), &runs, &scans(&[&kept]));
+        assert!(matches!(
+            found.as_slice(),
+            [FailedScanRun { scan_id, reason: DiscoveryTerminalReason::DaemonReportedFailure, .. }]
+                if *scan_id == kept.id
+        ));
+    }
+
+    /// The run before the latest says whether a one-off repeated; the scan's own schedule says
+    /// whether anything will run it again.
+    #[test]
+    fn a_failed_scan_knows_whether_it_failed_before_and_runs_again() {
+        let s = scan(true);
+        let twice = [
+            failed(&s, DiscoveryTerminalReason::DaemonBusy),
+            failed(&s, DiscoveryTerminalReason::DaemonRestarted),
+        ];
+        let found = failed_scan_runs(Uuid::nil(), &twice, &scans(&[&s]));
+        assert!(found[0].previous_run_failed && found[0].scheduled);
+
+        let after_success = [
+            failed(&s, DiscoveryTerminalReason::DaemonBusy),
+            run(
+                &s,
+                DiscoveryPhase::Complete,
+                Some(DiscoveryTerminalReason::Completed),
+            ),
+        ];
+        let found = failed_scan_runs(Uuid::nil(), &after_success, &scans(&[&s]));
+        assert!(!found[0].previous_run_failed);
     }
 }

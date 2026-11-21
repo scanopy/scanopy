@@ -322,6 +322,7 @@ impl Logo {
             Self::NetBsd => (SimpleIcons("netbsd"), Clear),
             Self::NetbootXyz => (DashboardIcons("svg/netbootxyz.svg"), Clear),
             Self::Netdata => (DashboardIcons("svg/netdata.svg"), Clear),
+            Self::Netflix => (DashboardIcons("svg/netflix.svg"), Clear),
             Self::Nextcloud => (DashboardIcons("svg/nextcloud.svg"), Clear),
             Self::NexusRepository => (DashboardIcons("svg/nexus.svg"), Clear),
             Self::NginxProxyManager => (DashboardIcons("svg/nginx-proxy-manager.svg"), Clear),
@@ -442,6 +443,8 @@ impl Logo {
             Self::Rustdesk => (DashboardIcons("svg/rustdesk.svg"), Solid("#0071ff")),
             Self::SabNzbd => (DashboardIcons("svg/sabnzbd.svg"), Clear),
             Self::SaltProject => (DashboardIcons("svg/salt-project.svg"), Clear),
+            // A blue wordmark, drawn on white.
+            Self::Samsung => (SimpleIcons("samsung"), Solid("#ffffff")),
             // The site serves WebP at this `.png` path; browsers draw it either way.
             Self::Sangoma => (
                 Vendor {

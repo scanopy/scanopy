@@ -9,6 +9,7 @@ import {
 import { queryClient, queryKeys } from '#lib/api/query-client.ts';
 import { neighborEvidenceFreshness, neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
 import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { speedStrokeWidth, UNKNOWN_STROKE_WIDTH, type SpeedStroke } from '../edge-speed';
 
 type EdgeTypeDiscriminants = components['schemas']['EdgeTypeDiscriminants'];
 type Interface = components['schemas']['Interface'];
@@ -68,14 +69,14 @@ export function isOverlayEdge(edge: TopologyEdge): boolean {
 /**
  * Whether the canvas leaves this edge undrawn. It stays in the edge store either way (see
  * `CustomEdge`), so anything that reproduces the drawing, such as the diagram exports, filters on
- * this. A preview edge always draws.
+ * this. A preview edge always draws. Zoom doesn't hide an edge: below the detail zoom `CustomEdge`
+ * draws it as a plain line instead.
  */
 export function isEdgeHidden(
 	edge: TopologyEdge | undefined,
-	state: { isPreview: boolean; simplified: boolean; hiddenEdgeTypes: readonly string[] }
+	state: { isPreview: boolean; hiddenEdgeTypes: readonly string[] }
 ): boolean {
 	if (state.isPreview) return false;
-	if (state.simplified) return true;
 	return edge ? state.hiddenEdgeTypes.includes(edge.edge_type) : false;
 }
 
@@ -93,6 +94,23 @@ export function restingEdgeStrokeWidth(shape: EdgeStrokeShape): number {
 	if (shape.isAggregated) return Math.min(2 + shape.aggregatedCount, 8);
 	if (shape.isBundle) return shape.bundleStrokeWidth;
 	return shape.isOverlay ? 1.5 : 2;
+}
+
+/**
+ * How many times wider than a plain link a simplified edge draws, and how much wider its hit area
+ * is (see `simplifiedEdgeHitWidth`).
+ *
+ * The thicker of two weights: the speed band's, when edges are coloured by speed, and the count
+ * an aggregated or bundled edge stands for, scaled the way full detail scales it
+ * (`restingEdgeStrokeWidth`). Twice that when its node or the edge is selected.
+ */
+export function simplifiedEdgeWeight(
+	shape: EdgeStrokeShape & { speed: SpeedStroke | null; emphasized: boolean }
+): number {
+	const speedWeight = shape.speed ? speedStrokeWidth(shape.speed) / UNKNOWN_STROKE_WIDTH : 1;
+	const single = restingEdgeStrokeWidth({ ...shape, isAggregated: false, isBundle: false });
+	const countWeight = restingEdgeStrokeWidth(shape) / single;
+	return Math.max(speedWeight, countWeight) * (shape.emphasized ? 2 : 1);
 }
 
 /** SVG dash array for an overlay edge's stroke. */

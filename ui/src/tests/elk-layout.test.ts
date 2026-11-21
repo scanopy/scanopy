@@ -1091,3 +1091,45 @@ describe('LayoutGraph.restoreExpandedSizes', () => {
 		expect(graph.getExpandedSize('host')).toEqual({ width: 350, height: 179 });
 	});
 });
+
+describe('ring layout ports', () => {
+	beforeEach(resetIds);
+
+	/** A ring of `n` hosts, each with ports `a` and `b`; host i's `b` links to host i+1's `a`. */
+	function ring(n: number) {
+		const hosts = Array.from({ length: n }, (_, i) => `host-${i}`);
+		const nodes = hosts.flatMap((h) => [
+			makeContainer(h, { container_type: 'Host' }),
+			makeElement(`${h}/a`, h),
+			makeElement(`${h}/b`, h)
+		]);
+		const edges = hosts.map((h, i) =>
+			primaryEdge(`${h}/b`, `${hosts[(i + 1) % n]}/a`, 'PhysicalLink')
+		);
+		return { hosts, input: makeTopology(nodes, edges, [], 'L2Physical') };
+	}
+
+	it('puts each host’s ports in the order of the neighbours they link to', async () => {
+		const { hosts, input } = ring(8);
+		const result = await computeElkLayout(input);
+		const at = (id: string) => {
+			const own = result.nodePositions.get(id)!;
+			const host = id.includes('/') ? result.nodePositions.get(id.split('/')[0])! : { x: 0, y: 0 };
+			return { x: host.x + own.x, y: host.y + own.y };
+		};
+		const neighbour = (port: string) => {
+			const [host, side] = port.split('/');
+			const i = hosts.indexOf(host);
+			const other = hosts[(i + (side === 'b' ? 1 : hosts.length - 1)) % hosts.length];
+			return at(`${other}/${side === 'b' ? 'a' : 'b'}`);
+		};
+		for (const host of hosts) {
+			const [a, b] = [at(`${host}/a`), at(`${host}/b`)];
+			// The line the two ports sit along, and their neighbours' order along it.
+			const axis = Math.abs(a.y - b.y) >= Math.abs(a.x - b.x) ? 'y' : 'x';
+			const ports = Math.sign(a[axis] - b[axis]);
+			const ends = Math.sign(neighbour(`${host}/a`)[axis] - neighbour(`${host}/b`)[axis]);
+			if (ends !== 0) expect(ports).toBe(ends);
+		}
+	});
+});

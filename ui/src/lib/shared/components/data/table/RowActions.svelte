@@ -25,6 +25,8 @@
 	let { actions: rowActions }: { actions: RowAction[] } = $props();
 
 	let actions = $derived(shownActions(rowActions));
+	// Labeled actions stack, one per line and the same width, so a row's fix sits above its guide.
+	let stacked = $derived(actions.some((a) => a.showLabel));
 </script>
 
 {#if narrowViewport.current}
@@ -32,20 +34,22 @@
 		<ActionMenu {actions} label={common_actions()} />
 	{/if}
 {:else}
-	<div class="flex items-center justify-end gap-1">
+	<div class="flex gap-1 {stacked ? 'flex-col items-stretch' : 'items-center justify-end'}">
 		{#each actions as action (action.label)}
 			{@const tip = resolveTooltip(action) ?? action.label}
 			{#if action.showLabel}
-				<!-- A table whose rows have one action names it, so the row reads as its fix. -->
+				<!-- A table whose rows name their actions reads each row as its fix. -->
 				<button
 					type="button"
 					onclick={action.onClick}
 					disabled={!!action.unavailable}
 					use:tooltip
 					data-tooltip={resolveTooltip(action)}
-					class="{toolbarButtonClass(
-						action.tone
-					)} flex items-center gap-1.5 px-2 py-1 text-xs whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+					class="{action.primary
+						? 'btn-primary'
+						: toolbarButtonClass(
+								action.tone
+							)} flex items-center gap-1.5 px-2 py-1 text-xs whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{action.label}
 					<action.icon size={14} class={action.animation || ''} />

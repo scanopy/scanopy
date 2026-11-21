@@ -374,6 +374,31 @@ const KINDS: &[Kind] = &[
             },
         ],
     },
+    // Weight 0: the weighted mix never draws it. Sites planned switch by switch name it.
+    Kind {
+        role: Role::FieldGateways,
+        weight: 0,
+        prefix: "rtu",
+        description: "Remote terminal unit",
+        speed_bps: FAST_ETHERNET,
+        in_dns: false,
+        vendors: &[
+            Vendor {
+                name: Some("Schneider Electric"),
+                oui: Some([0x00, 0x80, 0xf4]),
+                device_type: DeviceType::Industrial,
+                source: AttributeSource::HttpServerMatch,
+                services: MODBUS,
+            },
+            Vendor {
+                name: Some("Emerson"),
+                oui: None,
+                device_type: DeviceType::Industrial,
+                source: AttributeSource::HttpServerMatch,
+                services: MODBUS,
+            },
+        ],
+    },
 ];
 
 /// A server role, taken in turn as servers are generated.
@@ -486,6 +511,8 @@ struct Slot {
     attached: Attached,
     switch: usize,
     port: i32,
+    /// The host's name, when the plan gives one. Otherwise it is numbered by prefix.
+    name: Option<String>,
 }
 
 /// Every server and endpoint with the access switch and port it is cabled to.
@@ -519,6 +546,7 @@ pub(super) fn plan_attachments(params: &EstateParams, rng: &mut fastrand::Rng) -
             attached,
             switch,
             port: cabled[switch],
+            name: None,
         });
     };
 
@@ -562,6 +590,56 @@ pub(super) fn plan_attachments(params: &EstateParams, rng: &mut fastrand::Rng) -
     AttachmentPlan { slots, edge_ports }
 }
 
+/// A host cabled to a named switch: a server role or endpoint kind, by prefix, and the host's
+/// name.
+pub(super) enum Cabled {
+    Server(&'static str, String),
+    Endpoint(&'static str, String),
+}
+
+/// A plan for a site laid out switch by switch: `loads[i]` is what switch `i` has cabled to it,
+/// in port order. Each switch has `min_edge_ports` edge ports, or more in steps of 8 when more
+/// hosts are cabled to it. Panics on a prefix no server role or endpoint kind has.
+pub(super) fn plan_by_switch(
+    loads: &[Vec<Cabled>],
+    min_edge_ports: i32,
+    rng: &mut fastrand::Rng,
+) -> AttachmentPlan {
+    let mut slots = Vec::new();
+    for (switch, load) in loads.iter().enumerate() {
+        for (i, cabled) in load.iter().enumerate() {
+            let (attached, name) = match cabled {
+                Cabled::Server(prefix, name) => {
+                    let role = SERVER_ROLES
+                        .iter()
+                        .position(|r| r.prefix == *prefix)
+                        .unwrap_or_else(|| panic!("no server role has the prefix {prefix:?}"));
+                    (Attached::Server { role }, name)
+                }
+                Cabled::Endpoint(prefix, name) => {
+                    let kind = KINDS
+                        .iter()
+                        .position(|k| k.prefix == *prefix)
+                        .unwrap_or_else(|| panic!("no endpoint kind has the prefix {prefix:?}"));
+                    let vendor = rng.usize(0..KINDS[kind].vendors.len());
+                    (Attached::Endpoint { kind, vendor }, name)
+                }
+            };
+            slots.push(Slot {
+                attached,
+                switch,
+                port: i as i32 + 1,
+                name: Some(name.clone()),
+            });
+        }
+    }
+    let edge_ports = loads
+        .iter()
+        .map(|load| ((load.len() as i32 + 7) / 8 * 8).max(min_edge_ports))
+        .collect();
+    AttachmentPlan { slots, edge_ports }
+}
+
 /// Where an attached host is cabled, for the access port's FDB entry.
 pub(super) struct Placement {
     pub switch_host_id: Uuid,
@@ -592,6 +670,9 @@ fn host_names(plan: &AttachmentPlan) -> Vec<String> {
     plan.slots
         .iter()
         .map(|slot| {
+            if let Some(name) = &slot.name {
+                return name.clone();
+            }
             let prefix = prefix_of(slot.attached);
             let n = seen.entry(prefix).or_default();
             let name = switches::numbered(prefix, *n, totals[prefix]);
@@ -618,7 +699,8 @@ pub(super) fn build_attached_hosts(
         let role = slot.attached.role();
         let ip = addressing.segment_mut(role).allocate();
         let subnet = &addressing.segment(role).subnet;
-        let serial = [(i >> 16) as u8, (i >> 8) as u8, i as u8];
+        let n = i + addressing.naming().serial_base;
+        let serial = [(n >> 16) as u8, (n >> 8) as u8, n as u8];
 
         let (mac, hws, speed_bps) = match slot.attached {
             Attached::Server { role: r } => {
@@ -628,7 +710,7 @@ pub(super) fn build_attached_hosts(
                     with_mac(
                         create_host(
                             &name,
-                            Some(&format!("{name}.plant.local")),
+                            Some(&format!("{name}.{}", addressing.naming().domain)),
                             Some(server.description),
                             site,
                             subnet,
@@ -653,7 +735,7 @@ pub(super) fn build_attached_hosts(
                 let vendor = &kind.vendors[v];
                 let oui = vendor.oui.unwrap_or([0x02, 0x5e, 0x00]);
                 let mac = [oui[0], oui[1], oui[2], serial[0], serial[1], serial[2]];
-                let hostname = format!("{name}.plant.local");
+                let hostname = format!("{name}.{}", addressing.naming().domain);
                 let mut host = with_mac(
                     create_host(
                         &name,

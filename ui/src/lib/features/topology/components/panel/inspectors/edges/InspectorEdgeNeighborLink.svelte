@@ -13,12 +13,16 @@
 	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
 	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
+	import HostLinkTrace from '../shared/HostLinkTrace.svelte';
+	import type { Edge } from '@xyflow/svelte';
 
 	let {
+		edge,
 		sourceHostId,
 		targetHostId,
 		protocol
 	}: {
+		edge?: Edge;
 		sourceHostId?: string;
 		targetHostId?: string;
 		protocol?: components['schemas']['DiscoveryProtocol'];
@@ -60,16 +64,26 @@
 			iconClass={entities.getColorHelper('Host').icon}
 			description={null}
 		>
-			<div class="card-static card">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-						compact: true,
-						hideTags: ['guest']
-					}}
-					item={sourceHost}
-					displayComponent={HostDisplay}
-				/>
+			<div class="space-y-2">
+				<div class="card-static card">
+					<EntityDisplayWrapper
+						context={{
+							services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
+							compact: true,
+							hideTags: ['guest']
+						}}
+						item={sourceHost}
+						displayComponent={HostDisplay}
+					/>
+				</div>
+				{#if edge && topology}
+					<HostLinkTrace
+						{edge}
+						hostId={sourceHost.id}
+						{topology}
+						sectionId="edge:NeighborLink:source:links"
+					/>
+				{/if}
 			</div>
 		</InspectorSection>
 	{/if}
@@ -82,16 +96,26 @@
 			iconClass={entities.getColorHelper('Host').icon}
 			description={null}
 		>
-			<div class="card-static card">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-						compact: true,
-						hideTags: ['guest']
-					}}
-					item={targetHost}
-					displayComponent={HostDisplay}
-				/>
+			<div class="space-y-2">
+				<div class="card-static card">
+					<EntityDisplayWrapper
+						context={{
+							services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
+							compact: true,
+							hideTags: ['guest']
+						}}
+						item={targetHost}
+						displayComponent={HostDisplay}
+					/>
+				</div>
+				{#if edge && topology}
+					<HostLinkTrace
+						{edge}
+						hostId={targetHost.id}
+						{topology}
+						sectionId="edge:NeighborLink:target:links"
+					/>
+				{/if}
 			</div>
 		</InspectorSection>
 	{/if}

@@ -74,3 +74,22 @@ export function unwrapEnvelope<E extends Envelope>(result: FetchResult<E>): With
 export function unwrapData<E extends Envelope>(result: FetchResult<E>): NonNullable<E['data']> {
 	return unwrapEnvelope(result).data;
 }
+
+/**
+ * Ids sent in one by-ids request. Each costs about 41 bytes of query string (`&ids=` and a
+ * UUID), so 150 keep the URL near 6 KB, under the 8 KB request-line and header limits common to
+ * servers and proxies. Sent as one request, a site's few thousand interface ids came back 431.
+ */
+export const IDS_PER_REQUEST = 150;
+
+/** Fetches rows by id in batches of `IDS_PER_REQUEST`, run in parallel, and returns them in one list. */
+export async function fetchByIds<T>(
+	ids: readonly string[],
+	fetchBatch: (ids: string[]) => Promise<T[]>
+): Promise<T[]> {
+	const batches: string[][] = [];
+	for (let i = 0; i < ids.length; i += IDS_PER_REQUEST) {
+		batches.push(ids.slice(i, i + IDS_PER_REQUEST));
+	}
+	return (await Promise.all(batches.map(fetchBatch))).flat();
+}

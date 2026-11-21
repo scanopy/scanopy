@@ -12,7 +12,8 @@
 	import { copyText } from '#lib/shared/utils/clipboard.ts';
 	import { common_failedToCopy } from '#lib/paraglide/messages.js';
 	import { trackEvent } from '#lib/shared/utils/analytics.ts';
-	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { entities, subnetTypes } from '#lib/shared/stores/metadata.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import {
 		Settings,
 		Terminal,
@@ -105,9 +106,19 @@
 		name?: string;
 		/** The site the wizard opens on, as when Home asks for a daemon on a site with none. */
 		siteId?: string | null;
+		/** The network the daemon is being installed for, from subnet create. The connected state says
+		 *  whether the host is on it. */
+		expectedCidr?: string | null;
 	}
 
-	let { isOpen = false, onClose, onNavigate, name = undefined, siteId = null }: Props = $props();
+	let {
+		isOpen = false,
+		onClose,
+		onNavigate,
+		name = undefined,
+		siteId = null,
+		expectedCidr = null
+	}: Props = $props();
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
@@ -268,9 +279,30 @@
 
 	// Daemon-specific queries for connection detection
 	const queryClient = useQueryClient();
+	// Connected, with no networks reported yet. Declared before the daemon query that reads it,
+	// and set below from that query's own data. A $derived here would read `daemonNetworks` before
+	// its declaration, because the query's `enabled` reads this on creation.
+	// eslint-disable-next-line svelte/prefer-writable-derived
+	let findingNetworks = $state(false);
 	const provisionedDaemonQuery = useDaemonQuery(() => provisionedDaemonId || null, {
 		enabled: () =>
-			(connectionStatus === 'waiting' || connectionStatus === 'trouble') && !!provisionedDaemonId
+			(connectionStatus === 'waiting' || connectionStatus === 'trouble' || findingNetworks) &&
+			!!provisionedDaemonId
+	});
+
+	// The networks the first scan covers. The daemon reports them right after its session starts, a
+	// few seconds after it connects, so the poll runs on until they arrive.
+	const subnetsQuery = useSubnetsQuery();
+	let reportedNetworkIds = $derived(provisionedDaemonQuery.data?.interfaced_subnet_ids ?? []);
+	let daemonNetworks = $derived(
+		(subnetsQuery.data ?? []).filter(
+			(s) =>
+				reportedNetworkIds.includes(s.id) &&
+				subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible
+		)
+	);
+	$effect(() => {
+		findingNetworks = connectionStatus === 'connected' && daemonNetworks.length === 0;
 	});
 	function getDefaultDaemonName(siteId: string): string {
 		const site = sitesData.find((n) => n.id === siteId);
@@ -281,9 +313,11 @@
 		return 'scanopy-daemon';
 	}
 
-	// Auto-select first site when SelectSite is hidden (first daemon)
+	// Default to the first site whenever none of the user's sites is selected: on a first daemon,
+	// where the picker is hidden, and when the configure step mounts late (after the email
+	// verification notice clears) with nothing chosen.
 	$effect(() => {
-		if (isFirstDaemon && !selectedSiteId && sitesData.length > 0) {
+		if (sitesData.length > 0 && !sitesData.some((s) => s.id === selectedSiteId)) {
 			selectedSiteId = sitesData[0].id;
 		}
 	});
@@ -527,7 +561,7 @@
 	async function handleNext() {
 		if (activeTab === 'configure') {
 			// Provisioning would be refused; the notice above the form says why.
-			if (provisionRefused) return;
+			if (provisionRefused || !selectedSiteId) return;
 			const fields = getVisibleFieldIds(formValues);
 			const isValid = await validateForm(form, fields);
 
@@ -673,11 +707,17 @@
 		trackEvent('daemon_connected');
 	}
 
-	// Poll the provisioned daemon every 5s when waiting/trouble
+	// Poll the provisioned daemon every 5s while waiting for it, and after it connects until its
+	// networks arrive
 	$effect(() => {
-		if ((connectionStatus === 'waiting' || connectionStatus === 'trouble') && provisionedDaemonId) {
+		if (
+			(connectionStatus === 'waiting' || connectionStatus === 'trouble' || findingNetworks) &&
+			provisionedDaemonId
+		) {
 			const interval = setInterval(() => {
 				provisionedDaemonQuery.refetch();
+				// The daemon creates its subnets as it reports them, so the list has to catch up too.
+				if (findingNetworks) subnetsQuery.refetch();
 			}, 5000);
 			return () => clearInterval(interval);
 		}
@@ -823,7 +863,7 @@
 							})
 						: common_next(),
 					onClick: handleNext,
-					disabled: isTestingReachability || provisionRefused,
+					disabled: isTestingReachability || provisionRefused || !selectedSiteId,
 					large: true,
 					busy: isTestingReachability
 				}
@@ -942,6 +982,8 @@
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
+							{daemonNetworks}
+							{expectedCidr}
 							onAdvanced={() => (showAdvanced = true)}
 							artifacts={installArtifacts}
 							daemonMode={(formValues.mode as DaemonMode) ?? 'daemon_poll'}

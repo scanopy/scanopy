@@ -564,16 +564,7 @@ async fn handle_register_flow(
     let provision_org = if let Some(org_id) = org_id {
         ProvisionOrg::Existing(org_id)
     } else if let Ok(Some(mut pending_setup)) = session.get::<PendingSetup>("pending_setup").await {
-        // Read the latest use_case from session (set via /onboarding-step) so
-        // a frontend update after /setup is reflected at register time.
-        if let Some(use_case) = session
-            .get::<UseCase>("onboarding_use_case")
-            .await
-            .ok()
-            .flatten()
-        {
-            pending_setup.use_case = use_case;
-        }
+        super::registration::apply_onboarding_answers(&session, &mut pending_setup).await;
         ProvisionOrg::New(pending_setup)
     } else {
         return Err(ErrorRedirect::to(&format!(

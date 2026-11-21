@@ -7,21 +7,27 @@
 	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import {
 		common_source,
+		common_speed,
 		common_target,
-		topology_neighborEvidence
+		topology_neighborEvidence,
+		topology_speedMismatchNote
 	} from '#lib/paraglide/messages.js';
 	import { discoveryProtocols, entities } from '#lib/shared/stores/metadata.ts';
 	import type { components } from '#lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
+	import HostLinkTrace from '../shared/HostLinkTrace.svelte';
+	import type { Edge } from '@xyflow/svelte';
 	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { neighborEvidenceTag } from '#lib/shared/utils/freshness.ts';
-	import { formatRelativeTime } from '#lib/shared/utils/formatting.ts';
+	import { formatBitsPerSecond, formatRelativeTime } from '#lib/shared/utils/formatting.ts';
 
 	let {
+		edge,
 		sourceEntityId,
 		targetEntityId,
 		protocol
 	}: {
+		edge?: Edge;
 		sourceEntityId?: string;
 		targetEntityId?: string;
 		protocol?: components['schemas']['DiscoveryProtocol'];
@@ -44,6 +50,13 @@
 	);
 	let targetHost = $derived(
 		targetInterface ? topology?.hosts.find((h) => h.id === targetInterface.host_id) : null
+	);
+	// Each end's reported speed, formatted. Shown as one when the ends agree or only one reports.
+	let sourceSpeed = $derived(
+		sourceInterface?.speed_bps ? formatBitsPerSecond(sourceInterface.speed_bps) : null
+	);
+	let targetSpeed = $derived(
+		targetInterface?.speed_bps ? formatBitsPerSecond(targetInterface.speed_bps) : null
 	);
 
 	// When the adjacency itself was last reported, as opposed to when its ports were last observed
@@ -95,6 +108,17 @@
 		</div>
 	{/if}
 
+	{#if sourceSpeed || targetSpeed}
+		<div class="flex items-center gap-2 text-sm">
+			<span class="font-medium text-secondary">{common_speed()}</span>
+			{#if sourceSpeed && targetSpeed && sourceSpeed !== targetSpeed}
+				<span>{topology_speedMismatchNote({ source: sourceSpeed, target: targetSpeed })}</span>
+			{:else}
+				<span>{sourceSpeed ?? targetSpeed}</span>
+			{/if}
+		</div>
+	{/if}
+
 	{#if sourceHost || sourceInterface}
 		<InspectorSection
 			id="edge:PhysicalLink:source"
@@ -126,6 +150,14 @@
 							displayComponent={InterfaceDisplay}
 						/>
 					</div>
+				{/if}
+				{#if edge && topology && sourceHost}
+					<HostLinkTrace
+						{edge}
+						hostId={sourceHost.id}
+						{topology}
+						sectionId="edge:PhysicalLink:source:links"
+					/>
 				{/if}
 			</div>
 		</InspectorSection>
@@ -162,6 +194,14 @@
 							displayComponent={InterfaceDisplay}
 						/>
 					</div>
+				{/if}
+				{#if edge && topology && targetHost}
+					<HostLinkTrace
+						{edge}
+						hostId={targetHost.id}
+						{topology}
+						sectionId="edge:PhysicalLink:target:links"
+					/>
 				{/if}
 			</div>
 		</InspectorSection>

@@ -1,5 +1,6 @@
 //! Port-binding removal, conflict partitioning, and availability validation.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl ServiceService {
     /// Remove specific port bindings from a service and sync to database.
@@ -49,8 +50,8 @@ impl ServiceService {
             .collect();
 
         self.binding_service
-            .save_for_parent(
-                service_id,
+            .sync_for(
+                &R::BINDING_SERVICE.at(*service_id),
                 &remaining_bindings,
                 authentication,
                 reason,
@@ -69,8 +70,8 @@ impl ServiceService {
         reason: DeletionReason,
     ) -> Result<()> {
         self.binding_service
-            .save_for_parent(
-                service_id,
+            .sync_for(
+                &R::BINDING_SERVICE.at(*service_id),
                 &[],
                 authentication,
                 reason,

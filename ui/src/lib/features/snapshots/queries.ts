@@ -41,7 +41,7 @@ export function useSnapshotsQuery(siteId: () => string | undefined) {
 				(a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime()
 			);
 		},
-		enabled: () => !!siteId() && hasTopologyAccess(organizationQuery.data)
+		enabled: !!siteId() && hasTopologyAccess(organizationQuery.data)
 	}));
 }
 

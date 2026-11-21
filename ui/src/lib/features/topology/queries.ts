@@ -158,7 +158,9 @@ function defaultLocalOptions(): TopologyLocalOptions {
 		no_fade_edges: false,
 		bundle_edges: true,
 		tag_filter: {},
-		show_minimap: true
+		show_minimap: true,
+		show_container_names: true,
+		edge_coloring: {}
 	};
 }
 
@@ -192,7 +194,7 @@ export function useTopologiesQuery(enabled?: () => boolean) {
 				})
 			);
 		},
-		...(enabled ? { enabled } : {})
+		enabled: enabled?.() ?? true
 	}));
 }
 
@@ -223,11 +225,30 @@ export function useTopologyDataQuery(
 	enabled?: () => boolean
 ) {
 	return createQuery(() => ({
-		...topologyDataQueryOptions(siteId() ?? '', snapshotId(), view()),
-		enabled: () => !!siteId() && (enabled?.() ?? true),
+		...topologyDataObserverOptions(siteId(), snapshotId(), view(), enabled?.() ?? true),
 		// A held site refetches only when the user asks (see `heldTopologySites`).
 		refetchOnWindowFocus: () => !get(heldTopologySites).has(siteId() ?? '')
 	}));
+}
+
+/**
+ * The data query's options with `enabled` resolved to a boolean.
+ *
+ * A boolean, not a callback: TanStack fetches on an options update only when the key changed or
+ * the previous `enabled` was false, and a callback resolves to the current value for the previous
+ * options too. With a callback, opening the tab after its site and view had settled (from Home,
+ * or on a `?view=` link) never requested the bundle.
+ */
+export function topologyDataObserverOptions(
+	siteId: string | undefined,
+	snapshotId: string | undefined,
+	view: TopologyView,
+	enabled: boolean
+) {
+	return {
+		...topologyDataQueryOptions(siteId ?? '', snapshotId, view),
+		enabled: !!siteId && enabled
+	};
 }
 
 /**
@@ -307,7 +328,7 @@ export function useTopologyQuery(id: () => string | undefined) {
 				})
 			);
 		},
-		enabled: () => !!id()
+		enabled: !!id()
 	}));
 }
 

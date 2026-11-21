@@ -13,7 +13,6 @@ use crate::server::{
         entities::EntityDiscriminants,
         product_area::ProductArea,
         storage::{
-            child::ChildStorableEntity,
             snapshot::{DiscoveryTracked, FkMaps, Snapshotable},
             traits::{Entity, SqlValue, Storable},
         },
@@ -26,6 +25,11 @@ impl Storable for Service {
 
     fn table_name() -> &'static str {
         "services"
+    }
+
+    fn relations() -> &'static [&'static crate::server::shared::storage::relation::Relation<Self>] {
+        use crate::server::shared::relations as R;
+        &[&R::SERVICE_HOST]
     }
 
     /// A service is most often looked up by its own name or by what it is
@@ -268,9 +272,7 @@ impl Entity for Service {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Service
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Service;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Service";
     const ENTITY_NAME_PLURAL: &'static str = "Services";
@@ -306,15 +308,5 @@ impl Entity for Service {
 
     fn set_source(&mut self, source: EntitySource) {
         self.base.source = source;
-    }
-}
-
-impl ChildStorableEntity for Service {
-    fn parent_column() -> &'static str {
-        "host_id"
-    }
-
-    fn parent_id(&self) -> Uuid {
-        self.base.host_id
     }
 }

@@ -19,15 +19,9 @@ use crate::server::{
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
     organizations::service::OrganizationService,
     shared::{
-        entities::EntityDiscriminants,
         events::bus::EventBus,
         services::traits::{CrudService, EventBusService},
-        storage::{
-            child::{GenericChildStorage, ParentRef},
-            filter::StorableFilter,
-            generic::GenericPostgresStorage,
-            traits::Storage,
-        },
+        storage::{filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage},
         types::entities::EntitySourceDiscriminants,
     },
     sites::service::SiteService,
@@ -141,8 +135,8 @@ pub struct CredentialService {
     ip_address_service: Arc<IPAddressService>,
     organization_service: Arc<OrganizationService>,
     host_service: OnceLock<Arc<HostService>>,
-    site_credential_storage: Arc<GenericChildStorage<SiteCredential>>,
-    host_credential_storage: Arc<GenericChildStorage<HostCredential>>,
+    site_credential_storage: Arc<GenericPostgresStorage<SiteCredential>>,
+    host_credential_storage: Arc<GenericPostgresStorage<HostCredential>>,
 }
 
 impl EventBusService<Credential> for CredentialService {
@@ -251,8 +245,8 @@ impl CredentialService {
         site_service: Arc<SiteService>,
         ip_address_service: Arc<IPAddressService>,
         organization_service: Arc<OrganizationService>,
-        site_credential_storage: Arc<GenericChildStorage<SiteCredential>>,
-        host_credential_storage: Arc<GenericChildStorage<HostCredential>>,
+        site_credential_storage: Arc<GenericPostgresStorage<SiteCredential>>,
+        host_credential_storage: Arc<GenericPostgresStorage<HostCredential>>,
     ) -> Self {
         Self {
             storage,

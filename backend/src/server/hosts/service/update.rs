@@ -1,5 +1,6 @@
 //! Host updates and child (IP/port/service) synchronization.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl HostService {
     /// Update a host from an UpdateHostRequest
@@ -413,7 +414,10 @@ impl HostService {
         use std::collections::HashSet;
 
         // Get existing services for this host (needed for position resolution)
-        let existing = self.service_service.get_for_parent(host_id).await?;
+        let existing = self
+            .service_service
+            .get_for(&R::SERVICE_HOST.at(*host_id))
+            .await?;
         let existing_ids: HashSet<Uuid> = existing.iter().map(|s| s.id).collect();
 
         // Resolve and validate positions
@@ -442,7 +446,7 @@ impl HostService {
         } else {
             let live: HashSet<Uuid> = self
                 .service_service
-                .get_for_parent(host_id)
+                .get_for(&R::SERVICE_HOST.at(*host_id))
                 .await?
                 .iter()
                 .map(|s| s.id)

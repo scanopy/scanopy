@@ -173,9 +173,7 @@ impl Entity for Daemon {
         self.created_at = time;
     }
 
-    fn entity_type() -> EntityDiscriminants {
-        EntityDiscriminants::Daemon
-    }
+    const ENTITY_TYPE: EntityDiscriminants = EntityDiscriminants::Daemon;
 
     const ENTITY_NAME_SINGULAR: &'static str = "Daemon";
     const ENTITY_NAME_PLURAL: &'static str = "Daemons";

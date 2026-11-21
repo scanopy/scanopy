@@ -3,7 +3,7 @@ import type { Edge, EdgeMarkerType } from '@xyflow/svelte';
 import type { TopologyEdge } from '../types/base';
 import type { TopologyView } from '../queries';
 import type { EdgeHandles } from '../layout/elk-layout';
-import { computeOptimalHandles, ObstacleGrid } from '../layout/handle-picking';
+import { computeOptimalHandles, ObstacleGrid, sideBySideHandles } from '../layout/handle-picking';
 import { getViewLayout } from '../layout/view-layout';
 import type { SelectionStores } from '../selection';
 import type { AggregatedEdge } from '../collapse';
@@ -291,8 +291,9 @@ export function buildFlowEdges(params: BuildFlowEdgesParams): BuildFlowEdgesResu
 /**
  * Compute edge handles against final post-layout positions from LayoutGraph.
  * Runs over both elementary (elevated) edges and aggregated collapse edges.
- * A view with the `horizontal` handle strategy uses a simple left/right rule; the
- * `optimal` strategy uses the generic `computeOptimalHandles` picker.
+ * A view with the `horizontal` handle strategy runs links left to right between ends that sit side
+ * by side (`sideBySideHandles`), and picks like the `optimal` strategy, with the generic
+ * `computeOptimalHandles`, between ends that do not.
  */
 function computeHandlesFromLayout(
 	elevatedEdges: TopologyEdge[],
@@ -327,12 +328,8 @@ function computeHandlesFromLayout(
 		if (!srcPos || !tgtPos || !srcSize || !tgtSize) return undefined;
 
 		if (horizontalHandles) {
-			const srcCx = srcPos.x + srcSize.w / 2;
-			const tgtCx = tgtPos.x + tgtSize.w / 2;
-			return {
-				sourceHandle: srcCx < tgtCx ? 'Right' : 'Left',
-				targetHandle: srcCx < tgtCx ? 'Left' : 'Right'
-			};
+			const handles = sideBySideHandles(srcPos, srcSize, tgtPos, tgtSize);
+			if (handles) return handles;
 		}
 
 		const exclude = new Set<string>([src, tgt]);

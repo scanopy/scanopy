@@ -9,7 +9,8 @@ import {
 	enterLoadStage,
 	estimateStageTimes,
 	loadProgress,
-	planStages
+	planStages,
+	stageAnimation
 } from '#lib/features/topology/pipeline/load-progress.ts';
 
 /**
@@ -50,6 +51,20 @@ describe('planStages', () => {
 		expect(large.layout).toBeGreaterThan(small.layout);
 		expect(large.draw).toBeGreaterThan(small.draw);
 		expect(large.data).toBe(small.data);
+	});
+});
+
+describe('stageAnimation', () => {
+	it('moves each stage from its start toward, and short of, its end, past its expected time', () => {
+		const plan = planStages(['data', 'measure', 'layout', 'draw'], estimateStageTimes(4000), 0.1);
+		for (const progress of plan.values()) {
+			const animation = stageAnimation(progress);
+
+			expect(animation.fromScale).toBe(progress.from);
+			expect(animation.toScale).toBeGreaterThan(progress.from);
+			expect(animation.toScale).toBeLessThan(progress.to);
+			expect(animation.durationMs).toBeGreaterThan(progress.expectedMs);
+		}
 	});
 });
 

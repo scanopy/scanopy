@@ -1,6 +1,8 @@
 use super::*;
 use std::collections::{HashSet, VecDeque};
 
+const GIGABIT: i64 = 1_000_000_000;
+
 fn estate(params: &EstateParams) -> LargeEstate {
     let organization_id = Uuid::new_v4();
     let now = crate::server::shared::clock::now();
@@ -196,4 +198,250 @@ fn a_truncated_vlan_plan_still_places_every_host() {
     let estate = estate(&params);
     assert_eq!(estate.vlans.len(), 4);
     assert_eq!(estate.hosts_with_services.len(), params.host_count());
+}
+
+fn ring_estate(params: &RingParams) -> LargeEstate {
+    let organization_id = Uuid::new_v4();
+    let now = crate::server::shared::clock::now();
+    generate_ring_estate(
+        params,
+        &water_utility_site(organization_id, now),
+        organization_id,
+        now,
+    )
+}
+
+/// Switch-to-switch adjacency by host name, one entry per neighbour however many links join them.
+/// Both ends of a switch-to-switch link were walked, so the far port has an ifIndex.
+fn switch_adjacency(estate: &LargeEstate) -> HashMap<&str, HashSet<&str>> {
+    let mut adjacency: HashMap<&str, HashSet<&str>> = HashMap::new();
+    for n in estate
+        .neighbor_updates
+        .iter()
+        .filter(|n| n.target_if_index.is_some())
+    {
+        adjacency
+            .entry(n.source_host_name.as_str())
+            .or_default()
+            .insert(n.target_host_name.as_str());
+    }
+    adjacency
+}
+
+/// Each ring leaves one core, passes through every one of its station switches exactly once, and
+/// reaches the other core, which links back to the first: a closed loop through both cores.
+#[test]
+fn each_ring_is_a_closed_loop_through_both_cores() {
+    let params = RingParams::default();
+    let estate = ring_estate(&params);
+    let adjacency = switch_adjacency(&estate);
+    let cores: Vec<&str> = adjacency
+        .keys()
+        .copied()
+        .filter(|name| name.starts_with("wtp-"))
+        .collect();
+    assert_eq!(cores.len(), 2);
+    let (first, second) = if cores[0] < cores[1] {
+        (cores[0], cores[1])
+    } else {
+        (cores[1], cores[0])
+    };
+    assert!(
+        adjacency[first].contains(second),
+        "the cores link to each other"
+    );
+
+    for &(ring, stations) in &params.rings {
+        let prefix = format!("{}-", ring.to_lowercase());
+        let entries: Vec<&str> = adjacency[first]
+            .iter()
+            .copied()
+            .filter(|n| n.starts_with(&prefix))
+            .collect();
+        assert_eq!(entries.len(), 1, "{ring} ring leaves {first} once");
+
+        let mut visited = vec![first];
+        let mut current = entries[0];
+        while current != second {
+            assert!(
+                current.starts_with(&prefix),
+                "{current} is off the {ring} ring"
+            );
+            assert!(!visited.contains(&current), "{current} is visited twice");
+            let next: Vec<&str> = adjacency[current]
+                .iter()
+                .copied()
+                .filter(|n| *n != *visited.last().unwrap())
+                .collect();
+            assert_eq!(next.len(), 1, "{current} has two ring neighbours");
+            visited.push(current);
+            current = next[0];
+        }
+        assert_eq!(visited.len() - 1, stations);
+    }
+}
+
+/// Every switch-to-switch link is recorded from both ends, port to port, between two 10 Gb/s
+/// ports, so the L2 view resolves it to the port at each end.
+#[test]
+fn ring_links_resolve_port_to_port_at_ten_gigabit() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let switches: HashSet<&str> = switch_adjacency(&estate).into_keys().collect();
+    let speeds: HashMap<(&str, i32), Option<i64>> = estate
+        .interfaces
+        .iter()
+        .filter_map(|i| {
+            Some((
+                (names[&i.base.host_id].as_str(), i.base.if_index?),
+                i.base.speed_bps,
+            ))
+        })
+        .collect();
+    let links: HashSet<(&str, i32, &str, i32)> = estate
+        .neighbor_updates
+        .iter()
+        .filter(|n| switches.contains(n.target_host_name.as_str()))
+        .map(|n| {
+            (
+                n.source_host_name.as_str(),
+                n.source_if_index,
+                n.target_host_name.as_str(),
+                n.target_if_index.expect("ring links are port to port"),
+            )
+        })
+        .collect();
+    assert!(estate.host_neighbor_updates.is_empty());
+    for &(source, source_port, target, target_port) in &links {
+        assert!(links.contains(&(target, target_port, source, source_port)));
+        for end in [(source, source_port), (target, target_port)] {
+            assert_eq!(speeds.get(&end), Some(&Some(10 * GIGABIT)), "{end:?}");
+        }
+    }
+}
+
+/// Every station switch has a handful of devices cabled to it, each on an access port that learned
+/// its MAC and reports a speed.
+#[test]
+fn every_station_carries_a_handful_of_devices_on_access_ports() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let mut per_switch: HashMap<&str, usize> = HashMap::new();
+    for iface in &estate.interfaces {
+        let Some(fdb) = &iface.base.fdb_macs else {
+            continue;
+        };
+        assert!(iface.base.speed_bps.is_some());
+        *per_switch
+            .entry(names[&iface.base.host_id].as_str())
+            .or_default() += fdb.value().0.len();
+    }
+    let stations: Vec<&str> = switch_adjacency(&estate)
+        .into_keys()
+        .filter(|n| !n.starts_with("wtp-"))
+        .collect();
+    for station in stations {
+        let devices = per_switch.get(station).copied().unwrap_or(0);
+        assert!(
+            (3..=6).contains(&devices),
+            "{station} has {devices} devices"
+        );
+    }
+}
+
+/// The seeder resolves links by host name, and MACs identify hosts across the organization, so
+/// neither repeats within the ring estate or between it and the default estate.
+#[test]
+fn ring_estate_names_and_macs_are_unique_and_distinct_from_plant() {
+    let ring = ring_estate(&RingParams::default());
+    let ring_names = names(&ring);
+    assert_eq!(
+        ring_names.values().collect::<HashSet<_>>().len(),
+        ring_names.len()
+    );
+
+    let macs = |estate: &LargeEstate| -> HashSet<String> {
+        estate
+            .hosts_with_services
+            .iter()
+            .flat_map(|h| &h.ip_addresses)
+            .filter_map(|ip| ip.base.mac_address.as_ref())
+            .map(|m| m.value().0.to_string())
+            .collect()
+    };
+    let ring_macs = macs(&ring);
+    let plant_macs = macs(&estate(&EstateParams::default()));
+    assert!(ring_macs.is_disjoint(&plant_macs));
+}
+
+/// Every station device is linked port to port from the access port that learned it: the
+/// switch's LLDP table names the device's port, which has no ifIndex because nothing walks the
+/// device, and both ends report the device's own speed. The L2 view draws each as a physical link.
+#[test]
+fn every_station_device_is_linked_from_its_access_port() {
+    let estate = ring_estate(&RingParams::default());
+    let names = names(&estate);
+    let switches: HashSet<&str> = switch_adjacency(&estate).into_keys().collect();
+    let ports: HashMap<(&str, Option<i32>), &Interface> = estate
+        .interfaces
+        .iter()
+        .map(|i| ((names[&i.base.host_id].as_str(), i.base.if_index), i))
+        .collect();
+
+    let mut linked: HashMap<&str, usize> = HashMap::new();
+    for link in estate
+        .neighbor_updates
+        .iter()
+        .filter(|n| !switches.contains(n.target_host_name.as_str()))
+    {
+        assert_eq!(link.target_if_index, None);
+        let device_port = ports[&(link.target_host_name.as_str(), None)];
+        let switch_port = ports[&(link.source_host_name.as_str(), Some(link.source_if_index))];
+        assert!(device_port.base.speed_bps.is_some());
+        assert_eq!(device_port.base.speed_bps, switch_port.base.speed_bps);
+        // The switch port learned the device's MAC, the one its own port carries.
+        let device_mac = device_port
+            .base
+            .mac_address
+            .as_ref()
+            .unwrap()
+            .value()
+            .0
+            .to_string();
+        assert!(
+            switch_port
+                .base
+                .fdb_macs
+                .as_ref()
+                .is_some_and(|f| f.value().0.contains(&device_mac))
+        );
+        *linked.entry(link.target_host_name.as_str()).or_default() += 1;
+    }
+
+    let devices: Vec<&String> = names
+        .values()
+        .filter(|n| !switches.contains(n.as_str()))
+        .collect();
+    assert!(!devices.is_empty());
+    for device in devices {
+        assert_eq!(linked.get(device.as_str()), Some(&1), "{device}");
+    }
+}
+
+/// Field controllers run at 100 Mb/s and cameras and HMIs at 1 Gb/s, against 10 Gb/s on the
+/// rings, so a view coloured by link speed shows more than one speed among the station devices.
+#[test]
+fn station_devices_run_at_more_than_one_speed() {
+    let estate = ring_estate(&RingParams::default());
+    let device_speeds: HashSet<Option<i64>> = estate
+        .interfaces
+        .iter()
+        .filter(|i| i.base.if_index.is_none())
+        .map(|i| i.base.speed_bps)
+        .collect();
+    assert!(device_speeds.contains(&Some(GIGABIT)), "{device_speeds:?}");
+    assert!(
+        device_speeds.contains(&Some(GIGABIT / 10)),
+        "{device_speeds:?}"
+    );
 }

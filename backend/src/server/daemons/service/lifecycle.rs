@@ -1,11 +1,12 @@
 //! Construction, limit checks, insecure-URL warning, and host-service dependency injection.
 use super::*;
+use crate::server::shared::relations as R;
 
 impl DaemonService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         daemon_storage: Arc<GenericPostgresStorage<Daemon>>,
-        interfaced_subnet_storage: Arc<GenericChildStorage<DaemonInterfacedSubnet>>,
+        interfaced_subnet_storage: Arc<GenericPostgresStorage<DaemonInterfacedSubnet>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
         discovery_service: Arc<DiscoveryService>,
@@ -63,7 +64,6 @@ impl DaemonService {
         let filter =
             StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
         self.interfaced_subnet_storage
-            .inner()
             .get_all_ordered(filter, "subnet_id ASC")
             .await
             .map(|records| records.into_iter().map(|r| r.subnet_id).collect())
@@ -87,7 +87,6 @@ impl DaemonService {
             daemon_ids,
         );
         self.interfaced_subnet_storage
-            .inner()
             .get_all_ordered(filter, "daemon_id ASC")
             .await
             .map(|records| {
@@ -106,6 +105,32 @@ impl DaemonService {
             })
     }
 
+    /// For each of `subnet_ids` that some daemon has an interface on, one such daemon: the
+    /// lowest id, so the answer is stable when several share a network. Unlike the lookups above
+    /// this one fails rather than degrading to empty, because its callers refuse a range edit on
+    /// what it returns and an empty answer would let that edit through.
+    pub async fn interfacing_daemon_by_subnet(
+        &self,
+        subnet_ids: &[Uuid],
+    ) -> Result<std::collections::HashMap<Uuid, Uuid>, anyhow::Error> {
+        if subnet_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+        let filter = StorableFilter::<DaemonInterfacedSubnet>::new_from_uuids_column(
+            "subnet_id",
+            subnet_ids,
+        );
+        let records = self
+            .interfaced_subnet_storage
+            .get_all_ordered(filter, "daemon_id ASC")
+            .await?;
+        let mut map = std::collections::HashMap::new();
+        for record in records {
+            map.entry(record.subnet_id).or_insert(record.daemon_id);
+        }
+        Ok(map)
+    }
+
     /// Replace this daemon's set of interfaced subnets in the
     /// `daemon_interfaced_subnets` junction. Every subnet id must already exist.
     pub async fn set_interfaced_subnet_ids(
@@ -113,7 +138,21 @@ impl DaemonService {
         daemon_id: &Uuid,
         subnet_ids: &[Uuid],
     ) -> Result<(), ApiError> {
-        let rows: Vec<DaemonInterfacedSubnet> = subnet_ids
+        // Every status report carries the set, and it rarely changes: read it and write only a
+        // different one. A failed read falls through to the write.
+        let wanted: std::collections::BTreeSet<Uuid> = subnet_ids.iter().copied().collect();
+        let filter =
+            StorableFilter::<DaemonInterfacedSubnet>::new_from_uuid_column("daemon_id", daemon_id);
+        if let Ok(stored) = self
+            .interfaced_subnet_storage
+            .get_all_ordered(filter, "subnet_id ASC")
+            .await
+            && stored.len() == wanted.len()
+            && stored.iter().all(|row| wanted.contains(&row.subnet_id))
+        {
+            return Ok(());
+        }
+        let rows: Vec<DaemonInterfacedSubnet> = wanted
             .iter()
             .map(|subnet_id| DaemonInterfacedSubnet {
                 daemon_id: *daemon_id,
@@ -121,10 +160,7 @@ impl DaemonService {
             })
             .collect();
         self.interfaced_subnet_storage
-            .save_for_parent(
-                &ParentRef::new(EntityDiscriminants::Daemon, *daemon_id),
-                &rows,
-            )
+            .replace_for(&R::INTERFACED_SUBNET_DAEMON.at(*daemon_id), &rows)
             .await
             .map(|_| ())
             .map_err(|e| {
@@ -155,6 +191,24 @@ impl DaemonService {
     ///
     /// Both are reported, not only the first, so a Free org with no verified owner learns
     /// about verification before it upgrades rather than after.
+    /// Whether `org_id` is on the demo plan, which `DaemonHealth::of` reads.
+    pub async fn org_is_demo(&self, org_id: &Uuid) -> Result<bool, anyhow::Error> {
+        Ok(self
+            .organization_service
+            .get_by_id(org_id)
+            .await?
+            .is_some_and(|org| org.base.plan.is_demo()))
+    }
+
+    /// Whether the org owning `site_id` is on the demo plan. For callers holding daemon rows but
+    /// no org, such as the paginated list.
+    pub async fn site_is_demo(&self, site_id: &Uuid) -> Result<bool, anyhow::Error> {
+        match self.site_service.get_by_id(site_id).await? {
+            Some(site) => self.org_is_demo(&site.base.organization_id).await,
+            None => Ok(false),
+        }
+    }
+
     pub async fn daemon_limits(&self, org_id: Uuid) -> Result<DaemonLimits, ApiError> {
         if !self.org_has_daemon(org_id).await {
             return Ok(DaemonLimits::default());

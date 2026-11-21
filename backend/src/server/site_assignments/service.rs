@@ -1,3 +1,4 @@
+use crate::server::shared::relations as R;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -8,8 +9,8 @@ use uuid::Uuid;
 use crate::server::{
     auth::access::{Assignment, AssignmentScope},
     shared::storage::{
-        child::{ChildStorableEntity, GenericChildStorage},
         filter::StorableFilter,
+        generic::GenericPostgresStorage,
         traits::{Storable, Storage},
     },
     site_assignments::r#impl::base::{Principal, SiteAssignment, SiteAssignmentBase},
@@ -17,30 +18,22 @@ use crate::server::{
 
 /// The `site_assignments` table. Writes come from `AccessService`, which owns the rules around them.
 pub struct SiteAssignmentService {
-    storage: Arc<GenericChildStorage<SiteAssignment>>,
+    storage: Arc<GenericPostgresStorage<SiteAssignment>>,
 }
 
 impl SiteAssignmentService {
-    pub fn new(storage: Arc<GenericChildStorage<SiteAssignment>>) -> Self {
+    pub fn new(storage: Arc<GenericPostgresStorage<SiteAssignment>>) -> Self {
         Self { storage }
     }
 
     pub async fn get_for(&self, principal: Principal) -> Result<Vec<Assignment>> {
-        let rows = self
-            .storage
-            .inner()
-            .get_all(SiteAssignment::parent_filter(&principal.parent()))
-            .await?;
+        let rows = self.storage.get_for(&principal.assignments()).await?;
         Ok(rows.into_iter().map(|row| row.base.assignment).collect())
     }
 
     /// The sites listed for `principal`. An All sites row names none.
     pub async fn listed_site_ids(&self, principal: Principal) -> Result<Vec<Uuid>> {
-        let rows = self
-            .storage
-            .inner()
-            .get_all(SiteAssignment::parent_filter(&principal.parent()))
-            .await?;
+        let rows = self.storage.get_for(&principal.assignments()).await?;
         Ok(rows.iter().filter_map(SiteAssignment::site_id).collect())
     }
 
@@ -56,7 +49,7 @@ impl SiteAssignmentService {
         }
         let filter = StorableFilter::<SiteAssignment>::new().uuids_column(column, ids);
         let mut listed: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-        for row in self.storage.inner().get_all(filter).await? {
+        for row in self.storage.get_all(filter).await? {
             if let (Some(id), Some(site_id)) = (id_of(&row.base.principal), row.site_id()) {
                 listed.entry(id).or_default().push(site_id);
             }
@@ -78,7 +71,7 @@ impl SiteAssignmentService {
         }
         let filter = StorableFilter::<SiteAssignment>::new().uuids_column(column, ids);
         let mut scopes: HashMap<Uuid, Option<Vec<Uuid>>> = HashMap::new();
-        for row in self.storage.inner().get_all(filter).await? {
+        for row in self.storage.get_all(filter).await? {
             let Some(id) = id_of(&row.base.principal) else {
                 continue;
             };
@@ -98,7 +91,10 @@ impl SiteAssignmentService {
         site_id: Uuid,
         organization_id: Uuid,
     ) -> Result<Vec<Uuid>> {
-        let rows = self.storage.get_for_parent(&organization_id).await?;
+        let rows = self
+            .storage
+            .get_for(&R::SITE_ASSIGNMENT_ORGANIZATION.at(organization_id))
+            .await?;
         Ok(rows
             .iter()
             .filter(|row| match row.base.assignment.scope {
@@ -122,7 +118,7 @@ impl SiteAssignmentService {
 
     /// A transaction for a principal's role and rows to commit together.
     pub(crate) async fn begin(&self) -> Result<Transaction<'static, Postgres>> {
-        self.storage.inner().begin_multi_table_transaction().await
+        self.storage.begin_multi_table_transaction().await
     }
 
     /// Replace every row of `principal`, inside `tx`.
@@ -138,7 +134,7 @@ impl SiteAssignmentService {
             .map(|assignment| Self::row(organization_id, principal, *assignment))
             .collect();
         self.storage
-            .save_for_parent_in_tx(&principal.parent(), &rows, tx)
+            .replace_for_in_tx(&principal.assignments(), &rows, tx)
             .await?;
         Ok(())
     }
@@ -151,9 +147,7 @@ impl SiteAssignmentService {
         assignment: Assignment,
     ) -> Result<()> {
         let row = Self::row(organization_id, principal, assignment);
-        self.storage
-            .add_for_parent(&principal.parent(), &row)
-            .await?;
+        self.storage.add_for(&principal.assignments(), &row).await?;
         Ok(())
     }
 }

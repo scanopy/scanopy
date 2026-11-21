@@ -412,11 +412,12 @@ async fn the_demo_orgs_issues_span_both_sites_and_no_setup_gaps() {
     assert_eq!(sites, site_ids.iter().copied().collect(), "{issues:#?}");
 }
 
-/// The trial sweep reports a step left open a day on a trialing org, once, and leaves an org
-/// that isn't trialing alone.
+/// The sweep times an open step on every org, and reports it stuck after a day, once, only on a
+/// trialing org.
 #[tokio::test]
-async fn the_trial_sweep_reports_a_trialing_orgs_open_step_once() {
+async fn the_sweep_tracks_every_org_and_reports_only_a_trialing_org_stuck() {
     use crate::server::billing::types::base::PlanStatus;
+    use crate::server::organizations::r#impl::base::OrgNotifications;
     use crate::server::setup::types::SetupItemKey;
 
     let (storage, services, _container) = test_services().await;
@@ -447,25 +448,20 @@ async fn the_trial_sweep_reports_a_trialing_orgs_open_step_once() {
     };
 
     let setup = &services.setup_service;
-    setup.sweep_trials(start).await.unwrap();
-    setup
-        .sweep_trials(start + Duration::hours(24))
-        .await
-        .unwrap();
-    setup
-        .sweep_trials(start + Duration::hours(25))
-        .await
-        .unwrap();
+    setup.sweep_all(start).await.unwrap();
+    setup.sweep_all(start + Duration::hours(24)).await.unwrap();
+    setup.sweep_all(start + Duration::hours(25)).await.unwrap();
 
-    let trialing = notifications(orgs[0]).await;
-    assert_eq!(trialing.setup_items_reported, vec![install_daemon.clone()]);
-    assert!(
-        trialing
+    let opened_at_start = |notifications: &OrgNotifications| {
+        notifications
             .setup_items_open
             .iter()
             .any(|open| open.key == install_daemon && open.open_since == start)
-    );
+    };
+    let trialing = notifications(orgs[0]).await;
+    assert_eq!(trialing.setup_items_reported, vec![install_daemon.clone()]);
+    assert!(opened_at_start(&trialing));
     let active = notifications(orgs[1]).await;
-    assert!(active.setup_items_open.is_empty());
+    assert!(opened_at_start(&active));
     assert!(active.setup_items_reported.is_empty());
 }

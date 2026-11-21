@@ -181,6 +181,49 @@ export const PREWARM_ZOOM = DETAIL_ZOOM * 0.65;
  */
 export const PREWARM_RELEASE_ZOOM = PREWARM_ZOOM * 0.9;
 
+/** On-screen stroke of a simplified edge at `DETAIL_ZOOM`, in CSS pixels. */
+export const SIMPLIFIED_EDGE_MIN_PX = 1.5;
+
+/** On-screen stroke of a simplified edge once zoomed far out, in CSS pixels. */
+export const SIMPLIFIED_EDGE_MAX_PX = 4;
+
+/**
+ * On-screen stroke width of a simplified edge at `zoom`.
+ *
+ * Thicker the further out the view is, so the lines stay readable on a map of boxes a few pixels
+ * wide: 1.5px at `DETAIL_ZOOM`, growing with the square root of how far out the view is, up to
+ * 4px (reached near a zoom of 0.06, where Water Utility L2 fits). Published once per zoom change as
+ * a CSS variable on the canvas, so no edge subscribes to the zoom.
+ */
+export function simplifiedEdgeWidth(zoom: number): number {
+	if (!(zoom > 0)) return SIMPLIFIED_EDGE_MAX_PX;
+	const width = SIMPLIFIED_EDGE_MIN_PX * Math.sqrt(DETAIL_ZOOM / zoom);
+	return Math.min(SIMPLIFIED_EDGE_MAX_PX, Math.max(SIMPLIFIED_EDGE_MIN_PX, width));
+}
+
+/** Narrowest on-screen hit area of a simplified edge, in CSS pixels. */
+export const SIMPLIFIED_EDGE_HIT_MIN_PX = 8;
+
+/** How many times its drawn stroke a simplified edge's hit area is. */
+export const SIMPLIFIED_EDGE_HIT_SCALE = 4;
+
+/**
+ * On-screen hit width of a simplified edge drawn `strokePx` wide (`simplifiedEdgeWidth`) at
+ * `weight` (`simplifiedEdgeWeight`): a multiple of the drawn line, so a heavier edge is easier to
+ * click, and never under `SIMPLIFIED_EDGE_HIT_MIN_PX`.
+ */
+export function simplifiedEdgeHitWidth(strokePx: number, weight: number): number {
+	return Math.max(SIMPLIFIED_EDGE_HIT_MIN_PX, strokePx * weight * SIMPLIFIED_EDGE_HIT_SCALE);
+}
+
+/**
+ * `simplifiedEdgeHitWidth` as a CSS `stroke-width`, reading the stroke from the canvas's
+ * `--simplified-edge-width`, so a zoom changes every hit area without any edge subscribing to it.
+ */
+export function simplifiedEdgeHitWidthCss(weight: number): string {
+	return `max(${SIMPLIFIED_EDGE_HIT_MIN_PX}px, calc(var(--simplified-edge-width, ${SIMPLIFIED_EDGE_MIN_PX}px) * ${weight * SIMPLIFIED_EDGE_HIT_SCALE}))`;
+}
+
 /**
  * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
  * nothing needs every card in full at this moment.
@@ -248,4 +291,43 @@ export function nodeDetail({
 	if (detail) return 'full';
 	if (isSubcontainer && screenWidth < BOX_MIN_PX) return 'hidden';
 	return 'boxed';
+}
+
+export interface KeptDetailConditions {
+	/** Nodes in the store. Below `LOD_MIN_NODES` nothing is kept, so a small graph is unchanged. */
+	nodeCount: number;
+	/** The single selected node. */
+	selectedNode: { id: string } | null;
+	/** The multi-selection. */
+	selectedNodes: readonly { id: string }[];
+	/** The selected edge, with the ids of the nodes it joins. */
+	selectedEdge: { id: string; source: string; target: string } | null;
+}
+
+/**
+ * The node and edge ids that draw in full while the rest of the graph is reduced.
+ *
+ * A selection that turns into a box when the user zooms out no longer shows what they picked, so
+ * every selected node keeps its card or header, and a selected edge keeps its stroke and label
+ * along with both of its end nodes, which say what it connects.
+ *
+ * A container's children are not kept: they are nodes of their own, and a subnet of a few hundred
+ * hosts drawn in full would cost what reducing detail saves.
+ */
+export function detailKeptIds({
+	nodeCount,
+	selectedNode,
+	selectedNodes,
+	selectedEdge
+}: KeptDetailConditions): Set<string> {
+	const kept = new Set<string>();
+	if (nodeCount < LOD_MIN_NODES) return kept;
+	if (selectedNode) kept.add(selectedNode.id);
+	for (const node of selectedNodes) kept.add(node.id);
+	if (selectedEdge) {
+		kept.add(selectedEdge.id);
+		kept.add(selectedEdge.source);
+		kept.add(selectedEdge.target);
+	}
+	return kept;
 }

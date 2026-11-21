@@ -1,5 +1,5 @@
 use cidr::Ipv4Cidr;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::Ipv4Addr;
 use uuid::Uuid;
 
 use crate::server::shared::attribution::AttributeSource;
@@ -7,17 +7,6 @@ use crate::server::subnets::r#impl::base::{
     SubnetCidr, SubnetCidrValue, SubnetName, SubnetTypeAttributed,
 };
 use crate::server::{
-    bindings::r#impl::base::Binding,
-    hosts::r#impl::{
-        base::{Host, HostBase},
-        name::{HostName, HostNameSources},
-    },
-    ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    ports::r#impl::base::{Port, PortType},
-    services::{
-        definitions::{client::Client, dns_server::DnsServer, web_service::WebService},
-        r#impl::base::{Service, ServiceBase},
-    },
     shared::{
         storage::traits::Storable,
         types::{Color, Icon, entities::EntitySource},
@@ -274,134 +263,4 @@ subnet to include them in your topology."
     };
 
     Subnet::new(base)
-}
-
-/// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
-pub fn create_remote_host(
-    remote_subnet: &Subnet,
-    site_id: Uuid,
-) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
-    // Create interface with placeholder host_id - server will set the correct one
-    let ip_address = IPAddress::new(IPAddressBase::new_conceptual(Uuid::nil(), remote_subnet));
-
-    let dynamic_port = Port::new_hostless(PortType::new_tcp(0)); // Ephemeral port
-    let binding = Binding::new_port_serviceless(dynamic_port.id, Some(ip_address.id));
-
-    let base = HostBase {
-        // A deliberate label on a synthetic host, not something we derived — discovery
-        // must never rename these.
-        name: HostName::manual("Mobile Device".to_string()),
-        hostname: None,
-        site_id,
-        tags: Vec::new(),
-        description: Some("A mobile device connecting from a remote network".to_string()),
-        source: EntitySource::System,
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        ..Default::default()
-    };
-
-    let host = Host::new(base);
-
-    let client_service = Service::new(ServiceBase {
-        host_id: host.id,
-        site_id,
-        tags: Vec::new(),
-        name: "Mobile Device".to_string(),
-        service_definition: Box::new(Client),
-        bindings: vec![binding],
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        source: EntitySource::System,
-        position: 0,
-    });
-
-    (host, vec![ip_address], vec![dynamic_port], client_service)
-}
-
-/// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
-pub fn create_internet_connectivity_host(
-    internet_subnet: &Subnet,
-    site_id: Uuid,
-) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
-    // Create interface with placeholder host_id - server will set the correct one
-    let ip_address = IPAddress::new(IPAddressBase::new_conceptual(Uuid::nil(), internet_subnet));
-
-    let https_port = Port::new_hostless(PortType::Https);
-    let binding = Binding::new_port_serviceless(https_port.id, Some(ip_address.id));
-
-    let base = HostBase {
-        // A deliberate label on a synthetic host, not something we derived — discovery
-        // must never rename these.
-        name: HostName::manual("Google.com".to_string()),
-        site_id,
-        tags: Vec::new(),
-        hostname: None,
-        description: None,
-        source: EntitySource::System,
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        ..Default::default()
-    };
-
-    let host = Host::new(base);
-
-    let web_service = Service::new(ServiceBase {
-        host_id: host.id,
-        name: "Google.com".to_string(),
-        site_id,
-        tags: Vec::new(),
-        service_definition: Box::new(WebService),
-        bindings: vec![binding],
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        source: EntitySource::System,
-        position: 0,
-    });
-
-    (host, vec![ip_address], vec![https_port], web_service)
-}
-
-/// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
-pub fn create_public_dns_host(
-    internet_subnet: &Subnet,
-    site_id: Uuid,
-) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
-    // Create interface with placeholder host_id - server will set the correct one
-    let mut ip_address =
-        IPAddress::new(IPAddressBase::new_conceptual(Uuid::nil(), internet_subnet));
-    ip_address.base.ip_address = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
-    let dns_udp_port = Port::new_hostless(PortType::DnsUdp);
-    let binding = Binding::new_port_serviceless(dns_udp_port.id, Some(ip_address.id));
-
-    let base = HostBase {
-        // A deliberate label on a synthetic host, not something we derived — discovery
-        // must never rename these.
-        name: HostName::manual("Cloudflare DNS".to_string()),
-        hostname: None,
-        site_id,
-        description: None,
-        tags: Vec::new(),
-        source: EntitySource::System,
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        ..Default::default()
-    };
-
-    let host = Host::new(base);
-
-    let dns_service = Service::new(ServiceBase {
-        host_id: host.id,
-        site_id,
-        tags: Vec::new(),
-        name: "Cloudflare DNS".to_string(),
-        service_definition: Box::new(DnsServer),
-        bindings: vec![binding],
-        virtualization_metadata: None,
-        virtualization_service_id: None,
-        source: EntitySource::System,
-        position: 0,
-    });
-
-    (host, vec![ip_address], vec![dns_udp_port], dns_service)
 }

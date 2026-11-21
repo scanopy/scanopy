@@ -7,7 +7,7 @@ import { formatTimeOfDay, weekdayOrder } from '#lib/shared/utils/date-format.ts'
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '#lib/api/query-client.ts';
 import { apiClient } from '#lib/api/client.ts';
-import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import { fetchByIds, requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Discovery } from './types/base';
 import type { components, operations } from '#lib/api/schema';
 import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
@@ -47,7 +47,7 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 				})
 			);
 		},
-		...(enabled ? { enabled } : {})
+		enabled: enabled?.() ?? true
 	}));
 }
 
@@ -64,9 +64,13 @@ export function useDiscoveriesByIds(idsGetter: () => string[]) {
 		const ids = idsGetter();
 		return {
 			queryKey: [...queryKeys.discovery.all, 'byIds', ids],
-			queryFn: async (): Promise<Discovery[]> =>
-				unwrapData(
-					await apiClient.GET('/api/v1/discoveries', { params: { query: { ids, limit: 0 } } })
+			queryFn: (): Promise<Discovery[]> =>
+				fetchByIds(ids, async (batch) =>
+					unwrapData(
+						await apiClient.GET('/api/v1/discoveries', {
+							params: { query: { ids: batch, limit: 0 } }
+						})
+					)
 				),
 			enabled: ids.length > 0
 		};

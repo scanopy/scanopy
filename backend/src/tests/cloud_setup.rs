@@ -118,6 +118,7 @@ async fn sign_up(services: &ServiceFactory, site: Option<PendingSiteSetup>) -> U
                 org_name: "Acme".to_string(),
                 site,
                 use_case: UseCase::InternalIt,
+                answers: Default::default(),
             }),
             permissions: None,
             site_assignments: Vec::new(),

@@ -75,8 +75,11 @@
 			? !detailStaging.hasDetail(id, sharedStores.simplified.current)
 			: sharedStores.simplified.current
 	);
-	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
-	let veiled = $derived(!simplified && sharedStores.simplified.current);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box. A
+	// selected card (`detailKeptIds`) is shown at any zoom.
+	let veiled = $derived(
+		!simplified && sharedStores.simplified.current && !detailStaging?.keepsDetail(id)
+	);
 
 	/**
 	 * The height a simplified card has to hold, taken from what SvelteFlow measured.
@@ -410,6 +413,7 @@
 {#if nodeRenderData}
 	<div
 		bind:this={rootElement}
+		data-lod-simplified={simplified || undefined}
 		class={`${cardClass}${isNewNode ? 'animate-pulse-highlight' : ''} ${serviceHoverShadowStyle ? 'animate-pulse-highlight-once' : ''} ${isEntityTypeHover ? 'entity-type-hover-active' : ''}`}
 		style={`width: ${effectiveWidth}px; height: ${simplified && pinnedHeight !== undefined ? `${pinnedHeight}px` : '100%'}; ${simplified || veiled ? `background: ${stateFill};` : ''} display: flex; flex-direction: column; padding: 0; opacity: ${nodeOpacity}; transition: opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out; ${isNewNode ? `--pulse-color: ${discoveryColorHelper.rgb};` : ''} ${serviceHoverShadowStyle} ${tagHoverRingStyle}`}
 	>

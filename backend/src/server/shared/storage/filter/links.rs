@@ -37,11 +37,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
+        let ids_idx = self.values.len() + 1;
         let live = if junction.has_history {
             " AND link.valid_to IS NULL"
         } else {
@@ -55,13 +51,12 @@ impl<T: Storable> StorableFilter<T> {
         };
 
         self.conditions.push(format!(
-            "{col} IN (SELECT link.{own} FROM {table} link WHERE (link.{other} IN ({ids}){every}){live})",
+            "{col} IN (SELECT link.{own} FROM {table} link WHERE (link.{other} = ANY(${ids_idx}){every}){live})",
             own = junction.own_column,
             table = junction.table,
             other = junction.other_column,
-            ids = placeholders.join(", "),
         ));
-        self.values.extend(ids.iter().copied().map(SqlValue::Uuid));
+        self.values.push(SqlValue::UuidArray(ids.to_vec()));
         self
     }
 }

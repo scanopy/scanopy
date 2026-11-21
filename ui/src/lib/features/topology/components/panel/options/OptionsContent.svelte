@@ -41,6 +41,7 @@
 	import FilterGroup from './FilterGroup.svelte';
 	import GroupingRuleEditor from './GroupingRuleEditor.svelte';
 	import ElementSortSelect from './ElementSortSelect.svelte';
+	import EdgeColoringSelect from './EdgeColoringSelect.svelte';
 	import EntityFilterHeader from './EntityFilterHeader.svelte';
 	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
 	import { compareTagsByGroup } from '#lib/features/tags/groups.ts';
@@ -54,6 +55,8 @@
 		topology_dontFadeEdgesHelp,
 		topology_showMinimap,
 		topology_showMinimapHelp,
+		topology_showContainerNames,
+		topology_showContainerNamesHelp,
 		common_byTag,
 		common_edges,
 		common_clearAll,
@@ -596,6 +599,15 @@
 			key: 'show_minimap',
 			helpText: () => topology_showMinimapHelp(),
 			section: () => common_visual()
+		},
+		{
+			id: 'show_container_names',
+			label: () => topology_showContainerNames(),
+			type: 'boolean',
+			path: 'local',
+			key: 'show_container_names',
+			helpText: () => topology_showContainerNamesHelp(),
+			section: () => common_visual()
 		}
 	];
 
@@ -776,6 +788,7 @@
 	<!-- Visual Options -->
 	<div class="space-y-3">
 		<p class="text-xs text-tertiary">{topology_displayHelp()}</p>
+		<EdgeColoringSelect />
 		{#each sections as section (section.name)}
 			{#each section.fields as def (def.id)}
 				{#if def.type === 'boolean'}

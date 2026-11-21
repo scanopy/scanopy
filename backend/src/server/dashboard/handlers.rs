@@ -15,14 +15,27 @@ use crate::server::{
 
 use super::types::{DashboardSummary, PlanUsage, SiteSummary};
 use crate::server::{
+    organizations::r#impl::base::Organization,
     setup::{
+        export::issues_csv,
         service::IssueList,
         types::{IssueFilterQuery, SetupItemTier, SetupListEntry},
     },
-    shared::{extractors::Query, handlers::list::computed_page, types::api::PaginatedApiResponse},
+    shared::{
+        extractors::Query,
+        handlers::{
+            csv::csv_response,
+            list::{computed_page, computed_rows},
+        },
+        services::entity_fields::ServiceSource,
+        types::api::PaginatedApiResponse,
+    },
 };
 
-use axum::{extract::State, response::Json};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Json},
+};
 use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -31,6 +44,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_dashboard_summary))
         .routes(routes!(get_dashboard_issues))
+        .routes(routes!(export_dashboard_issues_csv))
 }
 
 /// Get dashboard summary
@@ -188,6 +202,56 @@ async fn get_dashboard_issues(
     auth: Authorized<InOrganization>,
     Query(query): Query<IssueFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<SetupListEntry>>> {
+    let (_, issues) = issues_for(&state, &auth).await?;
+    Ok(Json(computed_page::<IssueList>(
+        issues,
+        &query,
+        query.pagination(),
+    )))
+}
+
+/// Export dashboard Issues to CSV
+///
+/// Every Issue the caller sees that matches the filters, in the list's order, ignoring `limit`
+/// and `offset`.
+#[utoipa::path(
+    get,
+    path = "/issues/export/csv",
+    tags = [api_tags::INTERNAL],
+    params(IssueFilterQuery),
+    responses(
+        (status = 200, description = "CSV file containing Issues", content_type = "text/csv", body = String),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn export_dashboard_issues_csv(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<InOrganization>,
+    Query(query): Query<IssueFilterQuery>,
+) -> ApiResult<impl IntoResponse> {
+    let (organization, issues) = issues_for(&state, &auth).await?;
+    let issues = computed_rows::<IssueList>(issues, &query);
+    let source = ServiceSource {
+        services: &state.services,
+        reader: &auth.entity,
+        organization_id: organization.id,
+    };
+    let csv_data = issues_csv(
+        &source,
+        &issues,
+        &organization.base.notifications.setup_items_open,
+    )
+    .await
+    .map_err(|e| ApiError::internal_error(&format!("Failed to build CSV: {e}")))?;
+    Ok(csv_response("issues", csv_data))
+}
+
+/// The caller's org and every Issue on it they may read. Already cut to what the caller may read,
+/// so a `site_ids` filter only narrows it: a site the caller can't read matches nothing.
+async fn issues_for(
+    state: &AppState,
+    auth: &Authorized<InOrganization>,
+) -> ApiResult<(Organization, Vec<SetupListEntry>)> {
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
@@ -197,9 +261,7 @@ async fn get_dashboard_issues(
         .get_by_id(&organization_id)
         .await?
         .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
-    // Already cut to what the caller may read, so `site_ids` only narrows it: a site the caller
-    // can't read matches nothing.
-    let issues: Vec<SetupListEntry> = state
+    let issues = state
         .services
         .setup_service
         .for_user(&organization, &auth.entity)
@@ -208,9 +270,5 @@ async fn get_dashboard_issues(
         .into_iter()
         .filter(|entry| entry.tier == SetupItemTier::Issue)
         .collect();
-    Ok(Json(computed_page::<IssueList>(
-        issues,
-        &query,
-        query.pagination(),
-    )))
+    Ok((organization, issues))
 }

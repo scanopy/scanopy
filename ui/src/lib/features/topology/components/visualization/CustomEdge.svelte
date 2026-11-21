@@ -8,10 +8,29 @@
 		getStraightPath,
 		EdgeReconnectAnchor
 	} from '@xyflow/svelte';
-	import { hiddenEdgeTypes, topologyOptions } from '../../queries';
+	import {
+		activeView,
+		aggregatedEdgeOriginals,
+		hiddenEdgeTypes,
+		topologyOptions
+	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import { edgeTypes } from '#lib/shared/stores/metadata.ts';
-	import { createColorHelper, type Color } from '#lib/shared/utils/styling.ts';
+	import {
+		createColorHelper,
+		LINK_SPEED_COLORS,
+		LINK_SPEED_UNKNOWN,
+		type Color
+	} from '#lib/shared/utils/styling.ts';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
+	import { getTopologyIndex } from '../../entity-index';
+	import {
+		effectiveEdgeColoring,
+		speedStrokeColors,
+		speedStrokeOf,
+		speedStrokeWidth,
+		useShareEdgeColoring
+	} from '../../edge-speed';
 	import type { TopologyEdge, RenderableTopology } from '../../types/base';
 	import { isExporting, detailSimplified, hoveredEdgeType } from '../../interactions';
 	import {
@@ -21,10 +40,13 @@
 		isEdgeHidden,
 		isOverlayEdge,
 		overlayDashArray,
-		restingEdgeStrokeWidth
+		restingEdgeStrokeWidth,
+		simplifiedEdgeWeight
 	} from '../../layout/edge-classification';
+	import { simplifiedEdgeHitWidthCss } from '../../pipeline/render-mode';
 	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { ELEMENT_TEXT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
+	import { useDetailStaging } from '../../detail-staging.svelte';
 
 	let {
 		id,
@@ -112,33 +134,36 @@
 	});
 
 	/**
-	 * Edges go with the card detail below the zoom threshold — see `shouldSimplify`.
-	 *
-	 * At the zoom a large graph fits at, an edge is a hairline between two nodes that are
-	 * themselves a couple of pixels wide: it conveys nothing and there are as many of them as
-	 * there are links. Folded into the existing `hideEdge` gate rather than filtering the store,
-	 * because the store is also what `getLayoutedEdges` reads to decide which endpoints to force
-	 * into the mounted set — dropping edges from it would change what is culled, not just what is
-	 * drawn.
+	 * Below the zoom threshold (see `shouldSimplify`) every edge draws as `simplifiedPath`, in every
+	 * view. A selected edge keeps its full stroke and label at any zoom (`detailKeptIds`), and a
+	 * preview always draws in full.
 	 */
-	let simplified = $derived($detailSimplified);
+	const detailStaging = useDetailStaging();
+	let simplified = $derived($detailSimplified && !detailStaging?.keepsDetail(id));
+
+	/**
+	 * A simplified edge: a straight line between its handles, 1.5 to 4px on screen depending on the
+	 * zoom (`simplifiedEdgeWidth`, read from the canvas's `--simplified-edge-width`) times its
+	 * weight (`simplifiedEdgeWeight`), with no label, transition or animation. Its hit area is a
+	 * second bare straight path, a multiple of that width (`simplifiedEdgeHitWidth`), so a click
+	 * selects it and the selection draws it in full.
+	 *
+	 * Drawn as `BaseEdge` (a bezier, a 50px-wide hit path, 0.4 opacity and transitions), every L2
+	 * link at fit zoom dropped panning from 120 to 44 fps on Plant (384 links) and to 47 on Water
+	 * Utility (461). Drawn like this the same links pan at 120 fps on both, and first draw stays
+	 * within its load-to-load noise.
+	 */
+	let simplifiedPath = $derived(`M${sourceX},${sourceY}L${targetX},${targetY}`);
 
 	let isPreview = $derived(!!(edgeData as Record<string, unknown> | undefined)?.is_preview);
 
 	/**
-	 * A preview edge is never hidden.
-	 *
-	 * The exemption used to sit inside the hide-by-type arm alone, so that hiding `Dependency`
-	 * edges did not also hide the one being drawn. Simplification was then added in front of it as
-	 * `simplified || …`, which short-circuits: past the zoom threshold every edge was hidden and
-	 * the exemption was never reached. `detailSimplified` is graph-wide and any estate large enough
-	 * to fit below the threshold has it permanently on, so dependency previews stopped drawing at
-	 * all on exactly the networks where dependencies get drawn.
+	 * Hidden only by its type being turned off. A preview edge is never hidden, so hiding
+	 * `Dependency` edges does not also hide the one being drawn.
 	 */
 	let hideEdge = $derived(
 		isEdgeHidden(edgeData, {
 			isPreview,
-			simplified,
 			hiddenEdgeTypes: $hiddenEdgeTypes
 		})
 	);
@@ -171,6 +196,51 @@
 		return edgeTypes.getColorHelper(edgeData.edge_type);
 	});
 
+	// Links coloured by speed: a physical link by the speed its ports report, a neighbour link
+	// (which names no port) as unknown. Any other edge, or a view coloured by type, keeps its colour.
+	const shareEdgeColoring = useShareEdgeColoring();
+	let bySpeed = $derived(
+		effectiveEdgeColoring($topologyOptions.local, $activeView, shareEdgeColoring) === 'Speed' &&
+			(edgeData?.edge_type === 'PhysicalLink' || edgeData?.edge_type === 'NeighborLink')
+	);
+	/**
+	 * The band this edge shows, and each end's band where the two differ. An edge standing for
+	 * several links (a bundle, or links between collapsed containers) shows its fastest link.
+	 */
+	let speed = $derived.by(() => {
+		if (!bySpeed || !edgeData || !topology) return null;
+		const interfaces = getTopologyIndex(topology).interfacesById;
+		return speedStrokeOf(
+			edgeData,
+			isBundle
+				? (anyEdgeData?.bundleEdges as TopologyEdge[] | undefined)
+				: isAggregated
+					? $aggregatedEdgeOriginals.get(id)
+					: undefined,
+			(interfaceId) => interfaces.get(interfaceId)?.speed_bps
+		);
+	});
+	// An export draws in its own theme by setting the class on the document, which the theme store
+	// does not follow.
+	let darkTheme = $derived(
+		$isExporting
+			? typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+			: themeStore.resolvedTheme === 'dark'
+	);
+	let speedColors = $derived(
+		speed
+			? speedStrokeColors(
+					speed,
+					darkTheme ? LINK_SPEED_COLORS.dark : LINK_SPEED_COLORS.light,
+					LINK_SPEED_UNKNOWN
+				)
+			: null
+	);
+	let speedColor = $derived(speedColors?.color ?? null);
+	// Ends in different bands: each half in its own end's colour, meeting at the middle.
+	let speedEnds = $derived(speedColors?.ends ?? null);
+	let speedGradientId = $derived(`link-speed-${id.replace(/[^\w-]/g, '_')}`);
+
 	// Determine if this edge should use the two-color dashed effect
 	let isGroupEdge = $derived(edgeTypeMetadata?.is_dependency_edge ?? false);
 	let useMultiColorDash = $derived((isGroupEdge && shouldShowFull) || isPreview);
@@ -199,10 +269,28 @@
 			isOverlay
 		});
 		if (isAggregated || isBundle) return resting;
+		// By speed, width is the band's, one wider when highlighted, so the order still reads.
+		if (speed) {
+			const width = speedStrokeWidth(speed);
+			const highlighted =
+				isEdgeTypeHovered || (!$topologyOptions.local.no_fade_edges && shouldShowFull);
+			return highlighted ? width + 1 : width;
+		}
 		if (isEdgeTypeHovered) return 3;
 		if (!$topologyOptions.local.no_fade_edges && (shouldShowFull || isPreview)) return 3;
 		return resting;
 	});
+	let simplifiedWeight = $derived(
+		simplifiedEdgeWeight({
+			isAggregated,
+			aggregatedCount,
+			isBundle,
+			bundleStrokeWidth,
+			isOverlay,
+			speed,
+			emphasized: shouldShowFull
+		})
+	);
 	let baseOpacity = $derived.by(() => {
 		if ($isExporting) return 1;
 		// Preview edges always full opacity
@@ -235,7 +323,9 @@
 	let edgeStyle = $derived.by(() => {
 		// For group edges with multi-color dash: white dashes
 		// For non-group dashed edges: use standard 5 5 pattern with edge color
-		let strokeColor = edgeColorHelper.rgb;
+		let strokeColor: string = speedEnds
+			? `url(#${speedGradientId})`
+			: (speedColor ?? edgeColorHelper.rgb);
 		let dashArray = '';
 
 		const isDark =
@@ -419,7 +509,47 @@
 		/>
 	{/if}
 
-	{#if !hideEdge && !reconnecting}
+	<!-- A link whose ends report speeds in different bands: each half in its own end's colour, on
+	     the full and the simplified link alike. -->
+	{#if speedEnds && !hideEdge}
+		<defs>
+			<linearGradient
+				id={speedGradientId}
+				gradientUnits="userSpaceOnUse"
+				x1={sourceX}
+				y1={sourceY}
+				x2={targetX}
+				y2={targetY}
+			>
+				<stop offset="50%" stop-color={speedEnds[0]} />
+				<stop offset="50%" stop-color={speedEnds[1]} />
+			</linearGradient>
+		</defs>
+	{/if}
+
+	{#if simplified && !isPreview && !hideEdge}
+		<!-- By speed, the simplified link keeps its band's colour and width, one wider when selected,
+		     so the speeds still read on a map zoomed out to fit. -->
+		<path
+			d={simplifiedPath}
+			fill="none"
+			stroke={speedEnds ? `url(#${speedGradientId})` : (speedColor ?? edgeColorHelper.rgb)}
+			style:stroke-width="calc(var(--simplified-edge-width, 1.5px) * {simplifiedWeight})"
+			stroke-dasharray={isOverlay ? overlayDashArray(isDotted) : undefined}
+			vector-effect="non-scaling-stroke"
+			pointer-events="none"
+		/>
+		<!-- The hit area: transparent, straight, no transition. The edge's <g> carries the click. -->
+		<path
+			class="simplified-edge-hit"
+			d={simplifiedPath}
+			fill="none"
+			stroke="transparent"
+			style:stroke-width={simplifiedEdgeHitWidthCss(simplifiedWeight)}
+			vector-effect="non-scaling-stroke"
+			pointer-events="stroke"
+		/>
+	{:else if !hideEdge && !reconnecting}
 		<!-- Solid base layer for group edges when shown full (rendered first, behind) -->
 		{#if useMultiColorDash}
 			<BaseEdge
@@ -489,6 +619,10 @@
 	:global(.svelte-flow__edge.animated .svelte-flow__edge-path) {
 		stroke-dasharray: initial !important;
 		animation: none !important;
+	}
+
+	.simplified-edge-hit {
+		cursor: pointer;
 	}
 
 	@keyframes dashdraw {

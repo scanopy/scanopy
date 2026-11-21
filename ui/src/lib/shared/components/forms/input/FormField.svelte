@@ -14,6 +14,8 @@
 		required?: boolean;
 		/** Help text below the input */
 		helpText?: string;
+		/** Richer help below the input, such as text with entity chips. Drawn after `helpText`. */
+		hint?: Snippet;
 		/** Render label inline with input (for checkboxes) */
 		inline?: boolean;
 		/** Slot content */
@@ -26,6 +28,7 @@
 		id,
 		required = false,
 		helpText = '',
+		hint,
 		inline = false,
 		children
 	}: Props = $props();
@@ -85,6 +88,10 @@
 
 		{#if helpText}
 			<p class="text-xs text-tertiary">{helpText}</p>
+		{/if}
+
+		{#if hint}
+			{@render hint()}
 		{/if}
 	</div>
 {/if}

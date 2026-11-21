@@ -210,8 +210,11 @@
 		})
 	);
 	let simplified = $derived(detailTier !== 'full');
-	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
-	let veiled = $derived(!simplified && sharedStores.simplified.current);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box. A
+	// selected container (`detailKeptIds`) shows its header at any zoom; its children stay reduced.
+	let veiled = $derived(
+		!simplified && sharedStores.simplified.current && !detailStaging?.keepsDetail(id)
+	);
 
 	let tagHoverRingStyle = $derived.by(() => {
 		// Filter-value hover: ring the box when the entity it stands for carries the hovered value,
@@ -303,11 +306,14 @@
 </script>
 
 <!-- A container is collapsed by its title's chevron and selected by its title chip, the way a card
-     is selected by clicking it. The body holds the children, so a click on it lands on the canvas. -->
+     is selected by clicking it. The body holds the children, so a click on it lands on the canvas.
+     Drawn as a box (or veiled), it has no title to click, so a click anywhere on it selects it;
+     `data-detail` is what the viewer's click handler reads for that (see `resolveNodeClick`). -->
 <div
 	class="relative"
 	class:entity-type-hover-active={isEntityTypeHover}
 	class:lod-veil={veiled}
+	data-detail={veiled ? 'boxed' : detailTier}
 	bind:this={rootElement}
 	style="{nodeStyle} opacity: {nodeOpacity}; --lod-veil-edge: {colorHelper.rgb};"
 >

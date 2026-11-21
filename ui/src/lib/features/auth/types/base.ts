@@ -7,16 +7,13 @@ import {
 	common_site,
 	common_organization,
 	common_other,
-	onboarding_internalItDescription,
 	onboarding_internalItSiteHelp,
 	onboarding_internalItSiteLabel,
 	onboarding_internalItSitePlaceholder,
 	onboarding_internalItOrgPlaceholder,
-	onboarding_homelabDescription,
 	onboarding_homelabSiteHelp,
 	onboarding_homelabOrgLabel,
 	onboarding_homelabOrgPlaceholder,
-	onboarding_mspDescription,
 	onboarding_mspLabel,
 	onboarding_mspSiteHelp,
 	onboarding_mspSiteLabel,
@@ -24,7 +21,6 @@ import {
 	onboarding_mspOrgLabel,
 	onboarding_mspOrgPlaceholder,
 	onboarding_orgHelp,
-	onboarding_otherDescription,
 	onboarding_otherSitePlaceholder,
 	onboarding_otherOrgPlaceholder
 } from '#lib/paraglide/messages.js';
@@ -52,12 +48,14 @@ export interface SessionUser {
 
 // Onboarding use case types — derived from backend-generated schema
 export type UseCase = components['schemas']['UseCase'];
+export type SignupIntent = components['schemas']['SignupIntent'];
 
 // Consolidated use case configuration
 // Icons are mapped separately in components (Svelte component references)
 export interface UseCaseConfig {
+	/** The short name the topology's grouping rules use. The signup step's wording comes from
+	 *  `use-cases.json`. */
 	label: string;
-	description: string;
 	orgLabel: string;
 	orgPlaceholder: string;
 	orgHelp: string;
@@ -75,7 +73,6 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 	return {
 		internal_it: {
 			label: common_internalIt(),
-			description: onboarding_internalItDescription(),
 			orgLabel: common_entityName({ entity: common_organization() }),
 			orgPlaceholder: onboarding_internalItOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
@@ -90,7 +87,6 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 		},
 		homelab: {
 			label: common_homelab(),
-			description: onboarding_homelabDescription(),
 			orgLabel: onboarding_homelabOrgLabel(),
 			orgPlaceholder: onboarding_homelabOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
@@ -105,7 +101,6 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 		},
 		msp: {
 			label: onboarding_mspLabel(),
-			description: onboarding_mspDescription(),
 			orgLabel: onboarding_mspOrgLabel(),
 			orgPlaceholder: onboarding_mspOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
@@ -120,7 +115,6 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 		},
 		other: {
 			label: common_other(),
-			description: onboarding_otherDescription(),
 			orgLabel: common_entityName({ entity: common_organization() }),
 			orgPlaceholder: onboarding_otherOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),

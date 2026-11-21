@@ -204,6 +204,20 @@ export const COLOR_MAP: Record<Color, ColorStyle> = {
 	}
 };
 
+/**
+ * Stroke colours for links coloured by speed, one per speed band, slowest first: a hue of its own
+ * for each band, so the bands tell apart at a glance. Width (`TIER_STROKE_WIDTHS`) carries the
+ * order as well, for anyone who cannot tell the hues apart. Tailwind's 600 steps on a light
+ * canvas and 400 steps on a dark one, as hex; 1 Gb/s is the teal physical links are drawn in by type.
+ */
+export const LINK_SPEED_COLORS = {
+	light: ['#e17100', '#009689', '#155dfc', '#7f22fe'], // amber, teal, blue, violet 600
+	dark: ['#ffb900', '#00d5be', '#51a2ff', '#a684ff'] // amber, teal, blue, violet 400
+} as const;
+
+/** Stroke colour of a link whose speed is unknown, in either theme. */
+export const LINK_SPEED_UNKNOWN = 'rgb(156, 163, 175)'; // gray-400
+
 // Export available colors array derived from COLOR_MAP keys
 export const AVAILABLE_COLORS = Object.keys(COLOR_MAP) as Color[];
 

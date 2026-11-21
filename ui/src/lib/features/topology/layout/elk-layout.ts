@@ -14,6 +14,14 @@ import { resolveCollapsedAncestor } from '../collapse';
 import { noteElkRun } from '../diagnostics';
 import { connectedGroups, dependencyOrder, pinChildOrder } from './child-order';
 import { getViewLayout, type ViewLayoutConfig } from './view-layout';
+import { detectRings, placeRings, rootGraphOf, type RootGraph } from './ring-layout';
+import {
+	packBoxes,
+	packComponents,
+	ringLayoutAcceptable,
+	rootBounds,
+	slotsBeside
+} from './box-packing';
 
 /**
  * The port-constraint a container's own ports can honour.
@@ -1512,37 +1520,6 @@ function repackDisconnectedContainers(
 		}
 	}
 
-	const overlapsPlaced = (box: { x: number; y: number; width: number; height: number }) => {
-		for (const other of placed.values()) {
-			if (
-				box.x < other.x + other.width + SPACING &&
-				other.x < box.x + box.width + SPACING &&
-				box.y < other.y + other.height + SPACING &&
-				other.y < box.y + box.height + SPACING
-			) {
-				return other;
-			}
-		}
-		return undefined;
-	};
-
-	// The two free slots flush against a placed box: below it, moved down past anything in the way,
-	// and right of it, moved right past anything in the way.
-	const slotsBeside = (
-		p: { x: number; y: number; width: number; height: number },
-		size: { width: number; height: number }
-	) => {
-		const below = { x: p.x, y: p.y + p.height + SPACING, ...size };
-		for (let hit = overlapsPlaced(below); hit; hit = overlapsPlaced(below)) {
-			below.y = hit.y + hit.height + SPACING;
-		}
-		const right = { x: p.x + p.width + SPACING, y: p.y, ...size };
-		for (let hit = overlapsPlaced(right); hit; hit = overlapsPlaced(right)) {
-			right.x = hit.x + hit.width + SPACING;
-		}
-		return [below, right];
-	};
-
 	const place = (id: string, slot: { x: number; y: number; width: number; height: number }) => {
 		nodePositions.set(id, { x: slot.x, y: slot.y });
 		placed.set(id, slot);
@@ -1577,7 +1554,7 @@ function repackDisconnectedContainers(
 		let best:
 			{ slot: { x: number; y: number; width: number; height: number }; score: number } | undefined;
 		for (const [partner] of partners.sort(([a], [b]) => a.localeCompare(b))) {
-			for (const slot of slotsBeside(placed.get(partner)!, size)) {
+			for (const slot of slotsBeside(placed, placed.get(partner)!, size, SPACING)) {
 				const score = distanceTo(slot.x, slot.y);
 				if (!best || score < best.score) best = { slot, score };
 			}
@@ -1588,53 +1565,19 @@ function repackDisconnectedContainers(
 	}
 
 	// Pack the rest, tallest first, into whichever free slot beside a placed container grows the
-	// bounding box least, so they fill the gaps the layout left before widening it. Ties go to the
-	// higher slot, then the one further left.
-	const shelved = disconnectedIds.filter((id) => unplaced.has(id));
-	shelved.sort((a, b) => {
-		const sA = result.containerSizes.get(a)?.height ?? 0;
-		const sB = result.containerSizes.get(b)?.height ?? 0;
-		return sB - sA || a.localeCompare(b);
-	});
-
-	for (const id of shelved) {
-		const size = result.containerSizes.get(id);
-		if (!size) continue;
-
-		let minX = Infinity;
-		let minY = Infinity;
-		let maxX = -Infinity;
-		let maxY = -Infinity;
-		for (const box of placed.values()) {
-			minX = Math.min(minX, box.x);
-			minY = Math.min(minY, box.y);
-			maxX = Math.max(maxX, box.x + box.width);
-			maxY = Math.max(maxY, box.y + box.height);
-		}
-		// The bounding box as a screen fits it: the smallest rectangle of the root layout's aspect
-		// ratio that holds it, so a tall, narrow packing costs what it costs to view.
-		const areaWith = (slot: { x: number; y: number; width: number; height: number }) => {
-			const width = Math.max(maxX, slot.x + slot.width) - Math.min(minX, slot.x);
-			const height = Math.max(maxY, slot.y + slot.height) - Math.min(minY, slot.y);
-			return Math.max(width, height * VIEW_ASPECT) * Math.max(height, width / VIEW_ASPECT);
-		};
-
-		let best:
-			{ slot: { x: number; y: number; width: number; height: number }; area: number } | undefined;
-		for (const box of placed.values()) {
-			for (const slot of slotsBeside(box, size)) {
-				const area = areaWith(slot);
-				if (
-					!best ||
-					area < best.area ||
-					(area === best.area &&
-						(slot.y < best.slot.y || (slot.y === best.slot.y && slot.x < best.slot.x)))
-				) {
-					best = { slot, area };
-				}
-			}
-		}
-		if (best) place(id, best.slot);
+	// bounding box least, so they fill the gaps the layout left before widening it.
+	const shelved = disconnectedIds
+		.filter((id) => unplaced.has(id) && result.containerSizes.has(id))
+		.sort((a, b) => {
+			const sA = result.containerSizes.get(a)!.height;
+			const sB = result.containerSizes.get(b)!.height;
+			return sB - sA || a.localeCompare(b);
+		})
+		.map((id) => ({ id, ...result.containerSizes.get(id)! }));
+	packBoxes(placed, shelved, VIEW_ASPECT, SPACING);
+	for (const { id } of shelved) {
+		const box = placed.get(id)!;
+		nodePositions.set(id, { x: box.x, y: box.y });
 	}
 
 	return { ...result, nodePositions };
@@ -1807,5 +1750,236 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	}
 
 	const layoutResult = mapElkResults(result2, cids2, input);
-	return repackDisconnectedContainers(layoutResult, input);
+	const viewLayout = getViewLayout(input.view);
+	if (!viewLayout.ring_detection && !viewLayout.pack_components) {
+		return repackDisconnectedContainers(layoutResult, input);
+	}
+	const graph = rootGraphOfInput(input);
+	const baseline = viewLayout.pack_components
+		? packRootComponents(layoutResult, graph)
+		: repackDisconnectedContainers(layoutResult, input);
+	const withRings = viewLayout.ring_detection ? applyRingLayout(layoutResult, graph, input) : null;
+	if (!withRings) return baseline;
+	// Ring placement leaves every component without a ring where ELK put it, so it is always
+	// packed, even in a view that does not otherwise pack.
+	const ringed = packRootComponents(withRings, graph);
+	// The ring layout is a refinement of ELK's, never a risk to it: a ringed layout with a
+	// position that is not a number, or far larger than ELK's, is dropped for ELK's.
+	const ringedBounds = rootBounds(graph.nodes, ringed.nodePositions, ringed.containerSizes);
+	const baselineBounds = rootBounds(graph.nodes, baseline.nodePositions, baseline.containerSizes);
+	if (
+		ringLayoutAcceptable(
+			ringedBounds,
+			baselineBounds,
+			Number(ROOT_LAYOUT_OPTIONS['elk.aspectRatio'])
+		)
+	) {
+		return ringed;
+	}
+	console.warn(
+		`[scanopy] ring layout dropped for the layered one: ${JSON.stringify(ringedBounds)} against ${JSON.stringify(baselineBounds)}`
+	);
+	return baseline;
+}
+
+/** Root containers, linked wherever a layout edge joins two of them (see `rootGraphOf`). */
+function rootGraphOfInput(input: ElkLayoutInput): RootGraph {
+	const nodes = input.nodes.map((node) => {
+		const record = node as Record<string, unknown>;
+		const parentId =
+			node.node_type === 'Container'
+				? (record.parent_container_id as string | undefined)
+				: (record.container_id as string | undefined);
+		return { id: node.id, isContainer: node.node_type === 'Container', parentId };
+	});
+	return rootGraphOf(
+		nodes,
+		input.edges.filter((edge) => affectsLayout(edge)),
+		input.parentIndex?.parentMap
+	);
+}
+
+/** Each node's parent container, from the whole view's index and the nodes laid out. */
+function parentsOf(input: ElkLayoutInput): Map<string, string> {
+	const parentOf = new Map<string, string>(input.parentIndex?.parentMap ?? []);
+	for (const node of input.nodes) {
+		const record = node as Record<string, unknown>;
+		const parentId =
+			node.node_type === 'Container'
+				? (record.parent_container_id as string | undefined)
+				: (record.container_id as string | undefined);
+		if (parentId) parentOf.set(node.id, parentId);
+	}
+	return parentOf;
+}
+
+/**
+ * Orders the linked elements inside each moved container toward what they link to.
+ *
+ * ELK ordered the ports in a container against its own layered layout. Once rings move the
+ * containers, a port can face away from its link: a ring switch's two trunk ports, each linked to
+ * a neighbour on the ring, cross when the neighbour above is linked from the lower port. Within
+ * each group of same-sized elements stacked in one line, the linked ones swap places so their order
+ * along the line matches the order of their far ends. Unlinked elements keep their places. Left
+ * alone when the view keeps a chosen element order.
+ */
+function orderElementsTowardLinks(
+	positions: Map<string, { x: number; y: number }>,
+	moved: ReadonlySet<string>,
+	result: ElkLayoutResult,
+	input: ElkLayoutInput
+): void {
+	if (input.preserveChildOrder) return;
+	const parentOf = parentsOf(input);
+	const rootOf = (id: string) => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+	const sizeOf = (id: string) => {
+		const element = input.elementNodeSizes?.get(id);
+		if (element) return { width: element.x, height: element.y };
+		return result.containerSizes.get(id) ?? { width: 0, height: 0 };
+	};
+	/** Centre of a node on the canvas, from its own and its ancestors' relative positions. */
+	const centreOf = (id: string): { x: number; y: number } | undefined => {
+		let x = 0;
+		let y = 0;
+		for (let current: string | undefined = id; current; current = parentOf.get(current)) {
+			const position = positions.get(current);
+			if (!position) return undefined;
+			x += position.x;
+			y += position.y;
+		}
+		const size = sizeOf(id);
+		return { x: x + size.width / 2, y: y + size.height / 2 };
+	};
+
+	// Where each element's links lead: the centres of their far ends, or of the far end's
+	// container where the far end is not drawn.
+	const farEnds = new Map<string, { x: number; y: number }[]>();
+	for (const edge of input.edges) {
+		if (!affectsLayout(edge)) continue;
+		for (const [near, far] of [
+			[edge.source, edge.target],
+			[edge.target, edge.source]
+		]) {
+			if (!moved.has(rootOf(near)) || !parentOf.has(near) || !positions.has(near)) continue;
+			const at = centreOf(far) ?? centreOf(rootOf(far));
+			if (!at) continue;
+			if (!farEnds.has(near)) farEnds.set(near, []);
+			farEnds.get(near)!.push(at);
+		}
+	}
+
+	// The linked elements of each parent, which share its layout.
+	const groups = new Map<string, string[]>();
+	for (const id of farEnds.keys()) {
+		const parent = parentOf.get(id)!;
+		if (!groups.has(parent)) groups.set(parent, []);
+		groups.get(parent)!.push(id);
+	}
+	for (const members of groups.values()) {
+		if (members.length < 2) continue;
+		const first = sizeOf(members[0]);
+		if (members.some((m) => sizeOf(m).width !== first.width || sizeOf(m).height !== first.height)) {
+			continue;
+		}
+		const slots = members.map((m) => positions.get(m)!);
+		const spread = (axis: 'x' | 'y') =>
+			Math.max(...slots.map((s) => s[axis])) - Math.min(...slots.map((s) => s[axis]));
+		const axis = spread('y') >= spread('x') ? 'y' : 'x';
+		const toward = (m: string) => {
+			const ends = farEnds.get(m)!;
+			return ends.reduce((sum, p) => sum + p[axis], 0) / ends.length;
+		};
+		const byFarEnd = [...members].sort((a, b) => toward(a) - toward(b));
+		const bySlot = [...slots].sort((a, b) => a[axis] - b[axis]);
+		byFarEnd.forEach((m, i) => positions.set(m, bySlot[i]));
+	}
+}
+
+/**
+ * Where a link from one root container to another leaves the first, relative to its centre: the
+ * centre of the port (or other element) the link starts from, inside that container as ELK laid it
+ * out. Undefined where the link starts on the container itself, as it does from a collapsed one.
+ */
+function linkAttachments(
+	result: ElkLayoutResult,
+	input: ElkLayoutInput
+): (from: string, to: string) => { x: number; y: number } | undefined {
+	const parentOf = parentsOf(input);
+	const rootOf = (id: string) => {
+		let current = id;
+		while (parentOf.has(current)) current = parentOf.get(current)!;
+		return current;
+	};
+
+	// The element each root's link to another root starts from: the first such link found.
+	const starts = new Map<string, string>();
+	const key = (from: string, to: string) => `${from}\u0000${to}`;
+	for (const edge of input.edges) {
+		if (!affectsLayout(edge)) continue;
+		const source = rootOf(edge.source);
+		const target = rootOf(edge.target);
+		if (source === target) continue;
+		if (!starts.has(key(source, target))) starts.set(key(source, target), edge.source);
+		if (!starts.has(key(target, source))) starts.set(key(target, source), edge.target);
+	}
+
+	return (from, to) => {
+		const element = starts.get(key(from, to));
+		const rootSize = result.containerSizes.get(from);
+		if (!element || element === from || !rootSize) return undefined;
+		// Positions are relative to the parent: add them up to the root.
+		let x = 0;
+		let y = 0;
+		for (let current = element; current !== from; current = parentOf.get(current)!) {
+			const position = result.nodePositions.get(current);
+			if (!position || !parentOf.has(current)) return undefined;
+			x += position.x;
+			y += position.y;
+		}
+		const size = input.elementNodeSizes?.get(element) ?? { x: 0, y: 0 };
+		return { x: x + size.x / 2 - rootSize.width / 2, y: y + size.y / 2 - rootSize.height / 2 };
+	};
+}
+
+/**
+ * Re-places the components holding a ring as ellipses (`ring-layout.ts`). Returns null when the
+ * root graph has no ring.
+ */
+function applyRingLayout(
+	result: ElkLayoutResult,
+	graph: RootGraph,
+	input: ElkLayoutInput
+): ElkLayoutResult | null {
+	const placed = placeRings(
+		graph,
+		detectRings(graph),
+		result.containerSizes,
+		linkAttachments(result, input)
+	);
+	if (!placed) return null;
+	const nodePositions = new Map(result.nodePositions);
+	for (const [id, position] of placed) nodePositions.set(id, position);
+	orderElementsTowardLinks(nodePositions, new Set(placed.keys()), result, input);
+	return { ...result, nodePositions };
+}
+
+/**
+ * Tiles the root graph's connected components to the root aspect ratio, each keeping its own
+ * layout. Unlinked hosts would otherwise stack into a few tall columns.
+ */
+function packRootComponents(result: ElkLayoutResult, graph: RootGraph): ElkLayoutResult {
+	const moved = packComponents(
+		graph,
+		result.nodePositions,
+		result.containerSizes,
+		Number(ROOT_LAYOUT_OPTIONS['elk.aspectRatio']),
+		75
+	);
+	const nodePositions = new Map(result.nodePositions);
+	for (const [id, position] of moved) nodePositions.set(id, position);
+	return { ...result, nodePositions };
 }

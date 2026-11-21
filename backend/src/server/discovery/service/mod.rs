@@ -12,6 +12,7 @@ use crate::server::daemons::r#impl::api::{
 use crate::server::daemons::service::DaemonService;
 use crate::server::digest::service::DiscoveryDigestService;
 use crate::server::discovery::r#impl::base::{Discovery, DiscoveryBase};
+use crate::server::discovery::r#impl::subnet_targets::DiscoverySubnet;
 use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
 use crate::server::discovery_warnings::service::DiscoveryWarningService;
 use crate::server::hosts::service::HostService;
@@ -52,6 +53,8 @@ use uuid::Uuid;
 pub struct DiscoveryService {
     self_ref: Weak<Self>,
     discovery_storage: Arc<GenericPostgresStorage<Discovery>>,
+    /// Each scan's target subnets. See [`DiscoverySubnet`].
+    subnet_target_storage: Arc<GenericPostgresStorage<DiscoverySubnet>>,
     sessions: RwLock<HashMap<Uuid, DiscoveryUpdatePayload>>, // session_id -> session state mapping
     daemon_sessions: RwLock<HashMap<Uuid, Vec<Uuid>>>,       // daemon_id -> session_id mapping
     discovery_sessions: RwLock<HashMap<Uuid, Uuid>>, // discovery_id -> session_id mapping (enforces one active session per discovery)
@@ -127,13 +130,16 @@ impl CrudService<Discovery> for DiscoveryService {
         Some(&self.entity_tag_service)
     }
 
-    // Every read attaches a historical run's warnings, which the run's own row does not hold.
+    // Every read attaches a historical run's warnings and a scan's subnet targets, which the
+    // row itself does not hold.
 
     async fn get_by_id(&self, id: &Uuid) -> Result<Option<Discovery>, anyhow::Error> {
         let Some(mut discovery) = self.discovery_storage.get_by_id(id).await? else {
             return Ok(None);
         };
         self.hydrate_tags(&mut discovery).await?;
+        self.attach_subnet_targets(std::slice::from_mut(&mut discovery))
+            .await?;
         self.attach_warnings(std::slice::from_mut(&mut discovery))
             .await?;
         Ok(Some(discovery))
@@ -146,6 +152,7 @@ impl CrudService<Discovery> for DiscoveryService {
         let mut all = self.discovery_storage.get_all(filter).await?;
         self.bulk_hydrate_tags(&mut all, None).await?;
         self.attach_warnings(&mut all).await?;
+        self.attach_subnet_targets(&mut all).await?;
         Ok(all)
     }
 
@@ -167,6 +174,7 @@ impl CrudService<Discovery> for DiscoveryService {
             .await?;
         self.bulk_hydrate_tags(&mut paginated.items, None).await?;
         self.attach_warnings(&mut paginated.items).await?;
+        self.attach_subnet_targets(&mut paginated.items).await?;
         Ok(paginated)
     }
 
@@ -177,6 +185,8 @@ impl CrudService<Discovery> for DiscoveryService {
         Ok(match self.discovery_storage.get_unique(filter).await? {
             Unique::One(mut discovery) => {
                 self.hydrate_tags(&mut discovery).await?;
+                self.attach_subnet_targets(std::slice::from_mut(&mut discovery))
+                    .await?;
                 self.attach_warnings(std::slice::from_mut(&mut discovery))
                     .await?;
                 Unique::One(discovery)
@@ -192,6 +202,7 @@ impl CrudService<Discovery> for DiscoveryService {
         mut reason: UpdateReason,
     ) -> Result<Discovery, anyhow::Error> {
         Self::validate_timezone(&entity.base.run_type)?;
+        Self::validate_schedule(&entity.base.run_type)?;
 
         let current = self
             .get_by_id(&entity.id)
@@ -254,6 +265,7 @@ impl CrudService<Discovery> for DiscoveryService {
             // For non-scheduled or no reschedule needed, just update
             self.discovery_storage.update(entity).await?
         };
+        self.save_subnet_targets(&updated).await?;
 
         // Update tags in junction table
         if let Some(entity_tag_service) = self.entity_tag_service()
@@ -287,5 +299,6 @@ mod lifecycle;
 mod scheduling;
 mod sessions;
 mod state;
+mod subnet_targets;
 mod warnings;
 pub use bulk::{StartRefusal, order_for_cancel, set_enabled_refusal, start_refusal};

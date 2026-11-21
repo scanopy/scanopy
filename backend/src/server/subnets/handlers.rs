@@ -1,8 +1,6 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::permissions::{Authorized, Can, IsDaemon, Or, Read, Write};
-use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::openapi::tags as api_tags;
-use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::list::list_page;
 use crate::server::shared::handlers::ordering::{OrderField, in_sql};
@@ -24,10 +22,9 @@ use crate::server::shared::types::metadata::HasId;
 use crate::server::shared::validation::{validate_read_access, validate_site_access};
 use crate::server::sites::r#impl::Site;
 use crate::server::{
-    config::AppState,
-    subnets::r#impl::base::{Subnet, SubnetCidr, SubnetName, SubnetTypeAttributed},
-    subnets::r#impl::nesting::SubnetResponse,
-    subnets::r#impl::types::SubnetType,
+    config::AppState, subnets::r#impl::base::Subnet,
+    subnets::r#impl::create_purpose::SubnetCreatePurpose, subnets::r#impl::nesting::SubnetResponse,
+    subnets::r#impl::types::SubnetType, subnets::service::CidrChangeRefusal,
 };
 use axum::extract::{Path, State};
 use axum::response::Json;
@@ -296,8 +293,7 @@ async fn get_subnet_by_id(
         organization_id,
     )?;
 
-    let response = service
-        .with_usage(vec![subnet], None)
+    let response = subnet_responses(&state, vec![subnet], None)
         .await?
         .pop()
         .ok_or_else(|| ApiError::entity_not_found::<Subnet>(id))?;
@@ -347,7 +343,7 @@ async fn get_all_subnets(
                 ApiError::internal_error(&e.to_string())
             })?;
             let total_count = result.len() as u64;
-            let result = service.with_usage(result, None).await?;
+            let result = subnet_responses(&state, result, None).await?;
             Ok(Json(PaginatedApiResponse::success(
                 result,
                 total_count,
@@ -369,11 +365,20 @@ async fn get_all_subnets(
     }
 }
 
+/// Why a person is creating a subnet, sent by the create flow.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct CreateSubnetQuery {
+    /// What the subnet is for. Sent with the `subnet_created` event; nothing stores it.
+    #[param(inline)]
+    pub purpose: Option<SubnetCreatePurpose>,
+}
+
 /// Create subnet
 #[utoipa::path(
     post,
     path = "",
     tag = Subnet::ENTITY_NAME_PLURAL,
+    params(CreateSubnetQuery),
     request_body = Subnet,
     responses(
         (status = 200, description = "Subnet created successfully", body = ApiResponse<Subnet>),
@@ -384,6 +389,7 @@ async fn get_all_subnets(
 async fn create_subnet(
     state: State<Arc<AppState>>,
     auth: Authorized<Or<Can<Subnet, Write>, IsDaemon>>,
+    Query(query): Query<CreateSubnetQuery>,
     ApiJson(mut request): ApiJson<Subnet>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {
     let site_ids = auth.site_ids();
@@ -457,10 +463,13 @@ async fn create_subnet(
             // `Discovery` for a row it typed.
             request.set_source(EntitySource::Manual);
             let service = Subnet::get_service(&state);
-            let created = service.create(request, entity).await.map_err(|e| {
-                tracing::error!(error = %e, "Failed to create subnet");
-                ApiError::internal_error(&e.to_string())
-            })?;
+            let created = service
+                .create_for(request, entity, query.purpose)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to create subnet");
+                    ApiError::internal_error(&e.to_string())
+                })?;
             Json(ApiResponse::success(created))
         }
     };
@@ -470,8 +479,11 @@ async fn create_subnet(
 
 /// Update subnet
 ///
-/// Updates subnet properties. If the CIDR is being changed, validates that
-/// all existing ip_addresses on this subnet have IPs within the new CIDR range.
+/// Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon
+/// interface, a container bridge, a device, or the Internet and Remote Network rows), on
+/// `0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be
+/// left in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one
+/// are merged into it, and addresses are re-filed in the most specific subnet that holds them.
 #[utoipa::path(
     put,
     path = "/{id}",
@@ -480,7 +492,7 @@ async fn create_subnet(
     request_body = Subnet,
     responses(
         (status = 200, description = "Subnet updated", body = ApiResponse<Subnet>),
-        (status = 400, description = "CIDR change would orphan existing ip_addresses", body = ApiErrorResponse),
+        (status = 400, description = "The CIDR can't be changed to the one requested", body = ApiErrorResponse),
         (status = 404, description = "Subnet not found", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
@@ -500,53 +512,67 @@ async fn update_subnet(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .ok_or_else(|| ApiError::entity_not_found::<Subnet>(id))?;
 
-    // A name or type a person changed is theirs, for the reason the range below is. One sent back
-    // unchanged keeps the stored source: saving a description is not renaming the subnet.
-    if current.base.name.value() != subnet.base.name.value() {
-        subnet.base.name =
-            SubnetName::new(subnet.base.name.value().clone(), AttributeSource::Manual);
-    }
-    if current.base.subnet_type.value() != subnet.base.subnet_type.value() {
-        subnet.base.subnet_type =
-            SubnetTypeAttributed::new(*subnet.base.subnet_type.value(), AttributeSource::Manual);
-    }
+    subnet.stamp_person_edit(&current);
 
     refuse_seeded_type(Some(current.base.subnet_type()), subnet.base.subnet_type())?;
 
-    if current.base.cidr != subnet.base.cidr {
-        // Moving the range through this endpoint is a person's assertion, so it settles the
-        // confidence ladder: `Confirmed` outranks anything a scan reads, which is what stops a
-        // corrected range being re-corrected on the next discovery. This lives here rather than in
-        // `preserve_immutable_fields` because here it is *true* — the route is `Authorized<Can<Subnet, Write>>`
-        // and no daemon can reach it — whereas storage sees every writer alike.
-        subnet.base.cidr =
-            SubnetCidr::new(subnet.base.cidr.value().clone(), AttributeSource::Manual);
-        // Confirming or correcting an assumed range is what confirms the subnet itself.
-        if current.base.source.confirmation().is_unconfirmed() {
-            subnet.base.source = EntitySource::Manual;
+    if current.base.cidr.value() != subnet.base.cidr.value() {
+        let interfaced = state
+            .services
+            .daemon_service
+            .interfacing_daemon_by_subnet(&[id])
+            .await?;
+        if current.cidr_lock(interfaced.get(&id).copied()).is_some() {
+            return Err(ApiError::subnet_cidr_locked());
         }
 
-        // CIDR is changing - validate that all existing ip_addresses are within the new CIDR
-        let filter = StorableFilter::<IPAddress>::new_from_subnet_id(&id);
-        let ip_addresses = state
+        let refusal = state
             .services
-            .ip_address_service
-            .get_all(filter)
-            .await
-            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-
-        for ip_address in &ip_addresses {
-            if !subnet.base.cidr.contains(&ip_address.base.ip_address) {
-                return Err(ApiError::ip_address_out_of_range(
-                    &ip_address.base.ip_address.to_string(),
-                    &subnet.base.cidr.to_string(),
-                ));
+            .subnet_service
+            .check_cidr_change(&current, *subnet.base.cidr)
+            .await?;
+        match refusal {
+            Ok(()) => {}
+            Err(CidrChangeRefusal::Organizational) => {
+                return Err(ApiError::subnet_cidr_organizational());
+            }
+            Err(CidrChangeRefusal::Duplicate(name)) => {
+                return Err(ApiError::subnet_cidr_duplicate(&name));
+            }
+            Err(CidrChangeRefusal::StrandsAddress(ip)) => {
+                return Err(ApiError::subnet_cidr_strands_address(&ip.to_string()));
             }
         }
     }
 
     // Delegate to generic handler
     update_handler::<Subnet>(State(state), auth, Path(id), ApiJson(subnet)).await
+}
+
+/// Each subnet's usage and nesting, and why its range can't be changed by hand. The lock needs
+/// the daemon side, which `SubnetService` can't read (the daemon service depends on it).
+pub(crate) async fn subnet_responses(
+    state: &AppState,
+    subnets: Vec<Subnet>,
+    at: Option<chrono::DateTime<chrono::Utc>>,
+) -> ApiResult<Vec<SubnetResponse>> {
+    let mut responses = state
+        .services
+        .subnet_service
+        .with_usage(subnets, at)
+        .await?;
+    let ids: Vec<Uuid> = responses.iter().map(|r| r.subnet.id).collect();
+    let interfaced = state
+        .services
+        .daemon_service
+        .interfacing_daemon_by_subnet(&ids)
+        .await?;
+    for response in &mut responses {
+        response.cidr_lock = response
+            .subnet
+            .cidr_lock(interfaced.get(&response.subnet.id).copied());
+    }
+    Ok(responses)
 }
 
 /// Refuses a person putting a range into a category every site is seeded with

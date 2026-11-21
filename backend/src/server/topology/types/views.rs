@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use crate::server::{
     hosts::r#impl::virtualization::HostVirtualizationState,
     interfaces::r#impl::base::{IfOperStatus, InterfaceLinkState},
+    organizations::r#impl::intent::SignupIntent,
     services::r#impl::categories::ServiceCategory,
     shared::types::guest_state::GuestState,
     shared::{
@@ -82,6 +83,19 @@ pub struct TopologyViewSupport {
     pub application: bool,
 }
 
+impl TopologyViewSupport {
+    /// A site with the data for every view.
+    pub const ALL: Self = Self {
+        l2_physical: true,
+        application: true,
+    };
+    /// A site with the data for no view that needs any.
+    pub const NONE: Self = Self {
+        l2_physical: false,
+        application: false,
+    };
+}
+
 impl TopologyView {
     /// Whether a topology with the given support flags has enough data to
     /// render this view. Exhaustive by design — adding a new `TopologyView`
@@ -94,6 +108,17 @@ impl TopologyView {
             Self::Workloads => true,
             Self::Application => support.application,
         }
+    }
+
+    /// The view the topology tab opens on for an org with these intents: the first view, in the
+    /// order the intents are declared, that one of them calls for and the site has the data
+    /// for. Otherwise the default view. Viewing any other view completes ExploreViews.
+    pub fn starting_for(intents: &[SignupIntent], support: &TopologyViewSupport) -> Self {
+        SignupIntent::iter()
+            .filter(|intent| intents.contains(intent))
+            .map(|intent| intent.topology_view())
+            .find(|view| *view != Self::default() && view.is_supported(support))
+            .unwrap_or_default()
     }
 }
 
@@ -797,6 +822,13 @@ pub struct ViewLayoutConfig {
     /// Whether the view switches to a force-directed overview when every root container is
     /// collapsed.
     pub force_overview: bool,
+    /// Whether root containers that form rings (closed loops of links) are placed as loops, with
+    /// everything else hanging off them. A graph with no ring is laid out as if this were off.
+    pub ring_detection: bool,
+    /// Whether the connected groups of root containers are tiled to the screen's aspect after layout,
+    /// each keeping its own layout, so root containers with no link fill the width instead of
+    /// stacking in columns.
+    pub pack_components: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1301,6 +1333,8 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: true,
                 force_overview: false,
+                ring_detection: true,
+                pack_components: true,
             },
             Self::L3Logical => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Default,
@@ -1311,6 +1345,8 @@ impl TopologyView {
                 repack_disconnected: true,
                 align_layers_top: false,
                 force_overview: true,
+                ring_detection: false,
+                pack_components: false,
             },
             Self::Workloads => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::Workloads,
@@ -1321,6 +1357,8 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: false,
                 force_overview: false,
+                ring_detection: false,
+                pack_components: false,
             },
             Self::Application => ViewLayoutConfig {
                 algorithm: ViewLayoutAlgorithm::RectPacking,
@@ -1331,6 +1369,8 @@ impl TopologyView {
                 repack_disconnected: false,
                 align_layers_top: false,
                 force_overview: true,
+                ring_detection: false,
+                pack_components: false,
             },
         }
     }
@@ -1343,6 +1383,55 @@ impl TopologyView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn every_support() -> Vec<TopologyViewSupport> {
+        [false, true]
+            .into_iter()
+            .flat_map(|l2_physical| {
+                [false, true]
+                    .into_iter()
+                    .map(move |application| TopologyViewSupport {
+                        l2_physical,
+                        application,
+                    })
+            })
+            .collect()
+    }
+
+    /// The tab never opens on a view the site has no data for, an org with no intents opens on
+    /// the default view, and an intent whose view the site can't draw yields to the next one.
+    #[test]
+    fn the_starting_view_is_supported_and_falls_through() {
+        let all: Vec<SignupIntent> = SignupIntent::iter().collect();
+        for support in every_support() {
+            assert_eq!(
+                TopologyView::starting_for(&[], &support),
+                TopologyView::default()
+            );
+            for a in &all {
+                for b in &all {
+                    let view = TopologyView::starting_for(&[*a, *b], &support);
+                    assert!(view.is_supported(&support), "{a:?}+{b:?} -> {view:?}");
+                    assert!(
+                        view == TopologyView::default()
+                            || view == a.topology_view()
+                            || view == b.topology_view(),
+                        "{a:?}+{b:?} -> {view:?}"
+                    );
+                }
+            }
+        }
+
+        let no_l2 = TopologyViewSupport {
+            l2_physical: false,
+            application: false,
+        };
+        let picked = [SignupIntent::Troubleshooting, SignupIntent::Workloads];
+        assert_eq!(
+            TopologyView::starting_for(&picked, &no_l2),
+            SignupIntent::Workloads.topology_view()
+        );
+    }
 
     /// Every section a view shows gets a heading that says what it holds, since the inspector
     /// draws the heading and description from this metadata rather than from each component.

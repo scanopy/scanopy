@@ -5,7 +5,7 @@ use crate::server::{
     },
     credentials::r#impl::types::serialize_secret_value,
     license::types::LicenseKeyType,
-    organizations::r#impl::base::UseCase,
+    organizations::r#impl::{base::UseCase, intent::SignupIntent},
     services::r#impl::definitions::ServiceDefinition,
     shared::api_key_common::ApiKeyType,
 };
@@ -153,6 +153,15 @@ pub enum AuthOperation {
         #[serde(default)]
         plan: Option<BillingPlan>,
         use_case: UseCase,
+        /// The text typed for "Something else" as the use case.
+        #[serde(default)]
+        use_case_other: Option<String>,
+        /// What the signup wants Scanopy to do. `None` when not asked, empty when skipped.
+        #[serde(default)]
+        intents: Option<Vec<SignupIntent>>,
+        /// The text typed for "Something else" as an intent.
+        #[serde(default)]
+        intent_other: Option<String>,
         /// The first site requested at signup. `None` for a self-hosted license buyer.
         #[serde(default)]
         site: Option<PendingSiteSetup>,
@@ -373,6 +382,8 @@ pub enum UpdateReason {
     IpAddressSubnetMerged,
     /// Its subnet was narrowed and no longer held it, so it moved to one that does.
     IpAddressSubnetNarrowed,
+    /// A subnet was moved over it that holds it more specifically than the one it was in.
+    IpAddressSubnetWidened,
     /// A member service changed or went, so the members were updated.
     DependencyMembersChanged,
     /// Discovery read the range again: last seen refreshed, type corrected, or an owner adopted.
@@ -505,6 +516,9 @@ impl UpdateReason {
             Self::IpAddressSubnetMerged => "its subnet was merged into another".to_string(),
             Self::IpAddressSubnetNarrowed => {
                 "its subnet was narrowed and no longer held it".to_string()
+            }
+            Self::IpAddressSubnetWidened => {
+                "a subnet that holds it more specifically was moved over it".to_string()
             }
             Self::DependencyMembersChanged => "a member service changed".to_string(),
             Self::SubnetRediscovered => "discovery read the range again".to_string(),

@@ -329,10 +329,10 @@ pub struct DaemonArgs {
     #[arg(long)]
     pub log_file: Option<String>,
 
-    /// Enable faster ARP scanning on Windows by using broadcast ARP via Npcap instead of native SendARP, which doesn't support broadcast. **Requires Npcap installation**. Ignored on Linux/macOS.
-    // Deprecated: scan settings are now per-discovery via ScanSettings, and not UI-exposed.
+    /// Has no effect. Npcap ARP is the scan's Use Npcap ARP (Windows) setting. Still parsed so
+    /// service command lines that pass it keep starting; the daemon logs a deprecation line.
     #[serde(skip)]
-    #[arg(long)]
+    #[arg(long, hide = true)]
     pub use_npcap_arp: Option<bool>,
 
     /// Number of ARP retry rounds for non-responding hosts (default: 2, meaning 3 total attempts)
@@ -355,7 +355,7 @@ pub struct DaemonArgs {
     #[arg(long)]
     pub port_scan_batch_size: Option<usize>,
 
-    /// Restrict daemon to specific network interface(s). Comma-separated for multiple (e.g., eth0,eth1). Leave empty for all interfaces
+    /// The daemon scans every network its host has an interface on. List interfaces to scan only those, for example eth0,eth1
     #[arg(long, value_delimiter = ',')]
     pub interfaces: Option<Vec<String>>,
 
@@ -643,7 +643,9 @@ pub struct AppConfig {
     /// PEM bundle of extra CA certificates to trust (`SCANOPY_TRUSTED_CA_BUNDLE`).
     #[serde(default)]
     pub trusted_ca_bundle: Option<PathBuf>,
-    #[serde(default)]
+    /// Read only to log that `--use-npcap-arp` / `SCANOPY_USE_NPCAP_ARP` has no effect, and never
+    /// written back to `config.json`.
+    #[serde(default, skip_serializing)]
     pub use_npcap_arp: bool,
     #[serde(default = "default_arp_retries")]
     pub arp_retries: u32,
@@ -1304,13 +1306,6 @@ impl ConfigStore {
     }
 
     /// Deprecated: scan settings are now per-discovery via ScanSettings.
-    /// Kept for backwards compatibility with old daemons.
-    pub async fn get_use_npcap_arp(&self) -> Result<bool> {
-        let config = self.config.read().await;
-        Ok(config.use_npcap_arp)
-    }
-
-    /// Deprecated: scan settings are now per-discovery via ScanSettings.
     pub async fn get_arp_retries(&self) -> Result<u32> {
         let config = self.config.read().await;
         Ok(config.arp_retries)
@@ -1661,7 +1656,7 @@ mod tests {
         help_text: String,
     }
 
-    const EXCLUDED_FIELDS: [&str; 20] = [
+    const EXCLUDED_FIELDS: [&str; 19] = [
         "daemon_api_key",
         "site_id",
         "server_url",
@@ -1687,7 +1682,6 @@ mod tests {
         // A path on the daemon host, set by the operator; the install command never carries it
         "trusted_ca_bundle",
         // Deprecated: scan settings are now per-discovery via ScanSettings
-        "use_npcap_arp",
         "arp_retries",
         "arp_rate_pps",
         "scan_rate_pps",
@@ -1808,7 +1802,11 @@ mod tests {
             .get_arguments()
             .filter(|a| {
                 let id = a.get_id().to_string();
-                id != "help" && id != "version" && !EXCLUDED_FIELDS.contains(&id.as_str())
+                // A hidden flag is parsed only for old command lines; the MSI never passes it.
+                !a.is_hide_set()
+                    && id != "help"
+                    && id != "version"
+                    && !EXCLUDED_FIELDS.contains(&id.as_str())
             })
             .filter_map(|a| a.get_long().map(|s| s.to_string()))
             .filter(|f| !MSI_EXCLUDED_FLAGS.contains(&f.as_str()))
@@ -1831,7 +1829,11 @@ mod tests {
         cmd.get_arguments()
             .filter(|a| {
                 let id = a.get_id().to_string();
-                id != "help" && id != "version" && !EXCLUDED_FIELDS.contains(&id.as_str())
+                // A hidden flag is parsed only for old command lines, so the UI documents none.
+                !a.is_hide_set()
+                    && id != "help"
+                    && id != "version"
+                    && !EXCLUDED_FIELDS.contains(&id.as_str())
             })
             .map(|a| {
                 let id = a.get_id().to_string();

@@ -288,7 +288,9 @@
         "element_order": "oper_status",
         "force_overview": false,
         "handle_strategy": "horizontal",
+        "pack_components": true,
         "repack_disconnected": false,
+        "ring_detection": true,
         "root_edges": true,
         "root_order": "input"
       },
@@ -768,7 +770,9 @@
         "element_order": "automatic",
         "force_overview": true,
         "handle_strategy": "optimal",
+        "pack_components": false,
         "repack_disconnected": true,
+        "ring_detection": false,
         "root_edges": true,
         "root_order": "input"
       },
@@ -1335,7 +1339,9 @@
         "element_order": "automatic",
         "force_overview": false,
         "handle_strategy": "optimal",
+        "pack_components": false,
         "repack_disconnected": false,
+        "ring_detection": false,
         "root_edges": true,
         "root_order": "workload_count"
       },
@@ -1777,7 +1783,9 @@
         "element_order": "automatic",
         "force_overview": true,
         "handle_strategy": "optimal",
+        "pack_components": false,
         "repack_disconnected": false,
+        "ring_detection": false,
         "root_edges": false,
         "root_order": "input"
       },

@@ -95,18 +95,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -119,18 +108,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("site_id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -151,18 +129,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("user_id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -367,16 +334,10 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
         let col = self.qualify_column("service_definition");
-        let placeholders: Vec<String> = definitions
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
         self.conditions
-            .push(format!("{} NOT IN ({})", col, placeholders.join(", ")));
-        for def in definitions {
-            self.values.push(SqlValue::String(def.clone()));
-        }
+            .push(format!("{} <> ALL(${})", col, self.values.len() + 1));
+        self.values
+            .push(SqlValue::StringArray(definitions.to_vec()));
         self
     }
 
@@ -395,18 +356,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("dependency_id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -427,18 +377,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("host_id");
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -591,16 +530,9 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
         let col = self.qualify_column("permissions");
-        let placeholders: Vec<String> = permissions
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-        for p in permissions {
-            self.values.push(SqlValue::UserOrgPermissions(*p));
-        }
+        // Stored as text, as `SqlValue::UserOrgPermissions` binds one.
+        let names = permissions.iter().map(|p| p.as_str().to_string()).collect();
+        self.push_any(&col, SqlValue::StringArray(names));
         self
     }
 
@@ -728,18 +660,8 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("source");
-        let placeholders: Vec<String> = sources
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{}->>'type' IN ({})", col, placeholders.join(", ")));
-
-        for source in sources {
-            self.values.push(SqlValue::String(source.id().to_string()));
-        }
+        let ids = sources.iter().map(|s| s.id().to_string()).collect();
+        self.push_any(&format!("{col}->>'type'"), SqlValue::StringArray(ids));
 
         self
     }
@@ -806,7 +728,7 @@ impl<T: Storable> StorableFilter<T> {
     }
 
     /// Generic UUID filter for any column name.
-    /// Used by generic child entity handlers to filter by parent_column dynamically.
+    /// Used by relation-keyed reads to filter by a relation's column.
     pub fn uuid_column(mut self, column: &str, id: &Uuid) -> Self {
         let col = self.qualify_column(column);
         self.conditions
@@ -816,7 +738,7 @@ impl<T: Storable> StorableFilter<T> {
     }
 
     /// Generic UUID IN filter for any column name.
-    /// Used by generic child entity services to filter by parent_column dynamically.
+    /// Used by relation-keyed reads to filter by a relation's column.
     pub fn uuids_column(mut self, column: &str, ids: &[Uuid]) -> Self {
         if ids.is_empty() {
             self.conditions.push("FALSE".to_string());
@@ -824,18 +746,7 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column(column);
-        let placeholders: Vec<String> = ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
-
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -905,7 +816,7 @@ impl<T: Storable> StorableFilter<T> {
     /// assignments don't count: an entity moved from one Status to another no longer matches
     /// the first.
     ///
-    /// Example SQL: `entities.id IN (SELECT entity_id FROM entity_tags WHERE entity_type = 'Service' AND tag_id IN ($1, $2))`
+    /// Example SQL: `entities.id IN (SELECT entity_id FROM entity_tags WHERE entity_type = 'Service' AND tag_id = ANY($2))`
     pub fn has_any_tags(mut self, tag_ids: &[Uuid], entity_type: EntityDiscriminants) -> Self {
         if tag_ids.is_empty() {
             return self;
@@ -913,24 +824,15 @@ impl<T: Storable> StorableFilter<T> {
 
         let col = self.qualify_column("id");
         let entity_type_idx = self.values.len() + 1;
-        let placeholders: Vec<String> = tag_ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 2))
-            .collect();
+        let tag_ids_idx = self.values.len() + 2;
 
         self.conditions.push(format!(
-            "{} IN (SELECT entity_id FROM entity_tags WHERE entity_type = ${} AND tag_id IN ({}) \
-             AND valid_to IS NULL AND snapshot_id IS NULL)",
-            col,
-            entity_type_idx,
-            placeholders.join(", ")
+            "{col} IN (SELECT entity_id FROM entity_tags WHERE entity_type = ${entity_type_idx} \
+             AND tag_id = ANY(${tag_ids_idx}) AND valid_to IS NULL AND snapshot_id IS NULL)"
         ));
 
         self.values.push(SqlValue::EntityDiscriminant(entity_type));
-        for id in tag_ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.values.push(SqlValue::UuidArray(tag_ids.to_vec()));
 
         self
     }
@@ -949,43 +851,33 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
 
-        let placeholders: Vec<String> = ports
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
         let col = self.qualify_column("id");
 
         self.conditions.push(format!(
             "{} IN (SELECT b.service_id FROM bindings b \
              JOIN ports p ON b.port_id = p.id \
              WHERE b.valid_to IS NULL AND p.valid_to IS NULL \
-             AND p.port_number IN ({}))",
+             AND p.port_number = ANY(${}))",
             col,
-            placeholders.join(", ")
+            self.values.len() + 1
         ));
-
-        for port in ports {
-            self.values.push(SqlValue::I32(i32::from(*port)));
-        }
+        self.values.push(SqlValue::I32Array(
+            ports.iter().map(|port| i32::from(*port)).collect(),
+        ));
 
         self
     }
 
-    /// Push an `IN (…)` condition over `column`, sized for `len` values.
-    ///
-    /// Call this *before* pushing the values themselves — the placeholder
-    /// numbers are derived from the current bind count.
+    /// Push `expr = ANY($n)`, binding `array` as one value. One bound array keeps the statement
+    /// text the same for every list length, so it prepares once per connection instead of once
+    /// per length.
     ///
     /// The empty case belongs to the caller: an inclusion filter wants `FALSE`
     /// (match nothing), an optional one wants no condition at all.
-    fn push_in_clause(&mut self, column: &str, len: usize) {
-        let col = self.qualify_column(column);
-        let placeholders: Vec<String> = (0..len)
-            .map(|i| format!("${}", self.values.len() + i + 1))
-            .collect();
+    pub(super) fn push_any(&mut self, expr: &str, array: SqlValue) {
         self.conditions
-            .push(format!("{} IN ({})", col, placeholders.join(", ")));
+            .push(format!("{} = ANY(${})", expr, self.values.len() + 1));
+        self.values.push(array);
     }
 
     /// Entities whose virtualization parent is one of `service_ids`, and — when
@@ -1010,22 +902,14 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
 
-        let placeholders: Vec<String> = service_ids
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-        let in_clause = format!("{} IN ({})", col, placeholders.join(", "));
+        let in_clause = format!("{} = ANY(${})", col, self.values.len() + 1);
 
         self.conditions.push(if include_null {
             format!("({} OR {} IS NULL)", in_clause, col)
         } else {
             in_clause
         });
-
-        for id in service_ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        self.values.push(SqlValue::UuidArray(service_ids.to_vec()));
 
         self
     }
@@ -1102,22 +986,14 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("id");
-        let placeholders: Vec<String> = names
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
 
         self.conditions.push(format!(
             "{} IN (SELECT s.host_id FROM services s \
-             WHERE s.valid_to IS NULL AND s.name IN ({}))",
+             WHERE s.valid_to IS NULL AND s.name = ANY(${}))",
             col,
-            placeholders.join(", ")
+            self.values.len() + 1
         ));
-
-        for name in names {
-            self.values.push(SqlValue::String(name.clone()));
-        }
+        self.values.push(SqlValue::StringArray(names.to_vec()));
 
         self
     }
@@ -1130,10 +1006,8 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
 
-        self.push_in_clause("service_definition", definitions.len());
-        for def in definitions {
-            self.values.push(SqlValue::String(def.clone()));
-        }
+        let col = self.qualify_column("service_definition");
+        self.push_any(&col, SqlValue::StringArray(definitions.to_vec()));
 
         self
     }
@@ -1145,10 +1019,8 @@ impl<T: Storable> StorableFilter<T> {
             return self;
         }
 
-        self.push_in_clause("daemon_id", ids.len());
-        for id in ids {
-            self.values.push(SqlValue::Uuid(*id));
-        }
+        let col = self.qualify_column("daemon_id");
+        self.push_any(&col, SqlValue::UuidArray(ids.to_vec()));
 
         self
     }
@@ -1165,18 +1037,10 @@ impl<T: Storable> StorableFilter<T> {
         }
 
         let col = self.qualify_column("discovery_type");
-        let placeholders: Vec<String> = types
-            .iter()
-            .enumerate()
-            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
-            .collect();
-
-        self.conditions
-            .push(format!("{}->>'type' IN ({})", col, placeholders.join(", ")));
-
-        for discovery_type in types {
-            self.values.push(SqlValue::String(discovery_type.clone()));
-        }
+        self.push_any(
+            &format!("{col}->>'type'"),
+            SqlValue::StringArray(types.to_vec()),
+        );
 
         self
     }

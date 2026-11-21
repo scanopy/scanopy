@@ -309,3 +309,24 @@ export function computeOptimalHandles(
 	}
 	return best;
 }
+
+/**
+ * Left-to-right handles for two ends that sit side by side, as in L2's columns: out of the right
+ * side of the left end, into the left side of the right one. Null when the ends share any
+ * horizontal span, such as cards stacked above one another on a ring: from the right side of one
+ * to the left of the other, the line loops back across both, so those take `computeOptimalHandles`.
+ */
+export function sideBySideHandles(
+	srcPos: { x: number; y: number },
+	srcSize: { w: number; h: number },
+	tgtPos: { x: number; y: number },
+	tgtSize: { w: number; h: number }
+): EdgeHandles | null {
+	const sideBySide = srcPos.x + srcSize.w <= tgtPos.x || tgtPos.x + tgtSize.w <= srcPos.x;
+	if (!sideBySide) return null;
+	const leftToRight = srcPos.x < tgtPos.x;
+	return {
+		sourceHandle: leftToRight ? 'Right' : 'Left',
+		targetHandle: leftToRight ? 'Left' : 'Right'
+	};
+}

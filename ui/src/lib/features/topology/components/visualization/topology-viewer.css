@@ -1,6 +1,8 @@
 /* SvelteFlow global overrides for the topology viewer */
 
 .svelte-flow__attribution {
+	/* The library's own rule reads this variable and can load after this file. */
+	--xy-attribution-background-color: transparent;
 	background: transparent;
 	color: var(--color-text-disabled);
 	font-size: 10px;

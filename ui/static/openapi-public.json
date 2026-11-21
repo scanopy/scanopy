@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.7\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.7\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.7)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.20.0\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.20.0\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.20.0)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -7015,7 +7015,7 @@
           "Hosts"
         ],
         "summary": "Merge hosts",
-        "description": "Merges all IP addresses, ports, and services from the host `other_id` into the host `id`,\nthen deletes `other_id`. Both hosts must be on the same site.\n\n### Merge Behavior\n\n- **Interfaces**: Transferred to destination. If an interface with matching subnet+IP or MAC\n  already exists on destination, bindings are remapped to use the existing interface.\n- **Ports**: Transferred to destination. If a port with the same number and protocol already\n  exists, bindings are remapped to use the existing port.\n- **Services**: Transferred to destination with deduplication.\n  See [upsert behavior](https://scanopy.net/docs/discovery/#upsert-behavior) for details.\n\n### Restrictions\n\n- Cannot merge a host with itself.\n- Cannot merge away a host that has a daemon - merge into it instead.",
+        "description": "Merges all IP addresses, ports, and services from the host `other_id` into the host `id`,\nthen deletes `other_id`. Both hosts must be on the same site.\n\n### Merge Behavior\n\n- **Interfaces**: Transferred to destination. If an interface with matching subnet+IP or MAC\n  already exists on destination, bindings are remapped to use the existing interface.\n- **Ports**: Transferred to destination. If a port with the same number and protocol already\n  exists, bindings are remapped to use the existing port.\n- **Services**: Transferred to destination with deduplication.\n  See [upsert behavior](https://scanopy.net/docs/using-scanopy/discovery/naming-and-deduplication/#upsert-behavior) for details.\n\n### Restrictions\n\n- Cannot merge a host with itself.\n- Cannot merge away a host that has a daemon - merge into it instead.",
         "operationId": "merge_hosts",
         "parameters": [
           {
@@ -12070,6 +12070,28 @@
         ],
         "summary": "Create subnet",
         "operationId": "create_subnet",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "description": "What the subnet is for. Sent with the `subnet_created` event; nothing stores it.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Scan",
+                    "Record"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12520,7 +12542,7 @@
           "Subnets"
         ],
         "summary": "Update subnet",
-        "description": "Updates subnet properties. If the CIDR is being changed, validates that\nall existing ip_addresses on this subnet have IPs within the new CIDR range.",
+        "description": "Updates subnet properties. A new CIDR is refused on a range read from the network (a daemon\ninterface, a container bridge, a device, or the Internet and Remote Network rows), on\n`0.0.0.0/0`, on a range another subnet on the site already has, and where an address would be\nleft in no subnet. Otherwise the old range is kept in history, assumed ranges inside the new one\nare merged into it, and addresses are re-filed in the most specific subnet that holds them.",
         "operationId": "update_subnet",
         "parameters": [
           {
@@ -12556,7 +12578,7 @@
             }
           },
           "400": {
-            "description": "CIDR change would orphan existing ip_addresses",
+            "description": "The CIDR can't be changed to the one requested",
             "content": {
               "application/json": {
                 "schema": {
@@ -15743,12 +15765,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.7"
+            "example": "0.20.0"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.19.7"
+          "server_version": "0.20.0"
         }
       },
       "ApiResponse": {
@@ -15880,19 +15902,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T19:50:38.784173Z",
+              "created_at": "2026-11-20T18:46:52.368084Z",
               "first_discovery_id": null,
-              "id": "d155ae83-e935-4211-887d-3094147c8fa9",
+              "id": "0f0429a2-bbb1-49af-9d62-b02ab6aa15f8",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T19:50:38.784173Z",
+              "last_seen_at": "2026-11-20T18:46:52.368084Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T19:50:38.784173Z",
-              "valid_from": "2026-11-09T19:50:38.784173Z",
+              "updated_at": "2026-11-20T18:46:52.368084Z",
+              "valid_from": "2026-11-20T18:46:52.368084Z",
               "valid_to": null
             }
           },
@@ -17625,7 +17647,7 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "IoT",
+              "device_type": "Server",
               "device_type_source": {
                 "service_id": "550e8400-e29b-41d4-a716-446655440007",
                 "service_name": "nginx",
@@ -17758,19 +17780,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T19:50:38.754645Z",
+                      "created_at": "2026-11-20T18:46:52.333439Z",
                       "first_discovery_id": null,
-                      "id": "f9f476e9-de55-4bec-baed-295e574441f9",
+                      "id": "be89fabb-5b3f-46a0-8527-f5544f55dc3d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T19:50:38.754645Z",
+                      "last_seen_at": "2026-11-20T18:46:52.333439Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T19:50:38.754645Z",
-                      "valid_from": "2026-11-09T19:50:38.754645Z",
+                      "updated_at": "2026-11-20T18:46:52.333439Z",
+                      "valid_from": "2026-11-20T18:46:52.333439Z",
                       "valid_to": null
                     }
                   ],
@@ -17783,7 +17805,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "IoT",
+                  "service_definition": "Skype For Business Server",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -18430,6 +18452,23 @@
             "type": "object",
             "description": "Response from onboarding state endpoint",
             "properties": {
+              "intent_other": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The text typed for \"Something else\" as an intent."
+              },
+              "intents": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/SignupIntent"
+                },
+                "description": "The intents saved so far. `None` until the intent step is answered."
+              },
               "org_name": {
                 "type": [
                   "string",
@@ -18473,6 +18512,13 @@
                     "type": "null"
                   }
                 ]
+              },
+              "use_case_other": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The text typed for \"Something else\" as the use case."
               }
             }
           },
@@ -18573,12 +18619,18 @@
               {
                 "type": "object",
                 "required": [
-                  "daemon_connected"
+                  "daemon_connected",
+                  "plan_recommendation"
                 ],
                 "properties": {
                   "daemon_connected": {
                     "type": "boolean",
                     "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                    "readOnly": true
+                  },
+                  "plan_recommendation": {
+                    "$ref": "#/components/schemas/PlanRecommendations",
+                    "description": "The plan the signup's intents call for on each hosting tab of the plan picker, with why.",
                     "readOnly": true
                   }
                 }
@@ -19285,19 +19337,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T19:50:38.779232Z",
+                  "created_at": "2026-11-20T18:46:52.362659Z",
                   "first_discovery_id": null,
-                  "id": "28f62001-585a-4b60-84be-411c1230d1ac",
+                  "id": "7972a1dc-941e-442f-a380-a90205706ffe",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T19:50:38.779232Z",
+                  "last_seen_at": "2026-11-20T18:46:52.362659Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T19:50:38.779232Z",
-                  "valid_from": "2026-11-09T19:50:38.779232Z",
+                  "updated_at": "2026-11-20T18:46:52.362659Z",
+                  "valid_from": "2026-11-20T18:46:52.362659Z",
                   "valid_to": null
                 }
               ],
@@ -19310,7 +19362,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Skype For Business Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -19897,9 +19949,32 @@
                   "usable_addresses",
                   "nesting_depth",
                   "nesting_root_id",
-                  "range_evidence"
+                  "range_evidence",
+                  "cidr_lock",
+                  "discovered_vlan_ids"
                 ],
                 "properties": {
+                  "cidr_lock": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/CidrLock",
+                        "description": "Why this range can't be changed by hand, or `null` when it can."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "discovered_vlan_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "readOnly": true
+                    },
+                    "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                  },
                   "nesting_depth": {
                     "type": "integer",
                     "format": "int32",
@@ -23165,19 +23240,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T19:50:38.755319Z",
+          "created_at": "2026-11-20T18:46:52.334181Z",
           "first_discovery_id": null,
-          "id": "8401d2cc-8ab3-41b1-999c-05d042254fb2",
+          "id": "d6b95601-2bf8-4f97-8aee-1fbc53d675f0",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T19:50:38.755319Z",
+          "last_seen_at": "2026-11-20T18:46:52.334181Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T19:50:38.755319Z",
-          "valid_from": "2026-11-09T19:50:38.755319Z",
+          "updated_at": "2026-11-20T18:46:52.334181Z",
+          "valid_from": "2026-11-20T18:46:52.334181Z",
           "valid_to": null
         }
       },
@@ -23616,6 +23691,87 @@
             "description": "Whether the address has no account yet, and so can be registered."
           }
         }
+      },
+      "CidrLock": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Organizational",
+            "description": "The Internet or Remote Network row, which holds every address of its kind.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Organizational"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ContainerBridge",
+            "description": "A container runtime's bridge network, reported by the runtime on its host.",
+            "required": [
+              "service_id",
+              "type"
+            ],
+            "properties": {
+              "service_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The runtime service that owns the bridge."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ContainerBridge"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonInterface",
+            "description": "A network a daemon's host has an interface on. The daemon reports its range.",
+            "required": [
+              "daemon_id",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that reports it."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DaemonInterface"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Discovered",
+            "description": "A range discovery read from the network, such as a device's address table.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Discovered"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Why a subnet's range can't be changed by hand. `None` on a subnet means it can."
       },
       "ClaimSource": {
         "type": "string",
@@ -24090,7 +24246,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Skype For Business Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25574,6 +25730,7 @@
         "enum": [
           "unsupported",
           "unreachable",
+          "not_checking_in",
           "standby",
           "awaiting_connection",
           "deprecated",
@@ -25844,7 +26001,7 @@
             "items": {
               "$ref": "#/components/schemas/Subnet"
             },
-            "description": "The subnets the daemon's host is attached to, as its last session classified them. The\nserver resolves these via SubnetService::create (create-or-match by CIDR) and replaces\nthe daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends\nthem once after each session; older daemons send them on every report."
+            "description": "The subnets the daemon's host is attached to, as its last session classified them. The\nserver resolves these via SubnetService::resolve_reported (match by CIDR, create the new\nones) and replaces the daemon's interfaced subnets with them when the set differs. Absent:\nleave them as they are. A daemon sends them once after each session; older daemons send\nthem on every report."
           },
           "interfaces_fingerprint": {
             "type": [
@@ -26362,7 +26519,8 @@
         "enum": [
           "DockerDesktop",
           "OrbStack",
-          "Colima"
+          "Colima",
+          "Wsl"
         ]
       },
       "DeviceType": {
@@ -29830,6 +29988,14 @@
           }
         ]
       },
+      "EdgeColoring": {
+        "type": "string",
+        "description": "What sets the color of the links in a view.",
+        "enum": [
+          "Type",
+          "Speed"
+        ]
+      },
       "EdgeDefaultVisibility": {
         "type": "string",
         "description": "Whether an edge is visible by default or hidden behind a toggle",
@@ -30763,6 +30929,43 @@
           "vsdx_export": {
             "type": "boolean",
             "description": "Viewer may export the diagram as an editable Visio (VSDX) file."
+          }
+        }
+      },
+      "FailedScan": {
+        "type": "object",
+        "description": "A scan on a [`SetupItem::FailedScans`] row, and the run of it that didn't finish.",
+        "required": [
+          "scan_id",
+          "name",
+          "run_id",
+          "next_run_full"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The error the run ended with, if it has one."
+          },
+          "name": {
+            "type": "string",
+            "description": "The scan's name."
+          },
+          "next_run_full": {
+            "type": "boolean",
+            "description": "The scan's next run is a full scan again, because the full scan that didn't finish\ndoesn't count."
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The scan's latest run, which didn't finish."
+          },
+          "scan_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The scan."
           }
         }
       },
@@ -32739,7 +32942,7 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "IoT",
+          "device_type": "Server",
           "device_type_source": {
             "service_id": "550e8400-e29b-41d4-a716-446655440007",
             "service_name": "nginx",
@@ -32872,19 +33075,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T19:50:38.753851Z",
+                  "created_at": "2026-11-20T18:46:52.332617Z",
                   "first_discovery_id": null,
-                  "id": "006b9f7e-3fdf-4f65-91cf-617187ccd8d7",
+                  "id": "c29ca9eb-0dfd-4225-a6e5-8f1a66133fd8",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T19:50:38.753851Z",
+                  "last_seen_at": "2026-11-20T18:46:52.332617Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T19:50:38.753851Z",
-                  "valid_from": "2026-11-09T19:50:38.753851Z",
+                  "updated_at": "2026-11-20T18:46:52.332617Z",
+                  "valid_from": "2026-11-20T18:46:52.332617Z",
                   "valid_to": null
                 }
               ],
@@ -32897,7 +33100,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Skype For Business Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36103,6 +36306,23 @@
         "type": "object",
         "description": "Response from onboarding state endpoint",
         "properties": {
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as an intent."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "The intents saved so far. `None` until the intent step is answered."
+          },
           "org_name": {
             "type": [
               "string",
@@ -36146,6 +36366,13 @@
                 "type": "null"
               }
             ]
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as the use case."
           }
         }
       },
@@ -36156,6 +36383,23 @@
           "step"
         ],
         "properties": {
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as an intent: 3 to 200 characters once trimmed."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "What the signup wants Scanopy to do. An empty list records a skip."
+          },
           "step": {
             "type": "string",
             "description": "Identifier of the onboarding step the user has reached."
@@ -36170,6 +36414,13 @@
                 "type": "null"
               }
             ]
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text typed for \"Something else\" as the use case: 3 to 200 characters once trimmed."
           }
         }
       },
@@ -36261,6 +36512,23 @@
             "type": "boolean",
             "description": "Whether a payment method is on file.",
             "readOnly": true
+          },
+          "intent_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the signup typed for \"Something else\" as an intent."
+          },
+          "intents": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SignupIntent"
+            },
+            "description": "What the signup wants Scanopy to do. `None` when never asked (orgs created before the\nquestion, invites); empty when the signup skipped it."
           },
           "last_discount_at": {
             "type": [
@@ -36374,6 +36642,13 @@
           "use_case": {
             "$ref": "#/components/schemas/UseCase",
             "description": "Use case selection (homelab, company, msp, other)"
+          },
+          "use_case_other": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the signup typed for \"Something else\" as the use case. `None` for any other use\ncase, and for orgs created before it was asked."
           }
         }
       },
@@ -36385,12 +36660,18 @@
           {
             "type": "object",
             "required": [
-              "daemon_connected"
+              "daemon_connected",
+              "plan_recommendation"
             ],
             "properties": {
               "daemon_connected": {
                 "type": "boolean",
                 "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                "readOnly": true
+              },
+              "plan_recommendation": {
+                "$ref": "#/components/schemas/PlanRecommendations",
+                "description": "The plan the signup's intents call for on each hosting tab of the plan picker, with why.",
                 "readOnly": true
               }
             }
@@ -36428,7 +36709,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.7"
+            "example": "0.20.0"
           }
         },
         "example": {
@@ -36439,7 +36720,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.19.7"
+          "server_version": "0.20.0"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -37258,7 +37539,7 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "IoT",
+                "device_type": "Server",
                 "device_type_source": {
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "service_name": "nginx",
@@ -37391,19 +37672,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T19:50:38.739217Z",
+                        "created_at": "2026-11-20T18:46:52.316173Z",
                         "first_discovery_id": null,
-                        "id": "3cd08782-d2b1-4352-8d15-390b38146d8a",
+                        "id": "4d80be3c-f83a-4a6f-9e82-4c3dfff87c22",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T19:50:38.739217Z",
+                        "last_seen_at": "2026-11-20T18:46:52.316173Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T19:50:38.739217Z",
-                        "valid_from": "2026-11-09T19:50:38.739217Z",
+                        "updated_at": "2026-11-20T18:46:52.316173Z",
+                        "valid_from": "2026-11-20T18:46:52.316173Z",
                         "valid_to": null
                       }
                     ],
@@ -37416,7 +37697,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "IoT",
+                    "service_definition": "Skype For Business Server",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -37663,19 +37944,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T19:50:38.778479Z",
+                    "created_at": "2026-11-20T18:46:52.361882Z",
                     "first_discovery_id": null,
-                    "id": "b3df9c01-0fc8-4bf1-ac4d-c495f995c26c",
+                    "id": "ea0ad5e1-bf9d-45b7-a5e7-567ced9baf8d",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T19:50:38.778479Z",
+                    "last_seen_at": "2026-11-20T18:46:52.361882Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T19:50:38.778479Z",
-                    "valid_from": "2026-11-09T19:50:38.778479Z",
+                    "updated_at": "2026-11-20T18:46:52.361882Z",
+                    "valid_from": "2026-11-20T18:46:52.361882Z",
                     "valid_to": null
                   }
                 ],
@@ -37688,7 +37969,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "IoT",
+                "service_definition": "Skype For Business Server",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -37745,7 +38026,7 @@
               "properties": {
                 "alerts_when_stuck": {
                   "type": "boolean",
-                  "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+                  "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
                 },
                 "item": {
                   "$ref": "#/components/schemas/SetupItem"
@@ -37813,9 +38094,32 @@
                     "usable_addresses",
                     "nesting_depth",
                     "nesting_root_id",
-                    "range_evidence"
+                    "range_evidence",
+                    "cidr_lock",
+                    "discovered_vlan_ids"
                   ],
                   "properties": {
+                    "cidr_lock": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/CidrLock",
+                          "description": "Why this range can't be changed by hand, or `null` when it can."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "readOnly": true
+                    },
+                    "discovered_vlan_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                      },
+                      "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+                    },
                     "nesting_depth": {
                       "type": "integer",
                       "format": "int32",
@@ -38515,6 +38819,52 @@
             "format": "int32",
             "description": "Length of the free trial, in days. Zero when the plan has no trial.",
             "minimum": 0
+          }
+        }
+      },
+      "PlanRecommendation": {
+        "type": "object",
+        "required": [
+          "plan",
+          "reasons"
+        ],
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "The recommended plan's type, as in `BillingPlan.type`."
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationReason"
+            },
+            "description": "The intents that call for this plan rather than the one below it."
+          }
+        }
+      },
+      "PlanRecommendations": {
+        "type": "object",
+        "description": "The recommendation on each hosting tab of the plan picker.",
+        "properties": {
+          "cloud": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "self_hosted": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlanRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -39411,6 +39761,26 @@
           }
         }
       },
+      "RecommendationReason": {
+        "type": "object",
+        "description": "One picked intent the recommended plan serves, and the features it needs that the plan below\nlacks. On the lowest plan, every feature the intent needs.",
+        "required": [
+          "intent",
+          "features"
+        ],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Feature ids, as in `features.json`."
+          },
+          "intent": {
+            "$ref": "#/components/schemas/SignupIntent"
+          }
+        }
+      },
       "RecordSetupRequest": {
         "type": "object",
         "description": "The Setup item a client finished.",
@@ -39790,6 +40160,17 @@
             "description": "Discount applied by the retention offer."
           }
         }
+      },
+      "ScanFailureFix": {
+        "type": "string",
+        "description": "What the Issues row for a scan that didn't finish offers, by why it ended.",
+        "enum": [
+          "RetryScan",
+          "OpenRun",
+          "TroubleshootConnection",
+          "RescheduleScan",
+          "RaiseMaxDuration"
+        ]
       },
       "ScanSettings": {
         "type": "object",
@@ -40458,19 +40839,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T19:50:38.755095Z",
+              "created_at": "2026-11-20T18:46:52.333937Z",
               "first_discovery_id": null,
-              "id": "5391a8ca-04bd-4423-bc37-d6cf9dd083b3",
+              "id": "ce6de41f-9f7c-495d-b91b-8477353ef291",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T19:50:38.755095Z",
+              "last_seen_at": "2026-11-20T18:46:52.333937Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T19:50:38.755095Z",
-              "valid_from": "2026-11-09T19:50:38.755095Z",
+              "updated_at": "2026-11-20T18:46:52.333937Z",
+              "valid_from": "2026-11-20T18:46:52.333937Z",
               "valid_to": null
             }
           ],
@@ -40483,7 +40864,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "IoT",
+          "service_definition": "Skype For Business Server",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -40986,6 +41367,52 @@
           },
           {
             "type": "object",
+            "title": "FailedScans",
+            "description": "A daemon's scans whose latest run ended the same way short of finishing.",
+            "required": [
+              "daemon_id",
+              "daemon_name",
+              "site_id",
+              "reason",
+              "scans",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that ran the scans."
+              },
+              "daemon_name": {
+                "type": "string",
+                "description": "The daemon's name."
+              },
+              "reason": {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                "description": "Why the runs ended."
+              },
+              "scans": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FailedScan"
+                },
+                "description": "The scans, newest run first."
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the daemon scans."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "FailedScans"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "UnconfirmedHosts",
             "description": "Hosts known only from other devices' reports, which the user may review.",
             "required": [
@@ -41301,6 +41728,7 @@
           "TargetlessCredential",
           "SiteWithoutDaemon",
           "RunWarnings",
+          "FailedScans",
           "UnconfirmedHosts",
           "UnconfirmedSubnets",
           "InstallDaemon",
@@ -41393,6 +41821,32 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "FailedScans",
+            "description": "A daemon's scans whose latest runs ended the same way short of finishing.",
+            "required": [
+              "daemon_id",
+              "reason",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that ran the scans."
+              },
+              "reason": {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "FailedScans"
+                ]
+              }
+            }
           }
         ],
         "description": "One item's identity across sweeps and page loads."
@@ -41428,7 +41882,7 @@
         "properties": {
           "alerts_when_stuck": {
             "type": "boolean",
-            "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+            "description": "Whether the Setup sweep reports the item opening and clearing, and on a trial, staying open\na day: an Issue, or a first step still Open."
           },
           "item": {
             "$ref": "#/components/schemas/SetupItem"
@@ -41636,6 +42090,17 @@
           "show_minimap"
         ],
         "properties": {
+          "edge_coloring": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdgeColoring",
+                "description": "What colours the links in views that offer more than one colouring. `None` colours them by\ntype."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "show_export_button": {
             "type": "boolean",
             "description": "Viewer sees the export button."
@@ -41700,6 +42165,19 @@
             "description": "The shared topology record."
           }
         }
+      },
+      "SignupIntent": {
+        "type": "string",
+        "enum": [
+          "current_diagram",
+          "troubleshooting",
+          "workloads",
+          "application_dependencies",
+          "client_documentation",
+          "inventory",
+          "audit_evidence",
+          "other"
+        ]
       },
       "Site": {
         "allOf": [
@@ -42516,10 +42994,9 @@
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "format": "uuid",
-                  "readOnly": true
+                  "format": "uuid"
                 },
-                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Hydrated by `SubnetService` on read; it is not a column on `subnets`,\nso anything sent here on create/update is ignored by `to_params`."
+                "description": "VLANs associated with this subnet, through the `subnet_vlans` junction (the reverse of\n`Vlan::subnet_ids`). Reads every link. On create and update it sets the links a person made;\nthe ones discovery found stay whatever is sent, since the next scan would restore them. Not a\ncolumn on `subnets`: `SubnetService` writes the junction."
               }
             }
           }
@@ -42587,9 +43064,32 @@
               "usable_addresses",
               "nesting_depth",
               "nesting_root_id",
-              "range_evidence"
+              "range_evidence",
+              "cidr_lock",
+              "discovered_vlan_ids"
             ],
             "properties": {
+              "cidr_lock": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CidrLock",
+                    "description": "Why this range can't be changed by hand, or `null` when it can."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "readOnly": true
+              },
+              "discovered_vlan_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "readOnly": true
+                },
+                "description": "The VLANs in `vlan_ids` that discovery linked. A scan would restore one a person removed, so\nonly the rest are a person's to change."
+              },
               "nesting_depth": {
                 "type": "integer",
                 "format": "int32",
@@ -43097,6 +43597,11 @@
             "type": "string",
             "format": "uuid",
             "description": "The site this entity belongs to."
+          },
+          "starting_view": {
+            "$ref": "#/components/schemas/TopologyView",
+            "description": "The view the topology tab opens on: the one the organization's intents call for, when\nthe site has the data for it (`TopologyView::starting_for`). Worked out on each list\nread, never stored.",
+            "readOnly": true
           }
         }
       },
@@ -43491,6 +43996,24 @@
             "description": "Collapse parallel edges between the same pair of nodes into one.",
             "default": true
           },
+          "edge_coloring": {
+            "type": "object",
+            "description": "What colours the links, per view. A view with no entry, or with a colouring it does not\noffer, colours links by type. Unknown views and colourings are dropped on read.",
+            "default": {},
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EdgeColoring"
+            },
+            "propertyNames": {
+              "type": "string",
+              "description": "Which topology view is being rendered",
+              "enum": [
+                "L2Physical",
+                "L3Logical",
+                "Workloads",
+                "Application"
+              ]
+            }
+          },
           "hide_edge_types": {
             "type": "object",
             "description": "Edge types to leave out of the drawing, per view. A view with no entry hides the edge\ntypes that view hides by default. Unknown edge types and views are dropped on read rather\nthan failing the topology.",
@@ -43533,6 +44056,11 @@
             "type": "boolean",
             "description": "Keep unrelated edges at full opacity when something is selected.",
             "default": false
+          },
+          "show_container_names": {
+            "type": "boolean",
+            "description": "Name containers on the zoomed-out map. Search matches are named either way.",
+            "default": true
           },
           "show_minimap": {
             "type": "boolean",
@@ -43585,7 +44113,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "34d2728f-5598-44de-8157-c4188f4ed36a",
+                  "id": "1fb00bc5-8b12-4bfb-a0ba-691bec442faf",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -43595,23 +44123,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f597a728-3b9a-4ab9-923b-e9733c3b6696",
+                  "id": "a3c7b48b-a8eb-4ae1-9059-d7f76e382859",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c6c0dc04-da90-44ee-8759-d81b67a27abb",
+                  "id": "308da243-bea8-4e22-a550-efc1bb40abb1",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e26c7419-e569-429a-a305-cd564a347e95",
+                  "id": "ddd06135-d0e9-4cd1-a8f9-ac412c03cad1",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f597a728-3b9a-4ab9-923b-e9733c3b6696",
+                  "id": "a3c7b48b-a8eb-4ae1-9059-d7f76e382859",
                   "rule": "ByHost"
                 }
               ]
@@ -43641,19 +44169,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "32b9e258-ddbe-42d3-9358-3e1d927401eb",
+                "id": "4bf064f5-31fe-4245-b34f-e2250a871484",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "136f6575-fba3-471b-89b0-9e9c6ec1c532",
+                "id": "e20a0712-9f34-4915-8c37-32d60714fb4c",
                 "rule": "ByVLAN"
               },
               {
-                "id": "39822302-ee32-4601-ac74-ddde8fc6ac1c",
+                "id": "cd8c98cf-2cd9-435f-9de4-0c2233595e9c",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a5e2b859-7b78-4633-bfdb-24fcd8fb973a",
+                "id": "9a8526c7-bdd1-443d-afb9-39976c935d75",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -43674,7 +44202,7 @@
                 }
               },
               {
-                "id": "b0438caa-ad3d-4c69-b7a7-cc25304285d4",
+                "id": "88477c73-6fc9-495d-bb9e-c16d50577d48",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -43683,19 +44211,19 @@
                 }
               },
               {
-                "id": "7d9d5c79-c1b1-4bb3-853b-65f1955befee",
+                "id": "e0ebdb41-f6f0-4dfe-858f-744270aab44e",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "8ceb6802-d256-4ee7-a73c-60e14443e054",
+                "id": "94595885-b607-4fa6-98bd-863876090626",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "fdeb7d2b-0b2f-427d-83ce-178f71a45841",
+                "id": "5a49aae3-40b4-4432-8f83-a52953520259",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "eec048f7-6d40-4b8b-90ae-a5faee02b5c2",
+                "id": "cffeb60a-1178-4a8d-990d-b89b398450b2",
                 "rule": "ByStack"
               }
             ]
@@ -44025,7 +44553,8 @@
           "if_descr",
           "identifier",
           "sys_name",
-          "address"
+          "address",
+          "candidate_host_ids"
         ],
         "properties": {
           "address": {
@@ -44034,6 +44563,14 @@
               "null"
             ],
             "description": "The address the far end published for itself — `lldpRemManAddr`, a `NetworkAddress` port\nid, or `cdpCacheAddress` — where it sent a usable one.\n\nCarried because it is the difference between two reports that otherwise read identically:\n\"the far end told us where it lives and this site holds no such address\" is a device\nnobody has scanned, while \"it told us nothing\" is a device that cannot be placed no matter\nhow much of the network is scanned. Without it, deciding which of the two a fleet is\nlooking at costs another round trip to the operator (GH #668)."
+          },
+          "candidate_host_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The hosts on this site the identifier matched, for an ambiguous one: the records a person\nmerges when they are one device. Empty for a neighbour that matched nothing, and on warnings\nstored before it was carried. Comes from the server's site-scoped lookups, never from a\ndaemon's report."
           },
           "host_id": {
             "type": [
@@ -44455,10 +44992,11 @@
       },
       "UseCase": {
         "type": "string",
+        "description": "Declaration order is the order the signup step lists the options in.",
         "enum": [
-          "homelab",
           "internal_it",
           "msp",
+          "homelab",
           "other"
         ]
       },
@@ -45027,7 +45565,9 @@
           "root_edges",
           "repack_disconnected",
           "align_layers_top",
-          "force_overview"
+          "force_overview",
+          "ring_detection",
+          "pack_components"
         ],
         "properties": {
           "algorithm": {
@@ -45047,9 +45587,17 @@
           "handle_strategy": {
             "$ref": "#/components/schemas/ViewHandleStrategy"
           },
+          "pack_components": {
+            "type": "boolean",
+            "description": "Whether the connected groups of root containers are tiled to the screen's aspect after layout,\neach keeping its own layout, so root containers with no link fill the width instead of\nstacking in columns."
+          },
           "repack_disconnected": {
             "type": "boolean",
             "description": "Whether root containers with no cross-container edges are moved beside the connected\nones after layout."
+          },
+          "ring_detection": {
+            "type": "boolean",
+            "description": "Whether root containers that form rings (closed loops of links) are placed as loops, with\neverything else hanging off them. A graph with no ring is laid out as if this were off."
           },
           "root_edges": {
             "type": "boolean",

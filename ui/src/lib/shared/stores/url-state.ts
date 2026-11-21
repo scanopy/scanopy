@@ -29,8 +29,8 @@ interface ScopeRule {
 }
 
 export const URL_SCOPES: Record<UrlScope, ScopeRule> = {
-	// `integration`, `hosts` and `sites` are the modal's prefill params (`PREFILL_PARAMS`).
-	modal: { keys: ['modal', 'id', 'tab', 'subEntityId', 'integration', 'hosts', 'sites'] },
+	// `integration`, `hosts`, `sites` and `cidr` are the modal's prefill params (`PREFILL_PARAMS`).
+	modal: { keys: ['modal', 'id', 'tab', 'subEntityId', 'integration', 'hosts', 'sites', 'cidr'] },
 	topology: { keys: ['topologyId', 'view'], tab: 'topology' },
 	// The palette's params are the search endpoint's, and a list may use the same names
 	// (`tag_ids`), so the list steps out while the palette is open and comes back on close. `q` is
@@ -166,7 +166,9 @@ function flush() {
 	flushQueued = false;
 	if (!attached) return;
 
-	applyPendingOpen(pendingTab ?? tabOf(new URL(window.location.href)));
+	// Only once the main page has switched tabs: a sync before then (a modal closing as the link
+	// opens) still has the old tab's list on screen, and it would take the link.
+	if (pendingTab !== null) applyPendingOpen(pendingTab);
 	const url = buildUrl(new URL(window.location.href), owners, pendingTab, handedOut);
 	const push = pendingPush;
 	pendingTab = null;
@@ -222,6 +224,11 @@ export function openTab(tab: string, params: URLSearchParams): void {
 	for (const [key, value] of params) {
 		initialParams.append(key, value);
 		handedOut.delete(key);
+	}
+	// Already on the tab: the main page hears no hash change, so hand the view over now.
+	if (tabOf(new URL(window.location.href)) === tab) {
+		setActiveTab(tab);
+		return;
 	}
 	// Moving the hash adds the history entry; the flush that follows writes the params into it.
 	window.location.hash = tab;

@@ -1025,11 +1025,11 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 }
 
 /**
- * The docs page for the setting a code's sentence names, or `null` for a code that names none.
- * The backend publishes the path with the code.
+ * The one docs page for a code, or `null` for a code with none. The backend publishes the path
+ * with the code.
  */
-export function settingsDocsUrlOf(code: DiscoveryWarningCode): string | null {
-	const path = warningCodes.find((c) => c.id === code)?.metadata?.settings_docs_path;
+export function docsUrlOf(code: DiscoveryWarningCode): string | null {
+	const path = warningCodes.find((c) => c.id === code)?.metadata?.docs_path;
 	return path ? docsUrl(path) : null;
 }
 
@@ -1071,10 +1071,18 @@ export function credentialIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[]
 	return [...new Set(entry.warnings.flatMap(credentialIdOf))];
 }
 
-/** Every host the warnings behind a row name, once each. */
+/**
+ * Every host the warnings behind a row name, once each: the device each concerns, then any hosts an
+ * ambiguous neighbour matched, which are the records the row offers to merge.
+ */
 export function hostIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
 	return [
-		...new Set(entry.warnings.flatMap((w) => ('host_id' in w && w.host_id ? [w.host_id] : [])))
+		...new Set(
+			entry.warnings.flatMap((w) => [
+				...('host_id' in w && w.host_id ? [w.host_id] : []),
+				...(w.code === 'LldpNeighbourAmbiguous' ? w.candidate_host_ids : [])
+			])
+		)
 	];
 }
 

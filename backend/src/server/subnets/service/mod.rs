@@ -39,6 +39,10 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use uuid::Uuid;
 
+mod cidr_change;
+mod create;
+pub use cidr_change::CidrChangeRefusal;
+
 pub struct SubnetService {
     storage: Arc<GenericPostgresStorage<Subnet>>,
     event_bus: Arc<EventBus>,
@@ -176,6 +180,13 @@ impl SubnetService {
                 response.range_evidence = evidence.remove(&response.subnet.id);
             }
         }
+
+        let ids: Vec<Uuid> = responses.iter().map(|r| r.subnet.id).collect();
+        let mut discovered = self.vlan_service.discovered_ids_for_subnets(&ids).await?;
+        for response in &mut responses {
+            response.discovered_vlan_ids =
+                discovered.remove(&response.subnet.id).unwrap_or_default();
+        }
         Ok(responses)
     }
 
@@ -246,8 +257,8 @@ impl SubnetService {
         Ok(target)
     }
 
-    /// Whether narrowing `existing` to `new_cidr` would leave one of its addresses with nowhere to
-    /// go.
+    /// The first of `existing`'s addresses that narrowing it to `new_cidr` would leave with nowhere
+    /// to go, if any.
     ///
     /// Asked against the subnet list *as it would be after* the correction, which is the whole
     /// point: it is the corrected range itself that blocks the conventional bucket its own castoffs
@@ -256,17 +267,17 @@ impl SubnetService {
     ///
     /// The two arms are the two halves of [`Self::place_address`], asked without performing it, so
     /// this cannot answer differently from the re-placement that follows.
-    async fn narrowing_would_strand(
+    async fn stranded_by_narrowing(
         &self,
         existing: &Subnet,
         new_cidr: IpCidr,
         live: &[Subnet],
-    ) -> bool {
+    ) -> Option<IpAddr> {
         // Only a narrowing displaces anything. Widening adds space and a promotion moves the rung.
         if new_cidr.contains(&existing.base.cidr.first_address())
             && new_cidr.network_length() <= existing.base.cidr.network_length()
         {
-            return false;
+            return None;
         }
 
         let addresses = match self.ip_address_service.get_for_subnet(&existing.id).await {
@@ -279,7 +290,7 @@ impl SubnetService {
                     error = %e,
                     "Could not check what a narrowed range would displace"
                 );
-                return false;
+                return None;
             }
         };
 
@@ -298,8 +309,8 @@ impl SubnetService {
             .iter()
             .map(|a| a.base.ip_address)
             .filter(|ip| !new_cidr.contains(ip))
-            .any(|ip| {
-                placeable_subnet(&after, ip).is_none() && infer_range_for(ip, &after).is_none()
+            .find(|ip| {
+                placeable_subnet(&after, *ip).is_none() && infer_range_for(*ip, &after).is_none()
             })
     }
 
@@ -426,6 +437,34 @@ impl CrudService<Subnet> for SubnetService {
         Some(&self.entity_tag_service)
     }
 
+    /// A move to a new range goes through [`Self::move_range`], which keeps the old range in
+    /// history and re-files the addresses the move affects. Anything else is a plain update.
+    async fn update(
+        &self,
+        entity: &mut Subnet,
+        authentication: AuthenticatedEntity,
+        reason: UpdateReason,
+    ) -> Result<Subnet, anyhow::Error> {
+        let current = self
+            .get_by_id(&entity.id)
+            .await?
+            .ok_or_else(|| Error::msg(format!("Could not find {entity}")))?;
+        let mut updated = if current.base.cidr.value() == entity.base.cidr.value() {
+            self.update_base(entity, authentication, reason).await?
+        } else {
+            self.move_range(current, entity, authentication, reason)
+                .await?
+        };
+        // `vlan_ids` reads back every link; writing it sets the ones discovery didn't find, so a
+        // caller sending back what it read changes nothing.
+        self.vlan_service
+            .set_manual_subnet_vlans(&updated.id, &entity.base.vlan_ids)
+            .await?;
+        self.hydrate_vlans(std::slice::from_mut(&mut updated))
+            .await?;
+        Ok(updated)
+    }
+
     async fn get_by_id(&self, id: &Uuid) -> Result<Option<Subnet>, anyhow::Error> {
         match self.storage().get_by_id(id).await? {
             Some(mut subnet) => {
@@ -497,174 +536,7 @@ impl CrudService<Subnet> for SubnetService {
         subnet: Subnet,
         authentication: AuthenticatedEntity,
     ) -> Result<Subnet, anyhow::Error> {
-        // SCD2: natural-key match (CIDR + virtualization) runs against live
-        // subnets only; closed historical copies must not match.
-        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[subnet.base.site_id]).live();
-        let all_subnets = self.storage.get_all(filter).await?;
-
-        let subnet = if subnet.id == Uuid::nil() {
-            Subnet::new(subnet.base)
-        } else {
-            subnet
-        };
-
-        // A reading that nests with a range Scanopy only inferred corrects that row instead of
-        // inserting beside it — but only where the answer is unambiguous. Inferred ranges are
-        // pairwise disjoint (`infer_ranges` drops any candidate overlapping a range already held),
-        // so at most one can equal or contain the incoming range, while several can sit inside it.
-        // That last case says the inferred rows are one segment and should be merged, which means
-        // deleting rows; discovery does not do that on its own. See `corrects_inferred_range`.
-        let nested: Vec<&Subnet> = all_subnets
-            .iter()
-            .filter(|existing| subnet.corrects_inferred_range(existing))
-            .collect();
-        let correctable = match nested.as_slice() {
-            [one] => Some(*one),
-            [] => None,
-            several => {
-                tracing::info!(
-                    site_id = %subnet.base.site_id,
-                    observed_cidr = %subnet.base.cidr,
-                    inferred_count = several.len(),
-                    "A read range covers several inferred ranges; leaving them for a person to merge"
-                );
-                None
-            }
-        };
-
-        // A narrowing has to have somewhere to put what it displaces. Where it does not, the
-        // correction is declined and the reading is recorded beside the guess instead.
-        let correctable = match correctable {
-            Some(existing)
-                if self
-                    .narrowing_would_strand(existing, *subnet.base.cidr, &all_subnets)
-                    .await =>
-            {
-                tracing::info!(
-                    site_id = %subnet.base.site_id,
-                    observed_cidr = %subnet.base.cidr,
-                    assumed_cidr = %existing.base.cidr,
-                    "A read range would leave an address of the range it narrows with nowhere to \
-                     go; recording it beside that range rather than stranding them"
-                );
-                None
-            }
-            other => other,
-        };
-
-        let subnet_from_storage = match all_subnets
-            .iter()
-            .find(|existing_subnet| matches_existing_subnet(&subnet, existing_subnet))
-            .or(correctable)
-        {
-            Some(existing_subnet) => {
-                // SCD2 semantics: every successful natural-key match advances
-                // last_seen_at, even when no field changes. Otherwise
-                // unchanged subnets falsely look stale to (future) staleness
-                // consumers. The incoming `subnet` was pre-stamped by
-                // `HostService::discover_host` when called via discovery (see
-                // `ScanContext`) so all entities in one submission share one
-                // timestamp; for non-discovery callers the value is whatever
-                // they put on the entity.
-                let mut refreshed = existing_subnet.clone();
-                refreshed.last_seen_at = subnet.last_seen_at;
-
-                // The name and type by the same ladder as the range. A placeholder name (the
-                // CIDR, `Unspecified`) takes the name a controller gives the network, and a type
-                // guessed from an interface name takes the controller's own; a value a person set
-                // is never displaced. This also repairs the rows the interface-name heuristic once
-                // typed as container bridges (#663): those are stored `Unspecified`.
-                refreshed.base.name.apply_in_place(subnet.base.name.clone());
-                refreshed
-                    .base
-                    .subnet_type
-                    .apply_in_place(subnet.base.subnet_type.clone());
-
-                if let Some(owner) = subnet.owner_for_ownerless_bridge(existing_subnet) {
-                    refreshed.base.virtualization_service_id = Some(owner);
-                }
-
-                // The confidence ladder, finally applied. `apply_cidr` refuses anything less
-                // authoritative than what is stored, so an inference never displaces a reading and
-                // nothing displaces a range a person confirmed. Without this the incoming rung was
-                // dropped on the floor here and `Inferred` could only ever be cleared by hand.
-                let before = (
-                    *existing_subnet.base.cidr,
-                    existing_subnet.base.cidr.source(),
-                );
-                let corrected = refreshed.apply_cidr(*subnet.base.cidr, subnet.base.cidr.source());
-
-                self.storage.update(&mut refreshed).await?;
-
-                // Every rescan moves last_seen_at, which subscribers don't need to hear about;
-                // anything else this path changes (the type, the owner, the range) is published,
-                // as host and service upserts do.
-                if !changes(existing_subnet, &refreshed, Subnet::LOG_IGNORED_PATHS).is_empty() {
-                    self.publish_updated(
-                        existing_subnet,
-                        &refreshed,
-                        authentication.clone(),
-                        UpdateReason::SubnetRediscovered,
-                    )
-                    .await;
-                }
-
-                if corrected {
-                    self.report_correction(&refreshed, before, authentication.clone())
-                        .await;
-                }
-                refreshed
-            }
-            // If there's no existing subnet, create a new one
-            None => {
-                // SCD2 origin: this row is being inserted for the first
-                // time. Stamp created_at + valid_from to the entity's
-                // already-refreshed `last_seen_at`. See
-                // `DiscoveryTracked::originate_scan_timestamps`.
-                use crate::server::shared::storage::snapshot::DiscoveryTracked;
-                let mut subnet = subnet;
-                subnet.originate_scan_timestamps(subnet.last_seen_at);
-                let mut created = self.storage.create(&subnet).await?;
-
-                // Save tags to junction table
-                if let Some(tag_service) = self.entity_tag_service()
-                    && let Some(org_id) = authentication.organization_id()
-                {
-                    tag_service
-                        .set_tags(
-                            created.id,
-                            EntityDiscriminants::Subnet,
-                            created.base.tags.clone(),
-                            org_id,
-                        )
-                        .await?;
-                    created.base.tags = subnet.base.tags.clone();
-                }
-
-                let trigger_stale = created.triggers_staleness(None);
-
-                if let Some(scope) = EntityScope::from_ids(
-                    created.id,
-                    created.clone().into(),
-                    self.get_site_id(&created),
-                    self.get_organization_id(&created),
-                ) {
-                    self.event_bus()
-                        .publish(
-                            Event::new(scope, EntityOperation::Created, authentication).with_flags(
-                                EntityEventFlags {
-                                    trigger_stale,
-                                    ..Default::default()
-                                },
-                            ),
-                        )
-                        .await;
-                }
-
-                subnet
-            }
-        };
-        Ok(subnet_from_storage)
+        self.create_for(subnet, authentication, None).await
     }
 }
 

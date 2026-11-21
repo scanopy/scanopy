@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
+    shared::events::types::UpdateReason,
     shared::{
         services::{factory::ServiceFactory, traits::CrudService},
         storage::traits::Storage,
@@ -23,12 +24,12 @@ use crate::server::{
     },
     subnets::{
         r#impl::base::{Subnet, SubnetCidr, SubnetCidrValue},
-        service::Placement,
+        service::{CidrChangeRefusal, Placement},
     },
 };
 
 use super::{organization, site, test_services};
-use crate::server::subnets::r#impl::base::SubnetName;
+use crate::server::subnets::r#impl::base::{SubnetName, SubnetNameValue};
 
 /// Seed a site with the two organizational catch-alls a real one is created with, plus whatever
 /// else the test wants it to hold.
@@ -577,4 +578,214 @@ async fn a_narrowing_that_would_strand_an_address_is_declined() {
             named.base.cidr
         );
     }
+}
+
+// ============================================================================
+// A person moving a range (`SubnetService::check_cidr_change` and the update it guards)
+// ============================================================================
+
+/// A range a person typed, as the create handler records one.
+async fn record(services: &ServiceFactory, site_id: Uuid, cidr: &str) -> Uuid {
+    let mut subnet = super::subnet(&site_id);
+    subnet.base.cidr = SubnetCidr::new(
+        SubnetCidrValue(cidr.parse().expect("valid test CIDR")),
+        AttributeSource::Manual,
+    );
+    subnet.base.name = SubnetName::unattributed(cidr.to_string());
+    subnet.base.source = EntitySource::Manual;
+    services
+        .subnet_service
+        .create(subnet, AuthenticatedEntity::System)
+        .await
+        .expect("the range is recorded")
+        .id
+}
+
+/// Ask whether `id` may move to `cidr`, and move it when it may, as `update_subnet` does.
+async fn move_to(
+    services: &ServiceFactory,
+    id: Uuid,
+    cidr: &str,
+) -> Result<Subnet, CidrChangeRefusal> {
+    let current = live_subnet(services, id).await;
+    let new_cidr: cidr::IpCidr = cidr.parse().expect("valid test CIDR");
+    services
+        .subnet_service
+        .check_cidr_change(&current, new_cidr)
+        .await
+        .unwrap()?;
+    let mut moved = current.clone();
+    moved.base.cidr = SubnetCidr::new(SubnetCidrValue(new_cidr), AttributeSource::Manual);
+    Ok(services
+        .subnet_service
+        .update(
+            &mut moved,
+            AuthenticatedEntity::System,
+            UpdateReason::EntityRequested,
+        )
+        .await
+        .expect("the move is written"))
+}
+
+/// Moving a range over addresses a wider subnet holds files them in the moved range, the most
+/// specific one that holds them. Placement re-files an address only when its subnet stops
+/// containing it, which the wider one never does.
+#[tokio::test]
+async fn moving_a_range_takes_the_addresses_it_now_holds_most_specifically() {
+    let (services, site_id, _container) = site_holding(&["10.0.0.0/16"]).await;
+    let wide = all_live(&services, site_id)
+        .await
+        .into_iter()
+        .find(|s| s.base.cidr.to_string() == "10.0.0.0/16")
+        .unwrap()
+        .id;
+    let inside = ip_on(&services, site_id, wide, "10.0.5.7").await;
+    let outside = ip_on(&services, site_id, wide, "10.0.9.7").await;
+
+    let branch = record(&services, site_id, "10.0.6.0/24").await;
+    move_to(&services, branch, "10.0.4.0/22")
+        .await
+        .expect("nothing refuses this move");
+
+    assert_eq!(live_ip(&services, inside).await.base.subnet_id, branch);
+    assert_eq!(
+        live_ip(&services, outside).await.base.subnet_id,
+        wide,
+        "an address the moved range doesn't hold stays where it was"
+    );
+}
+
+/// A move onto a range another subnet already has, or onto the organizational rows' range, is
+/// refused before anything is written.
+#[tokio::test]
+async fn a_move_onto_a_held_or_organizational_range_is_refused() {
+    let (services, site_id, _container) = site_holding(&["10.0.1.0/24"]).await;
+    let branch = record(&services, site_id, "10.0.6.0/24").await;
+
+    assert!(matches!(
+        move_to(&services, branch, "10.0.1.0/24").await,
+        Err(CidrChangeRefusal::Duplicate(_))
+    ));
+    assert_eq!(
+        move_to(&services, branch, "0.0.0.0/0").await.err(),
+        Some(CidrChangeRefusal::Organizational)
+    );
+    assert_eq!(
+        live_subnet(&services, branch).await.base.cidr.to_string(),
+        "10.0.6.0/24"
+    );
+}
+
+/// A narrowing that leaves an address in no subnet is refused and names the address. A public
+/// address gets no assumed range, so nothing could take it.
+#[tokio::test]
+async fn a_move_that_would_strand_an_address_is_refused() {
+    let (services, site_id, _container) = site_holding(&[]).await;
+    let public = record(&services, site_id, "203.0.113.0/24").await;
+    ip_on(&services, site_id, public, "203.0.113.9").await;
+
+    assert_eq!(
+        move_to(&services, public, "203.0.113.128/25").await.err(),
+        Some(CidrChangeRefusal::StrandsAddress(
+            "203.0.113.9".parse().unwrap()
+        ))
+    );
+}
+
+/// Assumed ranges inside the moved range are the same segment, so they merge into it and their
+/// addresses come along. An assumed range with the very same CIDR is absorbed, not a duplicate.
+#[tokio::test]
+async fn a_move_absorbs_the_assumed_ranges_it_covers() {
+    let (services, site_id, _container) = site_holding(&[]).await;
+    let mut addresses = Vec::new();
+    for address in ["10.20.30.24", "10.20.31.9"] {
+        let Placement::Inferred(guess) = services
+            .subnet_service
+            .place_address(site_id, address.parse().unwrap())
+            .await
+            .unwrap()
+        else {
+            panic!("expected a range to be inferred for {address}");
+        };
+        addresses.push(ip_on(&services, site_id, guess, address).await);
+    }
+
+    let branch = record(&services, site_id, "10.99.0.0/24").await;
+    move_to(&services, branch, "10.20.30.0/23")
+        .await
+        .expect("an assumed range is not a duplicate");
+
+    assert!(inferred_ranges(&services, site_id).await.is_empty());
+    for id in addresses {
+        assert_eq!(live_ip(&services, id).await.base.subnet_id, branch);
+    }
+}
+
+/// Recording a range over several assumed ones absorbs them all. Discovery declines this (see
+/// `a_reading_covering_two_guesses_corrects_neither`); a person recording the range is the person
+/// that case waits for.
+#[tokio::test]
+async fn recording_a_range_over_several_guesses_absorbs_them() {
+    let (services, site_id, _container) = site_holding(&[]).await;
+    for address in ["10.20.30.24", "10.20.31.9"] {
+        services
+            .subnet_service
+            .place_address(site_id, address.parse().unwrap())
+            .await
+            .unwrap();
+    }
+
+    record(&services, site_id, "10.20.30.0/23").await;
+
+    assert_eq!(held_ranges(&services, site_id).await, vec!["10.20.30.0/23"]);
+}
+
+/// The old range survives the move as a closed historical row, so a view as of before the move
+/// shows the range the subnet had then.
+#[tokio::test]
+async fn a_move_keeps_the_old_range_in_history() {
+    use crate::server::shared::storage::snapshot::Snapshotable;
+
+    let (services, site_id, _container) = site_holding(&[]).await;
+    let branch = record(&services, site_id, "10.0.6.0/24").await;
+    move_to(&services, branch, "10.0.4.0/22").await.unwrap();
+
+    let history: Vec<Subnet> = services
+        .subnet_service
+        .get_all(crate::server::shared::storage::filter::StorableFilter::<
+            Subnet,
+        >::new_from_site_ids(&[site_id]))
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.lineage_id() == Some(branch))
+        .collect();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].base.cidr.to_string(), "10.0.6.0/24");
+    assert!(history[0].valid_to().is_some());
+}
+
+/// A subnet named after its range is renamed with the move, so the list doesn't show the old
+/// range as its name. One a person named keeps the name.
+#[tokio::test]
+async fn a_move_renames_a_subnet_named_after_its_range() {
+    let (services, site_id, _container) = site_holding(&[]).await;
+    let unnamed = record(&services, site_id, "10.0.6.0/24").await;
+    let named = record(&services, site_id, "10.0.9.0/24").await;
+    let mut renamed = live_subnet(&services, named).await;
+    renamed.base.name = SubnetName::new(SubnetNameValue("Branch".into()), AttributeSource::Manual);
+    services
+        .subnet_service
+        .update(
+            &mut renamed,
+            AuthenticatedEntity::System,
+            UpdateReason::EntityRequested,
+        )
+        .await
+        .unwrap();
+
+    let moved = move_to(&services, unnamed, "10.0.4.0/22").await.unwrap();
+    assert_eq!(moved.base.name(), "10.0.4.0/22");
+    let moved = move_to(&services, named, "10.0.8.0/22").await.unwrap();
+    assert_eq!(moved.base.name(), "Branch");
 }
