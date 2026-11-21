@@ -16,6 +16,7 @@ use crate::server::credentials::r#impl::types::{
 // Discoveries
 // ============================================================================
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn generate_discoveries(
     sites: &[Site],
     subnets: &[Subnet],

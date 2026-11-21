@@ -346,6 +346,7 @@
 	const form = createForm(() => ({
 		defaultValues: formValues(createEmptySubnetFormData('')),
 		onSubmit: async ({ value }) => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars -- reach and scan_id stay out of the subnet
 			const { purpose: chosenPurpose, reach: _reach, scan_id: _scanId, ...fields } = value;
 			// Read before `onCreate`, which closes the modal.
 			const scan = routedToScan;

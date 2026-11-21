@@ -136,7 +136,6 @@
 	// already visited place nothing. A cache, written while deriving `placed`.
 	let namedByStep = $derived.by(() => {
 		void candidates;
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		return new Map<number, PlacedLabel[]>();
 	});
 
