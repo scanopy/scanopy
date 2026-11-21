@@ -137,7 +137,7 @@
 		name?: string;
 		/** Creating a network for one scan, on its site, as when opened from the scan's Targets.
 		 *  The flow asks no purpose and no reach, and the caller adds the subnet to the scan. */
-		fixedScan?: { siteId: string; label: string } | null;
+		fixedScan?: { scan: Discovery; label: string } | null;
 		/** With `fixedScan`, a subnet that already holds the typed range, to add to the scan in
 		 *  place of creating another. */
 		onUseExisting?: ((subnet: SubnetResponse) => void) | null;
@@ -190,7 +190,7 @@
 	type Reach = 'install' | 'routed';
 
 	function editing(): Subnet {
-		return subnet ?? createEmptySubnetFormData(fixedScan?.siteId ?? defaultSiteId);
+		return subnet ?? createEmptySubnetFormData(fixedScan?.scan.site_id ?? defaultSiteId);
 	}
 
 	function formValues(source: Subnet): SubnetFormValues {
@@ -849,13 +849,20 @@
 					<!-- Subnet Details Section -->
 					<div class="space-y-4">
 						{#if !isEditing}
-							<InlineInfo
-								body={fixedScan
-									? subnets_routedNote({ scan: fixedScan.label })
-									: routedToScan
-										? subnets_routedNote({ scan: scanLabel(routedToScan) })
-										: subnets_recordNote()}
-							/>
+							{@const noteScan = fixedScan
+								? { ...scanChip(fixedScan.scan), label: fixedScan.label }
+								: routedToScan
+									? scanChip(routedToScan)
+									: null}
+							{#if noteScan}
+								<InlineInfo>
+									{@render sentence(subnets_routedNote({ scan: slot('scan') }), {
+										scan: noteScan
+									})}
+								</InlineInfo>
+							{:else}
+								<InlineInfo body={subnets_recordNote()} />
+							{/if}
 						{/if}
 						<SubnetIdentity {form} cidr={cidrInput.trim()} initialName={form.state.values.name} />
 

@@ -1083,7 +1083,7 @@
 <!-- Unnamed, so this wizard stays open underneath. -->
 <SubnetEditModal
 	isOpen={routedScan !== null}
-	fixedScan={routedScan ? { siteId: routedScan.site_id, label: routedScanLabel } : null}
+	fixedScan={routedScan ? { scan: routedScan, label: routedScanLabel } : null}
 	initialCidr={expectedCidr ?? ''}
 	onCreate={handleRoutedCreate}
 	onUseExisting={addToRoutedScan}
