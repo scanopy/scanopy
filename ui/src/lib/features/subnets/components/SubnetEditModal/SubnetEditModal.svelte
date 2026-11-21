@@ -60,7 +60,6 @@
 	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
 	import {
 		subnets_addToScan,
-		subnets_addToThisScan,
 		subnets_addedToScan,
 		subnets_createAndScan,
 		subnets_existsHereScanned,
@@ -136,14 +135,6 @@
 		onClose: () => void;
 		onDelete?: ((id: string) => Promise<void> | void) | null;
 		name?: string;
-		/** Creating a network for one scan, on its site, as when opened from the scan's Targets.
-		 *  The flow asks no purpose and no reach, and the caller adds the subnet to the scan. */
-		fixedScan?: { scan: Discovery; label: string } | null;
-		/** With `fixedScan`, a subnet that already holds the typed range, to add to the scan in
-		 *  place of creating another. */
-		onUseExisting?: ((subnet: SubnetResponse) => void) | null;
-		/** A range to start from, as when a connected daemon's host isn't on the one asked for. */
-		initialCidr?: string;
 	}
 
 	let {
@@ -153,10 +144,7 @@
 		onUpdate,
 		onClose,
 		onDelete = null,
-		name = undefined,
-		fixedScan = null,
-		onUseExisting = null,
-		initialCidr = ''
+		name = undefined
 	}: Props = $props();
 
 	let loading = $state(false);
@@ -191,14 +179,14 @@
 	type Reach = 'install' | 'routed';
 
 	function editing(): Subnet {
-		return subnet ?? createEmptySubnetFormData(fixedScan?.scan.site_id ?? defaultSiteId);
+		return subnet ?? createEmptySubnetFormData(defaultSiteId);
 	}
 
 	function formValues(source: Subnet): SubnetFormValues {
 		return {
 			// Blank while the subnet is named after its range, which the name field shows.
 			name: source.name === source.cidr ? '' : source.name,
-			cidr: subnet ? source.cidr : initialCidr,
+			cidr: source.cidr,
 			description: source.description ?? '',
 			site_id: source.site_id,
 			subnet_type: source.subnet_type,
@@ -234,22 +222,20 @@
 
 	// The create flow's steps. Its first answer decides the rest: a network to scan goes on to how
 	// Scanopy reaches it, and from another daemon's scan to its details; a network to record goes
-	// on to its details. A network for a fixed scan skips both questions. Editing is one page.
+	// on to its details. Editing is one page.
 	type Step = 'network' | 'reach' | 'details';
 	let purpose = $state<SubnetCreatePurpose>('Scan');
 	let reach = $state<Reach>('routed');
 	let scanId = $state('');
 	let steps = $derived<Step[]>(
-		fixedScan || purpose === 'Record'
+		purpose === 'Record'
 			? ['network', 'details']
 			: reach === 'routed' && siteScans.length > 0
 				? ['network', 'reach', 'details']
 				: ['network', 'reach']
 	);
 	let routedToScan = $derived(
-		!fixedScan && purpose === 'Scan' && reach === 'routed'
-			? siteScans.find((d) => d.id === scanId)
-			: undefined
+		purpose === 'Scan' && reach === 'routed' ? siteScans.find((d) => d.id === scanId) : undefined
 	);
 	let activeTab = $state<Step>('network');
 	let furthestReached = $state(0);
@@ -319,10 +305,6 @@
 
 	/** Add a subnet that already exists to the scan picked for it, and close. */
 	async function handleAddExistingToScan(existing: SubnetResponse) {
-		if (fixedScan) {
-			onUseExisting?.(existing);
-			return;
-		}
 		const scan = siteScans.find((d) => d.id === scanId);
 		if (!scan) return;
 		try {
@@ -529,7 +511,7 @@
 	// Prepare subnet type options. Every site already has its Internet and Remote ranges, so those
 	// are offered only to a subnet that already holds one. A network created to scan is offered
 	// only the types a scan sweeps.
-	let creatingToScan = $derived(!isEditing && (!!fixedScan || !!routedToScan));
+	let creatingToScan = $derived(!isEditing && !!routedToScan);
 	let subnetTypeOptions: SimpleOption[] = $derived(
 		subnetTypes
 			.getItems()
@@ -676,11 +658,9 @@
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			{#if !isEditing && activeTab === 'network'}
 				<div class="space-y-4">
-					{#if !fixedScan}
-						<form.Field name="site_id">
-							<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
-						</form.Field>
-					{/if}
+					<form.Field name="site_id">
+						<SelectSite {selectedSiteId} onSiteChange={handleSiteChange} />
+					</form.Field>
 
 					<form.Field
 						name="cidr"
@@ -728,15 +708,7 @@
 									refs
 								)}
 							{/if}
-							{#if !daemon && fixedScan}
-								<button
-									type="button"
-									class="btn-secondary mt-2"
-									onclick={() => handleAddExistingToScan(existing)}
-								>
-									{subnets_addToThisScan()}
-								</button>
-							{:else if !daemon && existingScans.length === 0 && siteScans.length > 0}
+							{#if !daemon && existingScans.length === 0 && siteScans.length > 0}
 								<div class="mt-2 flex flex-wrap items-end gap-2">
 									<form.Field name="scan_id">
 										<div class="min-w-64 flex-1">
@@ -774,7 +746,7 @@
 								}),
 								{ subnet: subnetChip(other), site: siteRef }
 							)}
-							{#if site && !fixedScan}
+							{#if site}
 								<button
 									type="button"
 									class="btn-secondary mt-2"
@@ -796,20 +768,18 @@
 						</InlineInfo>
 					{/if}
 
-					{#if !fixedScan}
-						<form.Field name="purpose">
-							{#snippet children(field)}
-								<RadioGroup
-									label={subnets_purposeQuestion()}
-									id="purpose"
-									{field}
-									options={purposeOptions}
-									value={purpose}
-									onChange={handlePurposeChange}
-								/>
-							{/snippet}
-						</form.Field>
-					{/if}
+					<form.Field name="purpose">
+						{#snippet children(field)}
+							<RadioGroup
+								label={subnets_purposeQuestion()}
+								id="purpose"
+								{field}
+								options={purposeOptions}
+								value={purpose}
+								onChange={handlePurposeChange}
+							/>
+						{/snippet}
+					</form.Field>
 				</div>
 			{:else if !isEditing && activeTab === 'reach'}
 				<div class="space-y-4">
@@ -856,15 +826,10 @@
 					<!-- Subnet Details Section -->
 					<div class="space-y-4">
 						{#if !isEditing}
-							{@const noteScan = fixedScan
-								? { ...scanChip(fixedScan.scan), label: fixedScan.label }
-								: routedToScan
-									? scanChip(routedToScan)
-									: null}
-							{#if noteScan}
+							{#if routedToScan}
 								<InlineInfo>
 									{@render sentence(subnets_routedNote({ scan: slot('scan') }), {
-										scan: noteScan
+										scan: scanChip(routedToScan)
 									})}
 								</InlineInfo>
 							{:else}
