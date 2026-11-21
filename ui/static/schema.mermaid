@@ -109,6 +109,8 @@ erDiagram
 "public.site_assignments" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
 "public.site_assignments" }o--o| "public.invites" : "FOREIGN KEY (invite_id) REFERENCES invites(id) ON DELETE CASCADE"
 "public.site_assignments" }o--o| "public.user_api_keys" : "FOREIGN KEY (api_key_id) REFERENCES user_api_keys(id) ON DELETE CASCADE"
+"public.discovery_subnets" }o--|| "public.subnets" : "FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE"
+"public.discovery_subnets" }o--|| "public.discovery" : "FOREIGN KEY (discovery_id) REFERENCES discovery(id) ON DELETE CASCADE"
 
 "public._sqlx_migrations" {
   bigint version
@@ -316,7 +318,6 @@ erDiagram
   text plan_status
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
-  jsonb onboarding
   boolean has_payment_method
   timestamp_with_time_zone trial_end_date
   text use_case
@@ -339,6 +340,9 @@ erDiagram
   boolean bills_by_invoice
   text license_server_version
   jsonb setup
+  text use_case_other
+  text__ intents
+  text intent_other
 }
 "public.topologies" {
   uuid id
@@ -563,6 +567,7 @@ erDiagram
   timestamp_with_time_zone valid_to
   uuid lineage_id
   uuid snapshot_id FK
+  text source
 }
 "public.snapshots" {
   uuid id
@@ -682,6 +687,10 @@ erDiagram
   text role
   uuid site_id FK
   timestamp_with_time_zone created_at
+}
+"public.discovery_subnets" {
+  uuid discovery_id FK
+  uuid subnet_id FK
 }
 "tower_sessions.session" {
   text id
