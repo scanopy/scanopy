@@ -15,7 +15,8 @@ The output is supporting evidence for a Section 889 compliance attestation.
 | `tools/889/889-allow.txt` | Reviewed false-positive exceptions (only subtracts, never broadens). |
 | `.github/workflows/889-check.yml` | PR gate — analyze-only source SBOM, blocks merge on a hit. |
 | `.github/workflows/889-evidence.yml` | Refreshes `compliance/ndaa-889/` (the published evidence) and commits it to `main`. |
-| `.github/workflows/889-vendors-refresh.yml` | Quarterly cron — opens a vendor-list review issue. |
+| `.github/workflows/889-vendors-refresh.yml` | Quarterly cron — opens a vendor-list review issue with a feed check. |
+| `tools/889/889-candidates.sh` | Review aid. Reports 889 parties and ownership-derived affiliates from a hash-checked feed release that no vendor pattern covers yet. Never edits the list. |
 | `.github/workflows/release.yml` (`supply-chain-889` job) | Release gate — scans source + all images, fails the release on a hit. |
 
 ## Running locally
@@ -142,6 +143,29 @@ FAR-cause filtering and name-to-pattern translation — fragile to run unattende
 on a quarterly cadence, and the matcher must stay offline (no run-time fetch).
 A quarterly human review is the right cost/benefit; automating the fetch is a
 separate future task if the manual cadence proves too slow.
+
+**Feed check in the review issue.** The issue body includes the output of
+`tools/889/889-candidates.sh`, which needs no API key. It downloads one dated
+release of [us-restricted-parties](https://github.com/Mattbusel/us-restricted-parties)
+(CC BY 4.0, rebuilt daily in public CI): `us_far_889.jsonl` (the five parties
+from eCFR FAR 52.204-25) and `affiliates.senzing.jsonl` (companies those
+parties own or control, from GLEIF Level 2 ownership links, each with its LEI
+and proof path). Both files are checked against the SHA-256 in that release's
+`manifest.json` / `affiliates.manifest.json`, and the release tag is printed so
+the review records exactly which data it used. Every name that no pattern in
+`889-vendors.txt` matches is listed with a ready-to-paste
+`pattern;source;date;note` line. Affiliate rows are ownership evidence, not a
+determination; a maintainer still decides what goes in the list. A feed failure
+is noted in the issue and the manual checklist still applies. Run it locally:
+
+```sh
+./tools/889/889-candidates.sh                            # newest data-* release
+./tools/889/889-candidates.sh --release data-2026-11-18  # a pinned release
+./tools/889/test-889-candidates.sh                       # offline self-test (run by 889-check.yml)
+```
+
+To drop it, delete the two scripts and the feed-check step in
+`889-vendors-refresh.yml`; nothing else depends on them.
 
 ## SBOM storage decision
 
