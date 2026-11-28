@@ -21,7 +21,7 @@
 		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.1",
 		"@inlang/paraglide-js": "^2.15.1",
-		"@magidoc/plugin-svelte-prismjs": "^7.0.0",
+		"@magidoc/plugin-svelte-prismjs": "^8.0.2",
 		"@playwright/test": "^1.64.1",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.1.0",
